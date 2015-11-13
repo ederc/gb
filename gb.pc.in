@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: gb
+Description: Groebner Basis algorithms.
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lgb -lm
+Cflags: -I${includedir}/ @CFLAGS@ @SIMD_FLAGS@ @OPENMP_CFLAGS@

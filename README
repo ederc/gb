@@ -1,0 +1,30 @@
+# OVERVIEW #
+gbla is a library for reducing matrices coming from Groebner basis computations.
+Its core functionality is the special Gaussian Elimination of
+structured hybrid sparse-dense matrices due to Faugère and Lachartre.
+
+# FAST INSTALL INSTRUCTIONS #
+Using autotools one can compile and install gbla by
+
+* ./autogen.sh
+* ./configure
+* make
+* make install
+
+For further installation instructions please see INSTALL.
+
+# INSTALL ON MAC #
+Use clang-omp for openmp support:
+* ./autogen.sh
+* ./configure CC=clang-omp
+* make
+* make install
+
+# DEBUGGING #
+In order to debug gbla one needs configure with --enable-debug and use
+
+```
+libtool e gdb --args ./gbla --options
+```
+
+since we build the library using libtool and link it than against the binary gbla.

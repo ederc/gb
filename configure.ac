@@ -328,7 +328,7 @@ AC_ARG_ENABLE([png],
 
 AC_MSG_CHECKING([whether to build with PNG support])
 AC_MSG_RESULT([${want_png}])
-
+PKG_CHECK_MODULES(GBLA, gbla >= 0.0.3)
 if test "x${want_png}" = "xyes" ; then
    PKG_CHECK_MODULES([PNG], [libpng],
       [have_libpng="yes"; LIBPNG_LIBADD=`pkg-config --libs libpng`],

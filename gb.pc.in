@@ -5,6 +5,7 @@ includedir=@includedir@
 
 Name: gb
 Description: Groebner Basis algorithms.
+Requires: gbla
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lgb -lm
 Cflags: -I${includedir}/ @CFLAGS@ @SIMD_FLAGS@ @OPENMP_CFLAGS@

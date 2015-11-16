@@ -1,10 +1,9 @@
 # OVERVIEW #
-gbla is a library for reducing matrices coming from Groebner basis computations.
-Its core functionality is the special Gaussian Elimination of
-structured hybrid sparse-dense matrices due to Faugère and Lachartre.
+gb is a library for Groebner basis computations. It relies on fast specialized
+linear algebra and thus depends on gbla
 
 # FAST INSTALL INSTRUCTIONS #
-Using autotools one can compile and install gbla by
+Using autotools one can compile and install gb by
 
 * ./autogen.sh
 * ./configure
@@ -21,10 +20,10 @@ Use clang-omp for openmp support:
 * make install
 
 # DEBUGGING #
-In order to debug gbla one needs configure with --enable-debug and use
+In order to debug gb one needs configure with --enable-debug and use
 
 ```
-libtool e gdb --args ./gbla --options
+libtool e gdb --args ./gb --options
 ```
 
-since we build the library using libtool and link it than against the binary gbla.
+since we build the library using libtool and link it than against the binary gb.

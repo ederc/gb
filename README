@@ -1,6 +1,5 @@
 # OVERVIEW #
-gb is a library for Groebner basis computations. It relies on fast specialized
-linear algebra and thus depends on gbla
+gb is a library for Groebner basis computations. It relies on fast specialized linear algebra and thus depends on gbla
 
 # FAST INSTALL INSTRUCTIONS #
 Using autotools one can compile and install gb by
@@ -26,4 +25,4 @@ In order to debug gb one needs configure with --enable-debug and use
 libtool e gdb --args ./gb --options
 ```
 
-since we build the library using libtool and link it than against the binary gb.
+since we build the library using libtool and link it then against the binary gb.

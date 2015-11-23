@@ -32,10 +32,13 @@ void print_help()
   printf("    Computes a Groebner basis of the given input ideal.\n");
   printf("\n");
   printf("OPTIONS\n");
+  printf("    -h HELP     Print help.\n");
   printf("    -r REDGB    Compute the reduced Groebner basis.\n");
   printf("                Default: 0.\n");
   printf("    -t THRDS    Number of threads used.\n");
   printf("                Default: 1.\n");
+  printf("    -s HTS      Hash table size.\n");
+  printf("                Default: UINT_MAX.\n");
   printf("    -v LEVEL    Level of verbosity:\n");
   printf("                1 -> only error messages printed\n");
   printf("                2 -> some meta information printed\n");
@@ -52,8 +55,10 @@ int main(int argc, char *argv[])
 {
   const char *fn        = NULL;
   int verbose           = 0;
-  int nbr_threads       = 1;
+  int n_threads         = 1;
   int reduce_gb         = 0;
+  ht_size_t ht_size     = UINT_MAX;
+
 
   int index;
   int opt;
@@ -62,9 +67,12 @@ int main(int argc, char *argv[])
   struct timeval t_load_start;
   struct timeval t_complete;
 
+  // keep track of meta data
+  info_t *meta_data = (info_t *)malloc(sizeof(info_t));
+
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "hr:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "hr:s:t:v:")) != -1) {
     switch (opt) {
       case 'h':
         print_help();
@@ -72,8 +80,11 @@ int main(int argc, char *argv[])
       case 'r':
         reduce_gb  = atoi(optarg);
         break;
+      case 's':
+        ht_size = atoi(optarg);
+        break;
       case 't':
-        nbr_threads = atoi(optarg);
+        n_threads = atoi(optarg);
         break;
       case 'v':
         verbose = atoi(optarg);
@@ -106,7 +117,8 @@ int main(int argc, char *argv[])
     printf("-------------------------- Computing Groebner -----------------------\n");
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
-    printf("number of threads           %4d\n", nbr_threads);
+    printf("number of threads           %4d\n", n_threads);
+    printf("hash table size             %4d\n", ht_size);
     printf("compute reduced basis?      %4d\n", reduce_gb);
     printf("---------------------------------------------------------------------\n");
   }
@@ -131,7 +143,15 @@ int main(int argc, char *argv[])
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
     printf("field characteristic        %14d\n", generators->modulus);
-    printf("number of generators        %14d\n", generators->nbr_vars);
+    printf("number of generators        %14d\n", generators->n_vars);
     printf("---------------------------------------------------------------------\n");
   }
+
+  // initialize hash table
+  mp_cf4_ht_t *hash_table = init_hash_table(ht_size, generators->n_vars);
+  
+  // free allocated memory
+  free(meta_data);
+  free(generators);
+  free(hash_table);
 }

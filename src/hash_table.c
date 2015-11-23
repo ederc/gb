@@ -13,29 +13,12 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-
 /**
- * \file gb.h
- * \brief Input/output routines for matrices
+ * \file hash_table.c
+ * \brief Implementation of the hash tables used in gb.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#ifndef GB_GB_H
-#define GB_GB_H
-
-#include <math.h>
-#include <unistd.h>
-#include <limits.h>
-#include "io.h"
-#include "types.h"
 #include "hash_table.h"
 
-/**
- * \brief Prints help for gb call.
- */
-void print_help();
-
-#endif

@@ -6,7 +6,8 @@ AM_CFLAGS=${SIMD_FLAGS} ${OPENMP_CFLAGS} ${DEBUG_FLAGS} $(GBLA_FLAGS)
 lib_LTLIBRARIES = libgb.la
 
 libgb_la_SOURCES = \
-	src/types.h
+	src/types.h \
+	src/hash_table.h	src/hash_table.c
 
 BUILT_SOURCES = src/gb_config.h
 

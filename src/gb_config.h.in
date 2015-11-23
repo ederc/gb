@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <limits.h>
 
 /* Defines determined during configuration of gb. */
 #define __GB_HAVE_MM_MALLOC		@GB_HAVE_MM_MALLOC@
@@ -43,6 +44,7 @@
 #define __GB_HYBRID_THRESHOLD 0.5f
 #define __GB_DENSITY_THRESHOLD 10.0f
 
+#define __GB_WORDSIZE __WORDSIZE
 
 static const uint32_t __GB_MINUS_ONE_32 = (uint32_t) -1;
 static const uint16_t __GB_MINUS_ONE_16 = (uint16_t) -1;

@@ -29,10 +29,10 @@ void print_help()
   printf("    gb [options] [file..]\n");
   printf("\n");
   printf("DESCRIPTION\n");
-  printf("    Computes Groebner basis of a given input ideal.\n");
+  printf("    Computes a Groebner basis of the given input ideal.\n");
   printf("\n");
   printf("OPTIONS\n");
-  printf("    -r REDGB    Compute reduced Groebner basis.\n");
+  printf("    -r REDGB    Compute the reduced Groebner basis.\n");
   printf("                Default: 0.\n");
   printf("    -t THRDS    Number of threads used.\n");
   printf("                Default: 1.\n");
@@ -40,8 +40,8 @@ void print_help()
   printf("                1 -> only error messages printed\n");
   printf("                2 -> some meta information printed\n");
   printf("                3 -> additionally meta information printed\n");
-  printf("                Note: Everything >2 is time consuming and slows down\n");
-  printf("                      the overall computations.\n");
+  printf("                Note: Everything >2 is time consuming and might\n");
+  printf("                      slow down the overall computations.\n");
   printf("\n");
 
   return;

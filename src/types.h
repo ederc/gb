@@ -190,12 +190,12 @@ typedef struct spair_t
 /**
  * \brief Groebner basis data
  */
-typedef struct gb_t
+typedef struct basis_t
 {
   coeff_t **coeffs; /*!<  coefficients of gb elements*/
   nelts_t size;     /*!<  size of gb*/
   nelts_t load;     /*!<  current load of gb, i.e. number of elements in gb*/
-} gb_t;
+} basis_t;
 
 /**
  * \brief Hash table as defined by Monagan and Pearce in compact F4

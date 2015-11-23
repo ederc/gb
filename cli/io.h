@@ -36,6 +36,7 @@
 #include <math.h>
 #include <gb_config.h>
 #include <omp.h>
+#include "types.h"
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 
@@ -55,4 +56,17 @@ double walltime(struct timeval t_start);
  * UNIX(>=3.1.4) and OS X (>=10.11).
  */
 void print_mem_usage();
+
+/**
+ * \brief Initializes meta data information
+ */
+static inline info_t *init_meta_data()
+{
+  info_t *meta_data = (info_t *)malloc(sizeof(meta_data));
+  meta_data->n_reduced          = 0;
+  meta_data->n_pairs_removed    = 0;
+  meta_data->n_zero_reductions  = 0;
+   
+  return meta_data;
+}
 #endif

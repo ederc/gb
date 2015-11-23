@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
   struct timeval t_complete;
 
   // keep track of meta data
-  info_t *meta_data = (info_t *)malloc(sizeof(info_t));
+  info_t *meta_data = init_meta_data();
 
 	opterr  = 0;
 

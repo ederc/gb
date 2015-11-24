@@ -49,6 +49,9 @@ typedef uint32_t hash_t;
 /* degree size */
 typedef uint8_t deg_t;
 
+/* exponent size */
+typedef uint8_t exp_t;
+
 #ifdef GB_USE_FLOAT
 /** coefficient storage type */
 typedef float coeff_t;
@@ -204,19 +207,22 @@ typedef struct basis_t
 typedef struct mp_cf4_ht_t
 {
   // size and load counters
-  ht_size_t size; /*!<  size of hash table*/
-  ht_size_t load; /*!<  load of hash table*/
+  ht_size_t nvars;  /*!<  number of variables*/
+  ht_size_t size;   /*!<  size of hash table*/
+  ht_size_t load;   /*!<  load of hash table*/
   // data and arrays for storage
-  hash_t *value;  /*!<  array of hash values*/
-  hash_t *exp;    /*!<  array of exponents*/
-  hash_t *rand;   /*!<  array of random values for each variable
-                        to generate hash values out of exponents*/
-  deg_t *deg;     /*!<  degree of monmial, for faster sorting and searching*/
-  nelts_t *div;   /*!<  latest element from gb checked for its leading
-                        term dividing corresponding monomial in hash table*/
-  hash_t *idx;    /*!<  index used for matrix generation and marking
-                        monomials already taken care of in symbolic
-                        preprocessing*/
+  hash_t *lut;      /*!<  lookup table between hash value and position in
+                          exponent array*/
+  hash_t *val;      /*!<  array of hash values*/
+  exp_t **exp;      /*!<  array of exponents*/
+  hash_t *rand;     /*!<  array of random values for each variable
+                          to generate hash values out of exponents*/
+  deg_t *deg;       /*!<  degree of monmial, for faster sorting and searching*/
+  nelts_t *div;     /*!<  latest element from gb checked for its leading
+                          term dividing corresponding monomial in hash table*/
+  hash_t *idx;      /*!<  index used for matrix generation and marking
+                          monomials already taken care of in symbolic
+                          preprocessing*/
 } mp_cf4_ht_t;
 
 #endif /* GB_TYPES_H */

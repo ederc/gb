@@ -134,6 +134,28 @@ hash_t insert_in_hash_table(const exp_t *exp, const hash_t hash,
     const hash_t pos,  mp_cf4_ht_t *ht);
 
 /**
+ * \brief Inserts a new element to the hash table coming from a product of two
+ * monomials.
+ *
+ * \note We use the sum of the hash values of mon_1 and mon_2 as hash value for
+ * the product of mon_1 and mon_2.
+ *
+ * \param monomial 1 mon_1
+ *
+ * \param monomial 2 mon_2
+ *
+ * \param hash value of exp hash
+ *
+ * \param position in lookup table pos
+ *
+ * \param hash table ht
+ *
+ * \return position of hash of exp in table
+ */
+hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
+    const hash_t hash, const hash_t pos,  mp_cf4_ht_t *ht);
+
+/**
  * \brief Checks if the given monomial exponent is already in the hash table. If
  * not, it is added to the table
  *
@@ -144,6 +166,24 @@ hash_t insert_in_hash_table(const exp_t *exp, const hash_t hash,
  * \return position of hash of exp in table
  */
 hash_t check_in_hash_table(const exp_t *exp, mp_cf4_ht_t *ht);
+
+/**
+ * \brief Checks if the product of the given two monomial exponents is already
+ * in the hash table. If not, it is added to the table
+ *
+ * \note We use the sum of the hash values of mon_1 and mon_2 as hash value for
+ * the product of mon_1 and mon_2.
+ *
+ * \param monomial 1 mon_1
+ *
+ * \param monomial 2 mon_2
+ *
+ * \param hash table ht
+ *
+ * \return position of hash of exp in table
+ */
+hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
+    mp_cf4_ht_t *ht);
 
 /**
  * \brief Inserts elements in hash table during the elargement of the table

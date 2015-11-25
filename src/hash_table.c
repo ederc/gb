@@ -153,31 +153,83 @@ inline hash_t insert_in_hash_table(const exp_t *exp, const hash_t hash,
   return last_pos;
 }
 
+inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
+    const hash_t hash, const hash_t pos,  mp_cf4_ht_t *ht)
+{
+  hash_t i;
+
+  hash_t last_pos = ht->load;
+  deg_t tmp_deg   = 0;
+
+  for (i=0; i<ht->nvars; ++i)
+    ht->exp[last_pos][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
+
+  // ht->div and ht->idx are already initialized with 0, so nothing to do there
+  ht->deg[last_pos] = ht->deg[mon_1] + ht->deg[mon_2];
+  ht->val[last_pos] = hash;
+  ht->lut[pos]      = last_pos;
+  ht->load++;
+
+  if (ht->load >= ht->size)
+    enlarge_hash_table(ht, 2*ht->size);
+
+  return last_pos;
+}
+
 inline hash_t check_in_hash_table(const exp_t *exp, mp_cf4_ht_t *ht)
 {
   hash_t i,j;
 
-  hash_t hash = get_hash(exp, ht);
-  hash_t tmph = hash; // temporary hash values for quadratic probing
-  hash_t tmpl;        // temporary lookup table value
+  hash_t hash   = get_hash(exp, ht);
+  hash_t tmp_h  = hash; // temporary hash values for quadratic probing
+  hash_t tmp_l;         // temporary lookup table value
 
   for (i=0; i<ht->size; ++i) {
-    tmph  = (tmph + i) & (ht->size - 1);
-    tmpl  = ht->lut[tmph];
-    if (tmpl == 0)
+    tmp_h = (tmp_h + i) & (ht->size - 1);
+    tmp_l = ht->lut[tmp_h];
+    if (tmp_l == 0)
       break;
-    if (tmpl != hash)
+    if (tmp_l != hash)
       continue;
     for (j=0; j<ht->nvars; ++j)
-      if (exp[j] != ht->exp[tmpl][j])
+      if (exp[j] != ht->exp[tmp_l][j])
         break;
     if (j == ht->nvars)
-      return tmpl;
+      return tmp_l;
   }
   
   // at this point we know that we do not have the hash value of exp in the
   // table, so we have to insert it
-  return insert_in_hash_table(exp, hash, tmph, ht);
+  return insert_in_hash_table(exp, hash, tmp_h, ht);
+}
+
+inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
+    mp_cf4_ht_t *ht)
+{
+  hash_t i,j;
+
+  // hash value of the product is the sum of the hash values in our setting
+  hash_t hash   = ht->val[mon_1] + ht->val[mon_2];
+  hash_t tmp_h  = hash; // temporary hash values for quadratic probing
+  hash_t tmp_l;         // temporary lookup table value
+
+  for (i=0; i<ht->size; ++i) {
+    tmp_h = (tmp_h + i) & (ht->size - 1);
+    tmp_l = ht->lut[tmp_h];
+    if (tmp_l == 0)
+      break;
+    if (tmp_l != hash)
+      continue;
+    for (j=0; j<ht->nvars; ++j)
+      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+        break;
+    if (j == ht->nvars)
+      return tmp_l;
+  }
+  
+  // at this point we know that we do not have the hash value of exp in the
+  // table, so we have to insert it
+  return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
 }
 
 inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)

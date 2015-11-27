@@ -38,6 +38,19 @@
 #include <omp.h>
 #include "types.h"
 
+/**
+ * \brief Loads input file and intializes basis
+ *
+ * \param file name fn
+ *
+ * \param level of verbosity vb
+ *
+ * \param number of threads nthrds
+ *
+ * \return initial state of groebner basis
+ */
+gb_t *load_input(const char *fn, int vb, int nthrds);
+
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 
 /**

@@ -104,3 +104,44 @@ void print_mem_usage()
 	}
 	printf("MMRY\tRSS - %.3f %s | VMS - %.3f %s\n", rss, unit, vms, unit);
 }
+
+gb_t *load_input(const char *fn, int vb, int nthrds)
+{
+  uint64_t fl;
+
+  gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
+
+  struct timeval t_load_start;
+  if (vb > 1) {
+    gettimeofday(&t_load_start, NULL);
+  }
+
+  // open file in binary mode and get file size
+  FILE*	fh        = fopen(fn,"rb");
+  if (fh == NULL) {
+    if (vb > 0)
+      printf("File not found!\n");
+    return NULL;
+  }
+  else {
+    fseek(fh, 0L, SEEK_END);
+    fl  = ftell(fh);
+    fclose(fh);
+  }
+
+  basis->fs   = (double) fl / 1024;
+  basis->fsu  = "KB";
+  if (basis->fs > 1000) {
+    basis->fs   = basis->fs / 1024;
+    basis->fsu  = "MB";
+  }
+  if (basis->fs > 1000) {
+    basis->fs   = basis->fs / 1024;
+    basis->fsu  = "GB";
+  }
+
+  basis->modulus  = 4;
+  basis->nvars  = 3;
+
+  return basis;
+}

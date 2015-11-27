@@ -166,18 +166,25 @@ typedef struct info_t
 
 
 /**
- * \brief Input generators for gb computation
+ * \brief Groebner basis, starts with input data
  */
-typedef struct gen_t
+typedef struct gb_t
 {
-  coeff_t **elts; /*!<  coefficients of input elements*/
-  nelts_t size;     /*!<  number of elements */
+  // global data
+  nelts_t size;     /*!<  memory allocated */
+  nelts_t load;     /*!<  number of elements in basis*/
   nvars_t nvars;   /*!<  number of variables */
-  char* var_str;  /*!<  variable names */
   mod_t modulus;    /*!<  modulo/field characteristic */
-  float fs;         /*!<  file size of input matrix */
+  // element data
+  nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
+  deg_t *deg;       /*!<  degree of each element resp. polynomial*/
+  coeff_t **cf;     /*!<  coefficients of input elements*/
+  hash_t **eh;     /*!<  monomial exponent hash*/
+  // meta data
+  char* var_str;  /*!<  variable names */
+  double fs;         /*!<  file size of input matrix */
   char *fsu;        /*!<  file size unit of input matrix, e.g. GB */
-} gen_t;
+} gb_t;
 
 /**
  * \brief S-pairs resp. S-polynomials list
@@ -189,16 +196,6 @@ typedef struct spair_t
   deg_t degree; /*!<  degree of S-pair*/
   hash_t lcm;   /*!<  hash of lcm of the lead terms of gen1 and gen2*/
 } spair_t;
-
-/**
- * \brief Groebner basis data
- */
-typedef struct basis_t
-{
-  coeff_t **coeffs; /*!<  coefficients of gb elements*/
-  nelts_t size;     /*!<  size of gb*/
-  nelts_t load;     /*!<  current load of gb, i.e. number of elements in gb*/
-} basis_t;
 
 /**
  * \brief Hash table as defined by Monagan and Pearce in compact F4

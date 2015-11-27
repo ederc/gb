@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
   int verbose           = 0;
   int nthreads          = 1;
   int reduce_gb         = 0;
-  ht_size_t ht_size     = UINT_MAX;
+  ht_size_t ht_size     = UINT32_MAX;
 
 
   int index;
@@ -117,14 +117,14 @@ int main(int argc, char *argv[])
     printf("-------------------------- Computing Groebner -----------------------\n");
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
-    printf("number of threads           %4d\n", nthreads);
-    printf("hash table size             %4d\n", ht_size);
-    printf("compute reduced basis?      %4d\n", reduce_gb);
+    printf("number of threads           %20d\n", nthreads);
+    printf("hash table size             %20u\n", ht_size);
+    printf("compute reduced basis?      %20d\n", reduce_gb);
     printf("---------------------------------------------------------------------\n");
   }
 
   // generators stores input data
-  gen_t *gens = NULL;
+  gb_t *basis = load_input(fn, verbose, nthreads);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
@@ -135,24 +135,25 @@ int main(int argc, char *argv[])
   if (verbose > 0) {
     printf("%9.3f sec (%.3f %s/sec)\n",
         walltime(t_load_start) / (1000000),
-        gens->fs / (walltime(t_load_start) / (1000000)), gens->fsu);
+        basis->fs / (walltime(t_load_start) / (1000000)), basis->fsu);
   }  
   if (verbose > 1) {
     print_mem_usage();
     printf("---------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
-    printf("field characteristic        %14d\n", gens->modulus);
-    printf("number of generators        %14d\n", gens->nvars);
+    printf("field characteristic        %14d\n", basis->modulus);
+    printf("number of generators        %14d\n", basis->nvars);
+    printf("input file size             %14.2f %s\n", basis->fs, basis->fsu);
     printf("---------------------------------------------------------------------\n");
   }
 
   // initialize hash table
-  mp_cf4_ht_t *ht = init_hash_table(ht_size, gens->nvars);
+  mp_cf4_ht_t *ht = init_hash_table(ht_size, basis->nvars);
   
   // free allocated memory
   free(meta_data);
-  free(gens);
-  free_hash_table(ht);
+  free(basis);
+  free_hash_table_dynamic_data(ht);
   free(ht);
 }

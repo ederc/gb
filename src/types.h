@@ -181,7 +181,7 @@ typedef struct gb_t
   coeff_t **cf;     /*!<  coefficients of input elements*/
   hash_t **eh;     /*!<  monomial exponent hash*/
   // meta data
-  char* var_str;  /*!<  variable names */
+  char **vnames;    /*!<  variable names */
   double fs;         /*!<  file size of input matrix */
   char *fsu;        /*!<  file size unit of input matrix, e.g. GB */
 } gb_t;

@@ -28,7 +28,7 @@
  *******************************************************************************/
 inline void set_random_seed(mp_cf4_ht_t *hash_table)
 {
-  nvars_t i;
+  hash_t i;
 
   // use random_seed, no zero values are allowed
   for (i=0; i<hash_table->nvars; ++i) {
@@ -40,7 +40,7 @@ inline void set_random_seed(mp_cf4_ht_t *hash_table)
 inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
     const nvars_t number_variables)
 {
-  nvars_t i;
+  hash_t i;
 
   mp_cf4_ht_t *ht = (mp_cf4_ht_t *)malloc(sizeof(mp_cf4_ht_t));
   
@@ -48,9 +48,9 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   ht->nvars = number_variables;
   ht->size  = hash_table_size;
   ht->load  = 0;
+  ht->exp   = (exp_t **)malloc(ht->size * sizeof(exp_t *));
   ht->lut   = (hash_t *)calloc(ht->size, sizeof(hash_t));
   ht->val   = (hash_t *)calloc(ht->size, sizeof(hash_t));
-  ht->exp   = (exp_t **)malloc(ht->size * sizeof(exp_t *));
   ht->deg   = (deg_t *)calloc(ht->size, sizeof(deg_t));
   ht->div   = (nelts_t *)calloc(ht->size, sizeof(nelts_t));
   ht->idx   = (hash_t *)calloc(ht->size, sizeof(hash_t));

@@ -109,6 +109,8 @@ gb_t *load_input(const char *fn, int vb, int nthrds)
 {
   uint64_t fl;
 
+  hash_t i, j, k;
+
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
 
   struct timeval t_load_start;
@@ -129,6 +131,7 @@ gb_t *load_input(const char *fn, int vb, int nthrds)
     fclose(fh);
   }
 
+  fh  = fopen(fn,"r");
   basis->fs   = (double) fl / 1024;
   basis->fsu  = "KB";
   if (basis->fs > 1000) {
@@ -140,8 +143,70 @@ gb_t *load_input(const char *fn, int vb, int nthrds)
     basis->fsu  = "GB";
   }
 
-  basis->modulus  = 4;
-  basis->nvars  = 3;
+  // load lines and store data
+  const size_t max_line_size  = 1000;
+  char *line  = (char *)malloc(max_line_size * sizeof(char));
+  
+  // get first line (variables)
+  const char comma1   = ',';
+  const char comma2[] = ",";
+
+  // get number of variables
+  basis->nvars = 1; // number of variables is number of commata + 1 in first line 
+  if (fgets(line, max_line_size, fh) != NULL) {
+    char *tmp = strchr(line, comma1);
+    while (tmp != NULL) {
+      basis->nvars++;
+      tmp = strchr(tmp+1, comma1);
+    }
+  } else {
+    printf("Bad file format.\n");
+    return NULL;
+  }
+  printf("# variables = %u\n",basis->nvars);
+
+  // allocate memory for storing variable names
+  basis->vnames = (char **)malloc(basis->nvars * sizeof(char *));
+  basis->vnames[0]  = strtok(line, comma2);
+  char *tmp_end;
+  for (i=1; i<basis->nvars; ++i) {
+    basis->vnames[i]  = strtok(NULL, comma2);
+  }
+  // trim variable names
+  for (i=0; i<basis->nvars; ++i) {
+    while (isspace(*basis->vnames[i]))
+      basis->vnames[i]++;
+    if (*basis->vnames[i] != 0) {
+      tmp_end = basis->vnames[i];
+      while (*tmp_end)
+        tmp_end++;
+      do {
+        tmp_end--;
+      } while (isspace(*tmp_end));
+      tmp_end++;
+      *tmp_end = '\0';
+    }
+  }
+
+  for (i=0; i<basis->nvars; ++i) {
+    printf(basis->vnames[i]);
+  }
+  // get second line (modulus)
+  if (fgets(line, max_line_size, fh) != NULL) {
+    int64_t tmp_mod = atol(line);
+    if (tmp_mod > 0)
+      basis->modulus  = (mod_t)tmp_mod;
+    else {
+      printf("Bad file format.\n");
+      return NULL;
+    }
+  } else {
+    printf("Bad file format.\n");
+    return NULL;
+  }
+  while (fgets(line, max_line_size, fh) != NULL)
+    printf(line);
+  free(line);
 
   return basis;
 }

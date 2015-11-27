@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
   int verbose           = 0;
   int nthreads          = 1;
   int reduce_gb         = 0;
-  ht_size_t ht_size     = UINT32_MAX;
+  ht_size_t ht_size     = pow(2,16);
 
 
   int index;
@@ -113,12 +113,13 @@ int main(int argc, char *argv[])
     return 1;
   }
   if (verbose > 1) {
+    double log_size = log2(ht_size);
     printf("---------------------------------------------------------------------\n");
     printf("-------------------------- Computing Groebner -----------------------\n");
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
     printf("number of threads           %20d\n", nthreads);
-    printf("hash table size             %20u\n", ht_size);
+    printf("hash table size             %20d (+/- 2^%.1f)\n", ht_size, log_size);
     printf("compute reduced basis?      %20d\n", reduce_gb);
     printf("---------------------------------------------------------------------\n");
   }
@@ -133,9 +134,7 @@ int main(int argc, char *argv[])
     fflush(stdout);
   }
   if (verbose > 0) {
-    printf("%9.3f sec (%.3f %s/sec)\n",
-        walltime(t_load_start) / (1000000),
-        basis->fs / (walltime(t_load_start) / (1000000)), basis->fsu);
+    printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
   }  
   if (verbose > 1) {
     print_mem_usage();
@@ -143,7 +142,8 @@ int main(int argc, char *argv[])
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
     printf("field characteristic        %14d\n", basis->modulus);
-    printf("number of generators        %14d\n", basis->nvars);
+    printf("number of variables         %14d\n", basis->nvars);
+    printf("number of generators        %14d\n", basis->load);
     printf("input file size             %14.2f %s\n", basis->fs, basis->fsu);
     printf("---------------------------------------------------------------------\n");
   }

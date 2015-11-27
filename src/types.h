@@ -170,10 +170,10 @@ typedef struct info_t
  */
 typedef struct gen_t
 {
-  coeff_t **coeffs; /*!<  coefficients of input elements*/
+  coeff_t **elts; /*!<  coefficients of input elements*/
   nelts_t size;     /*!<  number of elements */
-  nvars_t n_vars;   /*!<  number of variables */
-  char* var_names;  /*!<  variable names */
+  nvars_t nvars;   /*!<  number of variables */
+  char* var_str;  /*!<  variable names */
   mod_t modulus;    /*!<  modulo/field characteristic */
   float fs;         /*!<  file size of input matrix */
   char *fsu;        /*!<  file size unit of input matrix, e.g. GB */

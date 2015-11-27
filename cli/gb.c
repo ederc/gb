@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 {
   const char *fn        = NULL;
   int verbose           = 0;
-  int n_threads         = 1;
+  int nthreads          = 1;
   int reduce_gb         = 0;
   ht_size_t ht_size     = UINT_MAX;
 
@@ -78,13 +78,13 @@ int main(int argc, char *argv[])
         print_help();
         return 0;
       case 'r':
-        reduce_gb  = atoi(optarg);
+        reduce_gb = atoi(optarg);
         break;
       case 's':
         ht_size = atoi(optarg);
         break;
       case 't':
-        n_threads = atoi(optarg);
+        nthreads  = atoi(optarg);
         break;
       case 'v':
         verbose = atoi(optarg);
@@ -117,14 +117,14 @@ int main(int argc, char *argv[])
     printf("-------------------------- Computing Groebner -----------------------\n");
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
-    printf("number of threads           %4d\n", n_threads);
+    printf("number of threads           %4d\n", nthreads);
     printf("hash table size             %4d\n", ht_size);
     printf("compute reduced basis?      %4d\n", reduce_gb);
     printf("---------------------------------------------------------------------\n");
   }
 
   // generators stores input data
-  gen_t *generators  = NULL;
+  gen_t *gens = NULL;
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
@@ -135,23 +135,24 @@ int main(int argc, char *argv[])
   if (verbose > 0) {
     printf("%9.3f sec (%.3f %s/sec)\n",
         walltime(t_load_start) / (1000000),
-        generators->fs / (walltime(t_load_start) / (1000000)), generators->fsu);
+        gens->fs / (walltime(t_load_start) / (1000000)), gens->fsu);
   }  
   if (verbose > 1) {
     print_mem_usage();
     printf("---------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
-    printf("field characteristic        %14d\n", generators->modulus);
-    printf("number of generators        %14d\n", generators->n_vars);
+    printf("field characteristic        %14d\n", gens->modulus);
+    printf("number of generators        %14d\n", gens->nvars);
     printf("---------------------------------------------------------------------\n");
   }
 
   // initialize hash table
-  mp_cf4_ht_t *hash_table = init_hash_table(ht_size, generators->n_vars);
+  mp_cf4_ht_t *ht = init_hash_table(ht_size, gens->nvars);
   
   // free allocated memory
   free(meta_data);
-  free(generators);
-  free(hash_table);
+  free(gens);
+  free_hash_table(ht);
+  free(ht);
 }

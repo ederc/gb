@@ -105,7 +105,34 @@ void print_mem_usage()
 	printf("MMRY\tRSS - %.3f %s | VMS - %.3f %s\n", rss, unit, vms, unit);
 }
 
-gb_t *load_input(const char *fn, int vb, int nthrds)
+nvars_t get_nvars(const char *fn)
+{
+  FILE *fh  = fopen(fn,"r");
+  // load lines and store data
+  const size_t max_line_size  = 1000;
+  char *line  = (char *)malloc(max_line_size * sizeof(char));
+
+  // get first line (variables)
+  const char comma  = ',';
+
+  // get number of variables
+  nvars_t nvars = 1; // number of variables is number of commata + 1 in first line
+  if (fgets(line, max_line_size, fh) != NULL) {
+    char *tmp = strchr(line, comma);
+    while (tmp != NULL) {
+      nvars++;
+      tmp = strchr(tmp+1, comma);
+    }
+  } else {
+    printf("Bad file format.\n");
+    return NULL;
+  }
+  printf("# variables = %u\n", nvars);
+
+  return nvars;
+}
+
+gb_t *load_input(const char *fn, nvars_t nvars, int vb, int nthrds)
 {
   uint64_t fl;
 
@@ -119,19 +146,17 @@ gb_t *load_input(const char *fn, int vb, int nthrds)
   }
 
   // open file in binary mode and get file size
-  FILE*	fh        = fopen(fn,"rb");
+  FILE	*fh  = fopen(fn,"rb");
   if (fh == NULL) {
     if (vb > 0)
       printf("File not found!\n");
     return NULL;
-  }
-  else {
+  } else {
     fseek(fh, 0L, SEEK_END);
     fl  = ftell(fh);
     fclose(fh);
   }
 
-  fh  = fopen(fn,"r");
   basis->fs   = (double) fl / 1024;
   basis->fsu  = "KB";
   if (basis->fs > 1000) {
@@ -143,60 +168,54 @@ gb_t *load_input(const char *fn, int vb, int nthrds)
     basis->fsu  = "GB";
   }
 
+  fh  = fopen(fn,"r");
   // load lines and store data
   const size_t max_line_size  = 1000;
   char *line  = (char *)malloc(max_line_size * sizeof(char));
   
   // get first line (variables)
-  const char comma1   = ',';
-  const char comma2[] = ",";
+  const char comma[]  = ",";
 
-  // get number of variables
-  basis->nvars = 1; // number of variables is number of commata + 1 in first line 
+  // we already know the number of variables
+  basis->nvars  = nvars;
+
+  // allocate memory for storing variable names
   if (fgets(line, max_line_size, fh) != NULL) {
-    char *tmp = strchr(line, comma1);
-    while (tmp != NULL) {
-      basis->nvars++;
-      tmp = strchr(tmp+1, comma1);
+    basis->vnames = (char **)malloc(basis->nvars * sizeof(char *));
+    basis->vnames[0]  = strtok(line, comma);
+    char *tmp_end;
+    for (i=1; i<basis->nvars; ++i) {
+      basis->vnames[i]  = strtok(NULL, comma);
+    }
+    // trim variable names
+    for (i=0; i<basis->nvars; ++i) {
+      while (isspace(*basis->vnames[i]))
+        basis->vnames[i]++;
+      if (*basis->vnames[i] != 0) {
+        tmp_end = basis->vnames[i];
+        while (*tmp_end)
+          tmp_end++;
+        do {
+          tmp_end--;
+        } while (isspace(*tmp_end));
+        tmp_end++;
+        *tmp_end = '\0';
+      }
+    }
+
+    for (i=0; i<basis->nvars; ++i) {
+      printf(basis->vnames[i]);
     }
   } else {
     printf("Bad file format.\n");
     return NULL;
   }
-  printf("# variables = %u\n",basis->nvars);
-
-  // allocate memory for storing variable names
-  basis->vnames = (char **)malloc(basis->nvars * sizeof(char *));
-  basis->vnames[0]  = strtok(line, comma2);
-  char *tmp_end;
-  for (i=1; i<basis->nvars; ++i) {
-    basis->vnames[i]  = strtok(NULL, comma2);
-  }
-  // trim variable names
-  for (i=0; i<basis->nvars; ++i) {
-    while (isspace(*basis->vnames[i]))
-      basis->vnames[i]++;
-    if (*basis->vnames[i] != 0) {
-      tmp_end = basis->vnames[i];
-      while (*tmp_end)
-        tmp_end++;
-      do {
-        tmp_end--;
-      } while (isspace(*tmp_end));
-      tmp_end++;
-      *tmp_end = '\0';
-    }
-  }
-
-  for (i=0; i<basis->nvars; ++i) {
-    printf(basis->vnames[i]);
-  }
   // get second line (modulus)
   if (fgets(line, max_line_size, fh) != NULL) {
     int64_t tmp_mod = atol(line);
-    if (tmp_mod > 0)
+    if (tmp_mod > 0) {
       basis->modulus  = (mod_t)tmp_mod;
-    else {
+    } else {
       printf("Bad file format.\n");
       return NULL;
     }
@@ -204,8 +223,13 @@ gb_t *load_input(const char *fn, int vb, int nthrds)
     printf("Bad file format.\n");
     return NULL;
   }
-  while (fgets(line, max_line_size, fh) != NULL)
+
+  basis->load = 0;
+  // get all remaining lines, i.e. generators
+  while (fgets(line, max_line_size, fh) != NULL) {
+    basis->load++;
     printf(line);
+  }
   free(line);
 
   return basis;

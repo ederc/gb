@@ -124,8 +124,12 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
   }
 
-  // generators stores input data
-  gb_t *basis = load_input(fn, verbose, nthreads);
+  // first get number of variables in order to initialize hash table
+  nvars_t nvars = get_nvars(fn);
+  // initialize hash table
+  mp_cf4_ht_t *ht = init_hash_table(ht_size, nvars);
+  // basis stores input data
+  gb_t *basis = load_input(fn, nvars, verbose, nthreads);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
@@ -148,9 +152,6 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
   }
 
-  // initialize hash table
-  mp_cf4_ht_t *ht = init_hash_table(ht_size, basis->nvars);
-  
   // free allocated memory
   free(meta_data);
   free(basis);

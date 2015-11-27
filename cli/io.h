@@ -39,9 +39,21 @@
 #include "types.h"
 
 /**
+ * \brief Gets number of variables, needs to be done before reading file
+ * completely as we need to initialize the hash table beforehand
+ *
+ * \param file name fn
+ *
+ * \return number of variables
+ */
+nvars_t get_nvars(const char *fn);
+
+/**
  * \brief Loads input file and intializes basis
  *
  * \param file name fn
+ *
+ * \param number of variables nvars
  *
  * \param level of verbosity vb
  *
@@ -49,7 +61,7 @@
  *
  * \return initial state of groebner basis
  */
-gb_t *load_input(const char *fn, int vb, int nthrds);
+gb_t *load_input(const char *fn, nvars_t nvars, int vb, int nthrds);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 

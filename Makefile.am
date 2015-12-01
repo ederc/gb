@@ -13,7 +13,9 @@ BUILT_SOURCES = src/gb_config.h
 
 
 pkgincludesubdir = $(includedir)/src
-pkgincludesub_HEADERS = 
+pkgincludesub_HEADERS = \
+	src/types.h	\
+	src/hash_table.h
 
 nodist_pkgincludesub_HEADERS = src/gb_config.h
 

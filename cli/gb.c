@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
   // initialize hash table
   mp_cf4_ht_t *ht = init_hash_table(ht_size, nvars);
   // basis stores input data
-  gb_t *basis = load_input(fn, nvars, verbose, nthreads);
+  gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");

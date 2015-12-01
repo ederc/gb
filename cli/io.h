@@ -36,7 +36,7 @@
 #include <math.h>
 #include <gb_config.h>
 #include <omp.h>
-#include "types.h"
+#include "hash_table.h"
 
 /**
  * \brief Gets number of variables, needs to be done before reading file
@@ -55,13 +55,16 @@ nvars_t get_nvars(const char *fn);
  *
  * \param number of variables nvars
  *
+ * \param hash table to store the exponents ht
+ *
  * \param level of verbosity vb
  *
  * \param number of threads nthrds
  *
  * \return initial state of groebner basis
  */
-gb_t *load_input(const char *fn, nvars_t nvars, int vb, int nthrds);
+gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht,
+    int vb, int nthrds);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 
@@ -83,6 +86,41 @@ double walltime(struct timeval t_start);
 void print_mem_usage();
 
 /**
+ * \brief Gets next term out of line resp. polynomial
+ *
+ * \param line in file representing polynomial line
+ *
+ * \param pointer to previous char * for last term prev_pos
+ *
+ * \param pointer to previous index of last term prev_idx
+ *
+ * \param pointer to term in which we store the new term term
+ */
+void get_term(const char *line, char **prev_pos,
+    char **term);
+
+/**
+ * \brief Returns exponent for variable var_name of term term
+ *
+ * \param term term
+ *
+ * \param name of corresponding variable var_name
+ *
+ * \return exponent of variable
+ */
+exp_t get_exponent(const char *term, const char *var_name);
+
+/**
+ * \brief Returns number of terms in polynomial represented by a line in a text
+ * file
+ *
+ * \param text line from file line
+ *
+ * \return number of terms in polynomial
+ */
+int get_number_of_terms(const char *line);
+
+/**
  * \brief Initializes meta data information
  */
 static inline info_t *init_meta_data()
@@ -91,7 +129,7 @@ static inline info_t *init_meta_data()
   meta_data->n_reduced          = 0;
   meta_data->n_pairs_removed    = 0;
   meta_data->n_zero_reductions  = 0;
-   
+
   return meta_data;
 }
 #endif

@@ -30,8 +30,6 @@
 #include <unistd.h>
 #include <limits.h>
 #include "io.h"
-#include "types.h"
-#include "hash_table.h"
 
 /**
  * \brief Prints help for gb call.

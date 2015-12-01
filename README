@@ -9,6 +9,10 @@ Using autotools one can compile and install gb by
 * make
 * make install
 
+gb depends on the package gbla. Please make sure that gb's configure can find
+the correct place with the pkg config info for gbla. If there are problems, you
+can export this pkg config info path via
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:<your-directory>
 For further installation instructions please see INSTALL.
 
 # INSTALL ON MAC #

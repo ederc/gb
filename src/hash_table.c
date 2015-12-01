@@ -26,6 +26,23 @@
  * FOLLOWING HASH TABLE IMPLEMENTATION IS COPIED FROM COMPACT F4 IMPLEMENTATION 
  * BY MONAGAN AND PIERCE (see PASCO 2015)
  *******************************************************************************/
+
+// global variables used as random seeds, initialized to max unsigned values
+// depending on available wordsize of the machine
+#if __GB_WORDSIZE==64
+uint64_t random_seed  = 0xFFFFFFFFFFFFFFFF;
+#elif __GB_WORDSIZE==32
+uint32_t random_seed  = 0xFFFFFFFF;
+#endif
+
+inline void pseudo_random_generator()
+{
+  random_seed ^=  (random_seed << 13);
+  random_seed ^=  (random_seed << 7);
+  random_seed ^=  (random_seed << 17);
+  random_seed ^=  (random_seed << 5);
+}
+
 inline void set_random_seed(mp_cf4_ht_t *hash_table)
 {
   hash_t i;

@@ -374,12 +374,11 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         for (k=0; k<basis->nvars; ++k) {
           exp[k]  =   get_exponent(term, basis->vnames[k]);
           deg     +=  exp[k];
-          printf("exp %u\n", exp[k]);
         }
         // hash exponent and store degree
         basis->eh[i][j] = check_in_hash_table(exp, ht);
         max_deg = max_deg > deg ? max_deg : deg;
-        printf("eh[%u][%u] = %u\n",i,j,basis->eh[i][j]);
+        printf("eh[%u][%u] = %u --> %lu\n",i,j,basis->eh[i][j], ht->lut[basis->eh[i][j]]);
       }
       basis->deg[i] = max_deg;
     }

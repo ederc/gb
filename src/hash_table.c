@@ -31,17 +31,23 @@
 // depending on available wordsize of the machine
 #if __GB_WORDSIZE==64
 uint64_t random_seed  = 0xFFFFFFFFFFFFFFFF;
-#elif __GB_WORDSIZE==32
-uint32_t random_seed  = 0xFFFFFFFF;
-#endif
-
 inline void pseudo_random_generator()
 {
   random_seed ^=  (random_seed << 13);
   random_seed ^=  (random_seed << 7);
   random_seed ^=  (random_seed << 17);
+}
+
+#elif __GB_WORDSIZE==32
+uint32_t random_seed  = 0xFFFFFFFF;
+inline void pseudo_random_generator()
+{
+  random_seed ^=  (random_seed << 13);
+  random_seed ^=  (random_seed << 17);
   random_seed ^=  (random_seed << 5);
 }
+
+#endif
 
 inline void set_random_seed(mp_cf4_ht_t *hash_table)
 {
@@ -201,12 +207,16 @@ inline hash_t check_in_hash_table(const exp_t *exp, mp_cf4_ht_t *ht)
   hash_t tmp_h  = hash; // temporary hash values for quadratic probing
   hash_t tmp_l;         // temporary lookup table value
 
+  for (i=0; i<ht->nvars; ++i)
+    printf("%u ",exp[i]);
+  printf("\nhash = %u\n",hash);
+
   for (i=0; i<ht->size; ++i) {
     tmp_h = (tmp_h + i) & (ht->size - 1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
-    if (tmp_l != hash)
+    if (ht->val[tmp_l] != hash)
       continue;
     for (j=0; j<ht->nvars; ++j)
       if (exp[j] != ht->exp[tmp_l][j])

@@ -26,8 +26,7 @@ inline void free_basis_dynamic_data(gb_t *basis)
   if (basis) {
     nelts_t i, j;
     for (i=0; i<basis->nvars; ++i) {
-      printf("%u -- %s -- %p\n",i,basis->vnames[i],basis->vnames[i]);
-      //free(basis->vnames[i]);
+      free(basis->vnames[i]);
     }
     free(basis->vnames);
     free(basis->deg);

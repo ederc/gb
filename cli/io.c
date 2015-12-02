@@ -107,6 +107,47 @@ void print_mem_usage()
   printf("MMRY\tRSS - %.3f %s | VMS - %.3f %s\n", rss, unit, vms, unit);
 }
 
+inline char *get_variable_name(const char *line, char **prev_pos)
+{
+  const char comma_splicer  = ',';
+
+  char *tmp_var   = (char *)malloc(50 * sizeof(char));
+  char *curr_pos  = strchr(*prev_pos, comma_splicer);
+  if (curr_pos != NULL) {
+    int var_diff   = (int)(curr_pos - *prev_pos);
+    memcpy(tmp_var, *prev_pos, var_diff);
+    tmp_var[var_diff] = '\0';
+    *prev_pos = curr_pos+1;
+  } else { // we are at the last variable
+    int prev_idx  = (int)(*prev_pos - line);
+    int curr_idx  = (int)(strlen(line)+1);
+    int var_diff  = curr_idx - prev_idx;
+    memcpy(tmp_var, *prev_pos, var_diff);
+    tmp_var[var_diff] = '\0';
+  }
+
+  // trim variable, remove blank spaces
+  char *tmp_var_begin, *tmp_var_end;
+  tmp_var_begin = tmp_var;
+  while (isspace(*tmp_var_begin))
+    tmp_var_begin++;
+  if (*tmp_var_begin != 0) {
+    tmp_var_end = tmp_var;
+    while (*tmp_var_end)
+      tmp_var_end++;
+    do {
+      tmp_var_end--;
+    } while (isspace(*tmp_var_end));
+  }
+  int final_length  = (int)(tmp_var_end - tmp_var_begin + 1);
+  char *final_var   = (char *)malloc((final_length+1) * sizeof(char));
+  memcpy(final_var, tmp_var_begin, final_length);
+  
+  free(tmp_var);
+
+  return final_var;
+}
+
 inline int get_number_of_terms(const char *line)
 {
   const char add_splicer  = '+';
@@ -165,9 +206,7 @@ inline void get_term(const char *line, char **prev_pos,
 
   char *curr_pos  = strchr(*prev_pos, add_splicer);
   if (curr_pos != NULL) {
-    int prev_idx  = (int)(*prev_pos - line);
-    int curr_idx  = (int)(curr_pos - line);
-    int term_diff = curr_idx - prev_idx;
+    int term_diff = (int)(curr_pos - *prev_pos);
     memcpy(*term, *prev_pos, term_diff);
     (*term)[term_diff]  = '\0';
     *prev_pos           = curr_pos+1;
@@ -283,36 +322,8 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   if (fgets(line, max_line_size, fh) != NULL) {
     index_old  = 0;
     tmp_vname_old = line;
-    for (i=0; i<basis->nvars-1; ++i) {
-      tmp_vname = strchr(tmp_vname_old, comma_splicer);
-      index = (int)(tmp_vname - line);
-      basis->vnames[i]  = (char *)malloc(50*sizeof(char));
-      memcpy(basis->vnames[i], line+index_old, index-index_old);
-      basis->vnames[i][index-index_old] = '\0';
-      basis->vnames[i]  = realloc(basis->vnames[i], index-index_old+1);
-      tmp_vname_old = tmp_vname + 1;
-      index_old     = index + 1;
-    }
-    // now do the last variable separately
-    basis->vnames[i]  = (char *)malloc(50*sizeof(char));
-    memcpy(basis->vnames[i], tmp_vname_old, strlen(line)+1);
-    basis->vnames[i][strlen(line)-index] = '\0';
-    basis->vnames[i]  = realloc(basis->vnames[i], strlen(line)-index+1);
-    char *tmp_end;
-    // trim variable names
     for (i=0; i<basis->nvars; ++i) {
-      while (isspace(*basis->vnames[i]))
-        basis->vnames[i]++;
-      if (*basis->vnames[i] != 0) {
-        tmp_end = basis->vnames[i];
-        while (*tmp_end)
-          tmp_end++;
-        do {
-          tmp_end--;
-        } while (isspace(*tmp_end));
-        tmp_end++;
-        *tmp_end = '\0';
-      }
+      basis->vnames[i]  = get_variable_name(line, &tmp_vname_old);
     }
 #if IO_DEBUG
     for (i=0; i<basis->nvars; ++i) {

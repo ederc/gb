@@ -85,6 +85,18 @@ double walltime(struct timeval t_start);
  */
 void print_mem_usage();
 
+
+/**
+ * \brief Gets variable name w.r.t prev_pos in line
+ *
+ * \param line in file representing polynomial line
+ *
+ * \param pointer to last position checked in line prev_pos
+ *
+ * \return variable name as char *
+ */
+char *get_variable_name(const char *line, char **prev_pos);
+
 /**
  * \brief Gets next term out of line resp. polynomial
  *

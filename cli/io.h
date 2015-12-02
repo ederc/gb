@@ -125,7 +125,7 @@ int get_number_of_terms(const char *line);
  */
 static inline info_t *init_meta_data()
 {
-  info_t *meta_data = (info_t *)malloc(sizeof(meta_data));
+  info_t *meta_data = (info_t *)malloc(sizeof(info_t));
   meta_data->n_reduced          = 0;
   meta_data->n_pairs_removed    = 0;
   meta_data->n_zero_reductions  = 0;

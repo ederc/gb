@@ -22,6 +22,8 @@
 
 #include "hash_table.h"
 
+#define HASH_DEBUG  0
+
 /********************************************************************************
  * FOLLOWING HASH TABLE IMPLEMENTATION IS COPIED FROM COMPACT F4 IMPLEMENTATION 
  * BY MONAGAN AND PIERCE (see PASCO 2015)
@@ -207,9 +209,11 @@ inline hash_t check_in_hash_table(const exp_t *exp, mp_cf4_ht_t *ht)
   hash_t tmp_h  = hash; // temporary hash values for quadratic probing
   hash_t tmp_l;         // temporary lookup table value
 
+#if HASH_DEBUG
   for (i=0; i<ht->nvars; ++i)
     printf("%u ",exp[i]);
   printf("\nhash = %u\n",hash);
+#endif
 
   for (i=0; i<ht->size; ++i) {
     tmp_h = (tmp_h + i) & (ht->size - 1);

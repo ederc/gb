@@ -7,7 +7,8 @@ lib_LTLIBRARIES = libgb.la
 
 libgb_la_SOURCES = \
 	src/types.h \
-	src/hash_table.h	src/hash_table.c
+	src/hash_table.h	src/hash_table.c	\
+	src/basis.h	src/basis.c
 
 BUILT_SOURCES = src/gb_config.h
 
@@ -15,7 +16,8 @@ BUILT_SOURCES = src/gb_config.h
 pkgincludesubdir = $(includedir)/src
 pkgincludesub_HEADERS = \
 	src/types.h	\
-	src/hash_table.h
+	src/hash_table.h	\
+	src/basis.h
 
 nodist_pkgincludesub_HEADERS = src/gb_config.h
 

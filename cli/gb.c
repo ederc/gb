@@ -131,6 +131,10 @@ int main(int argc, char *argv[])
   // basis stores input data
   gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
 
+  printf("v1 %s\n",basis->vnames[0]);
+  printf("v2 %s\n",basis->vnames[1]);
+  printf("v3 %s\n",basis->vnames[2]);
+
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
     gettimeofday(&t_load_start, NULL);
@@ -154,6 +158,7 @@ int main(int argc, char *argv[])
 
   // free allocated memory
   free(meta_data);
+  free_basis_dynamic_data(basis);
   free(basis);
   free_hash_table_dynamic_data(ht);
   free(ht);

@@ -15,6 +15,8 @@
 
 #include "io.h"
 
+#define IO_DEBUG  0
+
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 double walltime(struct timeval t_start)
 {
@@ -172,7 +174,7 @@ inline void get_term(const char *line, char **prev_pos,
   } else { // we are at the last term
     int prev_idx  = (int)(*prev_pos - line);
     int term_diff = strlen(line) + 1 - prev_idx;
-    memcpy(*term, *prev_pos, strlen(line)+1);
+    memcpy(*term, *prev_pos, term_diff);
     (*term)[term_diff]  = '\0';
   }
 }
@@ -252,7 +254,9 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   // variable names and second line is the field modulus
   basis->load = nlines-2;
 
+#if IO_DEBUG
   printf("bload = %u\n",basis->load);
+#endif
 
   // now initialize the size of the basis 3 times as big as the input system
   basis->size = 3 * basis->load;
@@ -310,10 +314,11 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         *tmp_end = '\0';
       }
     }
-
+#if IO_DEBUG
     for (i=0; i<basis->nvars; ++i) {
       printf(basis->vnames[i]);
     }
+#endif
   } else {
     printf("Bad file format.\n");
     return NULL;
@@ -337,7 +342,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   const char exp_splicer  = '^';
 
   char *prev_pos;
-  char *term  = (char *)malloc(200 * sizeof(char));;
+  char *term  = (char *)malloc(200 * sizeof(char));
   int nterms;
   exp_t *exp  = (exp_t *)malloc(basis->nvars * sizeof(exp_t));
   deg_t deg, max_deg;
@@ -346,29 +351,26 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   for (i=0; i<basis->load; ++i) {
     if (fgets(line, max_line_size, fh) != NULL) {
       // get number of terms first
-      nterms  = get_number_of_terms(line);
+      nterms        = get_number_of_terms(line);
+      basis->nt[i]  = nterms;
+
+#if IO_DEBUG
       printf("nterms %d\n",nterms);
+#endif
 
       // allocate memory for all terms
       basis->cf[i]  = (coeff_t *)malloc(nterms * sizeof(coeff_t));
       basis->eh[i]  = (hash_t *)malloc(nterms * sizeof(hash_t));
-      printf(line);
       prev_pos  = line;
       max_deg   = 0;
       // next: go through line, term by term
       for (j=0; j<nterms; ++j) {
-        memset(exp, 0, basis->nvars * sizeof(exp_t));
+        //memset(exp, 0, basis->nvars * sizeof(exp_t));
         deg = 0;
         get_term(line, &prev_pos, &term);
-        printf("get term ---> ");
-        printf(term);
         // get coefficient first
         if (term != NULL)
           basis->cf[i][j] = (coeff_t)atoi(term);
-        printf("term: ");
-        printf(term);
-        printf(" || coeff: ");
-        printf("%u\n",basis->cf[i][j]);
 
         // now loop over variables of term
         for (k=0; k<basis->nvars; ++k) {
@@ -378,11 +380,15 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         // hash exponent and store degree
         basis->eh[i][j] = check_in_hash_table(exp, ht);
         max_deg = max_deg > deg ? max_deg : deg;
-        printf("eh[%u][%u] = %u --> %lu\n",i,j,basis->eh[i][j], ht->lut[basis->eh[i][j]]);
+#if IO_DEBUG
+        printf("eh[%u][%u] = %u --> %lu\n",i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
+#endif
       }
       basis->deg[i] = max_deg;
     }
   }
+  free(exp);
+  free(term);
   free(line);
 
   return basis;

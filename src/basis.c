@@ -13,28 +13,30 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-
 /**
- * \file gb.h
- * \brief Input/output routines for matrices
+ * \file basis.h
+ * \brief Implementation of handling of groebner basis.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+#include "basis.h"
 
-#ifndef GB_GB_H
-#define GB_GB_H
-
-#include <math.h>
-#include <unistd.h>
-#include <limits.h>
-#include "io.h"
-#include <src/basis.h>
-
-/**
- * \brief Prints help for gb call.
- */
-void print_help();
-
-#endif
+inline void free_basis_dynamic_data(gb_t *basis)
+{
+  if (basis) {
+    nelts_t i, j;
+    for (i=0; i<basis->nvars; ++i) {
+      printf("%u -- %s -- %p\n",i,basis->vnames[i],basis->vnames[i]);
+      //free(basis->vnames[i]);
+    }
+    free(basis->vnames);
+    free(basis->deg);
+    free(basis->nt);
+    for (i=0; i<basis->load; ++i) {
+      free(basis->cf[i]);
+      free(basis->eh[i]);
+    }
+    free(basis->cf);
+    free(basis->eh);
+  }
+}

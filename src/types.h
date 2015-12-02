@@ -221,5 +221,4 @@ typedef struct mp_cf4_ht_t
                           monomials already taken care of in symbolic
                           preprocessing*/
 } mp_cf4_ht_t;
-
 #endif /* GB_TYPES_H */

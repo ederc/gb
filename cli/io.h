@@ -51,6 +51,14 @@ nvars_t get_nvars(const char *fn);
 /**
  * \brief Loads input file and intializes basis
  *
+ * \note The input files need to have the following format at the moment:
+ * First line: comma-separated list of variables, e.g. x1,x2,x3
+ * Second line: modulus of the field, e.g. 32003
+ * Following lines: in each line one polynomial, no shorthand notation, i,e,
+ * between each coefficient and each power of a variable there is a "*" and for
+ * each power of a variable there is "^" (whereas you can write "x1" instead of
+ * "x1^1").
+ *
  * \param file name fn
  *
  * \param number of variables nvars

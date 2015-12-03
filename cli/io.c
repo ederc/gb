@@ -322,15 +322,13 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   // we already know the number of variables
   basis->nvars  = nvars;
 
-  char *tmp_vname, *tmp_vname_old;
-  int index, index_old;
+  char *tmp;
   // allocate memory for storing variable names
   basis->vnames = (char **)malloc(basis->nvars * sizeof(char *));
   if (fgets(line, max_line_size, fh) != NULL) {
-    index_old  = 0;
-    tmp_vname_old = line;
+    tmp = line;
     for (i=0; i<basis->nvars; ++i) {
-      basis->vnames[i]  = get_variable_name(line, &tmp_vname_old);
+      basis->vnames[i]  = get_variable_name(line, &tmp);
     }
 #if IO_DEBUG
     for (i=0; i<basis->nvars; ++i) {

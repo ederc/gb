@@ -138,6 +138,7 @@ inline hash_t insert_with_quadratic_probing(const exp_t *exp,
     if (j == ht->nvars)
       return ht->lut[tmp];
   }
+  return ht->lut[tmp];
 }
 
 inline void insert_while_enlarging(const hash_t hash, mp_cf4_ht_t *ht)
@@ -184,7 +185,6 @@ inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_
   hash_t i;
 
   hash_t last_pos = ht->load;
-  deg_t tmp_deg   = 0;
 
   for (i=0; i<ht->nvars; ++i)
     ht->exp[last_pos][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];

@@ -49,34 +49,33 @@ void print_mem_usage()
   char utime[1024] ="\0", stime[1024] ="\0", cutime[1024] ="\0", cstime[1024] ="\0", priority[1024] ="\0", nice[1024] ="\0";
   char nthrds[1024] ="\0", itrealvalue[1024] ="\0", starttime[1024] ="\0";
 
-  int ret;
   /*  dummy reading of useless information */
-  ret = fscanf(fh, "%1023s", &pid[0]);
-  ret = fscanf(fh, "%1023s", &comm[0]);
-  ret = fscanf(fh, "%1023s", &state[0]);
-  ret = fscanf(fh, "%1023s", &ppid[0]);
-  ret = fscanf(fh, "%1023s", &pgrp[0]);
-  ret = fscanf(fh, "%1023s", &session[0]);
-  ret = fscanf(fh, "%1023s", &tty_nr[0]);
-  ret = fscanf(fh, "%1023s", &tpgid[0]);
-  ret = fscanf(fh, "%1023s", &flags[0]);
-  ret = fscanf(fh, "%1023s", &minflt[0]);
-  ret = fscanf(fh, "%1023s", &cminflt[0]);
-  ret = fscanf(fh, "%1023s", &majflt[0]);
-  ret = fscanf(fh, "%1023s", &cmajflt[0]);
-  ret = fscanf(fh, "%1023s", &utime[0]);
-  ret = fscanf(fh, "%1023s", &stime[0]);
-  ret = fscanf(fh, "%1023s", &cutime[0]);
-  ret = fscanf(fh, "%1023s", &cstime[0]);
-  ret = fscanf(fh, "%1023s", &priority[0]);
-  ret = fscanf(fh, "%1023s", &nice[0]);
-  ret = fscanf(fh, "%1023s", &nthrds[0]);
-  ret = fscanf(fh, "%1023s", &itrealvalue[0]);
-  ret = fscanf(fh, "%1023s", &starttime[0]);
+  fscanf(fh, "%1023s", &pid[0]);
+  fscanf(fh, "%1023s", &comm[0]);
+  fscanf(fh, "%1023s", &state[0]);
+  fscanf(fh, "%1023s", &ppid[0]);
+  fscanf(fh, "%1023s", &pgrp[0]);
+  fscanf(fh, "%1023s", &session[0]);
+  fscanf(fh, "%1023s", &tty_nr[0]);
+  fscanf(fh, "%1023s", &tpgid[0]);
+  fscanf(fh, "%1023s", &flags[0]);
+  fscanf(fh, "%1023s", &minflt[0]);
+  fscanf(fh, "%1023s", &cminflt[0]);
+  fscanf(fh, "%1023s", &majflt[0]);
+  fscanf(fh, "%1023s", &cmajflt[0]);
+  fscanf(fh, "%1023s", &utime[0]);
+  fscanf(fh, "%1023s", &stime[0]);
+  fscanf(fh, "%1023s", &cutime[0]);
+  fscanf(fh, "%1023s", &cstime[0]);
+  fscanf(fh, "%1023s", &priority[0]);
+  fscanf(fh, "%1023s", &nice[0]);
+  fscanf(fh, "%1023s", &nthrds[0]);
+  fscanf(fh, "%1023s", &itrealvalue[0]);
+  fscanf(fh, "%1023s", &starttime[0]);
 
   /*  get real memory information */
-  ret = fscanf(fh, "%lu", &_vms);
-  ret = fscanf(fh, "%ld", &_rss);
+  fscanf(fh, "%lu", &_vms);
+  fscanf(fh, "%ld", &_rss);
 
   /*  close file */
   fclose(fh);
@@ -128,11 +127,10 @@ inline char *get_variable_name(const char *line, char **prev_pos)
 
   // trim variable, remove blank spaces
   char *tmp_var_begin, *tmp_var_end;
-  tmp_var_begin = tmp_var;
+  tmp_var_begin = tmp_var_end =  tmp_var;
   while (isspace(*tmp_var_begin))
     tmp_var_begin++;
   if (*tmp_var_begin != 0) {
-    tmp_var_end = tmp_var;
     while (*tmp_var_end)
       tmp_var_end++;
     do {
@@ -316,9 +314,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   const size_t max_line_size  = 1000;
   char *line  = (char *)malloc(max_line_size * sizeof(char));
 
-  // get first line (variables)
-  const char comma_splicer  = ',';
-
   // we already know the number of variables
   basis->nvars  = nvars;
 
@@ -352,10 +347,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
     printf("Bad file format.\n");
     return NULL;
   }
-
-  const char add_splicer  = '+';
-  const char mult_splicer = '*';
-  const char exp_splicer  = '^';
 
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));

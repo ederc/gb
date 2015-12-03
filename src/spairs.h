@@ -38,6 +38,15 @@
 ps_t *init_pair_set(gb_t *basis);
 
 /**
+ * \brief Enlarge pair set ps to size new_size
+ *
+ * \param pair set ps
+ *
+ * \param new size new_size
+ */
+void enlarge_pair_set(ps_t *ps, nelts_t new_size);
+
+/**
  * \brief Frees dynamically allocated memory from pair set
  *
  * \param pair set ps

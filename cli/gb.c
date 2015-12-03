@@ -179,4 +179,16 @@ int main(int argc, char *argv[])
   free(basis);
   free_hash_table_dynamic_data(ht);
   free(ht);
+  if (verbose > 0) {
+    printf("-------------------------------------------------------------------\n");
+    printf("%-38s","Computation completed ...");
+    fflush(stdout);
+    printf("%9.3f sec\n",
+        walltime(t_complete) / (1000000));
+    if (verbose > 1) 
+      print_mem_usage();
+  }
+  printf("-------------------------------------------------------------------\n");
+  return 0;
+
 }

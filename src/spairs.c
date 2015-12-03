@@ -23,17 +23,28 @@
 
 inline ps_t *init_pair_set(gb_t *basis)
 {
+  nelts_t i;
+
   ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
   ps->size  = 2 * basis->size;
-  ps->pair  = (spair_t *)malloc(ps->size * sizeof(spair_t));
+  ps->pairs = (spair_t *)malloc(ps->size * sizeof(spair_t));
   ps->load  = 0;
 
   // generate spairs with the initial elements in basis
-
+  for (i=0; i<basis->load; ++i) {
+    if (ps->size == ps->load)
+      enlarge_pair_set(ps, 2*ps->size);
+  }
   return ps;
+}
+
+inline void enlarge_pair_set(ps_t *ps, nelts_t new_size)
+{
+  ps->pairs = (spair_t *)realloc(ps->pairs, new_size * sizeof(spair_t));
+  ps->size  = new_size;
 }
 
 inline void free_pair_set_dynamic_data(ps_t *ps)
 {
-  free(ps->pair);
+  free(ps->pairs);
 }

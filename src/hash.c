@@ -84,7 +84,7 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   set_random_seed(ht);
   // get memory for each exponent
   for (i=0; i<ht->size; ++i) {
-    ht->exp[i]  = (exp_t *)calloc(ht->nvars, sizeof(exp_t));
+    ht->exp[i]  = (exp_t *)malloc(ht->nvars * sizeof(exp_t));
   }
 
   return ht;
@@ -155,28 +155,22 @@ inline void insert_while_enlarging(const hash_t hash, mp_cf4_ht_t *ht)
   }
 }
 
-inline hash_t insert_in_hash_table(const exp_t *exp, const hash_t hash,
+inline hash_t insert_in_hash_table(const hash_t hash,
     const hash_t pos,  mp_cf4_ht_t *ht)
 {
-  hash_t i;
-
-  hash_t last_pos = ht->load;
-  deg_t tmp_deg   = 0;
-
-  for (i=0; i<ht->nvars; ++i) {
-    ht->exp[last_pos][i] = exp[i];
-    tmp_deg +=  exp[i];
-  }
+  // the new exponent is already stored in ht->exp[ht->load] as well as
+  // ht->deg[ht->load].
   // ht->div and ht->idx are already initialized with 0, so nothing to do there
-  ht->deg[last_pos] = tmp_deg;
-  ht->val[last_pos] = hash;
-  ht->lut[pos]      = last_pos;
+  ht->val[ht->load] = hash;
+  ht->lut[pos]      = ht->load;
   ht->load++;
 
-  if (ht->load >= ht->size)
+  // we need to keep one place open in ht->exp since the next element to be
+  // checked against the hash table will be intermediately stored there
+  if (ht->load >= ht->size-1)
     enlarge_hash_table(ht, 2*ht->size);
 
-  return last_pos;
+  return (ht->load-1);
 }
 
 inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
@@ -201,9 +195,12 @@ inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_
   return last_pos;
 }
 
-inline hash_t check_in_hash_table(const exp_t *exp, mp_cf4_ht_t *ht)
+inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 {
   hash_t i,j;
+  // element to be checked, intermediately stored in the first free position of
+  // ht->exp
+  exp_t *exp  = ht->exp[ht->load];
 
   hash_t hash   = get_hash(exp, ht);
   hash_t tmp_h  = hash; // temporary hash values for quadratic probing
@@ -231,7 +228,7 @@ inline hash_t check_in_hash_table(const exp_t *exp, mp_cf4_ht_t *ht)
   
   // at this point we know that we do not have the hash value of exp in the
   // table, so we have to insert it
-  return insert_in_hash_table(exp, hash, tmp_h, ht);
+  return insert_in_hash_table(hash, tmp_h, ht);
 }
 
 inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
@@ -285,4 +282,20 @@ inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)
     // insert using quadratic probing
     insert_while_enlarging(hash, hash_table);
   }
+}
+
+inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
+{
+  nvars_t i;
+  exp_t *lcm, *e1, *e2;
+
+  // use first free entry in hash table ht to store possible new lcm monomial
+  lcm = ht->exp[ht->load];
+  e1  = ht->exp[h1];
+  e2  = ht->exp[h2];
+
+  for (i=0; i<ht->nvars; ++i)
+    lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
+
+  return check_in_hash_table(ht);
 }

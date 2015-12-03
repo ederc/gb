@@ -351,7 +351,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));
   int nterms;
-  exp_t *exp  = (exp_t *)malloc(basis->nvars * sizeof(exp_t));
+  //exp_t *exp  = (exp_t *)malloc(basis->nvars * sizeof(exp_t));
   deg_t deg, max_deg;
 
   // get all remaining lines, i.e. generators
@@ -381,11 +381,11 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
 
         // now loop over variables of term
         for (k=0; k<basis->nvars; ++k) {
-          exp[k]  =   get_exponent(term, basis->vnames[k]);
-          deg     +=  exp[k];
+          ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
+          ht->deg[ht->load]     +=  ht->exp[ht->load][k];
         }
         // hash exponent and store degree
-        basis->eh[i][j] = check_in_hash_table(exp, ht);
+        basis->eh[i][j] = check_in_hash_table(ht);
         max_deg = max_deg > deg ? max_deg : deg;
 #if IO_DEBUG
         printf("eh[%u][%u] = %u --> %lu\n",i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
@@ -394,7 +394,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       basis->deg[i] = max_deg;
     }
   }
-  free(exp);
+  //free(exp);
   free(term);
   free(line);
 

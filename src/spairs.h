@@ -13,29 +13,34 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-
 /**
- * \file gb.h
- * \brief Input/output routines for matrices
+ * \file spairs.h
+ * \brief Implementation of handling of pair sets.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+#ifndef GB_SPAIRS_H
+#define GB_SPAIRS_H
 
-#ifndef GB_GB_H
-#define GB_GB_H
-
+#include "gb_config.h"
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 #include <math.h>
-#include <unistd.h>
-#include <limits.h>
-#include "io.h"
-#include <src/basis.h>
-#include <src/spairs.h>
+#include <omp.h>
+#include "types.h"
 
 /**
- * \brief Prints help for gb call.
+ * \brief Initialize pair set
+ *
+ * \param groebner basis gb
  */
-void print_help();
+ps_t *init_pair_set(gb_t *basis);
 
+/**
+ * \brief Frees dynamically allocated memory from pair set
+ *
+ * \param pair set ps
+ */
+void free_pair_set_dynamic_data(ps_t *ps);
 #endif

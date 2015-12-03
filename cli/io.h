@@ -36,7 +36,7 @@
 #include <math.h>
 #include <gb_config.h>
 #include <omp.h>
-#include "hash_table.h"
+#include <src/hash.h>
 
 /**
  * \brief Gets number of variables, needs to be done before reading file

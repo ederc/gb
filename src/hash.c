@@ -14,13 +14,13 @@
  */
 
 /**
- * \file hash_table.c
+ * \file hash.c
  * \brief Implementation of the hash tables used in gb.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "hash_table.h"
+#include "hash.h"
 
 #define HASH_DEBUG  0
 

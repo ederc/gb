@@ -63,6 +63,8 @@ int main(int argc, char *argv[])
   int index;
   int opt;
 
+  int i, steps;
+
   /*  timing structs */
   struct timeval t_load_start;
   struct timeval t_complete;
@@ -131,10 +133,6 @@ int main(int argc, char *argv[])
   // basis stores input data
   gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
 
-  printf("v1 %s\n",basis->vnames[0]);
-  printf("v2 %s\n",basis->vnames[1]);
-  printf("v3 %s\n",basis->vnames[2]);
-
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
     gettimeofday(&t_load_start, NULL);
@@ -156,8 +154,27 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
   }
 
+  // initialize spair set
+  ps_t *ps = init_pair_set(basis);
+
+  printf("ps->size %u\n",ps->size);
+  printf("ps->load %u\n",ps->load);
+  printf("basis->size %u\n",basis->size);
+  printf("basis->load %u\n",basis->load);
+
+  for (i=1; i<basis->load; ++i)
+    //update_basis(ps, basis, i);
+
+  // run while there exist spairs to be handled
+  for (steps=1; ps->load>0; ++steps)
+  {
+    
+  }
+
   // free allocated memory
   free(meta_data);
+  free_pair_set_dynamic_data(ps);
+  free(ps);
   free_basis_dynamic_data(basis);
   free(basis);
   free_hash_table_dynamic_data(ht);

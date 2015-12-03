@@ -13,29 +13,27 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-
 /**
- * \file gb.h
- * \brief Input/output routines for matrices
+ * \file spairs.c
+ * \brief Implementation of handling of pair sets.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+#include "spairs.h"
 
-#ifndef GB_GB_H
-#define GB_GB_H
+inline ps_t *init_pair_set(gb_t *basis)
+{
+  ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
+  ps->size  = 2 * basis->size;
+  ps->pair  = (spair_t *)malloc(ps->size * sizeof(spair_t));
+  ps->load  = 0;
 
-#include <math.h>
-#include <unistd.h>
-#include <limits.h>
-#include "io.h"
-#include <src/basis.h>
-#include <src/spairs.h>
+  // generate spairs with the initial elements in basis
 
-/**
- * \brief Prints help for gb call.
- */
-void print_help();
+  return ps;
+}
 
-#endif
+inline void free_pair_set_dynamic_data(ps_t *ps)
+{
+  free(ps->pair);
+}

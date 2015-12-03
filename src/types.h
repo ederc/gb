@@ -198,6 +198,18 @@ typedef struct spair_t
 } spair_t;
 
 /**
+ * \brief Pair set
+ */
+typedef struct ps_t
+{
+  // global data
+  nelts_t size;     /*!<  memory allocated */
+  nelts_t load;     /*!<  number of elements in basis*/
+  // element data
+  spair_t *pair;     /*!<  spairs */
+} ps_t;
+
+/**
  * \brief Hash table as defined by Monagan and Pearce in compact F4
  * implementation (see PASCO 2015)
  */

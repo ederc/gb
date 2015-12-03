@@ -154,6 +154,9 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
   }
 
+  /*  track time for the complete reduction process (excluding load) */
+  if (verbose > 0)
+    gettimeofday(&t_complete, NULL);
   // initialize spair set
   ps_t *ps = init_pair_set(basis);
 

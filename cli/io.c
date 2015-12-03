@@ -233,8 +233,15 @@ nvars_t get_nvars(const char *fn)
   if (fgets(line, max_line_size, fh) != NULL) {
     char *tmp = strchr(line, comma_splicer);
     while (tmp != NULL) {
+      // if there is a comma at the end of the line, i.e. strlen(line)-2 (since
+      // we have "\0" at the end of the string line, then we do not get another
+      // variable
+      if ((int)(tmp-line) < strlen(line)-2) {
       nvars++;
       tmp = strchr(tmp+1, comma_splicer);
+      } else {
+        break;
+      }
     }
   } else {
     printf("Bad file format.\n");

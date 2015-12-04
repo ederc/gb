@@ -158,8 +158,12 @@ inline void insert_while_enlarging(const hash_t hash, mp_cf4_ht_t *ht)
 inline hash_t insert_in_hash_table(const hash_t hash,
     const hash_t pos,  mp_cf4_ht_t *ht)
 {
-  // the new exponent is already stored in ht->exp[ht->load] as well as
-  // ht->deg[ht->load].
+  nvars_t i;
+  // the new exponent is already stored in ht->exp[ht->load]
+  // deg is possibly not zero due to some earlier check in the hash table
+  ht->deg[ht->load] = 0;
+  for (i=0; i<ht->nvars; ++i)
+    ht->deg[ht->load] +=  ht->exp[ht->load][i];
   // ht->div and ht->idx are already initialized with 0, so nothing to do there
   ht->val[ht->load] = hash;
   ht->lut[pos]      = ht->load;
@@ -294,8 +298,8 @@ inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   e1  = ht->exp[h1];
   e2  = ht->exp[h2];
 
-  for (i=0; i<ht->nvars; ++i)
+  for (i=0; i<ht->nvars; ++i) {
     lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
-
+  }
   return check_in_hash_table(ht);
 }

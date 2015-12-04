@@ -29,13 +29,16 @@
 #include <math.h>
 #include <omp.h>
 #include "types.h"
+#include "hash.h"
 
 /**
  * \brief Initialize pair set
  *
  * \param groebner basis gb
+ *
+ * \param hash table ht
  */
-ps_t *init_pair_set(gb_t *basis);
+ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht);
 
 /**
  * \brief Enlarge pair set ps to size new_size
@@ -52,4 +55,19 @@ void enlarge_pair_set(ps_t *ps, nelts_t new_size);
  * \param pair set ps
  */
 void free_pair_set_dynamic_data(ps_t *ps);
+
+/**
+ * \brief Generates spair given by gen1 and gen2
+ *
+ * \param first generator gen1
+ *
+ * \param second generator gen2
+ *
+ * \param current groebner basis basis
+ *
+ * \param hash table ht
+ *
+ * \return generated spair
+ */
+spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_ht_t *ht);
 #endif

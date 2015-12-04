@@ -382,7 +382,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         // now loop over variables of term
         for (k=0; k<basis->nvars; ++k) {
           ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
-          ht->deg[ht->load]     +=  ht->exp[ht->load][k];
         }
         // hash exponent and store degree
         basis->eh[i][j] = check_in_hash_table(ht);

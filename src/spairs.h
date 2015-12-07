@@ -70,4 +70,26 @@ void free_pair_set_dynamic_data(ps_t *ps);
  * \return generated spair
  */
 spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_ht_t *ht);
+
+/**
+ * \brief Comparison implementation for qsort. Sorts pair set w.r.t. graded
+ * reverse lexicographical order grevlex.
+ *
+ * \param element to be compared a
+ *
+ * \param element to be compared b
+ *
+ * \returns corresponding integer for qsort
+ */
+int cmp_spairs_grevlex(const void *a, const void *b);
+
+/**
+ * \brief Sorts pair set w.r.t. graded reverse lexicographical order
+ * grevlex using qsort.
+ *
+ * \param pair set to be sorted ps
+ *
+ */
+void sort_pair_set_by_lcm_grevlex(ps_t *ps);
+
 #endif

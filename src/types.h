@@ -191,10 +191,10 @@ typedef struct gb_t
  */
 typedef struct spair_t
 {
-  nelts_t gen1; /*!<  index to first generator*/
-  nelts_t gen2; /*!<  index to second generator*/
-  deg_t deg;    /*!<  degree of S-pair*/
-  hash_t lcm;   /*!<  hash of lcm of the lead terms of gen1 and gen2*/
+  nelts_t gen1;   /*!<  index to first generator*/
+  nelts_t gen2;   /*!<  index to second generator*/
+  deg_t deg;      /*!<  degree of S-pair*/
+  hash_t lcm;     /*!<  hash of lcm of the lead terms of gen1 and gen2*/
 } spair_t;
 
 /**

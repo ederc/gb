@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
   // first get number of variables in order to initialize hash table
   nvars_t nvars = get_nvars(fn);
   // initialize hash table
-  mp_cf4_ht_t *ht = init_hash_table(ht_size, nvars);
+  ht = init_hash_table(ht_size, nvars);
   // basis stores input data
   gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
 

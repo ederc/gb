@@ -30,6 +30,12 @@
 #include <omp.h>
 #include "types.h"
 
+
+/***************************
+ * OUR HASH TABLE IS GLOBAL
+ **************************/
+mp_cf4_ht_t *ht;
+
 /**
  * \brief Generates pseudo random numbers using xorshifts using global defined
  * random_seed variable

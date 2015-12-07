@@ -44,7 +44,20 @@ inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
       ps->load++;
     }
   }
+  // sort pair set by lcms
+  sort_pair_set_by_lcm_grevlex(ps);
   return ps;
+}
+
+inline void enlarge_pair_set(ps_t *ps, nelts_t new_size)
+{
+  ps->pairs = (spair_t **)realloc(ps->pairs, new_size * sizeof(spair_t *));
+  ps->size  = new_size;
+}
+
+inline void free_pair_set_dynamic_data(ps_t *ps)
+{
+  free(ps->pairs);
 }
 
 inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_ht_t *ht)
@@ -61,13 +74,58 @@ inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_h
   return sp;
 }
 
-inline void enlarge_pair_set(ps_t *ps, nelts_t new_size)
-{
-  ps->pairs = (spair_t **)realloc(ps->pairs, new_size * sizeof(spair_t *));
-  ps->size  = new_size;
+inline int cmp_spairs_grevlex(const void *a, const void *b) {
+  spair_t *spa  = *((spair_t **)a);
+  spair_t *spb  = *((spair_t **)b);
+  //spair_t *spa    = *spap;
+  //spair_t *spb    = *spbp;
+#if SPAIRS_DEBUG
+  printf("%p | %p\n", spa, spb);
+  printf("nvars %u\n",ht->nvars);
+  printf("%u | %u\n",spa->lcm, spb->lcm);
+  printf("%u | %u\n",spa->deg, spb->deg);
+#endif
+  if (spa->lcm != spb->lcm) {
+    // compare degree
+    if (spa->deg > spb->deg) {
+      return 1;
+    } else {
+      if (spa->deg != spb->deg)
+        return -1;
+    }
+    // compare reverse lexicographical
+    nvars_t i;
+    exp_t *expa = ht->exp[spa->lcm];
+    exp_t *expb = ht->exp[spb->lcm];
+    for (i=ht->nvars-1; i>=0; --i) {
+      if (expa[i] < expb[i]) {
+        return 1;
+      } else {
+        if (expa[i] != expb[i])
+          return -1;
+      }
+    }
+    return 0;
+  } else {
+    // we check for spairs labeled by the product criterion, those are moved to
+    // the end in order to have an efficient Gebauer-Moeller implementation: If
+    // an spair was labeled for product criterion we set the corresponding deg
+    // of the lcm to zero
+    if (spa->deg != spb->deg) {
+      return (spa->deg < spb->deg) ? -1 : 1;
+    } else {
+      // both have the same lcms and are not detected by the product criterion,
+      // then we break ties by the first generator
+      if (spa->gen1 != spb->gen1) {
+        return (spa->gen1 < spb->gen1) ? -1 : 1;
+      } else {
+        return 0;
+      }
+    }
+  }
 }
 
-inline void free_pair_set_dynamic_data(ps_t *ps)
+inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
 {
-  free(ps->pairs);
+  qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_grevlex);
 }

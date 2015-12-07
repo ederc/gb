@@ -33,9 +33,14 @@
 #include <src/basis.h>
 #include <src/spairs.h>
 
+#ifndef META_DATA_DEBUG
+#define META_DATA_DEBUG 0
+#endif
+
 /**
  * \brief Prints help for gb call.
  */
 void print_help();
+
 
 #endif

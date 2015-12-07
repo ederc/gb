@@ -25,7 +25,7 @@
 
 inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
 {
-  nelts_t i,j;
+  nelts_t i;
 
   ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
   ps->size  = 2 * basis->size;
@@ -34,20 +34,116 @@ inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
 
   // generate spairs with the initial elements in basis
   for (i=1; i<basis->load; ++i) {
-    for (j=0; j<i; ++j) {
-      if (ps->size == ps->load)
-        enlarge_pair_set(ps, 2*ps->size);
-      ps->pairs[ps->load] = generate_spair(i, j, basis, ht);
-#if SPAIRS_DEBUG
-      printf("pair %u %u | %u\n",i,j,ps->pairs[ps->load]->deg);
+    update_pair_set(ps, basis, i);
+#if META_DATA_DEBUG
+    printf("criteria applied %u / %u\n", meta_data->ncrit_last, meta_data->ncrit_total);
 #endif
-      ps->load++;
-    }
   }
   // sort pair set by lcms
   sort_pair_set_by_lcm_grevlex(ps);
   return ps;
 }
+
+inline void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx)
+{
+  nelts_t i;
+  // we get maximal idx-1 new pairs
+  if (ps->size <= ps->load + (idx-1))
+    enlarge_pair_set(ps, 2*ps->size);
+  for (i=0; i<idx; ++i) {
+    ps->pairs[ps->load+i] = generate_spair(idx, i, basis, ht);
+#if SPAIRS_DEBUG
+    printf("pair %u %u | %u\n",idx,i,tmp_pairs[i]->deg);
+#endif
+  }
+  // we do not update ps->load at the moment in order to be able to distinguish
+  // old and new pairs for the gebauer-moeller update following
+
+  // check product and chain criterion in gebauer moeller style
+  // note that we have already marked the pairs for which the product criterion
+  // applies in generate_spair()
+  gebauer_moeller(ps, basis->eh[idx][0], idx);
+
+  // fix pair set and remove detected pairs
+  meta_data->ncrit_last   =   remove_detected_pairs(ps, idx);
+  meta_data->ncrit_total  +=  meta_data->ncrit_last;
+}
+
+void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
+{
+  nelts_t gen1, gen2;
+  nelts_t cur_len = ps->load + (idx - 1);
+  int i, j; // we need ints to cover cases where i=0 and j=i-1
+
+  // first step: remove elements already in ps due to chain criterion with new
+  // pairs in new_pairs
+  for (i=0; i<ps->load; ++i) {
+    gen1  = ps->pairs[i]->gen1;
+    gen2  = ps->pairs[i]->gen2;
+    if (ps->pairs[i]->lcm != ps->pairs[ps->load+gen1]->lcm &&
+        ps->pairs[i]->lcm != ps->pairs[ps->load+gen2]->lcm &&
+        monomial_division(ps->pairs[i]->lcm, hash, ht)) {
+      ps->pairs[i]->crit  = CHAIN_CRIT;
+    }
+  }
+
+  // next: sort new pairs
+  qsort(ps->pairs+ps->load, idx-1, sizeof(spair_t **), cmp_spairs_grevlex);
+  
+  // second step: remove new pairs by themselves w.r.t the chain criterion
+  for (i=ps->load; i<cur_len; ++i) {
+    if (ps->pairs[i]->crit != NO_CRIT)
+      continue;
+    for (j=ps->load; j<i; ++j) {
+      if (i==j) // smaller lcm eliminated j
+        continue;
+      if (ps->pairs[j]->lcm == ps->pairs[i]->lcm)
+        ps->pairs[j]->crit  = CHAIN_CRIT;
+    }
+  }
+  // third step: remove new pairs via product criterion
+  for (i=ps->load; i<cur_len; ++i) {
+    if (ps->pairs[i]->crit == PROD_CRIT) {
+      // eliminate all new pairs with this lcm
+      for (j=ps->load; j<cur_len; ++j) {
+        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+          ps->pairs[j]->crit  = CHAIN_CRIT;
+        }
+      }
+    } else { // earlier pairs my eliminate this pair
+      if (i > ps->load) {
+        for (j=i-1; j>=(int)ps->load; --j) {
+          if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+            ps->pairs[i]->crit  = CHAIN_CRIT;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+inline nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx)
+{
+  nelts_t cur_len = ps->load + (idx-1);
+  nelts_t i, j, nremoved;
+
+  j         = 0;
+  nremoved  = 0;
+  for (i=0; i<cur_len; ++i) {
+    if (ps->pairs[i]->crit != NO_CRIT) {
+      nremoved++;
+      free(ps->pairs[i]);
+      ps->pairs[i]  = NULL;
+      continue;
+    }
+    ps->pairs[j++]  = ps->pairs[i];
+  }
+  ps->load  = j;
+
+  return nremoved;
+}
+
 
 inline void enlarge_pair_set(ps_t *ps, nelts_t new_size)
 {
@@ -62,7 +158,7 @@ inline void free_pair_set_dynamic_data(ps_t *ps)
 
 inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_ht_t *ht)
 {
-  spair_t *sp = (spair_t *)malloc(sizeof(spair_t));;
+  spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
   sp->gen1  = gen1;
   sp->gen2  = gen2;
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
@@ -79,8 +175,6 @@ inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_h
 inline int cmp_spairs_grevlex(const void *a, const void *b) {
   spair_t *spa  = *((spair_t **)a);
   spair_t *spb  = *((spair_t **)b);
-  //spair_t *spa    = *spap;
-  //spair_t *spb    = *spbp;
 #if SPAIRS_DEBUG
   printf("%p | %p\n", spa, spb);
   printf("nvars %u\n",ht->nvars);

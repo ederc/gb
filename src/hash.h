@@ -30,6 +30,10 @@
 #include <omp.h>
 #include "types.h"
 
+#ifndef META_DATA_DEBUG
+#define META_DATA_DEBUG 0
+#endif
+
 
 /***************************
  * OUR HASH TABLE IS GLOBAL
@@ -215,4 +219,19 @@ void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size);
  * \return position of lcm of generators h1 and h2 in hash table ht
  */
 hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
+
+/**
+ * \brief Tests if exp of h1 is divisible by exp of h2. If divisibility is
+ * fulfilled we add the multiplier to the hash table and return its hash
+ * position. Else we return 0.
+ *
+ * \param hash position h1
+ *
+ * \param hash position h2
+ *
+ * \param hash table ht
+ *
+ * \return hash position of multiplier or 0
+ */
+hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
 #endif /* GB_HASH_TABLE_H */

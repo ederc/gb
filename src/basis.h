@@ -30,6 +30,10 @@
 #include <omp.h>
 #include "types.h"
 
+#ifndef META_DATA_DEBUG
+#define META_DATA_DEBUG 0
+#endif
+
 /**
  * \brief Frees dynamically allocated memory from groebner basis
  *

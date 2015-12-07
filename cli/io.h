@@ -38,6 +38,10 @@
 #include <omp.h>
 #include <src/hash.h>
 
+#ifndef META_DATA_DEBUG
+#define META_DATA_DEBUG 0
+#endif
+
 /**
  * \brief Gets number of variables, needs to be done before reading file
  * completely as we need to initialize the hash table beforehand
@@ -146,9 +150,12 @@ int get_number_of_terms(const char *line);
 static inline info_t *init_meta_data()
 {
   info_t *meta_data = (info_t *)malloc(sizeof(info_t));
-  meta_data->n_reduced          = 0;
-  meta_data->n_pairs_removed    = 0;
-  meta_data->n_zero_reductions  = 0;
+  meta_data->nred_last      = 0;
+  meta_data->nred_total     = 0;
+  meta_data->ncrit_last     = 0;
+  meta_data->ncrit_total    = 0;
+  meta_data->nzerored_last  = 0;
+  meta_data->nzerored_total = 0;
 
   return meta_data;
 }

@@ -31,6 +31,10 @@
 #include "types.h"
 #include "hash.h"
 
+#ifndef META_DATA_DEBUG
+#define META_DATA_DEBUG 0
+#endif
+
 /**
  * \brief Initialize pair set
  *
@@ -92,4 +96,36 @@ int cmp_spairs_grevlex(const void *a, const void *b);
  */
 void sort_pair_set_by_lcm_grevlex(ps_t *ps);
 
+/**
+ * \brief Updates pair set including Gebauer-Moeller criteria checks
+ *
+ * \param pair set ps
+ *
+ * \param intermediate groebner basis gb
+ *
+ * \param index of new element in gb idx
+ */
+void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx);
+
+/**
+ * \brief Gebauer-Moeller checks for product and chain criterion
+ *
+ * \param pair set ps
+ *
+ * \param hash position of newly added basis element hash
+ *
+ * \param index in basis of newly added basis element idx
+ */
+void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx);
+
+/**
+ * \brief Remove spairs detected by either product or chain criterion
+ *
+ * \param pair set ps
+ *
+ * \param index of basis element the new pairs were generated with idx
+ *
+ * \return number of removed pairs
+ */
+nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx);
 #endif

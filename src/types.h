@@ -148,9 +148,12 @@ typedef int32_t mod_t;
  */
 typedef struct info_t
 {
-  nelts_t n_reduced;                          /*!<  number of elements reduced*/
-  nelts_t n_pairs_removed;                    /*!<  number of pairs removed by criteria*/
-  nelts_t n_zero_reductions;                  /*!<  number of zero reductions*/
+  nelts_t nred_last;                          /*!<  number of elements reduced in last step*/
+  nelts_t nred_total;                         /*!<  number of elements reduced in last step*/
+  nelts_t ncrit_last;                         /*!<  number of pairs removed by criteria in the last step*/
+  nelts_t ncrit_total;                        /*!<  number of pairs removed by criteria in total*/
+  nelts_t nzerored_last;                      /*!<  number of zero reductions in the last step*/
+  nelts_t nzerored_total;                     /*!<  number of zero reductions in total*/
   struct timeval read_input_time;             /*!<  time for reading input data*/
   struct timeval criteria_check_time;         /*!<  overall time for criteria checks*/
   struct timeval pair_selection_time;         /*!<  overall time for pair selection*/
@@ -190,7 +193,7 @@ typedef struct gb_t
  * \brief Typedef of enum for criteria recognition: no criterion applies or the
  * product criterion applies or the chain criterion applies.
  */
-typedef enum {NO_CRIT, PROD_CRIT, CHAIN_CRIT} criteria_t;
+typedef enum {NO_CRIT, CHAIN_CRIT, PROD_CRIT} criteria_t;
 
 /**
  * \brief S-pairs resp. S-polynomials list
@@ -240,4 +243,9 @@ typedef struct mp_cf4_ht_t
                           monomials already taken care of in symbolic
                           preprocessing*/
 } mp_cf4_ht_t;
+
+
+
+// global meta_data
+info_t *meta_data;
 #endif /* GB_TYPES_H */

@@ -69,8 +69,9 @@ int main(int argc, char *argv[])
   struct timeval t_load_start;
   struct timeval t_complete;
 
-  // keep track of meta data
-  info_t *meta_data = init_meta_data();
+  // keep track of meta data, meta_data is global to be used wherever we need it
+  // to keep track of data
+  meta_data = init_meta_data();
 
 	opterr  = 0;
 
@@ -160,10 +161,17 @@ int main(int argc, char *argv[])
   // initialize spair set
   ps_t *ps = init_pair_set(basis, ht);
 
-  printf("ps->size %u\n",ps->size);
-  printf("ps->load %u\n",ps->load);
-  printf("basis->size %u\n",basis->size);
-  printf("basis->load %u\n",basis->load);
+  if (verbose > 1) {
+    printf("---------------------------------------------------------------------\n");
+    printf("ps->size                          %9u\n",ps->size);
+    printf("ps->load                          %9u\n",ps->load);
+    printf("basis->size                       %9u\n",basis->size);
+    printf("basis->load                       %9u\n",basis->load);
+    printf("---------------------------------------------------------------------\n");
+    printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
+    printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
+    printf("---------------------------------------------------------------------\n");
+  }
 
   for (i=1; i<basis->load; ++i)
     //update_basis(ps, basis, i);

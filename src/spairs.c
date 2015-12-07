@@ -67,9 +67,11 @@ inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_h
   sp->gen2  = gen2;
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
   sp->deg   = ht->deg[sp->lcm];
-  // check for product criterion and mark correspondingly
-  //if (ht->deg[sp.lcm] == ht->deg[gen1] + ht->deg[gen2])
-    // TODOa
+  sp->crit  = NO_CRIT;
+
+  // check for product criterion and mark correspondingly, i.e. we set sp->deg=0
+  if (sp->deg == ht->deg[gen1] + ht->deg[gen2])
+    sp->crit  = PROD_CRIT;
 
   return sp;
 }
@@ -109,10 +111,10 @@ inline int cmp_spairs_grevlex(const void *a, const void *b) {
   } else {
     // we check for spairs labeled by the product criterion, those are moved to
     // the end in order to have an efficient Gebauer-Moeller implementation: If
-    // an spair was labeled for product criterion we set the corresponding deg
-    // of the lcm to zero
+    // an spair was labeled for product criterion we set the corresponding crit
+    // enum to one, otherwise it is zero
     if (spa->deg != spb->deg) {
-      return (spa->deg < spb->deg) ? -1 : 1;
+      return (spa->crit > spb->crit) ? -1 : 1;
     } else {
       // both have the same lcms and are not detected by the product criterion,
       // then we break ties by the first generator

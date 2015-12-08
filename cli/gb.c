@@ -32,13 +32,15 @@ void print_help()
   printf("    Computes a Groebner basis of the given input ideal.\n");
   printf("\n");
   printf("OPTIONS\n");
+  printf("    -c HTC      Hash table cache resp. size.\n");
+  printf("                Default: 2^(16).\n");
   printf("    -h HELP     Print help.\n");
   printf("    -r REDGB    Compute the reduced Groebner basis.\n");
   printf("                Default: 0.\n");
+  printf("    -s SIMP     Use simplify in F4 algorithm.\n");
+  printf("                Default: 0 (off).\n");
   printf("    -t THRDS    Number of threads used.\n");
   printf("                Default: 1.\n");
-  printf("    -s HTS      Hash table size.\n");
-  printf("                Default: UINT_MAX.\n");
   printf("    -v LEVEL    Level of verbosity:\n");
   printf("                1 -> only error messages printed\n");
   printf("                2 -> some meta information printed\n");
@@ -58,6 +60,7 @@ int main(int argc, char *argv[])
   int nthreads          = 1;
   int reduce_gb         = 0;
   ht_size_t ht_size     = pow(2,16);
+  int simplify          = 0;
 
 
   int index;
@@ -75,8 +78,11 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "hr:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:hr:s:t:v:")) != -1) {
     switch (opt) {
+      case 'c':
+        ht_size = atoi(optarg);
+        break;
       case 'h':
         print_help();
         return 0;
@@ -84,7 +90,9 @@ int main(int argc, char *argv[])
         reduce_gb = atoi(optarg);
         break;
       case 's':
-        ht_size = atoi(optarg);
+        simplify = atoi(optarg);
+        if (simplify > 0)
+          simplify = 1;
         break;
       case 't':
         nthreads  = atoi(optarg);
@@ -121,9 +129,10 @@ int main(int argc, char *argv[])
     printf("-------------------------- Computing Groebner -----------------------\n");
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
-    printf("number of threads           %20d\n", nthreads);
-    printf("hash table size             %20d (+/- 2^%.1f)\n", ht_size, log_size);
-    printf("compute reduced basis?      %20d\n", reduce_gb);
+    printf("number of threads           %14d\n", nthreads);
+    printf("hash table size             %14d (+/- 2^%.1f)\n", ht_size, log_size);
+    printf("compute reduced basis?      %14d\n", reduce_gb);
+    printf("use simplify?               %14d\n", simplify);
     printf("---------------------------------------------------------------------\n");
   }
 

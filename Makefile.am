@@ -10,7 +10,7 @@ libgb_la_SOURCES = \
 	src/hash.h	src/hash.c	\
 	src/basis.h	src/basis.c \
 	src/spairs.h src/spairs.c	\
-	src/preprocessing.h src/preprocessing.c
+	src/symbol.h src/symbol.c
 
 BUILT_SOURCES = src/gb_config.h
 
@@ -21,7 +21,7 @@ pkgincludesub_HEADERS = \
 	src/hash.h	\
 	src/basis.h \
 	src/spairs.h	\
-	src/preprocessing.h
+	src/symbol.h
 
 nodist_pkgincludesub_HEADERS = src/gb_config.h
 

@@ -32,7 +32,7 @@
 #include "io.h"
 #include <src/basis.h>
 #include <src/spairs.h>
-#include <src/preprocessing.h>
+#include <src/symbol.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0

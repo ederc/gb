@@ -14,13 +14,13 @@
  */
 
 /**
- * \file preprocessing.c
- * \brief Implementation of the symbolic preprocessing in gb.
+ * \file symbol.c
+ * \brief Implementation of the symbolic pre- and postprocessing in gb.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "preprocessing.h"
+#include "symbol.h"
 
 #define PREPROCESSING_DEBUG  0
 

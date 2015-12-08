@@ -225,3 +225,114 @@ inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
 {
   qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_grevlex);
 }
+
+sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
+{
+  deg_t dmin  = ps->pairs[0]->deg;
+  nelts_t i   = 0;
+  nelts_t nsel;
+
+  // we assume here that the pair set is already sorted by degree of the lcms
+  // (in particular, we assume grevlex ordering)
+  printf("dmin %u for\n",dmin);
+  while (ps->pairs[i]->deg == dmin)
+    i++;
+  nsel  = i;
+
+  sel_t *sel  = init_selection(nsel);
+
+  sel->deg  = dmin;
+  // we do not need to check for size problems in sel, since we allocated 3 *
+  // (number of spairs) space. 
+  for (i=0; i<nsel; ++i) {
+    spair_t *sp = ps->pairs[i];
+    
+    sel->bidx[sel->load]    = sp->gen1;
+    sel->mul[sel->load][0]  = get_multiplier(sp->lcm, basis->eh[sp->gen1][0], ht);
+    sel->mload[sel->load]++;
+    sel->load++;
+    sel->bidx[sel->load]    = sp->gen2;
+    sel->mul[sel->load][0]  = get_multiplier(sp->lcm, basis->eh[sp->gen2][0], ht);
+    sel->mload[sel->load]++;
+    sel->load++;
+    // mark the lcm hash as already taken care of for symbolic preprocessing
+    // we also count how many polynomials hit it so that we can use this
+    // information for the splicing of the matrix later on
+    ht->idx[ht->lut[sp->lcm]] = 2;
+    // remove the selected pair from the pair set
+    free(sp);
+  }
+
+  // adjust pair set after removing the bunch of selected pairs
+  nelts_t k = 0;
+  for (i=nsel; i<ps->load; ++i) {
+    ps->pairs[k] = ps->pairs[i];
+    k++;
+  }
+  ps->load  = k;
+
+  return sel;
+}
+
+inline sel_t *init_selection(nelts_t size)
+{
+  nelts_t i;
+
+  // we allocate 3 * size memory for sel. We have to add reducers later on, so
+  // we do not want to reallocate memory too often.
+  sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
+  sel->size   = 3 * size;
+  sel->load   = 0;
+  sel->msize  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
+  // how many multipliers shall we store per polynomial at the beginning?
+  // we take 5 here
+  for (i=0; i<sel->size; ++i)
+    sel->msize[i] = 5;
+  sel->mload  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
+  for (i=0; i<sel->size; ++i)
+    sel->mload[i] = 0;
+  sel->bidx   = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
+  sel->mul    = (hash_t **)malloc(sel->size * sizeof(hash_t *));
+  for (i=0; i<sel->size; ++i)
+    sel->mul[i] = (hash_t *)malloc(sel->msize[i] * sizeof(hash_t));
+
+  return sel;
+}
+
+inline void enlarge_mul_storage_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx)
+{
+  sel->msize[idx] = new_size;
+  sel->mul[idx]   = realloc(sel->mul[idx], sel->msize[idx] * sizeof(hash_t));
+}
+
+
+inline void enlarge_selection(sel_t *sel, nelts_t new_size)
+{
+  nelts_t i;
+  nelts_t old_size  = sel->size;
+
+  sel->size   = new_size;
+  sel->msize  = realloc(sel->msize, sel->size * sizeof(nelts_t));
+  sel->mload  = realloc(sel->mload, sel->size * sizeof(nelts_t));
+  sel->bidx   = realloc(sel->bidx, sel->size * sizeof(nelts_t));
+  sel->mul    = realloc(sel->mul, sel->size * sizeof(hash_t *));
+
+  for (i=old_size; i<sel->size; ++i) {
+    sel->msize[i] = 5;
+    sel->mload[i] = 0;
+    sel->mul[i] = (hash_t *)malloc(sel->msize[i] * sizeof(hash_t));
+  }
+}
+
+inline void free_selection(sel_t *sel)
+{
+  nelts_t i;
+  for (i=0; i<sel->size; ++i)
+    free(sel->mul[i]);
+  free(sel->mul);
+  free(sel->mload);
+  free(sel->msize);
+  free(sel->bidx);
+  free(sel);
+  sel = NULL;
+}

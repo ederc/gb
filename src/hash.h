@@ -234,4 +234,21 @@ hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
  * \return hash position of multiplier or 0
  */
 hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
+
+/**
+ * \brief Returns the multiplier needed to multiply h2 with in order to get
+ * h1
+ *
+ * \note It is nearly the same function as monomial_division, but here we know
+ * that h2 divides h1, so we do not have to check this.
+ *
+ * \param hash position h1
+ *
+ * \param hash position h2
+ *
+ * \param hash table ht
+ *
+ * \return hash position of multiplier 
+ */
+hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
 #endif /* GB_HASH_TABLE_H */

@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   int index;
   int opt;
 
-  int i, steps;
+  int steps = 0;
 
   /*  timing structs */
   struct timeval t_load_start;
@@ -173,13 +173,20 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
   }
 
-  for (i=1; i<basis->load; ++i)
-    //update_basis(ps, basis, i);
-
   // run while there exist spairs to be handled
-  for (steps=1; ps->load>0; ++steps)
+  while (ps->load > 0)
   {
+    steps++;
+    if (verbose > 1)
+      printf("starting step %u\n", steps);
     
+    // select next bunch of spairs
+    sel_t *sel  = select_pairs_by_minimal_degree(ps, basis);
+
+    printf("sel->load %u of degree %u\n",sel->load, sel->deg);
+    free_selection(sel);
+    if (verbose > 1)
+      printf("finishing step %u\n", steps);
   }
 
   // free allocated memory

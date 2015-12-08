@@ -128,4 +128,60 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx);
  * \return number of removed pairs
  */
 nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx);
+
+/**
+ * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * a set of this selection that is later on filled with corresponding lower term
+ * reducers.
+ *
+ * \note The function also already marks the hash values for the lcms of the
+ * spairs with "2". So we know that there are 2 polynomials in the upcoming
+ * matrix that hit that monomial. We use this in the following symbolic
+ * preprocessing not to handle this monomial again and also, in the matrix
+ * construction later on, for know the number of nonzero entries in the column
+ * corresponding to this monomial. This will help splicing the matrix for gbla.
+ *
+ * \param pair set ps
+ *
+ * \param intermediate grobner basis basis
+ *
+ * \return selection set sel
+ */
+sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis);
+
+/**
+ * \brief Enlarges storage for multipliers in selection for given entry
+ *
+ * \param selection set sel
+ *
+ *  \param new size new_size
+ *
+ *  \param index of entry idx
+ */
+void enlarge_mul_storage_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx);
+
+/**
+ * \brief Enlarges selection set to new_size
+ *
+ * \param selection set sel
+ *
+ *  \param new size new_size
+ */
+void enlarge_selection(sel_t *sel, nelts_t new_size);
+
+/**
+ * \brief Initializes selection for next reduction step of size size
+ *
+ * \param size of spairs to generate selection out of size
+ *
+ * \return selection set sel
+ */
+sel_t *init_selection(nelts_t size);
+
+/**
+ * \brief Frees selection set
+ *
+ * \param selection set
+ */
+void free_selection(sel_t *sel);
 #endif

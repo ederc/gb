@@ -321,3 +321,18 @@ inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   return check_in_hash_table(ht);
 }
 
+inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
+{
+  nvars_t i;
+  exp_t *e, *e1, *e2;
+
+  e   = ht->exp[ht->load];
+  e1  = ht->exp[h1];
+  e2  = ht->exp[h2];
+
+  // we know that exp e2 divides exp e1, so no check for e1[i] < e2[i]
+  for (i=0; i<ht->nvars; ++i)
+    e[i]  = e1[i] - e2[i];
+  return check_in_hash_table(ht);
+}
+

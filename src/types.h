@@ -220,6 +220,27 @@ typedef struct ps_t
 } ps_t;
 
 /**
+ * \brief Selection of multiplied elements for next matrix: Those are generators
+ * of spairs and corresponding reducers.
+ */
+typedef struct sel_t
+{
+  // global data
+  deg_t deg;        /*!<  maximal degree of all elements in selection set*/
+  nelts_t size;     /*!<  memory allocated */
+  nelts_t load;     /*!<  number of elements in selection*/
+  nelts_t *msize;   /*!<  memory allocated for the array of multiplier hash positions
+                          (for each element in selection)*/
+  nelts_t *mload;   /*!<  number of elements in the array of multipliers
+                          (for each element in selection)*/
+  // element data
+  nelts_t *bidx;    /*!<  indices of elements in basis*/
+  hash_t **mul;     /*!<  multiplier of the given basis element, note that one basis
+                          element might appear several times in the list with different
+                          monomial multipliers*/
+} sel_t;
+
+/**
  * \brief Hash table as defined by Monagan and Pearce in compact F4
  * implementation (see PASCO 2015)
  */

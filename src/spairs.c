@@ -234,8 +234,7 @@ sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
 
   // we assume here that the pair set is already sorted by degree of the lcms
   // (in particular, we assume grevlex ordering)
-  printf("dmin %u for\n",dmin);
-  while (ps->pairs[i]->deg == dmin)
+  while (i < ps->load && ps->pairs[i]->deg == dmin)
     i++;
   nsel  = i;
 

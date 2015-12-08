@@ -13,35 +13,14 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-
 /**
- * \file gb.h
- * \brief Input/output routines for matrices
+ * \file preprocessing.c
+ * \brief Implementation of the symbolic preprocessing in gb.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#ifndef GB_GB_H
-#define GB_GB_H
+#include "preprocessing.h"
 
-#include <math.h>
-#include <unistd.h>
-#include <limits.h>
-#include "io.h"
-#include <src/basis.h>
-#include <src/spairs.h>
-#include <src/preprocessing.h>
+#define PREPROCESSING_DEBUG  0
 
-#ifndef META_DATA_DEBUG
-#define META_DATA_DEBUG 0
-#endif
-
-/**
- * \brief Prints help for gb call.
- */
-void print_help();
-
-
-#endif

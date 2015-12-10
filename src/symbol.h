@@ -37,7 +37,7 @@
 #endif
 
 #define SYMBOL_DEBUG 0
-#define __GB_SYM_LIST_LEN   300
+#define __GB_SYM_LIST_LEN   100000
 
 /**
  * \brief Symbolic preprocessing searching for all possible reducers of all

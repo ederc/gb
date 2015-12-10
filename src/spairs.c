@@ -257,13 +257,15 @@ sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
     printf("gen1 %u -- gen2 %u\n", sp->gen1, sp->gen2);
 #endif
     sel->mul[sp->gen1][sel->mload[sp->gen1]]  = get_multiplier(sp->lcm, basis->eh[sp->gen1][0], ht);
+    if (sel->mload[sp->gen1] == 0)
+      sel->load++;
     sel->mload[sp->gen1]++;
     check_enlargement_mul_in_selection(sel, 2*sel->msize[sp->gen1], sp->gen1);
-    sel->load++;
     sel->mul[sp->gen2][sel->mload[sp->gen2]]  = get_multiplier(sp->lcm, basis->eh[sp->gen2][0], ht);
+    if (sel->mload[sp->gen1] == 0)
+      sel->load++;
     sel->mload[sp->gen2]++;
     check_enlargement_mul_in_selection(sel, 2*sel->msize[sp->gen2], sp->gen2);
-    sel->load++;
     // mark the lcm hash as already taken care of for symbolic preprocessing
     // we also count how many polynomials hit it so that we can use this
     // information for the splicing of the matrix later on
@@ -296,14 +298,24 @@ inline sel_t *init_selection(nelts_t size)
   sel->msize  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
   // how many multipliers shall we store per polynomial at the beginning?
   // we take 5 here
-  for (i=0; i<sel->size; ++i)
+  for (i=1; i<sel->size; ++i)
     sel->msize[i] = 5;
   sel->mload  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
-  for (i=0; i<sel->size; ++i)
+  for (i=1; i<sel->size; ++i)
     sel->mload[i] = 0;
   sel->mul    = (hash_t **)malloc(sel->size * sizeof(hash_t *));
-  for (i=0; i<sel->size; ++i)
+  for (i=1; i<sel->size; ++i)
     sel->mul[i] = (hash_t *)malloc(sel->msize[i] * sizeof(hash_t));
+
+  // special handling for index 0: as index 0 is also special in the basis we
+  // have to adjust the same stuff for the selection list.
+  // everything else is a nightmare in adjusting indices between the selection
+  // list and the basis entries.
+  sel->msize[0] = 0;
+  sel->mload[0] = 0;
+  sel->mul[0]   = NULL;
+
+  printf("sel->size %u\n",sel->size);
 
   return sel;
 }

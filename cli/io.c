@@ -15,8 +15,6 @@
 
 #include "io.h"
 
-#define IO_DEBUG  0
-
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 double walltime(struct timeval t_start)
 {
@@ -354,8 +352,17 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   //exp_t *exp  = (exp_t *)malloc(basis->nvars * sizeof(exp_t));
   deg_t deg, max_deg;
 
+  // NOTE: For easier divisibility checks in symbolic preprocessing we put at
+  // the first position of basis, i.e. index 0 a NULL element.
+  // Thus, basis->load is always one bigger than the actual number of elements
+  // in the basis.
+  basis->cf[0]  = NULL;
+  basis->eh[0]  = NULL;
+  basis->load++;
+
+
   // get all remaining lines, i.e. generators
-  for (i=0; i<basis->load; ++i) {
+  for (i=1; i<basis->load; ++i) {
     if (fgets(line, max_line_size, fh) != NULL) {
       // get number of terms first
       nterms        = get_number_of_terms(line);

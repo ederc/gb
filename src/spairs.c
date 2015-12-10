@@ -21,8 +21,6 @@
  */
 #include "spairs.h"
 
-#define SPAIRS_DEBUG  0
-
 inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
 {
   nelts_t i;
@@ -33,7 +31,8 @@ inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
   ps->load  = 0;
 
   // generate spairs with the initial elements in basis
-  for (i=1; i<basis->load; ++i) {
+  // See note on gb_t in src/types.h why we start at position 2 here.
+  for (i=2; i<basis->load; ++i) {
     update_pair_set(ps, basis, i);
 #if META_DATA_DEBUG
     printf("criteria applied %u / %u\n", meta_data->ncrit_last, meta_data->ncrit_total);
@@ -50,10 +49,12 @@ inline void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx)
   // we get maximal idx-1 new pairs
   if (ps->size <= ps->load + (idx-1))
     enlarge_pair_set(ps, 2*ps->size);
-  for (i=0; i<idx; ++i) {
-    ps->pairs[ps->load+i] = generate_spair(idx, i, basis, ht);
+  // generate spairs with the initial elements in basis
+  // See note on gb_t in src/types.h why we start at position 1 here.
+  for (i=1; i<idx; ++i) {
+    ps->pairs[ps->load+i-1] = generate_spair(idx, i, basis, ht);
 #if SPAIRS_DEBUG
-    printf("pair %u %u | %u\n",idx,i,tmp_pairs[i]->deg);
+    printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-1]->deg);
 #endif
   }
   // we do not update ps->load at the moment in order to be able to distinguish
@@ -71,17 +72,18 @@ inline void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx)
 
 void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
 {
-  nelts_t gen1, gen2;
+  nelts_t pos1, pos2;
   nelts_t cur_len = ps->load + (idx - 1);
   int i, j; // we need ints to cover cases where i=0 and j=i-1
 
   // first step: remove elements already in ps due to chain criterion with new
   // pairs in new_pairs
   for (i=0; i<ps->load; ++i) {
-    gen1  = ps->pairs[i]->gen1;
-    gen2  = ps->pairs[i]->gen2;
-    if (ps->pairs[i]->lcm != ps->pairs[ps->load+gen1]->lcm &&
-        ps->pairs[i]->lcm != ps->pairs[ps->load+gen2]->lcm &&
+    // See note on gb_t in src/types.h why we adjust position by -1.
+    pos1  = ps->pairs[i]->gen1 - 1;
+    pos2  = ps->pairs[i]->gen2 - 1;
+    if (ps->pairs[i]->lcm != ps->pairs[ps->load+pos1]->lcm &&
+        ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
         monomial_division(ps->pairs[i]->lcm, hash, ht)) {
       ps->pairs[i]->crit  = CHAIN_CRIT;
     }
@@ -238,21 +240,29 @@ sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
     i++;
   nsel  = i;
 
-  sel_t *sel  = init_selection(nsel);
+  // get for each element in the intermediate basis a bucket for possible
+  // multipliers
+  sel_t *sel  = init_selection(basis->load);
 
   sel->deg  = dmin;
-  // we do not need to check for size problems in sel, since we allocated 3 *
-  // (number of spairs) space. 
+  // we do not need to check for size problems in sel du to above comment: we
+  // have allocated basis->load slots, so enough for each possible element from
+  // the basis
+#if SPAIRS_DEBUG
+  printf("selected pairs in this step of the algorithm:\n");
+#endif
   for (i=0; i<nsel; ++i) {
     spair_t *sp = ps->pairs[i];
-    
-    sel->bidx[sel->load]    = sp->gen1;
-    sel->mul[sel->load][0]  = get_multiplier(sp->lcm, basis->eh[sp->gen1][0], ht);
-    sel->mload[sel->load]++;
+#if SPAIRS_DEBUG
+    printf("gen1 %u -- gen2 %u\n", sp->gen1, sp->gen2);
+#endif
+    sel->mul[sp->gen1][sel->mload[sp->gen1]]  = get_multiplier(sp->lcm, basis->eh[sp->gen1][0], ht);
+    sel->mload[sp->gen1]++;
+    check_enlargement_mul_in_selection(sel, 2*sel->msize[sp->gen1], sp->gen1);
     sel->load++;
-    sel->bidx[sel->load]    = sp->gen2;
-    sel->mul[sel->load][0]  = get_multiplier(sp->lcm, basis->eh[sp->gen2][0], ht);
-    sel->mload[sel->load]++;
+    sel->mul[sp->gen2][sel->mload[sp->gen2]]  = get_multiplier(sp->lcm, basis->eh[sp->gen2][0], ht);
+    sel->mload[sp->gen2]++;
+    check_enlargement_mul_in_selection(sel, 2*sel->msize[sp->gen2], sp->gen2);
     sel->load++;
     // mark the lcm hash as already taken care of for symbolic preprocessing
     // we also count how many polynomials hit it so that we can use this
@@ -277,10 +287,11 @@ inline sel_t *init_selection(nelts_t size)
 {
   nelts_t i;
 
-  // we allocate 3 * size memory for sel. We have to add reducers later on, so
-  // we do not want to reallocate memory too often.
+  // size should be basis->load in order to get for each element in the
+  // intermediate groebner basis a bucket for multipliers so that we do not have
+  // to reallocate later on.
   sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
-  sel->size   = 3 * size;
+  sel->size   = size;
   sel->load   = 0;
   sel->msize  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
   // how many multipliers shall we store per polynomial at the beginning?
@@ -290,7 +301,6 @@ inline sel_t *init_selection(nelts_t size)
   sel->mload  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
   for (i=0; i<sel->size; ++i)
     sel->mload[i] = 0;
-  sel->bidx   = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
   sel->mul    = (hash_t **)malloc(sel->size * sizeof(hash_t *));
   for (i=0; i<sel->size; ++i)
     sel->mul[i] = (hash_t *)malloc(sel->msize[i] * sizeof(hash_t));
@@ -298,10 +308,12 @@ inline sel_t *init_selection(nelts_t size)
   return sel;
 }
 
-inline void enlarge_mul_storage_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx)
+inline void check_enlargement_mul_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx)
 {
-  sel->msize[idx] = new_size;
-  sel->mul[idx]   = realloc(sel->mul[idx], sel->msize[idx] * sizeof(hash_t));
+  if (sel->mload[idx] == sel->msize[idx]) {
+    sel->msize[idx] = new_size;
+    sel->mul[idx]   = realloc(sel->mul[idx], sel->msize[idx] * sizeof(hash_t));
+  }
 }
 
 
@@ -313,7 +325,6 @@ inline void enlarge_selection(sel_t *sel, nelts_t new_size)
   sel->size   = new_size;
   sel->msize  = realloc(sel->msize, sel->size * sizeof(nelts_t));
   sel->mload  = realloc(sel->mload, sel->size * sizeof(nelts_t));
-  sel->bidx   = realloc(sel->bidx, sel->size * sizeof(nelts_t));
   sel->mul    = realloc(sel->mul, sel->size * sizeof(hash_t *));
 
   for (i=old_size; i<sel->size; ++i) {
@@ -331,7 +342,6 @@ inline void free_selection(sel_t *sel)
   free(sel->mul);
   free(sel->mload);
   free(sel->msize);
-  free(sel->bidx);
   free(sel);
   sel = NULL;
 }

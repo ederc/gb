@@ -170,6 +170,11 @@ typedef struct info_t
 
 /**
  * \brief Groebner basis, starts with input data
+ * 
+ * \note For easier divisibility checks in symbolic preprocessing we put at
+ * the first position of basis, i.e. index 0 a NULL element.
+ * Thus, basis->load is always one bigger than the actual number of elements
+ * in the basis.
  */
 typedef struct gb_t
 {
@@ -234,11 +239,35 @@ typedef struct sel_t
   nelts_t *mload;   /*!<  number of elements in the array of multipliers
                           (for each element in selection)*/
   // element data
-  nelts_t *bidx;    /*!<  indices of elements in basis*/
   hash_t **mul;     /*!<  multiplier of the given basis element, note that one basis
                           element might appear several times in the list with different
                           monomial multipliers*/
 } sel_t;
+
+/**
+ * \brief Data structure storing the list of positions in hash table
+ * corresponding to monomials. Used for symbolic preprocessing to get all
+ * possible reducers.
+ */
+typedef struct pre_t
+{
+  hash_t *hpos;   /*!<  position of monomials in hash table*/
+  nelts_t size;   /*!<  size of list*/
+  nelts_t load;   /*!<  number of elements already stored in list*/
+} pre_t;
+
+/**
+ * \brief Structure storing the full information of the symbolic preprocessing,
+ * that means, it consists of the list of selected polynomials from basis
+ * including the corresponding multipliers (sel) and the list of appearing
+ * monomials including the number of their appearances (mon). Both of these data
+ * is essential for the generation of the corresponding GBLA matrix later on.
+ */
+typedef struct spd_t
+{
+  sel_t *sel;
+  pre_t *mon;
+} spd_t;
 
 /**
  * \brief Hash table as defined by Monagan and Pearce in compact F4

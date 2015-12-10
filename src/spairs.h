@@ -35,6 +35,8 @@
 #define META_DATA_DEBUG 0
 #endif
 
+#define SPAIRS_DEBUG  0
+
 /**
  * \brief Initialize pair set
  *
@@ -150,7 +152,8 @@ nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx);
 sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis);
 
 /**
- * \brief Enlarges storage for multipliers in selection for given entry
+ * \brief Checks storage for multipliers and enlarges storage for given entry if
+ * necessary
  *
  * \param selection set sel
  *
@@ -158,7 +161,7 @@ sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis);
  *
  *  \param index of entry idx
  */
-void enlarge_mul_storage_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx);
+void check_enlargement_mul_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx);
 
 /**
  * \brief Enlarges selection set to new_size

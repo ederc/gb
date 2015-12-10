@@ -159,9 +159,9 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
     printf("field characteristic        %14d\n", basis->modulus);
     printf("number of variables         %14d\n", basis->nvars);
-    printf("number of generators        %14d\n", basis->load);
+    // See note on gb_t in src/types.h why we decrement basis->load here.
+    printf("number of generators        %14d\n", basis->load-1);
     printf("input file size             %14.2f %s\n", basis->fs, basis->fsu);
-    printf("---------------------------------------------------------------------\n");
   }
 
   /*  track time for the complete reduction process (excluding load) */
@@ -175,11 +175,11 @@ int main(int argc, char *argv[])
     printf("ps->size                          %9u\n",ps->size);
     printf("ps->load                          %9u\n",ps->load);
     printf("basis->size                       %9u\n",basis->size);
-    printf("basis->load                       %9u\n",basis->load);
+    // See note on gb_t in src/types.h why we decrement basis->load here.
+    printf("basis->load                       %9u\n",basis->load-1); 
     printf("---------------------------------------------------------------------\n");
     printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
     printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
-    printf("---------------------------------------------------------------------\n");
   }
 
   // run while there exist spairs to be handled
@@ -190,10 +190,17 @@ int main(int argc, char *argv[])
       printf("starting step %u\n", steps);
     
     // select next bunch of spairs
-    sel_t *sel  = select_pairs_by_minimal_degree(ps, basis);
+    //sel_t *sel  = select_pairs_by_minimal_degree(ps, basis);
+    spd_t *spd  = symbolic_preprocessing(ps, basis);
 
-    printf("sel->load %u of degree %u\n",sel->load, sel->deg);
-    free_selection(sel);
+    if (verbose > 1) {
+      printf("---------------------------------------------------------------------\n");
+      printf("sel->load                         %9u\n",spd->sel->load);
+      printf("mon->load                         %9u\n",spd->mon->load);
+    }
+
+    printf("sel->load %u of degree %u\n",spd->sel->load, spd->sel->deg);
+    free_symbolic_preprocessing_data(spd);
     if (verbose > 1)
       printf("finishing step %u\n", steps);
   }

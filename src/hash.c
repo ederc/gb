@@ -22,8 +22,6 @@
 
 #include "hash.h"
 
-#define HASH_DEBUG  0
-
 /********************************************************************************
  * FOLLOWING HASH TABLE IMPLEMENTATION IS COPIED FROM COMPACT F4 IMPLEMENTATION 
  * BY MONAGAN AND PIERCE (see PASCO 2015)

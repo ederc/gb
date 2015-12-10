@@ -42,6 +42,8 @@
 #define META_DATA_DEBUG 0
 #endif
 
+#define IO_DEBUG  0
+
 /**
  * \brief Gets number of variables, needs to be done before reading file
  * completely as we need to initialize the hash table beforehand

@@ -39,7 +39,7 @@
 /***************************
  * OUR HASH TABLE IS GLOBAL
  **************************/
-mp_cf4_ht_t *ht;
+extern mp_cf4_ht_t *ht;
 
 /**
  * \brief Generates pseudo random numbers using xorshifts using global defined

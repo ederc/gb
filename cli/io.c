@@ -241,7 +241,7 @@ nvars_t get_nvars(const char *fn)
     }
   } else {
     printf("Bad file format.\n");
-    return NULL;
+    return 0;
   }
 
   return nvars;

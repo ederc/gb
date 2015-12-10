@@ -19,6 +19,9 @@
 #include "gb.h"
 #include <getopt.h>
 
+// extern declaration in src/types.h
+info_t *meta_data;
+
 void print_help()
 {
   printf("\n");

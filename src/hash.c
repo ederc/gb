@@ -22,6 +22,9 @@
 
 #include "hash.h"
 
+// extern declaration in src/hash.h
+mp_cf4_ht_t *ht;
+
 /********************************************************************************
  * FOLLOWING HASH TABLE IMPLEMENTATION IS COPIED FROM COMPACT F4 IMPLEMENTATION 
  * BY MONAGAN AND PIERCE (see PASCO 2015)

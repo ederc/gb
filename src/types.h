@@ -297,5 +297,5 @@ typedef struct mp_cf4_ht_t
 
 
 // global meta_data
-info_t *meta_data;
+extern info_t *meta_data;
 #endif /* GB_TYPES_H */

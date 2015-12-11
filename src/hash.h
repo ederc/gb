@@ -252,4 +252,11 @@ hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
  * \return hash position of multiplier 
  */
 hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
+
+/**
+ * \brief Resets all idx entries of the hash table to zero
+ *
+ * \param hash table ht
+ */
+void clear_hash_table_idx(mp_cf4_ht_t *ht);
 #endif /* GB_HASH_TABLE_H */

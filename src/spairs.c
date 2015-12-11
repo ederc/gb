@@ -231,8 +231,9 @@ inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
 sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
 {
   deg_t dmin  = ps->pairs[0]->deg;
-  nelts_t i   = 0;
+  nelts_t i = 0;
   nelts_t nsel;
+  spair_t *sp;
 
   // we assume here that the pair set is already sorted by degree of the lcms
   // (in particular, we assume grevlex ordering)
@@ -245,27 +246,21 @@ sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
   sel_t *sel  = init_selection(basis->load);
 
   sel->deg  = dmin;
-  // we do not need to check for size problems in sel du to above comment: we
+  // wVe do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
 #if SPAIRS_DEBUG
   printf("selected pairs in this step of the algorithm:\n");
 #endif
   for (i=0; i<nsel; ++i) {
-    spair_t *sp = ps->pairs[i];
+    sp = ps->pairs[i];
 #if SPAIRS_DEBUG
     printf("gen1 %u -- gen2 %u\n", sp->gen1, sp->gen2);
 #endif
-    sel->mul[sp->gen1][sel->mload[sp->gen1]]  = get_multiplier(sp->lcm, basis->eh[sp->gen1][0], ht);
-    if (sel->mload[sp->gen1] == 0)
-      sel->load++;
-    sel->mload[sp->gen1]++;
-    check_enlargement_mul_in_selection(sel, 2*sel->msize[sp->gen1], sp->gen1);
-    sel->mul[sp->gen2][sel->mload[sp->gen2]]  = get_multiplier(sp->lcm, basis->eh[sp->gen2][0], ht);
-    if (sel->mload[sp->gen1] == 0)
-      sel->load++;
-    sel->mload[sp->gen2]++;
-    check_enlargement_mul_in_selection(sel, 2*sel->msize[sp->gen2], sp->gen2);
+    // first generator
+    add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen1);
+    // second generator
+    add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen2);
     // mark the lcm hash as already taken care of for symbolic preprocessing
     // we also count how many polynomials hit it so that we can use this
     // information for the splicing of the matrix later on
@@ -283,6 +278,24 @@ sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
   ps->load  = k;
 
   return sel;
+}
+
+inline void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
+    const hash_t lcm, const nelts_t gen)
+{
+  nelts_t j;
+  hash_t mul;
+  mul = get_multiplier(lcm, basis->eh[gen][0], ht);
+  for (j=0; j<sel->mload[gen]; ++j) {
+    if (mul == sel->mul[gen][j])
+      break;
+  }
+  if (j == sel->mload[gen]) {
+    check_enlargement_mul_in_selection(sel, 2*sel->msize[gen], gen);
+    sel->mul[gen][sel->mload[gen]]  = mul;
+    sel->mload[gen]++;
+    sel->load++;
+  }
 }
 
 inline sel_t *init_selection(nelts_t size)
@@ -314,8 +327,6 @@ inline sel_t *init_selection(nelts_t size)
   sel->msize[0] = 0;
   sel->mload[0] = 0;
   sel->mul[0]   = NULL;
-
-  printf("sel->size %u\n",sel->size);
 
   return sel;
 }

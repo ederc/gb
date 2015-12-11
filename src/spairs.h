@@ -152,6 +152,21 @@ nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx);
 sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis);
 
 /**
+ * \brief Adds generator gen of the corresponding spair with least common
+ * multiple lcm to selection list sel.
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param selection list sel
+ *
+ * \param least common multiple of spair lcm
+ *
+ * \param a generator of spair gen
+ */
+void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
+    const hash_t lcm, const nelts_t gen);
+
+/**
  * \brief Checks storage for multipliers and enlarges storage for given entry if
  * necessary
  *

@@ -37,7 +37,7 @@
 #endif
 
 #define SYMBOL_DEBUG 0
-#define __GB_SYM_LIST_LEN   100000
+#define __GB_SYM_LIST_LEN   1000
 
 /**
  * \brief Symbolic preprocessing searching for all possible reducers of all
@@ -63,7 +63,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis);
  *
  * \param preprocessing hash list mon
  */
-void enter_spairs_to_preprocessing_hash_list(sel_t *sel, gb_t *basis, pre_t *mon);
+void enter_spairs_to_preprocessing_hash_list(sel_t *sel, const gb_t *basis, pre_t *mon);
 
 /**
  * \brief Enters one monomial (h1*h2) to preprocessing hash list.
@@ -74,7 +74,7 @@ void enter_spairs_to_preprocessing_hash_list(sel_t *sel, gb_t *basis, pre_t *mon
  *
  * \param preprocessing hash list mon
  */
-void enter_monomial_to_preprocessing_hash_list(hash_t h1, hash_t h2, pre_t *mon);
+void enter_monomial_to_preprocessing_hash_list(const hash_t h1, const hash_t h2, pre_t *mon);
 
 /**
  * \brief Initializes a hash list for symbolic preprocessing.
@@ -83,7 +83,7 @@ void enter_monomial_to_preprocessing_hash_list(hash_t h1, hash_t h2, pre_t *mon)
  *
  * \return hash list
  */
-pre_t *init_preprocessing_hash_list(nelts_t size);
+pre_t *init_preprocessing_hash_list(const nelts_t size);
 
 /**
  * \brief Enlarges hash list for symbolic preprocessing to new_size.
@@ -92,7 +92,7 @@ pre_t *init_preprocessing_hash_list(nelts_t size);
  *
  * \param new size of hash list size
  */
-void enlarge_preprocessing_hash_list(pre_t *hl, nelts_t size);
+void enlarge_preprocessing_hash_list(pre_t *hl, const nelts_t size);
 
 /**
  * \brief Frees hash list for symbolic preprocessing.

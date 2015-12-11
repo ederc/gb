@@ -266,7 +266,7 @@ typedef struct pre_t
 typedef struct spd_t
 {
   sel_t *sel;
-  pre_t *mon;
+  pre_t *col;
 } spd_t;
 
 /**

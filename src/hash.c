@@ -337,3 +337,7 @@ inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   return check_in_hash_table(ht);
 }
 
+inline void clear_hash_table_idx(mp_cf4_ht_t *ht)
+{
+  memset(ht->idx, 0, ht->size * sizeof(hash_t));
+}

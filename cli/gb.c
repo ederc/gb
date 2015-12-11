@@ -199,11 +199,12 @@ int main(int argc, char *argv[])
     if (verbose > 1) {
       printf("---------------------------------------------------------------------\n");
       printf("sel->load                         %9u\n",spd->sel->load);
-      printf("mon->load                         %9u\n",spd->mon->load);
+      printf("mon->load                         %9u\n",spd->col->load);
     }
 
     printf("sel->load %u of degree %u\n",spd->sel->load, spd->sel->deg);
     free_symbolic_preprocessing_data(spd);
+    clear_hash_table_idx(ht);
     if (verbose > 1)
       printf("finishing step %u\n", steps);
   }

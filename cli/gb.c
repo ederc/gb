@@ -202,6 +202,9 @@ int main(int argc, char *argv[])
       printf("sel->load                         %9u\n",spd->sel->load);
       printf("mon->load                         %9u\n",spd->col->load);
     }
+    for (int i=0; i<spd->col->load; ++i) {
+      printf("%u -> %u\n", spd->col->hpos[i], ht->idx[spd->col->hpos[i]]);
+    }
 
     printf("sel->load %u of degree %u\n",spd->sel->load, spd->sel->deg);
     free_symbolic_preprocessing_data(spd);

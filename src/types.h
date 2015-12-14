@@ -252,6 +252,7 @@ typedef struct sel_t
 typedef struct pre_t
 {
   hash_t *hpos;   /*!<  position of monomials in hash table*/
+  deg_t *isLm;    /*!<  nonzero if corresponding monomial in hpos is leading monomial, zero else*/
   nelts_t size;   /*!<  size of list*/
   nelts_t load;   /*!<  number of elements already stored in list*/
 } pre_t;

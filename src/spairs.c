@@ -228,57 +228,6 @@ inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
   qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_grevlex);
 }
 
-sel_t *select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis)
-{
-  deg_t dmin  = ps->pairs[0]->deg;
-  nelts_t i = 0;
-  nelts_t nsel;
-  spair_t *sp;
-
-  // we assume here that the pair set is already sorted by degree of the lcms
-  // (in particular, we assume grevlex ordering)
-  while (i < ps->load && ps->pairs[i]->deg == dmin)
-    i++;
-  nsel  = i;
-
-  // get for each element in the intermediate basis a bucket for possible
-  // multipliers
-  sel_t *sel  = init_selection(basis->load);
-
-  sel->deg  = dmin;
-  // wVe do not need to check for size problems in sel du to above comment: we
-  // have allocated basis->load slots, so enough for each possible element from
-  // the basis
-#if SPAIRS_DEBUG
-  printf("selected pairs in this step of the algorithm:\n");
-#endif
-  for (i=0; i<nsel; ++i) {
-    sp = ps->pairs[i];
-#if SPAIRS_DEBUG
-    printf("gen1 %u -- gen2 %u\n", sp->gen1, sp->gen2);
-#endif
-    // first generator
-    add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen1);
-    // second generator
-    add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen2);
-    // mark the lcm hash as already taken care of for symbolic preprocessing
-    // we also count how many polynomials hit it so that we can use this
-    // information for the splicing of the matrix later on
-    ht->idx[ht->lut[sp->lcm]] = 2;
-    // remove the selected pair from the pair set
-    free(sp);
-  }
-
-  // adjust pair set after removing the bunch of selected pairs
-  nelts_t k = 0;
-  for (i=nsel; i<ps->load; ++i) {
-    ps->pairs[k] = ps->pairs[i];
-    k++;
-  }
-  ps->load  = k;
-
-  return sel;
-}
 
 inline void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
     const hash_t lcm, const nelts_t gen)

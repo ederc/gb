@@ -54,16 +54,38 @@
 spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis);
 
 /**
+ * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * a set of this selection that is later on filled with corresponding lower term
+ * reducers.
+ *
+ * \note The function also already marks the hash values for the lcms of the
+ * spairs with "2". So we know that there are 2 polynomials in the upcoming
+ * matrix that hit that monomial. We use this in the following symbolic
+ * preprocessing not to handle this monomial again and also, in the matrix
+ * construction later on, for know the number of nonzero entries in the column
+ * corresponding to this monomial. This will help splicing the matrix for gbla.
+ *
+ * \param pair set ps
+ *
+ * \param intermediate grobner basis basis
+ *
+ * \param selection set sel
+ *
+ * \param hash list of monomials mon
+ */
+void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mon);
+
+/**
  * \brief Enters the lower order monomials of the selected spair generators to
  * the preprocessing hash list.
  *
- * \param selected list of elements to be used in the next round sel
- *
  * \param intermediate groebner basis basis
+ *
+ * \param selected list of elements to be used in the next round sel
  *
  * \param preprocessing hash list mon
  */
-void enter_spairs_to_preprocessing_hash_list(sel_t *sel, const gb_t *basis, pre_t *mon);
+void enter_spairs_to_preprocessing_hash_list(const gb_t *basis, sel_t *sel, pre_t *mon);
 
 /**
  * \brief Enters one monomial (h1*h2) to preprocessing hash list.

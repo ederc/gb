@@ -132,10 +132,10 @@ int main(int argc, char *argv[])
     printf("-------------------------- Computing Groebner -----------------------\n");
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
-    printf("number of threads           %14d\n", nthreads);
-    printf("hash table size             %14d (+/- 2^%.1f)\n", ht_size, log_size);
-    printf("compute reduced basis?      %14d\n", reduce_gb);
-    printf("use simplify?               %14d\n", simplify);
+    printf("number of threads           %15d\n", nthreads);
+    printf("hash table size             %15d (+/- 2^%.1f)\n", ht_size, log_size);
+    printf("compute reduced basis?      %15d\n", reduce_gb);
+    printf("use simplify?               %15d\n", simplify);
     printf("---------------------------------------------------------------------\n");
   }
 
@@ -160,11 +160,11 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
-    printf("field characteristic        %14d\n", basis->modulus);
-    printf("number of variables         %14d\n", basis->nvars);
+    printf("field characteristic        %15d\n", basis->modulus);
+    printf("number of variables         %15d\n", basis->nvars);
     // See note on gb_t in src/types.h why we decrement basis->load here.
-    printf("number of generators        %14d\n", basis->load-1);
-    printf("input file size             %14.2f %s\n", basis->fs, basis->fsu);
+    printf("number of generators        %15d\n", basis->load-1);
+    printf("input file size             %18.2f %s\n", basis->fs, basis->fsu);
   }
 
   /*  track time for the complete reduction process (excluding load) */
@@ -184,6 +184,7 @@ int main(int argc, char *argv[])
     printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
     printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
   }
+
 
   // run while there exist spairs to be handled
   while (ps->load > 0)

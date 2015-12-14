@@ -251,7 +251,7 @@ inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
-    if (tmp_l != hash)
+    if (ht->val[tmp_l] != hash)
       continue;
     for (j=0; j<ht->nvars; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])

@@ -215,4 +215,3 @@ inline void free_symbolic_preprocessing_data(spd_t *spd)
   free(spd);
   spd = NULL;
 }
-

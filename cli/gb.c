@@ -203,7 +203,6 @@ int main(int argc, char *argv[])
       printf("mon->load                         %9u\n",spd->col->load);
     }
 
-    printf("sel->load %u of degree %u\n",spd->sel->load, spd->sel->deg);
     free_symbolic_preprocessing_data(spd);
     clear_hash_table_idx(ht);
     if (verbose > 1)
@@ -212,12 +211,9 @@ int main(int argc, char *argv[])
 
   // free allocated memory
   free(meta_data);
-  free_pair_set_dynamic_data(ps);
-  free(ps);
-  free_basis_dynamic_data(basis);
-  free(basis);
-  free_hash_table_dynamic_data(ht);
-  free(ht);
+  free_pair_set(ps);
+  free_basis(basis);
+  free_hash_table(ht);
   if (verbose > 0) {
     printf("-------------------------------------------------------------------\n");
     printf("%-38s","Computation completed ...");

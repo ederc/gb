@@ -39,5 +39,5 @@
  *
  * \param groebner basis basis
  */
-void free_basis_dynamic_data(gb_t *basis);
+void free_basis(gb_t *basis);
 #endif

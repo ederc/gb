@@ -153,9 +153,11 @@ inline void enlarge_pair_set(ps_t *ps, nelts_t new_size)
   ps->size  = new_size;
 }
 
-inline void free_pair_set_dynamic_data(ps_t *ps)
+inline void free_pair_set(ps_t *ps)
 {
   free(ps->pairs);
+  free(ps);
+  ps  = NULL;
 }
 
 inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_ht_t *ht)

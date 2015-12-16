@@ -78,7 +78,7 @@ mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
  *
  * \param hash table hash_table
  */
-void free_hash_table_dynamic_data(mp_cf4_ht_t *hash_table);
+void free_hash_table(mp_cf4_ht_t *hash_table);
 
 /**
  * \brief Get hash value

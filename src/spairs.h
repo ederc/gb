@@ -60,7 +60,7 @@ void enlarge_pair_set(ps_t *ps, nelts_t new_size);
  *
  * \param pair set ps
  */
-void free_pair_set_dynamic_data(ps_t *ps);
+void free_pair_set(ps_t *ps);
 
 /**
  * \brief Generates spair given by gen1 and gen2

@@ -21,7 +21,7 @@
  */
 #include "basis.h"
 
-inline void free_basis_dynamic_data(gb_t *basis)
+inline void free_basis(gb_t *basis)
 {
   if (basis) {
     nelts_t i;
@@ -38,4 +38,7 @@ inline void free_basis_dynamic_data(gb_t *basis)
     free(basis->cf);
     free(basis->eh);
   }
+
+  free(basis);
+  basis = NULL;
 }

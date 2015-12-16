@@ -91,7 +91,7 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   return ht;
 }
 
-inline void free_hash_table_dynamic_data(mp_cf4_ht_t *hash_table)
+inline void free_hash_table(mp_cf4_ht_t *hash_table)
 {
   if (hash_table) {
 
@@ -107,6 +107,9 @@ inline void free_hash_table_dynamic_data(mp_cf4_ht_t *hash_table)
       free(hash_table->exp[i]);
     free(hash_table->exp);
   }
+
+  free(ht);
+  ht  = NULL;
 }
 
 inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)

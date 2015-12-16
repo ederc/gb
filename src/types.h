@@ -252,7 +252,10 @@ typedef struct sel_t
 typedef struct pre_t
 {
   hash_t *hpos;   /*!<  position of monomials in hash table*/
-  deg_t *isLm;    /*!<  nonzero if corresponding monomial in hpos is leading monomial, zero else*/
+  deg_t *isLm;    /*!<  nonzero if corresponding monomial in hpos is leading monomial,
+                        zero else: if it corresponds to the lcm of an spair it is set
+                        to 2, if it corresponds to the lm of a reducer and a tail term
+                        of another element it is set to 1.*/
   nelts_t size;   /*!<  size of list*/
   nelts_t load;   /*!<  number of elements already stored in list*/
 } pre_t;

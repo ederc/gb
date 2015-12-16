@@ -127,7 +127,8 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
     // information for the splicing of the matrix later on
     ht->idx[ht->lut[sp->lcm]] = 2;
     mon->hpos[mon->load]      = ht->lut[sp->lcm];;
-    mon->isLm[mon->load]      = 1;
+    // corresponds to lcm of spair, tracking this information by setting isLm 2
+    mon->isLm[mon->load]      = 2;
     mon->load++;
 
     // remove the selected pair from the pair set

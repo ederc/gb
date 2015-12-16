@@ -13,36 +13,29 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-
 /**
- * \file gb.h
- * \brief Input/output routines for matrices
+ * \file matrix.h
+ * \brief Implementation of the construction and conversion from and to groebner
+ * basis matrices.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+#ifndef GB_MATRIX_H
+#define GB_MATRIX_H
 
-#ifndef GB_GB_H
-#define GB_GB_H
-
+#include "gb_config.h"
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 #include <math.h>
-#include <unistd.h>
-#include <limits.h>
-#include "io.h"
-#include <src/basis.h>
-#include <src/spairs.h>
-#include <src/symbol.h>
-#include <src/matrix.h>
+#include <omp.h>
+#include "types.h"
+#include "hash.h"
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0
 #endif
 
-/**
- * \brief Prints help for gb call.
- */
-void print_help();
-
+#define MATRIX_DEBUG 0
 
 #endif

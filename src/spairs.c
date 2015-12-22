@@ -259,6 +259,7 @@ inline sel_t *init_selection(nelts_t size)
   sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
   sel->size   = size;
   sel->load   = 0;
+  sel->nsp    = 0;
   sel->msize  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
   // how many multipliers shall we store per polynomial at the beginning?
   // we take 5 here

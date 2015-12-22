@@ -201,6 +201,8 @@ int main(int argc, char *argv[])
       printf("sel->deg                          %9u\n",spd->sel->deg);
       printf("sel->load                         %9u\n",spd->sel->load);
       printf("mon->load                         %9u\n",spd->col->load);
+      printf("mon->nlm                          %9u\n",spd->col->nlm);
+      printf("sel->nsp                          %9u\n",spd->sel->nsp);
     }
 
     free_symbolic_preprocessing_data(spd);

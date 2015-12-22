@@ -57,6 +57,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
       // we have reducer, i.e. the monomial is a leading monomial (important for
       // splicing matrix later on
       mon->isLm[idx]  = 1;
+      mon->nlm++;
       ht->div[hash_pos]  = i;
       for (j=0; j<sel->mload[i]; ++j)
         if (hash_div  ==  sel->mul[i][j])
@@ -122,6 +123,7 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
     add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen1);
     // second generator
     add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen2);
+    sel->nsp++;
     // mark the lcm hash as already taken care of for symbolic preprocessing
     // we also count how many polynomials hit it so that we can use this
     // information for the splicing of the matrix later on
@@ -130,6 +132,7 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
     // corresponds to lcm of spair, tracking this information by setting isLm 2
     mon->isLm[mon->load]      = 2;
     mon->load++;
+    mon->nlm++;
 
     // remove the selected pair from the pair set
     free(sp);
@@ -184,6 +187,7 @@ inline pre_t *init_preprocessing_hash_list(const nelts_t size)
   mon->isLm   = (deg_t *)malloc(__GB_SYM_LIST_LEN * sizeof(deg_t));
   mon->size   = __GB_SYM_LIST_LEN;
   mon->load   = 0;
+  mon->nlm    = 0;
   
   // we initialize all values to zero and track only leading monomials in the
   // symbolic preprocessing

@@ -196,6 +196,12 @@ int main(int argc, char *argv[])
     // select next bunch of spairs
     spd_t *spd  = symbolic_preprocessing(ps, basis);
 
+    // next we have to store arrays for the connection between lead monomials
+    // and matrix column indices resp. non-lead monomials and matrix column
+    // indices. Note that we already know the sizes of the arrays due to
+    // symbolic preprocessing.
+
+
     if (verbose > 1) {
       printf("---------------------------------------------------------------------\n");
       printf("sel->deg                          %9u\n",spd->sel->deg);

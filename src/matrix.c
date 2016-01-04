@@ -20,5 +20,15 @@
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
-
 #include "matrix.h"
+/*
+mat_t *initialize_gbla_matrix(spd_t *spd)
+{
+  mat_t mat = (mat_t *)malloc(sizeof(mat_t));
+
+  sb_fl_t *A  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
+  dbm_fl_t *B = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
+  sb_fl_t *C  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
+  dbm_fl_t *D = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
+}
+*/

@@ -23,6 +23,8 @@
 #ifndef GB_TYPES_H
 #define GB_TYPES_H
 
+#include <gbla/matrix.h>
+
 #if 0
 #define GB_USE_FLOAT XXX
 /* #define GB_USE_INT16 XXX */
@@ -55,39 +57,27 @@ typedef uint8_t exp_t;
 #ifdef GB_USE_FLOAT
 /** coefficient storage type */
 typedef float coeff_t;
-/** type of field characteristic */
-typedef float mod_t;
 #endif
 
 #ifdef GB_USE_DOUBLE
 /** coefficient storage type */
 typedef double coeff_t;
-/** type of field characteristic */
-typedef double mod_t;
 #endif
 #ifdef GB_USE_UINT16
 /** coefficient storage type */
 typedef uint16_t coeff_t;
-/** type of field characteristic */
-typedef uint16_t mod_t;
 #endif
 #ifdef GB_USE_INT16
 /** coefficient storage type */
 typedef int16_t coeff_t;
-/** type of field characteristic */
-typedef int16_t mod_t;
 #endif
 #ifdef GB_USE_UINT32
 /** coefficient storage type */
 typedef uint32_t coeff_t;
-/** type of field characteristic */
-typedef uint32_t mod_t;
 #endif
 #ifdef GB_USE_INT32
 /** coefficient storage type */
 typedef int32_t coeff_t;
-/** type of field characteristic */
-typedef int32_t mod_t;
 #endif
 
 
@@ -181,13 +171,13 @@ typedef struct gb_t
   // global data
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in basis*/
-  nvars_t nvars;   /*!<  number of variables */
-  mod_t modulus;    /*!<  modulo/field characteristic */
+  nvars_t nvars;    /*!<  number of variables */
+  coeff_t modulus;  /*!<  modulo/field characteristic */
   // element data
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
   coeff_t **cf;     /*!<  coefficients of input elements*/
-  hash_t **eh;     /*!<  monomial exponent hash*/
+  hash_t **eh;      /*!<  monomial exponent hash*/
   // meta data
   char **vnames;    /*!<  variable names */
   double fs;         /*!<  file size of input matrix */
@@ -234,6 +224,7 @@ typedef struct sel_t
   deg_t deg;        /*!<  maximal degree of all elements in selection set*/
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in selection*/
+  nelts_t nsp;      /*!<  number of spairs*/
   nelts_t *msize;   /*!<  memory allocated for the array of multiplier hash positions
                           (for each element in selection)*/
   nelts_t *mload;   /*!<  number of elements in the array of multipliers
@@ -258,6 +249,7 @@ typedef struct pre_t
                         of another element it is set to 1.*/
   nelts_t size;   /*!<  size of list*/
   nelts_t load;   /*!<  number of elements already stored in list*/
+  nelts_t nlm;    /*!<  number of leading monomials*/
 } pre_t;
 
 /**
@@ -269,9 +261,28 @@ typedef struct pre_t
  */
 typedef struct spd_t
 {
-  sel_t *sel;
-  pre_t *col;
+  sel_t *sel; /*!<  selected polynomials and their multipliers for next matrix */
+  pre_t *col; /*!<  list of monomials appearing in selection, i.e. columns of matrix */
 } spd_t;
+
+/**
+ * \brief Structure storing all 4 matrix parts for gbla matrix reduction. Uses
+ * gbla internal types:
+ *
+ * A | B
+ * -----
+ * C | D
+ *
+ * After reduction rows of D will correspond to new polynomials to be added to
+ * the groebner basis.
+ */
+typedef struct mat_t
+{
+  sb_fl_t *A;   /*!<  upper left sparse matrix part*/
+  dbm_fl_t *B;  /*!<  upper right dense block matrix part*/
+  sb_fl_t *C;   /*!<  lower right sparse matrix part*/
+  dbm_fl_t *D;  /*!<  lower right dense block matrix part*/
+} mat_t;
 
 /**
  * \brief Hash table as defined by Monagan and Pearce in compact F4

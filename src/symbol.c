@@ -213,3 +213,15 @@ inline void free_symbolic_preprocessing_data(spd_t *spd)
   free(spd);
   spd = NULL;
 }
+
+inline void sort_columns_by_lead(spd_t *spd)
+{
+}
+
+inline void sort_lead_columns(spd_t *spd)
+{
+}
+
+inline void sort_non_lead_columns(spd_t *spd)
+{
+}

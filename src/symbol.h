@@ -129,4 +129,37 @@ void free_preprocessing_hash_list(pre_t *hl);
  * \param symbolic preprocessing data structure spd
  */
 void free_symbolic_preprocessing_data(spd_t *spd);
+
+/**
+ * \brief Sorts columns resp. monomials found by symbolic preprocessing to get
+ * two different parts: Monomials which are lead monomials and monomials which
+ * are non lead monomials-
+ *
+ * \param symbolic preprocessing data spd
+ */
+void sort_columns_by_lead(spd_t *spd);
+
+/**
+ * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
+ * given monomial order
+ *
+ * \note The list of columns resp. monomials was already presorted to
+ * distinguish lead ones (at the beginning of the list) from non lead ones (at
+ * the end of the list).
+ *
+ * \param symbolic preprocessing data spd
+ */
+void sort_lead_columns(spd_t *spd);
+
+/**
+ * \brief Sorts non lead monomials found by symbolic preprocessing w.r.t. the
+ * given monomial order
+ *
+ * \note The list of columns resp. monomials was already presorted to
+ * distinguish lead ones (at the beginning of the list) from non lead ones (at
+ * the end of the list).
+ *
+ * \param symbolic preprocessing data spd
+ */
+void sort_non_lead_columns(spd_t *spd);
 #endif

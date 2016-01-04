@@ -199,8 +199,23 @@ int main(int argc, char *argv[])
     // next we have to store arrays for the connection between lead monomials
     // and matrix column indices resp. non-lead monomials and matrix column
     // indices. Note that we already know the sizes of the arrays due to
-    // symbolic preprocessing.
+    // symbolic preprocessing:
+    // We first sort spd->col via lead and non lead monomials, i.e. ht->idx[i] =
+    // 1 or = 2
+    sort_columns_by_lead(spd);
 
+    // next we can sort both parts (we know the number of lead monomials =
+    // spd->sel->load - spd->sel->nsp, i.e. all polynomials considered in
+    // symbolic preprocessing minus the number of spairs)
+
+#pragma omp parallel num_threads(nthreads)
+    {
+      #pragma omp task
+      sort_lead_columns(spd);
+      #pragma omp task
+      sort_non_lead_columns(spd);
+    #pragma omp taskwait
+    }
 
     if (verbose > 1) {
       printf("---------------------------------------------------------------------\n");

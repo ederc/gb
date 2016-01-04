@@ -27,6 +27,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   nelts_t i, j, k, idx, last_div;
   hash_t hash_pos, hash_div = 0;
 
+  // clears hash table index: there we store during symbolic preprocessing a 2
+  // if it is a lead monomial and 1 if it is not a lead monomial. all other
+  // entries keep 0, thus they are not part of this reduction step
+  clear_hash_table_idx(ht);
+
   // list of monomials that appear in the matrix
   pre_t *mon  = init_preprocessing_hash_list(__GB_SYM_LIST_LEN);
   sel_t *sel  = init_selection(basis->load);
@@ -56,7 +61,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
     if (i != 0) {
       // we have reducer, i.e. the monomial is a leading monomial (important for
       // splicing matrix later on
-      mon->isLm[idx]  = 1;
+      ht->idx[mon->hpos[idx]] = 2;
       mon->nlm++;
       ht->div[hash_pos]  = i;
       for (j=0; j<sel->mload[i]; ++j)
@@ -124,13 +129,10 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
     // second generator
     add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen2);
     sel->nsp++;
-    // mark the lcm hash as already taken care of for symbolic preprocessing
-    // we also count how many polynomials hit it so that we can use this
-    // information for the splicing of the matrix later on
+    // corresponds to lcm of spair, tracking this information by setting ht->idx
+    // to 1 keeping track that this monomial is a lead monomial
     ht->idx[ht->lut[sp->lcm]] = 2;
     mon->hpos[mon->load]      = ht->lut[sp->lcm];;
-    // corresponds to lcm of spair, tracking this information by setting isLm 2
-    mon->isLm[mon->load]      = 2;
     mon->load++;
     mon->nlm++;
 
@@ -151,10 +153,10 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
     const hash_t h2, pre_t *mon)
 {
   hash_t pos = check_in_hash_table_product(h1, h2, ht);
-  ht->idx[pos]++;
   // only in this case we have this monomial hash for the first time,
   // otherwise it has already been taken care of
-  if (ht->idx[pos] == 1) {
+  if (ht->idx[pos] == 0) {
+    ht->idx[pos]++;
     mon->hpos[mon->load]  = pos;
     mon->load++;
     if (mon->load == mon->size)
@@ -184,30 +186,22 @@ inline pre_t *init_preprocessing_hash_list(const nelts_t size)
   // preprocessing
   pre_t *mon  = (pre_t *)malloc(sizeof(pre_t));
   mon->hpos   = (hash_t *)malloc(__GB_SYM_LIST_LEN * sizeof(hash_t));
-  mon->isLm   = (deg_t *)malloc(__GB_SYM_LIST_LEN * sizeof(deg_t));
   mon->size   = __GB_SYM_LIST_LEN;
   mon->load   = 0;
   mon->nlm    = 0;
   
-  // we initialize all values to zero and track only leading monomials in the
-  // symbolic preprocessing
-  memset(mon->isLm, 0, mon->size * sizeof(deg_t));
-
   return mon;
 }
 
 inline void enlarge_preprocessing_hash_list(pre_t *hl, const nelts_t size)
 {
   hl->hpos  = realloc(hl->hpos, size * sizeof(hash_t));
-  hl->isLm  = realloc(hl->isLm, size * sizeof(deg_t));
-  memset(hl->isLm+hl->size, 0, (size - hl->size) * sizeof(deg_t));
   hl->size  = size;
 }
 
 inline void free_preprocessing_hash_list(pre_t *hl)
 {
   free(hl->hpos);
-  free(hl->isLm);
   free(hl);
   hl  = NULL;
 }

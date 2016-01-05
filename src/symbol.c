@@ -158,6 +158,16 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
   if (ht->idx[pos] == 0) {
     ht->idx[pos]++;
     mon->hpos[mon->load]  = pos;
+    for (int i=0; i<ht->nvars; ++i)
+      printf("%u ",ht->exp[h1][i]);
+    printf("\n");
+    for (int i=0; i<ht->nvars; ++i)
+      printf("%u ",ht->exp[h2][i]);
+    printf("\n");
+    for (int i=0; i<ht->nvars; ++i)
+      printf("%u ",ht->exp[pos][i]);
+    printf("\n");
+    printf("new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
     mon->load++;
     if (mon->load == mon->size)
       enlarge_preprocessing_hash_list(mon, 2*mon->size);
@@ -214,8 +224,22 @@ inline void free_symbolic_preprocessing_data(spd_t *spd)
   spd = NULL;
 }
 
+inline int cmp_monomials_by_lead(const void *a, const void *b)
+{
+  hash_t h1 = *((hash_t *)a);
+  hash_t h2 = *((hash_t *)b);
+
+  printf("%u -- %u\n",h1, h2);
+  return (ht->idx[h1] - ht->idx[h2]);
+}
+
 inline void sort_columns_by_lead(spd_t *spd)
 {
+  printf("spd->col->load %u\n",spd->col->load);
+  for (int i=0; i<spd->col->load; ++i) {
+    printf("%u --> %u\n",i,spd->col->hpos[i]);
+  }
+  qsort(spd->col->hpos, spd->col->load, sizeof(hash_t *), cmp_monomials_by_lead);
 }
 
 inline void sort_lead_columns(spd_t *spd)

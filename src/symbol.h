@@ -131,9 +131,22 @@ void free_preprocessing_hash_list(pre_t *hl);
 void free_symbolic_preprocessing_data(spd_t *spd);
 
 /**
+ * \brief Comparison function of monomials for quicksort. Compares the property
+ * of being lead monomial or not.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+int cmp_monomials_by_lead(const void *a, const void *b);
+
+/**
  * \brief Sorts columns resp. monomials found by symbolic preprocessing to get
  * two different parts: Monomials which are lead monomials and monomials which
- * are non lead monomials-
+ * are non lead monomials.
  *
  * \param symbolic preprocessing data spd
  */

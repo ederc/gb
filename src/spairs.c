@@ -176,7 +176,8 @@ inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_h
   return sp;
 }
 
-inline int cmp_spairs_grevlex(const void *a, const void *b) {
+inline int cmp_spairs_grevlex(const void *a, const void *b)
+{
   spair_t *spa  = *((spair_t **)a);
   spair_t *spb  = *((spair_t **)b);
 #if SPAIRS_DEBUG

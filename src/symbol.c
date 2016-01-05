@@ -116,12 +116,12 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
   // wVe do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
-#if SPAIRS_DEBUG
+#if SYMBOL_DEBUG
   printf("selected pairs in this step of the algorithm:\n");
 #endif
   for (i=0; i<nsel; ++i) {
     sp = ps->pairs[i];
-#if SPAIRS_DEBUG
+#if SYMBOL_DEBUG
     printf("gen1 %u -- gen2 %u\n", sp->gen1, sp->gen2);
 #endif
     // first generator
@@ -158,6 +158,7 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
   if (ht->idx[pos] == 0) {
     ht->idx[pos]++;
     mon->hpos[mon->load]  = pos;
+#if SYMBOL_DEBUG
     for (int i=0; i<ht->nvars; ++i)
       printf("%u ",ht->exp[h1][i]);
     printf("\n");
@@ -168,6 +169,7 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
     printf("new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
+#endif
     mon->load++;
     if (mon->load == mon->size)
       enlarge_preprocessing_hash_list(mon, 2*mon->size);
@@ -229,17 +231,12 @@ inline int cmp_monomials_by_lead(const void *a, const void *b)
   hash_t h1 = *((hash_t *)a);
   hash_t h2 = *((hash_t *)b);
 
-  printf("%u -- %u\n",h1, h2);
-  return (ht->idx[h1] - ht->idx[h2]);
+  return (ht->idx[h2] - ht->idx[h1]);
 }
 
 inline void sort_columns_by_lead(spd_t *spd)
 {
-  printf("spd->col->load %u\n",spd->col->load);
-  for (int i=0; i<spd->col->load; ++i) {
-    printf("%u --> %u\n",i,spd->col->hpos[i]);
-  }
-  qsort(spd->col->hpos, spd->col->load, sizeof(hash_t *), cmp_monomials_by_lead);
+  qsort(spd->col->hpos, spd->col->load, sizeof(hash_t), cmp_monomials_by_lead);
 }
 
 inline void sort_lead_columns(spd_t *spd)

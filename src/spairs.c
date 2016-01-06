@@ -100,7 +100,7 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
     if (ps->pairs[i]->crit != NO_CRIT)
       continue;
     for (j=ps->load; j<i; ++j) {
-      if (i==j) // smaller lcm eliminated j
+      if (i==j || ps->pairs[j] != NO_CRIT) // smaller lcm eliminated j
         continue;
       if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
         ps->pairs[j]->crit  = CHAIN_CRIT;
@@ -122,13 +122,13 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
 #endif
         }
       }
-    } else { // earlier pairs my eliminate this pair
+    } else { // earlier pairs may eliminate this pair
       if (i > ps->load) {
         for (j=i-1; j>=(int)ps->load; --j) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
             ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIRS_DEBUG
-            printf("4CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+            printf("4CC for (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
 #endif
             break;
           }
@@ -148,7 +148,7 @@ inline nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx)
   for (i=0; i<cur_len; ++i) {
     if (ps->pairs[i]->crit != NO_CRIT) {
 #if SPAIRS_DEBUG
-      printf("REMOVED for (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
+      printf("REMOVED (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
 #endif
       nremoved++;
       free(ps->pairs[i]);

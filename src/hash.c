@@ -73,7 +73,9 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   // global table data
   ht->nvars = number_variables;
   ht->size  = hash_table_size;
-  ht->load  = 0;
+  // for easier divisibility checks we start at index 1. If the divisibility
+  // check routines return 0, there is no division.
+  ht->load  = 1;
   ht->exp   = (exp_t **)malloc(ht->size * sizeof(exp_t *));
   ht->lut   = (hash_t *)calloc(ht->size, sizeof(hash_t));
   ht->val   = (hash_t *)calloc(ht->size, sizeof(hash_t));

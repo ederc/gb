@@ -86,6 +86,9 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
         ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
         monomial_division(ps->pairs[i]->lcm, hash, ht)) {
       ps->pairs[i]->crit  = CHAIN_CRIT;
+#if SPAIRS_DEBUG
+      printf("CC for (%u,%u)\n",pos1+1, pos2+1);
+#endif
     }
   }
 
@@ -99,8 +102,12 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
     for (j=ps->load; j<i; ++j) {
       if (i==j) // smaller lcm eliminated j
         continue;
-      if (ps->pairs[j]->lcm == ps->pairs[i]->lcm)
+      if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
         ps->pairs[j]->crit  = CHAIN_CRIT;
+#if SPAIRS_DEBUG
+        printf("2CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+#endif
+      }
     }
   }
   // third step: remove new pairs via product criterion
@@ -110,6 +117,9 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
       for (j=ps->load; j<cur_len; ++j) {
         if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
           ps->pairs[j]->crit  = CHAIN_CRIT;
+#if SPAIRS_DEBUG
+          printf("3CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+#endif
         }
       }
     } else { // earlier pairs my eliminate this pair
@@ -117,6 +127,9 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
         for (j=i-1; j>=(int)ps->load; --j) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
             ps->pairs[i]->crit  = CHAIN_CRIT;
+#if SPAIRS_DEBUG
+            printf("4CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+#endif
             break;
           }
         }
@@ -134,6 +147,9 @@ inline nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx)
   nremoved  = 0;
   for (i=0; i<cur_len; ++i) {
     if (ps->pairs[i]->crit != NO_CRIT) {
+#if SPAIRS_DEBUG
+      printf("REMOVED for (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
+#endif
       nremoved++;
       free(ps->pairs[i]);
       ps->pairs[i]  = NULL;
@@ -198,6 +214,9 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
     nvars_t i;
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
+    // Note that this loop only works since we assume that spa->lcm =/=
+    // spb->lcm. Otherwise i might get to zero and decremented again, which
+    // means that we would get into an infinite loop as nvars_t is unsigned.
     for (i=ht->nvars-1; i>=0; --i) {
       if (expa[i] < expb[i]) {
         return 1;

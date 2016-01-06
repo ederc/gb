@@ -59,9 +59,6 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
     }
     // only if i > 0 we have found a reducer
     if (i != 0) {
-      // we have reducer, i.e. the monomial is a leading monomial (important for
-      // splicing matrix later on
-      ht->idx[mon->hpos[idx]] = 2;
       mon->nlm++;
       ht->div[hash_pos]  = i;
       for (j=0; j<sel->mload[i]; ++j)
@@ -72,7 +69,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
       // take care of the lead monomial below when entering the other lower
       // order monomials, we have to adjust the idx for this given monomial
       // here.
-      ht->idx[hash_pos]++;
+      // we have reducer, i.e. the monomial is a leading monomial (important for
+      // splicing matrix later on
+      ht->idx[hash_pos] = 2;
       if (j == sel->mload[i]) {
         // check for enlarging
         check_enlargement_mul_in_selection(sel, 2*sel->msize[i], i);
@@ -122,7 +121,7 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
   for (i=0; i<nsel; ++i) {
     sp = ps->pairs[i];
 #if SYMBOL_DEBUG
-    printf("gen1 %u -- gen2 %u\n", sp->gen1, sp->gen2);
+    printf("gen1 %u -- gen2 %u -- lcm %u\n", sp->gen1, sp->gen2, sp->lcm);
 #endif
     // first generator
     add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen1);
@@ -131,10 +130,18 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
     sel->nsp++;
     // corresponds to lcm of spair, tracking this information by setting ht->idx
     // to 1 keeping track that this monomial is a lead monomial
-    ht->idx[ht->lut[sp->lcm]] = 2;
-    mon->hpos[mon->load]      = ht->lut[sp->lcm];;
-    mon->load++;
-    mon->nlm++;
+    if (ht->idx[sp->lcm] == 0) {
+      ht->idx[sp->lcm] = 2;
+      mon->hpos[mon->load]  = sp->lcm;
+#if SYMBOL_DEBUG
+      printf("hpos[%u] = %u\n", mon->load, mon->hpos[mon->load]);
+      for (int ii=0; ii<ht->nvars; ++ii)
+        printf("%u ", ht->exp[sp->lcm][ii]);
+      printf("\n");
+#endif
+      mon->load++;
+      mon->nlm++;
+    }
 
     // remove the selected pair from the pair set
     free(sp);
@@ -226,7 +233,8 @@ inline void free_symbolic_preprocessing_data(spd_t *spd)
   spd = NULL;
 }
 
-inline int cmp_monomials_by_lead(const void *a, const void *b)
+inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,
+    const void *b)
 {
   hash_t h1 = *((hash_t *)a);
   hash_t h2 = *((hash_t *)b);
@@ -234,15 +242,74 @@ inline int cmp_monomials_by_lead(const void *a, const void *b)
   return (ht->idx[h2] - ht->idx[h1]);
 }
 
+inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
+    const void *b)
+{
+  hash_t h1 = *((hash_t *)a);
+  hash_t h2 = *((hash_t *)b);
+
+  // compare degree first
+  if (ht->deg[h2] > ht->deg[h1]) {
+    return 1;
+  } else {
+    if (ht->deg[h1] > ht->deg[h2])
+      return -1;
+  }
+
+  // else we have to check reverse lexicographical
+  nvars_t i;
+  exp_t *expa = ht->exp[h1];
+  exp_t *expb = ht->exp[h2];
+  // Note that this loop only works since we assume that h1 =/= h2.
+  // Otherwise i might get to zero and decremented again, which
+  // means that we would get into an infinite loop as nvars_t is unsigned.
+  for (i=ht->nvars-1; i>=0; --i) {
+    if (expa[i] < expb[i]) {
+      return -1;
+    } else {
+      if (expa[i] != expb[i])
+        return 1;
+    }
+  }
+  // we should never get here since a =/= b by assumption
+  return 0;
+}
+
 inline void sort_columns_by_lead(spd_t *spd)
 {
-  qsort(spd->col->hpos, spd->col->load, sizeof(hash_t), cmp_monomials_by_lead);
+  qsort(spd->col->hpos, spd->col->load, sizeof(hash_t),
+      cmp_symbolic_preprocessing_monomials_by_lead);
 }
 
-inline void sort_lead_columns(spd_t *spd)
+inline void sort_lead_columns_by_grevlex(spd_t *spd)
 {
+  // sort the start of spd->col, i.e. the lead monomial list
+  qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
+      cmp_symbolic_preprocessing_monomials_by_grevlex);
 }
 
-inline void sort_non_lead_columns(spd_t *spd)
+inline void sort_non_lead_columns_by_grevlex(spd_t *spd)
 {
+  // sort the end of spd->col, i.e. the non lead monomial list
+  qsort(spd->col->hpos+spd->col->nlm, (spd->col->load - spd->col->nlm),
+      sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
+}
+
+inline void sort_presorted_columns_by_grevlex(spd_t *spd, int nthreads)
+{
+      sort_lead_columns_by_grevlex(spd);
+      sort_non_lead_columns_by_grevlex(spd);
+      /*
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single
+    {
+      #pragma omp task
+      sort_lead_columns_by_grevlex(spd);
+      #pragma omp task
+      sort_non_lead_columns_by_grevlex(spd);
+      #pragma omp taskwait
+    }
+  }
+  */
 }

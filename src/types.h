@@ -283,6 +283,10 @@ typedef struct mat_t
 /**
  * \brief Hash table as defined by Monagan and Pearce in compact F4
  * implementation (see PASCO 2015)
+ *
+ * \note We start with the first element at index 1, not at index 0. Thus we can
+ * optimize divisibility checks (if index 0 is returned we have not found any
+ * divisor). See also procedure init_hash_table().
  */
 typedef struct mp_cf4_ht_t
 {

@@ -207,15 +207,7 @@ int main(int argc, char *argv[])
     // next we can sort both parts (we know the number of lead monomials =
     // spd->sel->load - spd->sel->nsp, i.e. all polynomials considered in
     // symbolic preprocessing minus the number of spairs)
-
-#pragma omp parallel num_threads(nthreads)
-    {
-      #pragma omp task
-      sort_lead_columns(spd);
-      #pragma omp task
-      sort_non_lead_columns(spd);
-    #pragma omp taskwait
-    }
+    sort_presorted_columns_by_grevlex(spd, nthreads);
 
     if (verbose > 1) {
       printf("---------------------------------------------------------------------\n");

@@ -141,7 +141,23 @@ void free_symbolic_preprocessing_data(spd_t *spd);
  * \returns negative value if a is non lead and b is lead; 0 if both are lead or
  * both are non lead; a positive value if a is lead and b is non lead
  */
-int cmp_monomials_by_lead(const void *a, const void *b);
+int cmp_symbolic_preprocessing_monomials_by_lead(const void *a, const void *b);
+
+/**
+ * \brief Comparison function of monomials for quicksort. Compares w.r.t. the
+ * given monomial order grevlex.
+ *
+ * \note This is used in symbolic preprocessing, thus we know already that a =/=
+ * b and we do not have to check this again.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a, const void *b);
 
 /**
  * \brief Sorts columns resp. monomials found by symbolic preprocessing to get
@@ -154,7 +170,7 @@ void sort_columns_by_lead(spd_t *spd);
 
 /**
  * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
- * given monomial order
+ * given monomial order grevlex
  *
  * \note The list of columns resp. monomials was already presorted to
  * distinguish lead ones (at the beginning of the list) from non lead ones (at
@@ -162,11 +178,11 @@ void sort_columns_by_lead(spd_t *spd);
  *
  * \param symbolic preprocessing data spd
  */
-void sort_lead_columns(spd_t *spd);
+void sort_lead_columns_by_grevlex(spd_t *spd);
 
 /**
  * \brief Sorts non lead monomials found by symbolic preprocessing w.r.t. the
- * given monomial order
+ * given monomial order grevlex
  *
  * \note The list of columns resp. monomials was already presorted to
  * distinguish lead ones (at the beginning of the list) from non lead ones (at
@@ -174,5 +190,17 @@ void sort_lead_columns(spd_t *spd);
  *
  * \param symbolic preprocessing data spd
  */
-void sort_non_lead_columns(spd_t *spd);
+void sort_non_lead_columns_by_grevlex(spd_t *spd);
+
+/**
+ * \brief Sorts already presorted list of monomials resp. columns w.r.t. the
+ * given monomial order grevlex. The list is already presorted by lead and non
+ * lead monomials. Those monomials correspond then to the columns of the gbla
+ * matrix generated later on
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \param number of threads to use in parallel nthreads
+ */
+void sort_presorted_columns_by_grevlex(spd_t *spd, int nthreads);
 #endif

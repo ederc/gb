@@ -124,13 +124,16 @@ void enter_monomial_to_preprocessing_hash_list(const hash_t h1, const hash_t h2,
 pre_t *init_preprocessing_hash_list(const nelts_t size);
 
 /**
- * \brief Enlarges hash list for symbolic preprocessing to new_size.
+ * \brief Adjusts size of hash list for symbolic preprocessing to new_size.
+ *
+ * \note It is not only used to enlarge the size, but also for cutting down
+ * memory once symbolic preprocessing is done.
  *
  * \param preprocessing hash list hl
  *
  * \param new size of hash list size
  */
-void enlarge_preprocessing_hash_list(pre_t *hl, const nelts_t size);
+void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size);
 
 /**
  * \brief Frees hash list for symbolic preprocessing.

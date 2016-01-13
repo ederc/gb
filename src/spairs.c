@@ -254,7 +254,7 @@ inline void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
   hash_t mul;
   mul = get_multiplier(lcm, basis->eh[gen][0], ht);
   if (sel->load == sel->size)
-    enlarge_selection(sel, 2*sel->size);
+    adjust_size_of_selection(sel, 2*sel->size);
   sel->mpp[sel->load].mul  = mul;
   sel->mpp[sel->load].idx  = gen;
   sel->load++;
@@ -272,7 +272,7 @@ inline sel_t *init_selection(nelts_t size)
   return sel;
 }
 
-inline void enlarge_selection(sel_t *sel, nelts_t new_size)
+inline void adjust_size_of_selection(sel_t *sel, nelts_t new_size)
 {
   sel->size = new_size;
   sel->mpp  = realloc(sel->mpp, sel->size * sizeof(mpp_t));

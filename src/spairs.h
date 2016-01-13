@@ -147,25 +147,16 @@ void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
     const hash_t lcm, const nelts_t gen);
 
 /**
- * \brief Checks storage for multipliers and enlarges storage for given entry if
- * necessary
+ * \brief Adjusts selection set size to new_size
  *
- * \param selection set sel
- *
- *  \param new size new_size
- *
- *  \param index of entry idx
- */
-void check_enlargement_mul_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx);
-
-/**
- * \brief Enlarges selection set to new_size
+ * \note This function is not only used for enlargements, but also
+ * to cut down memory at the end of symbolic preprocessing
  *
  * \param selection set sel
  *
  *  \param new size new_size
  */
-void enlarge_selection(sel_t *sel, nelts_t new_size);
+void adjust_size_of_selection(sel_t *sel, nelts_t new_size);
 
 /**
  * \brief Initializes selection for next reduction step of size size

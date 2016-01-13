@@ -71,7 +71,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
       ht->idx[hash_pos] = 2;
       if (sel->load == sel->size) {
         // check for enlarging
-        enlarge_selection(sel, 2*sel->size);
+        adjust_size_of_selection(sel, 2*sel->size);
         sel->mpp[sel->load].mul = hash_div;
         sel->mpp[sel->load].idx = i;
         sel->load++;
@@ -89,6 +89,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   // next we store the information needed to construct the GBLA matrix in the
   // following
   spd_t *mat  = (spd_t *)malloc(sizeof(spd_t));
+
+  // adjust memory
+  adjust_size_of_selection(sel, sel->load);
+  adjust_size_of_preprocessing_hash_list(mon, mon->load);
+
   mat->sel  = sel;
   mat->col  = mon;
 
@@ -188,7 +193,7 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
 #endif
     mon->load++;
     if (mon->load == mon->size)
-      enlarge_preprocessing_hash_list(mon, 2*mon->size);
+      adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
   }
 }
 
@@ -205,7 +210,7 @@ inline pre_t *init_preprocessing_hash_list(const nelts_t size)
   return mon;
 }
 
-inline void enlarge_preprocessing_hash_list(pre_t *hl, const nelts_t size)
+inline void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size)
 {
   hl->hpos  = realloc(hl->hpos, size * sizeof(hash_t));
   hl->size  = size;

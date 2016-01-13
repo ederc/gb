@@ -66,17 +66,24 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis);
  * construction later on, for know the number of nonzero entries in the column
  * corresponding to this monomial. This will help splicing the matrix for gbla.
  *
+ * \note There are two selection lists, one for the upper and one for the lower
+ * part of the gbla matrix to be constructed. By default, the first generator of
+ * an spair is added to the upper part, the second generator to the lower part.
+ * All upcoming reducers are also added to the upper selection list.
+ *
  * \param pair set ps
  *
  * \param intermediate grobner basis basis
  *
- * \param selection set sel
+ * \param selection set for upper part of gbla matrix sel_upp
+ *
+ * \param selection set for lower part of gbla matrix sel_low
  *
  * \param hash list of monomials mon
  *
  * \param last index of pair selection in pair list idx
  */
-void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel,
+void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel_upp, sel_t *sel_low,
     pre_t *mon, nelts_t idx);
 
 /**

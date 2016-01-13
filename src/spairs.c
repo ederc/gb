@@ -255,6 +255,7 @@ inline void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
   mul = get_multiplier(lcm, basis->eh[gen][0], ht);
   if (sel->load == sel->size)
     adjust_size_of_selection(sel, 2*sel->size);
+  sel->mpp[sel->load].mul  = lcm;
   sel->mpp[sel->load].mul  = mul;
   sel->mpp[sel->load].idx  = gen;
   sel->load++;
@@ -265,7 +266,6 @@ inline sel_t *init_selection(nelts_t size)
   sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
   sel->size   = size;
   sel->load   = 0;
-  sel->nsp    = 0;
 
   sel->mpp    = (mpp_t *)malloc(size * sizeof(mpp_t));
 

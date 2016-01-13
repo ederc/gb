@@ -209,13 +209,15 @@ int main(int argc, char *argv[])
     // symbolic preprocessing minus the number of spairs)
     sort_presorted_columns_by_grevlex(spd, nthreads);
 
+    //set_column_index_in_hash_table(ht, spd);
+
     if (verbose > 1) {
       printf("---------------------------------------------------------------------\n");
-      printf("sel->deg                          %9u\n",spd->sel->deg);
-      printf("sel->load                         %9u\n",spd->sel->load);
+      printf("sel->deg                          %9u\n",spd->selu->deg);
+      printf("selu->load                        %9u\n",spd->selu->load);
+      printf("sell->load                        %9u\n",spd->sell->load);
       printf("mon->load                         %9u\n",spd->col->load);
       printf("mon->nlm                          %9u\n",spd->col->nlm);
-      printf("sel->nsp                          %9u\n",spd->sel->nsp);
     }
 
     free_symbolic_preprocessing_data(spd);

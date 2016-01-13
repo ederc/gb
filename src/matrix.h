@@ -38,4 +38,14 @@
 
 #define MATRIX_DEBUG 0
 
+/**
+ * \brief Initilializes the gbla matrix corresponding to the selection done
+ * during symbolic preprocessing. It also converts the polynomial representation
+ * to rows resp. blocks in the matrix.
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \return gbla matrix
+ */
+mat_t *initialize_gbla_matrix(spd_t *spd);
 #endif

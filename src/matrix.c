@@ -21,14 +21,24 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 #include "matrix.h"
-/*
 mat_t *initialize_gbla_matrix(spd_t *spd)
 {
-  mat_t mat = (mat_t *)malloc(sizeof(mat_t));
+  mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
 
   sb_fl_t *A  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
   dbm_fl_t *B = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
   sb_fl_t *C  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
   dbm_fl_t *D = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
+
+  // initialize parts of gbla matrix with known dimensions
+  init_sb(A, spd->selu->load, spd->col->nlm);
+  init_dbm(B, spd->selu->load, spd->col->load - spd->col->nlm);
+  init_sb(C, spd->sell->load, spd->col->nlm);
+  init_dbm(D, spd->sell->load, spd->col->load - spd->col->nlm);
+
+  // fill in polynomial data from symbolic preprocessing in A, B, C, and D
+
+  // the first sel->nsp elements in sel are
+
+  return mat;
 }
-*/

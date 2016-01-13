@@ -35,11 +35,16 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   nsel  = get_pairs_by_minimal_degree(ps);
 
   // list of monomials that appear in the matrix
-  pre_t *mon  = init_preprocessing_hash_list(__GB_SYM_LIST_LEN);
-  sel_t *sel  = init_selection(5*nsel);
-  sel->deg    = ps->pairs[0]->deg;
+  pre_t *mon      = init_preprocessing_hash_list(__GB_SYM_LIST_LEN);
+  // the lower part of the gbla matrix resp. the selection is fixed:
+  // those are just the second generators of the spairs, thus we need nsel
+  // places.
+  sel_t *sel_low  = init_selection(nsel);
+  sel_t *sel_upp  = init_selection(5*nsel);
+  sel_upp->deg    = ps->pairs[0]->deg;
+  sel_low->deg    = ps->pairs[0]->deg;
   // list of polynomials and their multipliers
-  select_pairs(ps, basis, sel, mon, nsel);
+  select_pairs(ps, basis, sel_upp, sel_low, mon, nsel);
 
   // we use mon as LIFO: last in, first out. thus we can easily remove and add
   // new elements to mon
@@ -57,7 +62,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
         break;
       i--;
     }
-    // only if i > 0 we have found a reducer
+    // only if i > 0 we have found a reducer.
+    // note: all reducers are added to the upper selection list!
     if (i != 0) {
       mon->nlm++;
       ht->div[hash_pos]  = i;
@@ -69,19 +75,18 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
       // we have reducer, i.e. the monomial is a leading monomial (important for
       // splicing matrix later on
       ht->idx[hash_pos] = 2;
-      if (sel->load == sel->size) {
-        // check for enlarging
-        adjust_size_of_selection(sel, 2*sel->size);
-        sel->mpp[sel->load].mul = hash_div;
-        sel->mpp[sel->load].idx = i;
-        sel->load++;
+      if (sel_upp->load == sel_upp->size)
+        adjust_size_of_selection(sel_upp, 2*sel_upp->size);
+      sel_upp->mpp[sel_upp->load].mlm = hash_pos;
+      sel_upp->mpp[sel_upp->load].mul = hash_div;
+      sel_upp->mpp[sel_upp->load].idx = i;
+      sel_upp->load++;
 
-        // now add new monomials to preprocessing hash list
-        for (k=1; k<basis->nt[i]; ++k)
-          enter_monomial_to_preprocessing_hash_list(sel->mpp[sel->load-1].mul,
-              basis->eh[sel->mpp[sel->load-1].idx][k], mon);
+      // now add new monomials to preprocessing hash list
+      for (k=1; k<basis->nt[i]; ++k)
+        enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1].mul,
+            basis->eh[sel_upp->mpp[sel_upp->load-1].idx][k], mon);
 
-      }
     }
     idx++;
   }
@@ -91,10 +96,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   spd_t *mat  = (spd_t *)malloc(sizeof(spd_t));
 
   // adjust memory
-  adjust_size_of_selection(sel, sel->load);
+  adjust_size_of_selection(sel_upp, sel_upp->load);
   adjust_size_of_preprocessing_hash_list(mon, mon->load);
 
-  mat->sel  = sel;
+  mat->selu = sel_upp;
+  mat->sell = sel_low;
   mat->col  = mon;
 
   return mat;
@@ -116,7 +122,8 @@ nelts_t get_pairs_by_minimal_degree(ps_t *ps)
   return i;
 }
 
-void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mon, nelts_t nsel)
+void select_pairs(ps_t *ps, gb_t *basis, sel_t *selu, sel_t *sell,
+    pre_t *mon, nelts_t nsel)
 {
   nelts_t i, j, k;
   spair_t *sp;
@@ -131,11 +138,10 @@ void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mon, nelts_t nsel)
 #if SYMBOL_DEBUG
     printf("gen1 %u -- gen2 %u -- lcm %u\n", sp->gen1, sp->gen2, sp->lcm);
 #endif
-    // first generator
-    add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen1);
-    // second generator
-    add_spair_generator_to_selection(basis, sel, sp->lcm, sp->gen2);
-    sel->nsp++;
+    // first generator for upper part of gbla matrix
+    add_spair_generator_to_selection(basis, selu, sp->lcm, sp->gen1);
+    // second generator for lower part of gbla matrix
+    add_spair_generator_to_selection(basis, sell, sp->lcm, sp->gen2);
     // corresponds to lcm of spair, tracking this information by setting ht->idx
     // to 1 keeping track that this monomial is a lead monomial
     if (ht->idx[sp->lcm] == 0) {
@@ -152,11 +158,14 @@ void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mon, nelts_t nsel)
     }
     // now add new monomials to preprocessing hash list for both generators of
     // the spair, i.e. sel->load-2 and sel->load-1
-    for (j=sel->load-2; j<sel->load; ++j) {
-      for (k=1; k<basis->nt[sel->mpp[j].idx]; ++k)
-        enter_monomial_to_preprocessing_hash_list(sel->mpp[j].mul,
-            basis->eh[sel->mpp[j].idx][k], mon);
-    }
+    j = selu->load-1;
+    for (k=1; k<basis->nt[selu->mpp[j].idx]; ++k)
+      enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
+          basis->eh[selu->mpp[j].idx][k], mon);
+    j = sell->load-1;
+    for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
+      enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
+          basis->eh[sell->mpp[j].idx][k], mon);
     // remove the selected pair from the pair set
     free(sp);
   }
@@ -226,7 +235,8 @@ inline void free_preprocessing_hash_list(pre_t *hl)
 inline void free_symbolic_preprocessing_data(spd_t *spd)
 {
   free_preprocessing_hash_list(spd->col);
-  free_selection(spd->sel);
+  free_selection(spd->selu);
+  free_selection(spd->sell);
   free(spd);
   spd = NULL;
 }

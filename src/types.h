@@ -221,6 +221,8 @@ typedef struct mpp_t
 {
   nelts_t idx;  /*!<  index of polynomial in basis */
   hash_t mul;   /*!<  hash of multiplier */
+  hash_t mlm;   /*!<  hash of multiplied leading monomial, needed for faster
+                      sorting of rows when generating the gbla matrix */
 } mpp_t;
 
 #if 1
@@ -234,7 +236,6 @@ typedef struct sel_t
   deg_t deg;        /*!<  maximal degree of all elements in selection set*/
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in selection*/
-  nelts_t nsp;      /*!<  number of spairs*/
   // element data
   mpp_t *mpp;       /*!<  multiplier-polynomial-pair for symbolic preprocessing */
 } sel_t;
@@ -285,8 +286,12 @@ typedef struct pre_t
  */
 typedef struct spd_t
 {
-  sel_t *sel; /*!<  selected polynomials and their multipliers for next matrix */
-  pre_t *col; /*!<  list of monomials appearing in selection, i.e. columns of matrix */
+  sel_t *selu;  /*!<  selected polynomials and their  multipliers for upper
+                      part of gbla matrix */
+  sel_t *sell;  /*!<  selected polynomials and their  multipliers for lower
+                      part of gbla matrix */
+  pre_t *col;   /*!<  list of monomials appearing in selection, i.e. columns
+                      of matrix */
 } spd_t;
 
 /**

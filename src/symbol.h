@@ -54,7 +54,8 @@
 spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis);
 
 /**
- * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * \brief Selects pairs due to the sorting and selection done by the previous
+ * get_pairs_by_*() procedure and returns
  * a set of this selection that is later on filled with corresponding lower term
  * reducers.
  *
@@ -72,8 +73,23 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis);
  * \param selection set sel
  *
  * \param hash list of monomials mon
+ *
+ * \param last index of pair selection in pair list idx
  */
-void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mon);
+void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel,
+    pre_t *mon, nelts_t idx);
+
+/**
+ * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * the index of the last pair in the pair list
+ *
+ * \note This function also sorts the pair set correspondingly.
+ *
+ * \param pair set ps
+ *
+ * \return last index of pair selection in pair list
+ */
+nelts_t get_pairs_by_minimal_degree(ps_t *ps);
 
 /**
  * \brief Enters the lower order monomials of the selected spair generators to

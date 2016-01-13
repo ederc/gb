@@ -215,6 +215,32 @@ typedef struct ps_t
 } ps_t;
 
 /**
+ * \brief Multiplier-polynomial pair for symbolic preprocessing
+ */
+typedef struct mpp_t
+{
+  nelts_t idx;  /*!<  index of polynomial in basis */
+  hash_t mul;   /*!<  hash of multiplier */
+} mpp_t;
+
+#if 1
+/**
+ * \brief Selection of multiplied elements for next matrix: Those are generators
+ * of spairs and corresponding reducers.
+ */
+typedef struct sel_t
+{
+  // global data
+  deg_t deg;        /*!<  maximal degree of all elements in selection set*/
+  nelts_t size;     /*!<  memory allocated */
+  nelts_t load;     /*!<  number of elements in selection*/
+  nelts_t nsp;      /*!<  number of spairs*/
+  // element data
+  mpp_t *mpp;       /*!<  multiplier-polynomial-pair for symbolic preprocessing */
+} sel_t;
+
+#else
+/**
  * \brief Selection of multiplied elements for next matrix: Those are generators
  * of spairs and corresponding reducers.
  */
@@ -233,8 +259,10 @@ typedef struct sel_t
   hash_t **mul;     /*!<  multiplier of the given basis element, note that one basis
                           element might appear several times in the list with different
                           monomial multipliers*/
+  hash_t *muld;     /*!<  the one multiplier for the spair generator that goes to the
+                          bottom of the gbla matrix*/
 } sel_t;
-
+#endif
 /**
  * \brief Data structure storing the list of positions in hash table
  * corresponding to monomials. Used for symbolic preprocessing to get all

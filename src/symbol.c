@@ -24,7 +24,7 @@
 
 spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
 {
-  nelts_t i, j, k, idx, last_div;
+  nelts_t i, k, idx, last_div, nsel;
   hash_t hash_pos, hash_div = 0;
 
   // clears hash table index: there we store during symbolic preprocessing a 2
@@ -32,14 +32,14 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   // entries keep 0, thus they are not part of this reduction step
   clear_hash_table_idx(ht);
 
+  nsel  = get_pairs_by_minimal_degree(ps);
+
   // list of monomials that appear in the matrix
   pre_t *mon  = init_preprocessing_hash_list(__GB_SYM_LIST_LEN);
-  sel_t *sel  = init_selection(basis->load);
+  sel_t *sel  = init_selection(5*nsel);
+  sel->deg    = ps->pairs[0]->deg;
   // list of polynomials and their multipliers
-  select_pairs_by_minimal_degree(ps, basis, sel, mon);
-
-  // enter selected spairs without their lead terms first
-  enter_spairs_to_preprocessing_hash_list(basis, sel, mon);
+  select_pairs(ps, basis, sel, mon, nsel);
 
   // we use mon as LIFO: last in, first out. thus we can easily remove and add
   // new elements to mon
@@ -61,9 +61,6 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
     if (i != 0) {
       mon->nlm++;
       ht->div[hash_pos]  = i;
-      for (j=0; j<sel->mload[i]; ++j)
-        if (hash_div  ==  sel->mul[i][j])
-          break;
       // if multiple is not already in the selected list
       // we have found another element with such a monomial, since we do not
       // take care of the lead monomial below when entering the other lower
@@ -72,17 +69,17 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
       // we have reducer, i.e. the monomial is a leading monomial (important for
       // splicing matrix later on
       ht->idx[hash_pos] = 2;
-      if (j == sel->mload[i]) {
+      if (sel->load == sel->size) {
         // check for enlarging
-        check_enlargement_mul_in_selection(sel, 2*sel->msize[i], i);
-        sel->mul[i][sel->mload[i]]  = hash_div;
-        sel->mload[i]++;
+        enlarge_selection(sel, 2*sel->size);
+        sel->mpp[sel->load].mul = hash_div;
+        sel->mpp[sel->load].idx = i;
         sel->load++;
 
         // now add new monomials to preprocessing hash list
         for (k=1; k<basis->nt[i]; ++k)
-          enter_monomial_to_preprocessing_hash_list(sel->mul[i][sel->mload[i]-1],
-              basis->eh[i][k], mon);
+          enter_monomial_to_preprocessing_hash_list(sel->mpp[sel->load-1].mul,
+              basis->eh[sel->mpp[sel->load-1].idx][k], mon);
 
       }
     }
@@ -98,20 +95,26 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   return mat;
 }
 
-void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mon)
+nelts_t get_pairs_by_minimal_degree(ps_t *ps)
 {
+  // sort pair set by lcms
+  sort_pair_set_by_lcm_grevlex(ps);
+
   deg_t dmin  = ps->pairs[0]->deg;
   nelts_t i = 0;
-  nelts_t nsel;
-  spair_t *sp;
 
   // we assume here that the pair set is already sorted by degree of the lcms
   // (in particular, we assume grevlex ordering)
   while (i < ps->load && ps->pairs[i]->deg == dmin)
     i++;
-  nsel  = i;
+  
+  return i;
+}
 
-  sel->deg  = dmin;
+void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mon, nelts_t nsel)
+{
+  nelts_t i, j, k;
+  spair_t *sp;
   // wVe do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
@@ -142,13 +145,19 @@ void select_pairs_by_minimal_degree(ps_t *ps, gb_t *basis, sel_t *sel, pre_t *mo
       mon->load++;
       mon->nlm++;
     }
-
+    // now add new monomials to preprocessing hash list for both generators of
+    // the spair, i.e. sel->load-2 and sel->load-1
+    for (j=sel->load-2; j<sel->load; ++j) {
+      for (k=1; k<basis->nt[sel->mpp[j].idx]; ++k)
+        enter_monomial_to_preprocessing_hash_list(sel->mpp[j].mul,
+            basis->eh[sel->mpp[j].idx][k], mon);
+    }
     // remove the selected pair from the pair set
     free(sp);
   }
 
   // adjust pair set after removing the bunch of selected pairs
-  nelts_t k = 0;
+  k = 0;
   for (i=nsel; i<ps->load; ++i) {
     ps->pairs[k] = ps->pairs[i];
     k++;
@@ -180,22 +189,6 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
     mon->load++;
     if (mon->load == mon->size)
       enlarge_preprocessing_hash_list(mon, 2*mon->size);
-  }
-}
-
-inline void enter_spairs_to_preprocessing_hash_list(const gb_t *basis, sel_t *sel,
-    pre_t *mon)
-{
-  nelts_t i, j, k;
-
-  // add lower order terms of spairs that are in sel already
-  for (i=1; i<basis->load; ++i) {
-    for (j=0; j<sel->mload[i]; ++j) {
-      // we have already taken care of the lead terms, thus we start with k=1
-      for (k=1; k<basis->nt[i]; ++k) {
-        enter_monomial_to_preprocessing_hash_list(sel->mul[i][j], basis->eh[i][k], mon);
-      }
-    }
   }
 }
 

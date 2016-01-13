@@ -38,8 +38,6 @@ inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
     printf("criteria applied %u / %u\n", meta_data->ncrit_last, meta_data->ncrit_total);
 #endif
   }
-  // sort pair set by lcms
-  sort_pair_set_by_lcm_grevlex(ps);
   return ps;
 }
 
@@ -250,93 +248,39 @@ inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
   qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_grevlex);
 }
 
-
 inline void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
     const hash_t lcm, const nelts_t gen)
 {
-  nelts_t j;
   hash_t mul;
   mul = get_multiplier(lcm, basis->eh[gen][0], ht);
-  for (j=0; j<sel->mload[gen]; ++j) {
-    if (mul == sel->mul[gen][j])
-      break;
-  }
-  if (j == sel->mload[gen]) {
-    check_enlargement_mul_in_selection(sel, 2*sel->msize[gen], gen);
-    sel->mul[gen][sel->mload[gen]]  = mul;
-    sel->mload[gen]++;
-    sel->load++;
-  }
+  if (sel->load == sel->size)
+    enlarge_selection(sel, 2*sel->size);
+  sel->mpp[sel->load].mul  = mul;
+  sel->mpp[sel->load].idx  = gen;
+  sel->load++;
 }
 
 inline sel_t *init_selection(nelts_t size)
 {
-  nelts_t i;
-
-  // size should be basis->load in order to get for each element in the
-  // intermediate groebner basis a bucket for multipliers so that we do not have
-  // to reallocate later on.
   sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
   sel->size   = size;
   sel->load   = 0;
   sel->nsp    = 0;
-  sel->msize  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
-  // how many multipliers shall we store per polynomial at the beginning?
-  // we take 5 here
-  for (i=1; i<sel->size; ++i)
-    sel->msize[i] = 5;
-  sel->mload  = (nelts_t *)malloc(sel->size * sizeof(nelts_t));
-  for (i=1; i<sel->size; ++i)
-    sel->mload[i] = 0;
-  sel->mul    = (hash_t **)malloc(sel->size * sizeof(hash_t *));
-  for (i=1; i<sel->size; ++i)
-    sel->mul[i] = (hash_t *)malloc(sel->msize[i] * sizeof(hash_t));
 
-  // special handling for index 0: as index 0 is also special in the basis we
-  // have to adjust the same stuff for the selection list.
-  // everything else is a nightmare in adjusting indices between the selection
-  // list and the basis entries.
-  sel->msize[0] = 0;
-  sel->mload[0] = 0;
-  sel->mul[0]   = NULL;
+  sel->mpp    = (mpp_t *)malloc(size * sizeof(mpp_t));
 
   return sel;
 }
 
-inline void check_enlargement_mul_in_selection(sel_t *sel, nelts_t new_size, nelts_t idx)
-{
-  if (sel->mload[idx] == sel->msize[idx]) {
-    sel->msize[idx] = new_size;
-    sel->mul[idx]   = realloc(sel->mul[idx], sel->msize[idx] * sizeof(hash_t));
-  }
-}
-
-
 inline void enlarge_selection(sel_t *sel, nelts_t new_size)
 {
-  nelts_t i;
-  nelts_t old_size  = sel->size;
-
-  sel->size   = new_size;
-  sel->msize  = realloc(sel->msize, sel->size * sizeof(nelts_t));
-  sel->mload  = realloc(sel->mload, sel->size * sizeof(nelts_t));
-  sel->mul    = realloc(sel->mul, sel->size * sizeof(hash_t *));
-
-  for (i=old_size; i<sel->size; ++i) {
-    sel->msize[i] = 5;
-    sel->mload[i] = 0;
-    sel->mul[i] = (hash_t *)malloc(sel->msize[i] * sizeof(hash_t));
-  }
+  sel->size = new_size;
+  sel->mpp  = realloc(sel->mpp, sel->size * sizeof(mpp_t));
 }
 
 inline void free_selection(sel_t *sel)
 {
-  nelts_t i;
-  for (i=0; i<sel->size; ++i)
-    free(sel->mul[i]);
-  free(sel->mul);
-  free(sel->mload);
-  free(sel->msize);
+  free(sel->mpp);
   free(sel);
   sel = NULL;
 }

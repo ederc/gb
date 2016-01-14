@@ -51,7 +51,7 @@
  * \return full information from symbolic preprocessing for generationg corresponding
  * matrices out of polynomial data
  */
-spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis);
+spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis);
 
 /**
  * \brief Selects pairs due to the sorting and selection done by the previous
@@ -73,30 +73,18 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis);
  *
  * \param pair set ps
  *
- * \param intermediate grobner basis basis
- *
  * \param selection set for upper part of gbla matrix sel_upp
  *
  * \param selection set for lower part of gbla matrix sel_low
  *
  * \param hash list of monomials mon
  *
+ * \param intermediate grobner basis basis
+ *
  * \param last index of pair selection in pair list idx
  */
-void select_pairs(ps_t *ps, gb_t *basis, sel_t *sel_upp, sel_t *sel_low,
-    pre_t *mon, nelts_t idx);
-
-/**
- * \brief Selects pairs by lowest degree (normal selection strategy) and returns
- * the index of the last pair in the pair list
- *
- * \note This function also sorts the pair set correspondingly.
- *
- * \param pair set ps
- *
- * \return last index of pair selection in pair list
- */
-nelts_t get_pairs_by_minimal_degree(ps_t *ps);
+void select_pairs(ps_t *ps, sel_t *sel_upp, sel_t *sel_low,
+    pre_t *mon, const gb_t *basis, const nelts_t idx);
 
 /**
  * \brief Enters the lower order monomials of the selected spair generators to
@@ -228,5 +216,47 @@ void sort_non_lead_columns_by_grevlex(spd_t *spd);
  *
  * \param number of threads to use in parallel nthreads
  */
-void sort_presorted_columns_by_grevlex(spd_t *spd, int nthreads);
+void sort_presorted_columns_by_grevlex(spd_t *spd, const int nthreads);
+
+/**
+ * \brief Sets the index entry of the hash values to the corresponding columns
+ * for the upcoming gbla matrix. The relation between hash values of monomials
+ * and columns is given by the symbolic preprocessing data.
+ *
+ * \param hash table ht
+ *
+ * \param symbolic preprocessing data spd
+ */
+void set_column_index_in_hash_table(mp_cf4_ht_t *ht, const spd_t *spd);
+
+/**
+ * \brief Implements the comparison function for quicksort used in the function
+ * sort_selection_by_column_index(). Takes multiplied lead monomials and sorts
+ * corresponding to the predefined column index that is stored in the idx entry
+ * of the hash table.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns ht->idx[a.mlm] - ht->idx[b.mlm]
+ */
+int cmp_monomial_polynomial_pair(const void *a, const void *b);
+
+/**
+ * \brief Sorts upper and lower selection of polynomials from preprocessing to
+ * by the position of the corresponding multiplied lead monomial w.r.t. to the
+ * predefined column order of the gbla matrix to be generated next.
+ *
+ * \note Both lists, upper and lower, can be sorted in parallel, thus the
+ * implementation is done using open mp tasks.
+ *
+ * \param symbolic data structure spd
+ *
+ * \param hash table ht
+ *
+ * \param number of threads nthreads
+ */
+void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
+  const int nthreads);
 #endif

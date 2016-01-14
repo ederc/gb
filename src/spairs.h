@@ -44,7 +44,7 @@
  *
  * \param hash table ht
  */
-ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht);
+ps_t *init_pair_set(const gb_t *basis, mp_cf4_ht_t *ht);
 
 /**
  * \brief Enlarge pair set ps to size new_size
@@ -53,7 +53,7 @@ ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht);
  *
  * \param new size new_size
  */
-void enlarge_pair_set(ps_t *ps, nelts_t new_size);
+void enlarge_pair_set(ps_t *ps, const nelts_t new_size);
 
 /**
  * \brief Frees dynamically allocated memory from pair set
@@ -75,7 +75,8 @@ void free_pair_set(ps_t *ps);
  *
  * \return generated spair
  */
-spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_ht_t *ht);
+spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basis,
+    mp_cf4_ht_t *ht);
 
 /**
  * \brief Comparison implementation for qsort. Sorts pair set w.r.t. graded
@@ -107,7 +108,7 @@ void sort_pair_set_by_lcm_grevlex(ps_t *ps);
  *
  * \param index of new element in gb idx
  */
-void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx);
+void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx);
 
 /**
  * \brief Gebauer-Moeller checks for product and chain criterion
@@ -118,7 +119,7 @@ void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx);
  *
  * \param index in basis of newly added basis element idx
  */
-void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx);
+void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx);
 
 /**
  * \brief Remove spairs detected by either product or chain criterion
@@ -129,21 +130,33 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx);
  *
  * \return number of removed pairs
  */
-nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx);
+nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
+
+/**
+ * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * the index of the last pair in the pair list
+ *
+ * \note This function also sorts the pair set correspondingly.
+ *
+ * \param pair set ps
+ *
+ * \return last index of pair selection in pair list
+ */
+nelts_t get_pairs_by_minimal_degree(ps_t *ps);
 
 /**
  * \brief Adds generator gen of the corresponding spair with least common
  * multiple lcm to selection list sel.
  *
- * \param intermediate groebner basis basis
- *
  * \param selection list sel
+ *
+ * \param intermediate groebner basis basis
  *
  * \param least common multiple of spair lcm
  *
  * \param a generator of spair gen
  */
-void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
+void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
     const hash_t lcm, const nelts_t gen);
 
 /**
@@ -156,7 +169,7 @@ void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
  *
  *  \param new size new_size
  */
-void adjust_size_of_selection(sel_t *sel, nelts_t new_size);
+void adjust_size_of_selection(sel_t *sel, const nelts_t new_size);
 
 /**
  * \brief Initializes selection for next reduction step of size size
@@ -165,7 +178,7 @@ void adjust_size_of_selection(sel_t *sel, nelts_t new_size);
  *
  * \return selection set sel
  */
-sel_t *init_selection(nelts_t size);
+sel_t *init_selection(const nelts_t size);
 
 /**
  * \brief Frees selection set

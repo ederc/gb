@@ -22,7 +22,7 @@
 
 #include "symbol.h"
 
-spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
+spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
 {
   nelts_t i, k, idx, last_div, nsel;
   hash_t hash_pos, hash_div = 0;
@@ -44,7 +44,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   sel_upp->deg    = ps->pairs[0]->deg;
   sel_low->deg    = ps->pairs[0]->deg;
   // list of polynomials and their multipliers
-  select_pairs(ps, basis, sel_upp, sel_low, mon, nsel);
+  select_pairs(ps, sel_upp, sel_low, mon, basis, nsel);
 
   // we use mon as LIFO: last in, first out. thus we can easily remove and add
   // new elements to mon
@@ -106,24 +106,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, gb_t *basis)
   return mat;
 }
 
-nelts_t get_pairs_by_minimal_degree(ps_t *ps)
-{
-  // sort pair set by lcms
-  sort_pair_set_by_lcm_grevlex(ps);
-
-  deg_t dmin  = ps->pairs[0]->deg;
-  nelts_t i = 0;
-
-  // we assume here that the pair set is already sorted by degree of the lcms
-  // (in particular, we assume grevlex ordering)
-  while (i < ps->load && ps->pairs[i]->deg == dmin)
-    i++;
-  
-  return i;
-}
-
-void select_pairs(ps_t *ps, gb_t *basis, sel_t *selu, sel_t *sell,
-    pre_t *mon, nelts_t nsel)
+void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell,
+    pre_t *mon, const gb_t *basis, const nelts_t nsel)
 {
   nelts_t i, j, k;
   spair_t *sp;
@@ -139,9 +123,9 @@ void select_pairs(ps_t *ps, gb_t *basis, sel_t *selu, sel_t *sell,
     printf("gen1 %u -- gen2 %u -- lcm %u\n", sp->gen1, sp->gen2, sp->lcm);
 #endif
     // first generator for upper part of gbla matrix
-    add_spair_generator_to_selection(basis, selu, sp->lcm, sp->gen1);
+    add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
     // second generator for lower part of gbla matrix
-    add_spair_generator_to_selection(basis, sell, sp->lcm, sp->gen2);
+    add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
     // corresponds to lcm of spair, tracking this information by setting ht->idx
     // to 1 keeping track that this monomial is a lead monomial
     if (ht->idx[sp->lcm] == 0) {
@@ -303,11 +287,8 @@ inline void sort_non_lead_columns_by_grevlex(spd_t *spd)
       sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
 }
 
-inline void sort_presorted_columns_by_grevlex(spd_t *spd, int nthreads)
+inline void sort_presorted_columns_by_grevlex(spd_t *spd, const int nthreads)
 {
-      sort_lead_columns_by_grevlex(spd);
-      sort_non_lead_columns_by_grevlex(spd);
-      /*
   #pragma omp parallel num_threads(nthreads)
   {
     #pragma omp single
@@ -319,5 +300,41 @@ inline void sort_presorted_columns_by_grevlex(spd_t *spd, int nthreads)
       #pragma omp taskwait
     }
   }
-  */
+}
+
+inline void set_column_index_in_hash_table(mp_cf4_ht_t *ht, const spd_t *spd)
+{
+  nelts_t i;
+
+  for (i=0; i<spd->col->load; ++i)
+    ht->idx[spd->col->hpos[i]]  = i;
+}
+
+inline int cmp_monomial_polynomial_pair(const void *a, const void *b)
+{
+  hash_t h1 = ((mpp_t *)a)->mlm;
+  hash_t h2 = ((mpp_t *)b)->mlm;
+
+  return (ht->idx[h1] - ht->idx[h2]);
+
+}
+
+inline void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
+  const int nthreads)
+{
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single
+    {
+      // upper selection
+      #pragma omp task
+      qsort(spd->selu->mpp, spd->selu->load, sizeof(mpp_t),
+          cmp_monomial_polynomial_pair);
+      // lower selection
+      #pragma omp task
+      qsort(spd->sell->mpp, spd->sell->load, sizeof(mpp_t),
+          cmp_monomial_polynomial_pair);
+      #pragma omp taskwait
+    }
+  }
 }

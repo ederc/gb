@@ -21,7 +21,7 @@
  */
 #include "spairs.h"
 
-inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
+inline ps_t *init_pair_set(const gb_t *basis, mp_cf4_ht_t *ht)
 {
   nelts_t i;
 
@@ -41,7 +41,7 @@ inline ps_t *init_pair_set(gb_t *basis, mp_cf4_ht_t *ht)
   return ps;
 }
 
-inline void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx)
+inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
   nelts_t i;
   // we get maximal idx-1 new pairs
@@ -68,7 +68,7 @@ inline void update_pair_set(ps_t *ps, gb_t *basis, nelts_t idx)
   meta_data->ncrit_total  +=  meta_data->ncrit_last;
 }
 
-void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
+void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
 {
   nelts_t pos1, pos2;
   nelts_t cur_len = ps->load + (idx - 1);
@@ -136,7 +136,7 @@ void gebauer_moeller(ps_t *ps, hash_t hash, nelts_t idx)
   }
 }
 
-inline nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx)
+inline nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx)
 {
   nelts_t cur_len = ps->load + (idx-1);
   nelts_t i, j, nremoved;
@@ -161,7 +161,7 @@ inline nelts_t remove_detected_pairs(ps_t *ps, nelts_t idx)
 }
 
 
-inline void enlarge_pair_set(ps_t *ps, nelts_t new_size)
+inline void enlarge_pair_set(ps_t *ps, const nelts_t new_size)
 {
   ps->pairs = (spair_t **)realloc(ps->pairs, new_size * sizeof(spair_t *));
   ps->size  = new_size;
@@ -174,7 +174,7 @@ inline void free_pair_set(ps_t *ps)
   ps  = NULL;
 }
 
-inline spair_t *generate_spair(nelts_t gen1, nelts_t gen2, gb_t *basis, mp_cf4_ht_t *ht)
+inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
   sp->gen1  = gen1;
@@ -243,25 +243,42 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
   }
 }
 
+nelts_t get_pairs_by_minimal_degree(ps_t *ps)
+{
+  // sort pair set by lcms
+  sort_pair_set_by_lcm_grevlex(ps);
+
+  deg_t dmin  = ps->pairs[0]->deg;
+  nelts_t i = 0;
+
+  // we assume here that the pair set is already sorted by degree of the lcms
+  // (in particular, we assume grevlex ordering)
+  while (i < ps->load && ps->pairs[i]->deg == dmin)
+    i++;
+
+  return i;
+}
+
+
 inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
 {
   qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_grevlex);
 }
 
-inline void add_spair_generator_to_selection(gb_t *basis, sel_t *sel,
+inline void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
     const hash_t lcm, const nelts_t gen)
 {
   hash_t mul;
   mul = get_multiplier(lcm, basis->eh[gen][0], ht);
   if (sel->load == sel->size)
     adjust_size_of_selection(sel, 2*sel->size);
-  sel->mpp[sel->load].mul  = lcm;
+  sel->mpp[sel->load].mlm  = lcm;
   sel->mpp[sel->load].mul  = mul;
   sel->mpp[sel->load].idx  = gen;
   sel->load++;
 }
 
-inline sel_t *init_selection(nelts_t size)
+inline sel_t *init_selection(const nelts_t size)
 {
   sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
   sel->size   = size;
@@ -272,7 +289,7 @@ inline sel_t *init_selection(nelts_t size)
   return sel;
 }
 
-inline void adjust_size_of_selection(sel_t *sel, nelts_t new_size)
+inline void adjust_size_of_selection(sel_t *sel, const nelts_t new_size)
 {
   sel->size = new_size;
   sel->mpp  = realloc(sel->mpp, sel->size * sizeof(mpp_t));

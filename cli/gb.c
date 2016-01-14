@@ -209,7 +209,14 @@ int main(int argc, char *argv[])
     // symbolic preprocessing minus the number of spairs)
     sort_presorted_columns_by_grevlex(spd, nthreads);
 
-    //set_column_index_in_hash_table(ht, spd);
+    // connect monomial hash positions with columns in to be constructed gbla
+    // matrix
+    set_column_index_in_hash_table(ht, spd);
+
+    // now sort upper and lower polynomial selections by lead monomials. this
+    // corresponds to sorting by columns (=rows as this is one-to-one for lead
+    // monomials).
+    sort_selection_by_column_index(spd, ht, nthreads);
 
     if (verbose > 1) {
       printf("---------------------------------------------------------------------\n");

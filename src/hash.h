@@ -176,6 +176,24 @@ hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
 hash_t check_in_hash_table(mp_cf4_ht_t *ht);
 
 /**
+ * \brief Finds the product of the given two monomial exponents is already
+ * in the hash table.
+ *
+ * \note This function is used when constructing the gbla matrix, it is assumed
+ * that the product is in the hash table, thus the hash table is used const.
+ *
+ * \param monomial 1 mon_1
+ *
+ * \param monomial 2 mon_2
+ *
+ * \param hash table ht
+ *
+ * \return position of hash of exp in table
+ */
+hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
+    const mp_cf4_ht_t *ht);
+
+/**
  * \brief Checks if the product of the given two monomial exponents is already
  * in the hash table. If not, it is added to the table
  *

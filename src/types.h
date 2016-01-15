@@ -286,6 +286,11 @@ typedef struct mat_t
   dbm_fl_t *B;  /*!<  upper right dense block matrix part*/
   sb_fl_t *C;   /*!<  lower right sparse matrix part*/
   dbm_fl_t *D;  /*!<  lower right dense block matrix part*/
+  bi_t bs;      /*!<  block size given by gbla */
+  ri_t rbu;     /*!<  number of row blocks for upper part of gbla matrix */
+  ri_t rbl;     /*!<  number of row blocks for lower part of gbla matrix */
+  ci_t cbl;     /*!<  number of column blocks for left part of gbla matrix */
+  ci_t cbr;     /*!<  number of column blocks for right part of gbla matrix */
 } mat_t;
 
 /**
@@ -317,6 +322,18 @@ typedef struct mp_cf4_ht_t
                           preprocessing*/
 } mp_cf4_ht_t;
 
+/**
+ * \brief Dense row structure for buffering nonzero elements when generating
+ * gbla matrix from symbolic preprocessing data.
+ *
+ * \note Data type of ctr needs to be nelts_t > bi_t since otherwise we would
+ * increment the counter in a dense row to 256 = 0 mod sizeof(bi_t) (=256).
+ */
+typedef struct dbr_t
+{
+  nelts_t *ctr; /*!< array of counts how many nonzero elements are stored */
+  coeff_t **cf; /*!< array of coefficients in the given row and block */
+} dbr_t;
 
 
 // global meta_data

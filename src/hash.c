@@ -270,6 +270,32 @@ inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2
   return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
 }
 
+inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
+    const mp_cf4_ht_t *ht)
+{
+  hash_t i,j;
+
+  // hash value of the product is the sum of the hash values in our setting
+  hash_t hash   = ht->val[mon_1] + ht->val[mon_2];
+  hash_t tmp_h  = hash; // temporary hash values for quadratic probing
+  hash_t tmp_l;         // temporary lookup table value
+
+  for (i=0; i<ht->size; ++i) {
+    tmp_h = (tmp_h + i) & (ht->size - 1);
+    tmp_l = ht->lut[tmp_h];
+    if (tmp_l == 0)
+      break;
+    if (ht->val[tmp_l] != hash)
+      continue;
+    for (j=0; j<ht->nvars; ++j)
+      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+        break;
+    if (j == ht->nvars)
+      return tmp_l;
+  }
+  return 0;
+}
+
 inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)
 {
   hash_t i, hash;

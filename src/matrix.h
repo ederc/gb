@@ -47,7 +47,7 @@
  *
  * \return gbla matrix
  */
-mat_t *initialize_gbla_matrix(spd_t *spd);
+mat_t *initialize_gbla_matrix(const spd_t *spd);
 
 /**
  * \brief Initializes a dense block row for buffering values when converting a
@@ -273,14 +273,14 @@ ri_t get_number_of_row_blocks(const sel_t *sel, const nelts_t bs);
  * each block row separately. Thus, if available, the generation of the matrix
  * can be done in parallel on different threads using OpenMP.
  *
- * \param gbla matrix mat
- *
  * \param intermediate groebner basis basis
  *
  * \param symbplic preprocessing data spd
  *
  * \param number of threads nthreads
+ *
+ * \return gbla matrix mat
  */
-void generate_gbla_matrix(mat_t *mat, const gb_t *basis, const spd_t *spd,
+mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd,
     const int nthreads);
 #endif

@@ -22,7 +22,7 @@
  */
 #include "matrix.h"
 
-inline mat_t *initialize_gbla_matrix(spd_t *spd)
+inline mat_t *initialize_gbla_matrix(const spd_t *spd)
 {
   mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
 
@@ -126,6 +126,7 @@ void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
 
     store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->modulus);
   }
+  free_dense_block_row(dbr, ncb);
 }
 
 inline void allocate_dense_block(dbm_fl_t *A, const nelts_t rbi, const nelts_t bir,
@@ -223,7 +224,9 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
   const nelts_t lbl = (fr-1)/bs;
 
   // do some loop unrolling
+  printf("----------------------\nlength of %u is %u\n", pi, basis->nt[pi]);
   for (j=0; j<basis->nt[pi]-3; j=j+4) {
+    printf("eh[%u][%u] = %u\n", pi, j, basis->eh[pi][j]);
     hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
     cp  = ht->idx[hp];
     if (cp<fr) {
@@ -234,6 +237,7 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
       dbr->cf[lbl+cp/bs][lbl+cp%bs]  = basis->cf[pi][j];
       dbr->ctr[lbl+cp/bs]++;
     }
+    printf("eh[%u][%u] = %u\n", pi, j+1, basis->eh[pi][j+1]);
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j+1], ht);
     cp  = ht->idx[hp];
     if (cp<fr) {
@@ -244,6 +248,7 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
       dbr->cf[lbl+cp/bs][lbl+cp%bs]  = basis->cf[pi][j+1];
       dbr->ctr[lbl+cp/bs]++;
     }
+    printf("eh[%u][%u] = %u\n", pi, j+2, basis->eh[pi][j+2]);
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j+2], ht);
     cp  = ht->idx[hp];
     if (cp<fr) {
@@ -254,6 +259,7 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
       dbr->cf[lbl+cp/bs][lbl+cp%bs]  = basis->cf[pi][j+2];
       dbr->ctr[lbl+cp/bs]++;
     }
+    printf("eh[%u][%u] = %u\n", pi, j+3, basis->eh[pi][j+3]);
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j+3], ht);
     cp  = ht->idx[hp];
     if (cp<fr) {
@@ -267,6 +273,7 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
   }
   tmp = j;
   for (j=tmp; j<basis->nt[pi]; ++j) {
+    printf("eh[%u][%u] = %u\n", pi, j, basis->eh[pi][j]);
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j], ht);
     cp  = ht->idx[hp];
     if (cp<fr) {
@@ -280,8 +287,9 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
   }
 }
 
-void generate_gbla_matrix(mat_t *mat, const gb_t *basis, const spd_t *spd, const int nthreads)
+inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const int nthreads)
 {
+  mat_t *mat  = initialize_gbla_matrix(spd);
   ri_t i;
   #pragma omp parallel num_threads(nthreads)
   {
@@ -304,4 +312,8 @@ void generate_gbla_matrix(mat_t *mat, const gb_t *basis, const spd_t *spd, const
     }
     #pragma omp taskwait
   }
+
+  return mat;
 }
+
+

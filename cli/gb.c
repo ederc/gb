@@ -38,6 +38,8 @@ void print_help()
   printf("    -c HTC      Hash table cache resp. size.\n");
   printf("                Default: 2^(16).\n");
   printf("    -h HELP     Print help.\n");
+  printf("    -p PBM      Generates .pbm files of gbla matrices.\n");
+  printf("                Note: These files can become huge, handle with care.\n");
   printf("    -r REDGB    Compute the reduced Groebner basis.\n");
   printf("                Default: 0.\n");
   printf("    -s SIMP     Use simplify in F4 algorithm.\n");
@@ -64,7 +66,10 @@ int main(int argc, char *argv[])
   int reduce_gb         = 0;
   ht_size_t ht_size     = pow(2,16);
   int simplify          = 0;
+  int pbm               = 0;
 
+  // generate file name holder if pbms are generated
+  char pbm_fn[400];
 
   int index;
   int opt;
@@ -81,7 +86,7 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:hr:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:hpr:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
         ht_size = atoi(optarg);
@@ -89,6 +94,9 @@ int main(int argc, char *argv[])
       case 'h':
         print_help();
         return 0;
+      case 'p':
+        pbm = 1;
+        break;
       case 'r':
         reduce_gb = atoi(optarg);
         break;
@@ -225,6 +233,16 @@ int main(int argc, char *argv[])
       printf("sell->load                        %9u\n",spd->sell->load);
       printf("mon->load                         %9u\n",spd->col->load);
       printf("mon->nlm                          %9u\n",spd->col->nlm);
+    }
+
+    // generate gbla matrix out of data from symbolic preprocessing
+    mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
+    printf("bs %u | rbu %u | rbl %u | cbl %u | cbr %u\n",mat->bs, mat->rbu, mat->rbl, mat->cbl, mat->cbr);
+
+    // generate pbm files of gbla matrix
+    if (pbm) {
+      snprintf(pbm_fn, 300, "%s-mat%u.pbm", fn, steps);
+      printf("%s\n",pbm_fn);
     }
 
     free_symbolic_preprocessing_data(spd);

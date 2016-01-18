@@ -34,9 +34,10 @@
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
-#include <gb_config.h>
+#include <src/gb_config.h>
 #include <omp.h>
 #include <src/hash.h>
+#include <src/matrix.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0
@@ -145,6 +146,37 @@ exp_t get_exponent(const char *term, const char *var_name);
  * \return number of terms in polynomial
  */
 int get_number_of_terms(const char *line);
+
+/**
+ * \brief Writes matrix to pbm file for printing.
+ *
+ * \param matrix mat
+ *
+ * \param file name fn
+ */
+void write_matrix_to_pbm(mat_t *mat, const char *fn);
+
+/**
+ * \brief Writes one row from the sparse block matrix A and the dense block
+ * matrix B to the buffer for generating the pbm file of the matrix.
+ *
+ * \param row buffer buffer
+ *
+ * \param row index idx
+ *
+ * \param sparse block matrix A
+ *
+ * \param dense block matrix B
+ *
+ * \param number of column blocks for A (i.e. lefthand side) cbl
+ *
+ * \param number of column blocks for B (i.e. righthand side) cbr
+ *
+ * \param block size bs
+ */
+void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
+    const sb_fl_t *A, const dbm_fl_t *B, const nelts_t cbl, const nelts_t cbr,
+    const bi_t bs);
 
 /**
  * \brief Initializes meta data information

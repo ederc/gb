@@ -144,6 +144,7 @@ int main(int argc, char *argv[])
     printf("hash table size             %15d (+/- 2^%.1f)\n", ht_size, log_size);
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("use simplify?               %15d\n", simplify);
+    printf("generate pbm files?         %15d\n", pbm);
     printf("---------------------------------------------------------------------\n");
   }
 
@@ -237,12 +238,10 @@ int main(int argc, char *argv[])
 
     // generate gbla matrix out of data from symbolic preprocessing
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
-    printf("bs %u | rbu %u | rbl %u | cbl %u | cbr %u\n",mat->bs, mat->rbu, mat->rbl, mat->cbl, mat->cbr);
-
     // generate pbm files of gbla matrix
     if (pbm) {
       snprintf(pbm_fn, 300, "%s-mat%u.pbm", fn, steps);
-      printf("%s\n",pbm_fn);
+      write_matrix_to_pbm(mat, pbm_fn);
     }
 
     free_symbolic_preprocessing_data(spd);

@@ -51,42 +51,45 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
   idx = 0;
   while (idx < mon->load) {
     hash_pos  = mon->hpos[idx];
-    last_div  = ht->div[hash_pos];
+    // only if not already a lead monomial, e.g. if coming from spair
+    if (ht->idx[hash_pos] != 2) {
+      last_div  = ht->div[hash_pos];
 
-    // takes last element in basis and test for division, goes down until we
-    // reach the last known divisor last_div
-    i = basis->load-1;
-    while (i != last_div) {
-      hash_div  = monomial_division(hash_pos, basis->eh[i][0], ht);
-      if (hash_div != 0)
-        break;
-      i--;
-    }
-    // only if i > 0 we have found a reducer.
-    // note: all reducers are added to the upper selection list!
-    if (i != 0) {
-      mon->nlm++;
-      ht->div[hash_pos]  = i;
-      // if multiple is not already in the selected list
-      // we have found another element with such a monomial, since we do not
-      // take care of the lead monomial below when entering the other lower
-      // order monomials, we have to adjust the idx for this given monomial
-      // here.
-      // we have reducer, i.e. the monomial is a leading monomial (important for
-      // splicing matrix later on
-      ht->idx[hash_pos] = 2;
-      if (sel_upp->load == sel_upp->size)
-        adjust_size_of_selection(sel_upp, 2*sel_upp->size);
-      sel_upp->mpp[sel_upp->load].mlm = hash_pos;
-      sel_upp->mpp[sel_upp->load].mul = hash_div;
-      sel_upp->mpp[sel_upp->load].idx = i;
-      sel_upp->load++;
+      // takes last element in basis and test for division, goes down until we
+      // reach the last known divisor last_div
+      i = basis->load-1;
+      while (i != last_div) {
+        hash_div  = monomial_division(hash_pos, basis->eh[i][0], ht);
+        if (hash_div != 0)
+          break;
+        i--;
+      }
+      // only if i > 0 we have found a reducer.
+      // note: all reducers are added to the upper selection list!
+      if (i != 0) {
+        mon->nlm++;
+        ht->div[hash_pos]  = i;
+        // if multiple is not already in the selected list
+        // we have found another element with such a monomial, since we do not
+        // take care of the lead monomial below when entering the other lower
+        // order monomials, we have to adjust the idx for this given monomial
+        // here.
+        // we have reducer, i.e. the monomial is a leading monomial (important for
+        // splicing matrix later on
+        ht->idx[hash_pos] = 2;
+        if (sel_upp->load == sel_upp->size)
+          adjust_size_of_selection(sel_upp, 2*sel_upp->size);
+        sel_upp->mpp[sel_upp->load].mlm = hash_pos;
+        sel_upp->mpp[sel_upp->load].mul = hash_div;
+        sel_upp->mpp[sel_upp->load].idx = i;
+        sel_upp->load++;
 
-      // now add new monomials to preprocessing hash list
-      for (k=1; k<basis->nt[i]; ++k)
-        enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1].mul,
-            basis->eh[sel_upp->mpp[sel_upp->load-1].idx][k], mon);
+        // now add new monomials to preprocessing hash list
+        for (k=1; k<basis->nt[i]; ++k)
+          enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1].mul,
+              basis->eh[sel_upp->mpp[sel_upp->load-1].idx][k], mon);
 
+      }
     }
     idx++;
   }

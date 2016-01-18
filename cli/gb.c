@@ -244,6 +244,24 @@ int main(int argc, char *argv[])
       write_matrix_to_pbm(mat, pbm_fn);
     }
 
+    // reduce matrix using gbla
+    if (verbose == 1) {
+      gettimeofday(&t_load_start, NULL);
+      printf("[%2u] ", steps);
+      printf("%-33s","GBLA matrix reduction ...");
+      fflush(stdout);
+    }
+    int rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
+    if (verbose == 1) {
+      printf("%9.3f sec (rank DR: %d)\n",
+          walltime(t_load_start) / (1000000), rankDR);
+    }
+    // generate pbm files of gbla matrix
+    if (pbm) {
+      snprintf(pbm_fn, 300, "%s-mat%u-red.pbm", fn, steps);
+      write_matrix_to_pbm(mat, pbm_fn);
+    }
+
     free_symbolic_preprocessing_data(spd);
     clear_hash_table_idx(ht);
     if (verbose > 1)
@@ -256,7 +274,7 @@ int main(int argc, char *argv[])
   free_basis(basis);
   free_hash_table(ht);
   if (verbose > 0) {
-    printf("-------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------\n");
     printf("%-38s","Computation completed ...");
     fflush(stdout);
     printf("%9.3f sec\n",
@@ -264,7 +282,7 @@ int main(int argc, char *argv[])
     if (verbose > 1) 
       print_mem_usage();
   }
-  printf("-------------------------------------------------------------------\n");
+  printf("---------------------------------------------------------------------\n");
   return 0;
 
 }

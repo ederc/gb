@@ -22,7 +22,7 @@
  */
 #include "matrix.h"
 
-inline mat_t *initialize_gbla_matrix(const spd_t *spd)
+inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
 {
   mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
 
@@ -30,7 +30,9 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd)
   mat->B  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
   mat->C  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
   mat->D  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
+  mat->DR = NULL;
 
+  mat->mod  = basis->modulus;
   mat->bs   = __GBLA_SIMD_BLOCK_SIZE;
   mat->rbu  = get_number_of_row_blocks(spd->selu, mat->bs);
   mat->rbl  = get_number_of_row_blocks(spd->sell, mat->bs);
@@ -45,7 +47,6 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd)
 
   return mat;
 }
-
 
 inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
 {
@@ -283,7 +284,7 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
 
 inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const int nthreads)
 {
-  mat_t *mat  = initialize_gbla_matrix(spd);
+  mat_t *mat  = initialize_gbla_matrix(spd, basis);
   #pragma omp parallel num_threads(nthreads)
   {
     #pragma omp single nowait
@@ -311,4 +312,82 @@ inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const in
   return mat;
 }
 
+int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
+{
+  /*  timing structs */
+  struct timeval t_load_start;
+  struct timeval t_complete;
+  if (verbose > 1)
+    gettimeofday(&t_complete, NULL);
+  // A^-1 * B
+  if (verbose > 1) {
+    printf("---------------------------------------------------------------------\n");
+    printf("GBLA Matrix Reduction\n");
+    printf("---------------------------------------------------------------------\n");
+    gettimeofday(&t_load_start, NULL);
+    printf("%-38s","Reducing A ...");
+    fflush(stdout);
+  }
+  if (elim_fl_A_sparse_dense_block(&(mat->A), mat->B, mat->mod, nthreads)) {
+    printf("Error while reducing A.\n");
+    return -1;
+  }
+  if (verbose > 1) {
+    printf("%9.3f sec\n",
+        walltime(t_load_start) / (1000000));
+  }
+  if (verbose > 2) {
+    print_mem_usage();
+  }
+  // reducing submatrix C to zero using methods of Faugère & Lachartre
+  if (verbose > 1) {
+    gettimeofday(&t_load_start, NULL);
+    printf("%-38s","Reducing C ...");
+    fflush(stdout);
+  }
+  if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 1, mat->mod, nthreads)) {
+    printf("Error while reducing C.\n");
+    return -1;
+  }
+  if (verbose > 1) {
+    printf("%9.3f sec\n",
+        walltime(t_load_start) / (1000000));
+  }
+  if (verbose > 2) {
+    print_mem_usage();
+  }
+  // copy block D to dense wide (re_l_t) representation
+  dm_t *D_red = copy_block_to_dense_matrix(&(mat->D), nthreads);
+  D_red->mod  = mat->mod;
 
+  // eliminate D_red using a structured Gaussian Elimination process on the rows
+  ri_t rank_D = 0;
+  // echelonizing D to zero using methods of Faugère & Lachartre
+  if (verbose > 1) {
+    gettimeofday(&t_load_start, NULL);
+    printf("%-38s","Reducing D ...");
+    fflush(stdout);
+  }
+  if (D_red->nrows > 0)
+    rank_D = elim_fl_dense_D(D_red, nthreads);
+  if (verbose > 1) {
+    printf("%9.3f sec (rank D: %u)\n",
+        walltime(t_load_start) / (1000000), rank_D);
+  }
+  if (verbose > 2) {
+    print_mem_usage();
+  }
+  if (verbose > 1) {
+    printf("---------------------------------------------------------------------\n");
+    printf("%-38s","Reduction completed ...");
+    fflush(stdout);
+    printf("%9.3f sec\n",
+        walltime(t_complete) / (1000000));
+    if (verbose > 1) 
+      print_mem_usage();
+  }
+
+  mat->DR = D_red;
+
+  return rank_D;
+}

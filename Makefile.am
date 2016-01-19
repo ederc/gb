@@ -8,8 +8,8 @@ lib_LTLIBRARIES = libgb.la
 libgb_la_SOURCES = \
 	src/types.h \
 	src/hash.h	src/hash.c	\
-	src/basis.h	src/basis.c \
-	src/spairs.h src/spairs.c	\
+	src/poly.h	src/poly.c \
+	src/spair.h src/spair.c	\
 	src/symbol.h src/symbol.c	\
 	src/matrix.h src/matrix.c
 
@@ -20,8 +20,8 @@ pkgincludesubdir = $(includedir)/src
 pkgincludesub_HEADERS = \
 	src/types.h	\
 	src/hash.h	\
-	src/basis.h \
-	src/spairs.h	\
+	src/poly.h \
+	src/spair.h	\
 	src/symbol.h	\
 	src/matrix.h
 

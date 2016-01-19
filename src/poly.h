@@ -15,12 +15,12 @@
 
 /**
  * \file basis.h
- * \brief Implementation of handling of groebner basis.
+ * \brief Implementation of handling of polynomials and groebner bases.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
-#ifndef GB_BASIS_H
-#define GB_BASIS_H
+#ifndef GB_POLY_H
+#define GB_POLY_H
 
 #include "gb_config.h"
 #include <stdlib.h>

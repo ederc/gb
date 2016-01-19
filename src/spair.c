@@ -14,12 +14,12 @@
  */
 
 /**
- * \file spairs.c
+ * \file spair.c
  * \brief Implementation of handling of pair sets.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
-#include "spairs.h"
+#include "spair.h"
 
 inline ps_t *init_pair_set(const gb_t *basis, mp_cf4_ht_t *ht)
 {
@@ -51,7 +51,7 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // See note on gb_t in src/types.h why we start at position 1 here.
   for (i=1; i<idx; ++i) {
     ps->pairs[ps->load+i-1] = generate_spair(idx, i, basis, ht);
-#if SPAIRS_DEBUG
+#if SPAIR_DEBUG
     printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-1]->deg);
 #endif
   }
@@ -84,7 +84,7 @@ void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
         ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
         monomial_division(ps->pairs[i]->lcm, hash, ht)) {
       ps->pairs[i]->crit  = CHAIN_CRIT;
-#if SPAIRS_DEBUG
+#if SPAIR_DEBUG
       printf("CC for (%u,%u)\n",pos1+1, pos2+1);
 #endif
     }
@@ -102,7 +102,7 @@ void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
         continue;
       if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
         ps->pairs[j]->crit  = CHAIN_CRIT;
-#if SPAIRS_DEBUG
+#if SPAIR_DEBUG
         printf("2CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
 #endif
       }
@@ -115,7 +115,7 @@ void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
       for (j=ps->load; j<cur_len; ++j) {
         if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
           ps->pairs[j]->crit  = CHAIN_CRIT;
-#if SPAIRS_DEBUG
+#if SPAIR_DEBUG
           printf("3CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
 #endif
         }
@@ -125,7 +125,7 @@ void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
         for (j=i-1; j>=(int)ps->load; --j) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
             ps->pairs[i]->crit  = CHAIN_CRIT;
-#if SPAIRS_DEBUG
+#if SPAIR_DEBUG
             printf("4CC for (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
 #endif
             break;
@@ -145,7 +145,7 @@ inline nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx)
   nremoved  = 0;
   for (i=0; i<cur_len; ++i) {
     if (ps->pairs[i]->crit != NO_CRIT) {
-#if SPAIRS_DEBUG
+#if SPAIR_DEBUG
       printf("REMOVED (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
 #endif
       nremoved++;
@@ -194,7 +194,7 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
 {
   spair_t *spa  = *((spair_t **)a);
   spair_t *spb  = *((spair_t **)b);
-#if SPAIRS_DEBUG
+#if SPAIR_DEBUG
   printf("%p | %p\n", spa, spb);
   printf("nvars %u\n",ht->nvars);
   printf("%u | %u\n",spa->lcm, spb->lcm);

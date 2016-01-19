@@ -14,13 +14,13 @@
  */
 
 /**
- * \file spairs.h
+ * \file spair.h
  * \brief Implementation of handling of pair sets.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
-#ifndef GB_SPAIRS_H
-#define GB_SPAIRS_H
+#ifndef GB_SPAIR_H
+#define GB_SPAIR_H
 
 #include "gb_config.h"
 #include <stdlib.h>
@@ -35,7 +35,7 @@
 #define META_DATA_DEBUG 0
 #endif
 
-#define SPAIRS_DEBUG  0
+#define SPAIR_DEBUG  0
 
 /**
  * \brief Initialize pair set

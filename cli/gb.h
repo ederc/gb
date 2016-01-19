@@ -30,8 +30,8 @@
 #include <unistd.h>
 #include <limits.h>
 #include "io.h"
-#include <src/basis.h>
-#include <src/spairs.h>
+#include <src/poly.h>
+#include <src/spair.h>
 #include <src/symbol.h>
 #include <src/matrix.h>
 

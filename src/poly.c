@@ -14,12 +14,12 @@
  */
 
 /**
- * \file basis.h
- * \brief Implementation of handling of groebner basis.
+ * \file poly.h
+ * \brief Implementation of handling of polynomials and groebner bases.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
-#include "basis.h"
+#include "poly.h"
 
 inline void free_basis(gb_t *basis)
 {
@@ -42,3 +42,4 @@ inline void free_basis(gb_t *basis)
   free(basis);
   basis = NULL;
 }
+

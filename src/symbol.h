@@ -30,7 +30,7 @@
 #include <omp.h>
 #include "types.h"
 #include "hash.h"
-#include "spairs.h"
+#include "spair.h"
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0

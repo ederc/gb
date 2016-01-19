@@ -40,4 +40,34 @@
  * \param groebner basis basis
  */
 void free_basis(gb_t *basis);
+
+/**
+ * \brief Enlarges groebner basis to given new size.
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param new size size
+ */
+void enlarge_basis(gb_t *basis, nelts_t size);
+
+/**
+ * \brief Adds new element from reduced D part of gbla matrix to basis.
+ *
+ * \note Also enlarges basis if needed.
+ *
+ * \note Symbolic preprocessing data is needed to convert a matrix row back to a
+ * polynomial with hashed exponents.
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param reduced gbla matrix mat
+ *
+ * \param row index in reduced D part ri
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \param hash table ht
+ */
+void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
+    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
 #endif

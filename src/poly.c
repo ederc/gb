@@ -43,3 +43,46 @@ inline void free_basis(gb_t *basis)
   basis = NULL;
 }
 
+void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
+    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  nelts_t i;
+
+  if (basis->load == basis->size)
+    enlarge_basis(basis, 2*basis->size);
+
+  // maximal size is DR->ncols - row's piv lead
+  nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
+  // use shorter names in here
+  basis->cf[basis->load]  = (coeff_t *)malloc(ms * sizeof(coeff_t)); 
+  basis->eh[basis->load]  = (hash_t *)malloc(ms * sizeof(hash_t)); 
+  coeff_t *cf = basis->cf[basis->load];
+  hash_t *eh  = basis->eh[basis->load];
+  
+  nelts_t ctr = 0;
+  deg_t deg   = 0;
+  for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
+    if (mat->DR->row[ri]->piv_val[i] != 0) {
+      cf[ctr] = mat->DR->row[ri]->piv_val[i];
+      eh[ctr] = spd->col->hpos[i];
+      deg = ht->deg[eh[ctr]] > deg ? ht->deg[eh[ctr]] : deg; 
+      ctr++;
+    }
+  }
+  basis->nt[basis->load]  = ctr;
+  basis->deg[basis->load] = deg;
+
+  // realloc memory to the correct number of terms
+  cf  = realloc(cf, basis->nt[basis->load] * sizeof(coeff_t)); 
+  eh  = realloc(eh, basis->nt[basis->load] * sizeof(hash_t)); 
+  basis->load++;
+}
+
+void enlarge_basis(gb_t *basis, const nelts_t size)
+{
+  basis->size = size;
+  basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
+  basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
+  basis->cf   = realloc(basis->cf, basis->size * sizeof(coeff_t *));
+  basis->eh   = realloc(basis->eh, basis->size * sizeof(hash_t *));
+}

@@ -195,6 +195,8 @@ int main(int argc, char *argv[])
   }
 
 
+  nelts_t i;
+
   // run while there exist spairs to be handled
   while (ps->load > 0)
   {
@@ -262,6 +264,11 @@ int main(int argc, char *argv[])
       write_reduced_matrix_to_pbm(mat, pbm_fn);
     }
 
+    // add new elements to basis and update pair set
+    for (i=0; i<rankDR; ++i) {
+      add_new_element_to_basis_grevlex(basis, mat, i, spd, ht);
+      update_pair_set(ps, basis, basis->load-1);
+    }
     free_gbla_matrix(mat);
     free_symbolic_preprocessing_data(spd);
     clear_hash_table_idx(ht);

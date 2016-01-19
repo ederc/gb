@@ -362,6 +362,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
 
 
   // get all remaining lines, i.e. generators
+  coeff_t iv = 0; //inverse value of lead coeff in order to normalize input
   for (i=1; i<basis->load; ++i) {
     if (fgets(line, max_line_size, fh) != NULL) {
       // get number of terms first
@@ -378,14 +379,34 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       prev_pos  = line;
       max_deg   = 0;
       // next: go through line, term by term
-      for (j=0; j<nterms; ++j) {
-        //memset(exp, 0, basis->nvars * sizeof(exp_t));
+      // we do first term differently since we normalize polynomial with lead
+      // coefficient
+      deg = 0;
+      get_term(line, &prev_pos, &term);
+      // get coefficient first
+      if (term != NULL) {
+        iv = (coeff_t)atoi(term);
+        inverse_coefficient(&iv, basis->modulus);
+        basis->cf[i][0] = 1;
+      }
+      // now loop over variables of term
+      for (k=0; k<basis->nvars; ++k) {
+        ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
+      }
+      // hash exponent and store degree
+      basis->eh[i][0] = check_in_hash_table(ht);
+      max_deg = max_deg > deg ? max_deg : deg;
+#if IO_DEBUG
+      printf("eh[%u][%u] = %u --> %lu\n",i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
+#endif
+      for (j=1; j<nterms; ++j) {
         deg = 0;
         get_term(line, &prev_pos, &term);
         // get coefficient first
-        if (term != NULL)
+        if (term != NULL) {
           basis->cf[i][j] = (coeff_t)atoi(term);
-
+          basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->modulus);
+        }
         // now loop over variables of term
         for (k=0; k<basis->nvars; ++k) {
           ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
@@ -562,4 +583,39 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
       }
     }
   }
+}
+
+void inverse_coefficient(coeff_t *x, const coeff_t modulus) {
+  assert(*x);
+  if ( *x == 1 ) return ;
+  assert((int32_t)modulus > 0);
+  int32_t u1 = 1, u2 = 0;
+  int32_t v1 = 0, v3 = (int32_t)modulus;
+  int32_t u3 = (int32_t)*x, v2 = 1;
+  while (v3 != 0) {
+    int32_t q  = u3 / v3;
+    int32_t t1 = u1 - v1 * q;
+    u1  = v1; v1  = t1;
+
+    int32_t t3 = u3 - v3 * q;
+    u3  = v3; v3  = t3;
+
+    int32_t t2 = u2 - v2 * q;
+    u2  = v2; v2  = t2;
+  }
+  if (u1 < 0) {
+    u1  +=  modulus;
+    /* check_inverse(*x,u1,modulus); */
+    *x  =   (re_t)u1;
+    return;
+  }
+  if (u1 > (int32_t)modulus) {
+    u1  -=  modulus;
+    /* check_inverse(*x,u1,modulus); */
+    *x  =   (re_t) u1;
+    return;
+  }
+  /* check_inverse(*x,u1,modulus); */
+  *x  = (re_t)u1;
+  return;
 }

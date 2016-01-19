@@ -66,6 +66,8 @@ nvars_t get_nvars(const char *fn);
  * each power of a variable there is "^" (whereas you can write "x1" instead of
  * "x1^1").
  *
+ * \note The input polynomials are directly normalized when read in.
+ *
  * \param file name fn
  *
  * \param number of variables nvars
@@ -248,4 +250,14 @@ static inline info_t *init_meta_data()
 
   return meta_data;
 }
+
+/**
+ * \brief Inverts coefficient x w.r.t. to modulus. Stores the inverted value in
+ * x in place.
+ *
+ * \param pointer to coefficient x
+ *
+ * \param modulus w.r.t. which the inverse is computed modulus
+ */
+void inverse_coefficient(coeff_t *x, const coeff_t modulus);
 #endif

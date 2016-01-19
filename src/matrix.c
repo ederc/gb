@@ -52,6 +52,37 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
   return mat;
 }
 
+void free_gbla_matrix(mat_t *mat)
+{
+  nelts_t i, j;
+
+  // A, C and D are already freed, just check again
+  
+  // B is dense block matrix
+  for (i=0; i<mat->rbu; ++i) {
+    for (j=0; j<mat->cbr; ++j) {
+      if (mat->B->blocks[i][j].val != NULL)
+        free(mat->B->blocks[i][j].val);
+    }
+    free(mat->B->blocks[i]);
+  }
+  free(mat->B->blocks);
+  free(mat->B);
+
+  // DR is a dense row matrix
+  for (i=0; i<mat->DR->nrows; ++i) {
+    free(mat->DR->row[i]->piv_val);
+    free(mat->DR->row[i]->init_val);
+    free(mat->DR->row[i]->val);
+  }
+  free(mat->DR->row);
+  free(mat->DR);
+  mat->DR = NULL;
+
+  free(mat);
+  mat = NULL;
+}
+
 inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
 {
   nelts_t i;

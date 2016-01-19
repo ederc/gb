@@ -54,6 +54,13 @@
 mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis);
 
 /**
+ * \brief Frees gbla matrix after reduction.
+ *
+ * \param gbla matrix mat
+ */
+void free_gbla_matrix(mat_t *mat);
+
+/**
  * \brief Initializes a dense block row for buffering values when converting a
  * polynomial to a row in the gbla matrix.
  *

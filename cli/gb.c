@@ -262,6 +262,7 @@ int main(int argc, char *argv[])
       write_reduced_matrix_to_pbm(mat, pbm_fn);
     }
 
+    free_gbla_matrix(mat);
     free_symbolic_preprocessing_data(spd);
     clear_hash_table_idx(ht);
     if (verbose > 1)

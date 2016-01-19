@@ -34,6 +34,10 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
 
   mat->mod  = basis->modulus;
   mat->bs   = __GBLA_SIMD_BLOCK_SIZE;
+  mat->ncl  = spd->col->nlm;
+  mat->ncr  = spd->col->load - spd->col->nlm;
+  mat->nru  = spd->selu->load;
+  mat->nrl  = spd->sell->load;
   mat->rbu  = get_number_of_row_blocks(spd->selu, mat->bs);
   mat->rbl  = get_number_of_row_blocks(spd->sell, mat->bs);
   mat->cbl  = get_number_of_left_column_blocks(spd->col, mat->bs);

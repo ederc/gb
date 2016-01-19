@@ -179,6 +179,61 @@ void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
     const bi_t bs);
 
 /**
+ * \brief Writes reduced gbla matrix to pbm file for printing.
+ *
+ * \param matrix mat
+ *
+ * \param file name fn
+ */
+void write_reduced_matrix_to_pbm(mat_t *mat, const char *fn);
+
+/**
+ * \brief Writes one row from the upper AB part of the reduced gbla matrix.
+ * 
+ * \note A is the identity.
+ *
+ * \param row buffer buffer
+ *
+ * \param row index idx
+ *
+ * \param sparse block matrix A
+ *
+ * \param dense block matrix B
+ *
+ * \param number of column blocks for A (i.e. lefthand side) cbl
+ *
+ * \param number of column blocks for B (i.e. righthand side) cbr
+ *
+ * \param block size bs
+ */
+void write_upper_part_row_to_buffer(char *buffer, const nelts_t idx,
+    const mat_t *mat);
+
+/**
+ * \brief Writes one row from the lower CD part of the reduced gbla matrix.
+ * 
+ * \note C is zero.
+ *
+ * \note D is not a dense block matrix, but only a dense row matrix.
+ *
+ * \param row buffer buffer
+ *
+ * \param row index idx
+ *
+ * \param sparse block matrix C
+ *
+ * \param dense row matrix D
+ *
+ * \param number of column blocks for C (i.e. lefthand side) cbl
+ *
+ * \param number of column blocks for D (i.e. righthand side) cbr
+ *
+ * \param block size bs
+ */
+void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
+    const mat_t *mat);
+
+/**
  * \brief Initializes meta data information
  */
 static inline info_t *init_meta_data()

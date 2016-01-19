@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
     // generate pbm files of gbla matrix
     if (pbm) {
       snprintf(pbm_fn, 300, "%s-mat%u-red.pbm", fn, steps);
-      write_matrix_to_pbm(mat, pbm_fn);
+      write_reduced_matrix_to_pbm(mat, pbm_fn);
     }
 
     free_symbolic_preprocessing_data(spd);

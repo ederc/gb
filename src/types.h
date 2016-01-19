@@ -289,6 +289,10 @@ typedef struct mat_t
   dm_t *DR;     /*!<  reduced D in dense row matrix format */
   coeff_t mod;  /*!<  modulo/field characteristic */
   bi_t bs;      /*!<  block size given by gbla */
+  ci_t ncl;     /*!<  number of columns lefthand side, i.e. cols of A resp. C */
+  ci_t ncr;     /*!<  number of columns righthand side, i.e. cols of B resp. D */
+  ri_t nru;     /*!<  number of rows upper par, i.e. rows of A resp. B*/
+  ri_t nrl;     /*!<  number of rows lower par, i.e. rows of C resp. D*/
   ri_t rbu;     /*!<  number of row blocks for upper part of gbla matrix */
   ri_t rbl;     /*!<  number of row blocks for lower part of gbla matrix */
   ci_t cbl;     /*!<  number of column blocks for left part of gbla matrix */

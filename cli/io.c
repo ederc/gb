@@ -407,11 +407,45 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   return basis;
 }
 
+void write_reduced_matrix_to_pbm(mat_t *mat, const char *fn)
+{
+  ri_t i;
+	ri_t m        = mat->nru + mat->nrl;
+	ci_t n        = mat->ncl + mat->ncr;
+  ri_t min      = n > 512 ? n : 512;
+	char *buffer  = malloc(min * sizeof(char));
+
+	FILE *fh  = fopen(fn, "wb");
+
+	/*  magic PBM header */
+#ifdef __LP64__ /*  64bit machine */
+	sprintf(buffer, "P1\n# matrix size(%u, %u)\n%u %u\n", m, n, n, m);
+#else /*  32bit machine */
+	sprintf(buffer, "P1\n# matrix size(%u, %u)\n%u %u\n", m, n, n, m);
+#endif
+
+	fwrite(buffer, sizeof(char), strlen(buffer), fh);
+  
+  // write top block AB
+  for (i=0; i<mat->nru; ++i) {
+    write_upper_part_row_to_buffer(buffer, i, mat);
+	  fwrite(buffer, sizeof(char), strlen(buffer), fh);
+    fflush(fh);
+  }
+  // write bottom block CD
+  for (i=0; i<mat->nrl; ++i) {
+    write_lower_part_row_to_buffer(buffer, i, mat);
+	  fwrite(buffer, sizeof(char), strlen(buffer), fh);
+    fflush(fh);
+  }
+  fclose(fh);
+}
+
 void write_matrix_to_pbm(mat_t *mat, const char *fn)
 {
   ri_t i;
-	ri_t m        = mat->A->nrows + mat->C->nrows;
-	ci_t n        = mat->A->ncols + mat->B->ncols;
+	ri_t m        = mat->nru + mat->nrl;
+	ci_t n        = mat->ncl + mat->ncr;
   ri_t min      = n > 512 ? n : 512;
 	char *buffer  = malloc(min * sizeof(char));
 
@@ -427,14 +461,14 @@ void write_matrix_to_pbm(mat_t *mat, const char *fn)
 	fwrite(buffer, sizeof(char), strlen(buffer), fh);
 
   // write top block AB
-  for (i=0; i<mat->A->nrows; ++i) {
+  for (i=0; i<mat->nru; ++i) {
     write_sparse_dense_block_row_to_buffer(buffer, i, mat->A, mat->B, mat->cbl,
         mat->cbr, mat->bs);
 	  fwrite(buffer, sizeof(char), strlen(buffer), fh);
     fflush(fh);
   }
   // write bottom block CD
-  for (i=0; i<mat->C->nrows; ++i) {
+  for (i=0; i<mat->nrl; ++i) {
     write_sparse_dense_block_row_to_buffer(buffer, i, mat->C, mat->D, mat->cbl,
         mat->cbr, mat->bs);
 	  fwrite(buffer, sizeof(char), strlen(buffer), fh);
@@ -465,11 +499,65 @@ void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
       }
     }
   }
+  // row in B, righthand side
   for (i=0; i<cbr; ++i) {
     if (B->blocks[rbi][i].val != NULL) {
       for (j=0; j<bs; ++j) {
         if (B->blocks[rbi][i].val[rib*bs + j] != 0) {
           buffer[A->ncols + i*bs + j]  = '1';
+        }
+      }
+    }
+  }
+}
+
+void write_upper_part_row_to_buffer(char *buffer, const nelts_t idx,
+    const mat_t *mat)
+{
+  nelts_t i, j;
+
+  nelts_t nc  = mat->ncl + mat->ncr;
+
+  memset(buffer, '0', nc);
+  buffer[nc]  = '\n';
+  
+  ri_t rbi = idx / mat->bs;
+  ri_t rib = idx % mat->bs;
+
+  // row in A, lefthand side
+  // has only 1 at diagonal
+  buffer[idx] = '1';
+  // row in B, righthand side
+  for (i=0; i<mat->cbr; ++i) {
+    if (mat->B->blocks[rbi][i].val != NULL) {
+      for (j=0; j<mat->bs; ++j) {
+        if (mat->B->blocks[rbi][i].val[rib*mat->bs + j] != 0) {
+          buffer[mat->ncl + i*mat->bs + j]  = '1';
+        }
+      }
+    }
+  }
+}
+
+void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
+    const mat_t *mat)
+{
+  nelts_t i;
+
+  nelts_t nc  = mat->ncl + mat->ncr;
+
+  memset(buffer, '0', nc);
+  buffer[nc]  = '\n';
+  
+  // row in C, lefthand side is zero!
+
+  // row in B, righthand side.
+  // if idx > D->rank just keep buffer ={0}
+  if (idx < mat->DR->rank) {
+    if (mat->DR->row[idx]->piv_val != NULL) {
+      for (i=0; i<mat->ncr; ++i) {
+        if (mat->DR->row[idx]->piv_val[i] != 0) {
+          buffer[mat->ncl + i] ='1';
         }
       }
     }

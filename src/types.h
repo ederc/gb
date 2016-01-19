@@ -171,8 +171,8 @@ typedef struct gb_t
   // global data
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in basis*/
-  nvars_t nvars;    /*!<  number of variables */
-  coeff_t modulus;  /*!<  modulo/field characteristic */
+  nvars_t nv;       /*!<  number of variables */
+  coeff_t mod;      /*!<  modulo/field characteristic */
   // element data
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
@@ -310,7 +310,7 @@ typedef struct mat_t
 typedef struct mp_cf4_ht_t
 {
   // size and load counters
-  ht_size_t nvars;  /*!<  number of variables*/
+  ht_size_t nv;     /*!<  number of variables*/
   ht_size_t size;   /*!<  size of hash table*/
   ht_size_t load;   /*!<  load of hash table*/
   // data and arrays for storage

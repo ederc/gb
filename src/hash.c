@@ -57,7 +57,7 @@ inline void set_random_seed(mp_cf4_ht_t *hash_table)
   hash_t i;
 
   // use random_seed, no zero values are allowed
-  for (i=0; i<hash_table->nvars; ++i) {
+  for (i=0; i<hash_table->nv; ++i) {
     pseudo_random_generator();
     hash_table->rand[i] = random_seed | 1;
   }
@@ -71,7 +71,7 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   mp_cf4_ht_t *ht = (mp_cf4_ht_t *)malloc(sizeof(mp_cf4_ht_t));
   
   // global table data
-  ht->nvars = number_variables;
+  ht->nv = number_variables;
   ht->size  = hash_table_size;
   // for easier divisibility checks we start at index 1. If the divisibility
   // check routines return 0, there is no division.
@@ -82,12 +82,12 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   ht->deg   = (deg_t *)calloc(ht->size, sizeof(deg_t));
   ht->div   = (nelts_t *)calloc(ht->size, sizeof(nelts_t));
   ht->idx   = (hash_t *)calloc(ht->size, sizeof(hash_t));
-  ht->rand  = (hash_t *)malloc(ht->nvars * sizeof(hash_t));
+  ht->rand  = (hash_t *)malloc(ht->nv * sizeof(hash_t));
   // use random_seed, no zero values are allowed
   set_random_seed(ht);
   // get memory for each exponent
   for (i=0; i<ht->size; ++i) {
-    ht->exp[i]  = (exp_t *)malloc(ht->nvars * sizeof(exp_t));
+    ht->exp[i]  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
   }
 
   return ht;
@@ -119,7 +119,7 @@ inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)
   hash_t i;
   hash_t hash = 0;
 
-  for (i=0; i<ht->nvars; ++i)
+  for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * (hash_t)exp[i];
 
   return hash;
@@ -137,11 +137,11 @@ inline hash_t insert_with_quadratic_probing(const exp_t *exp,
       break;
     if (ht->val[ht->lut[tmp]] != hash)
       continue;
-    for (j=0; j<ht->nvars; ++j) {
+    for (j=0; j<ht->nv; ++j) {
       if (ht->exp[ht->lut[tmp]][j] != exp[j])
         break;
     }
-    if (j == ht->nvars)
+    if (j == ht->nv)
       return ht->lut[tmp];
   }
   return ht->lut[tmp];
@@ -168,7 +168,7 @@ inline hash_t insert_in_hash_table(const hash_t hash,
   // the new exponent is already stored in ht->exp[ht->load]
   // deg is possibly not zero due to some earlier check in the hash table
   ht->deg[ht->load] = 0;
-  for (i=0; i<ht->nvars; ++i)
+  for (i=0; i<ht->nv; ++i)
     ht->deg[ht->load] +=  ht->exp[ht->load][i];
   // ht->div and ht->idx are already initialized with 0, so nothing to do there
   ht->val[ht->load] = hash;
@@ -190,7 +190,7 @@ inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_
 
   hash_t last_pos = ht->load;
 
-  for (i=0; i<ht->nvars; ++i)
+  for (i=0; i<ht->nv; ++i)
     ht->exp[last_pos][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
 
   // ht->div and ht->idx are already initialized with 0, so nothing to do there
@@ -217,7 +217,7 @@ inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   hash_t tmp_l;         // temporary lookup table value
 
 #if HASH_DEBUG
-  for (i=0; i<ht->nvars; ++i)
+  for (i=0; i<ht->nv; ++i)
     printf("%u ",exp[i]);
   printf("\nhash = %u\n",hash);
 #endif
@@ -229,10 +229,10 @@ inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
       break;
     if (ht->val[tmp_l] != hash)
       continue;
-    for (j=0; j<ht->nvars; ++j)
+    for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
         break;
-    if (j == ht->nvars)
+    if (j == ht->nv)
       return tmp_l;
   }
   
@@ -258,10 +258,10 @@ inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2
       break;
     if (ht->val[tmp_l] != hash)
       continue;
-    for (j=0; j<ht->nvars; ++j)
+    for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
         break;
-    if (j == ht->nvars)
+    if (j == ht->nv)
       return tmp_l;
   }
   
@@ -287,10 +287,10 @@ inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
       break;
     if (ht->val[tmp_l] != hash)
       continue;
-    for (j=0; j<ht->nvars; ++j)
+    for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
         break;
-    if (j == ht->nvars)
+    if (j == ht->nv)
       return tmp_l;
   }
   return 0;
@@ -307,7 +307,7 @@ inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)
   hash_table->div   = realloc(hash_table->div, new_size);
   hash_table->exp   = realloc(hash_table->exp, new_size);
   for (i=hash_table->size; i<new_size; ++i) {
-    hash_table->exp[i]  = (exp_t *)calloc(hash_table->nvars, sizeof(exp_t));
+    hash_table->exp[i]  = (exp_t *)calloc(hash_table->nv, sizeof(exp_t));
   }
   hash_table->size  = new_size;
   // re-insert all elements in block
@@ -330,7 +330,7 @@ inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   e1  = ht->exp[h1];
   e2  = ht->exp[h2];
 
-  for (i=0; i<ht->nvars; ++i) {
+  for (i=0; i<ht->nv; ++i) {
     lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
   }
   return check_in_hash_table(ht);
@@ -345,7 +345,7 @@ inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   e1  = ht->exp[h1];
   e2  = ht->exp[h2];
 
-  for (i=0; i<ht->nvars; ++i) {
+  for (i=0; i<ht->nv; ++i) {
     if (e1[i] < e2[i])
       return 0;
     e[i]  = e1[i] - e2[i];
@@ -363,7 +363,7 @@ inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   e2  = ht->exp[h2];
 
   // we know that exp e2 divides exp e1, so no check for e1[i] < e2[i]
-  for (i=0; i<ht->nvars; ++i)
+  for (i=0; i<ht->nv; ++i)
     e[i]  = e1[i] - e2[i];
   return check_in_hash_table(ht);
 }

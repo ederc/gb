@@ -313,18 +313,18 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   char *line  = (char *)malloc(max_line_size * sizeof(char));
 
   // we already know the number of variables
-  basis->nvars  = nvars;
+  basis->nv  = nvars;
 
   char *tmp;
   // allocate memory for storing variable names
-  basis->vnames = (char **)malloc(basis->nvars * sizeof(char *));
+  basis->vnames = (char **)malloc(basis->nv * sizeof(char *));
   if (fgets(line, max_line_size, fh) != NULL) {
     tmp = line;
-    for (i=0; i<basis->nvars; ++i) {
+    for (i=0; i<basis->nv; ++i) {
       basis->vnames[i]  = get_variable_name(line, &tmp);
     }
 #if IO_DEBUG
-    for (i=0; i<basis->nvars; ++i) {
+    for (i=0; i<basis->nv; ++i) {
       printf(basis->vnames[i]);
     }
 #endif
@@ -336,7 +336,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   if (fgets(line, max_line_size, fh) != NULL) {
     int64_t tmp_mod = atol(line);
     if (tmp_mod > 0) {
-      basis->modulus  = (mod_t)tmp_mod;
+      basis->mod  = (mod_t)tmp_mod;
     } else {
       printf("Bad file format.\n");
       return NULL;
@@ -349,7 +349,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));
   int nterms;
-  //exp_t *exp  = (exp_t *)malloc(basis->nvars * sizeof(exp_t));
+  //exp_t *exp  = (exp_t *)malloc(basis->nv * sizeof(exp_t));
   deg_t deg, max_deg;
 
   // NOTE: For easier divisibility checks in symbolic preprocessing we put at
@@ -386,11 +386,11 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       // get coefficient first
       if (term != NULL) {
         iv = (coeff_t)atoi(term);
-        inverse_coefficient(&iv, basis->modulus);
+        inverse_coefficient(&iv, basis->mod);
         basis->cf[i][0] = 1;
       }
       // now loop over variables of term
-      for (k=0; k<basis->nvars; ++k) {
+      for (k=0; k<basis->nv; ++k) {
         ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
       }
       // hash exponent and store degree
@@ -405,10 +405,10 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         // get coefficient first
         if (term != NULL) {
           basis->cf[i][j] = (coeff_t)atoi(term);
-          basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->modulus);
+          basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
         }
         // now loop over variables of term
-        for (k=0; k<basis->nvars; ++k) {
+        for (k=0; k<basis->nv; ++k) {
           ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
         }
         // hash exponent and store degree

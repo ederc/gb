@@ -152,8 +152,11 @@ int main(int argc, char *argv[])
   nvars_t nvars = get_nvars(fn);
   // initialize hash table
   ht = init_hash_table(ht_size, nvars);
-  // basis stores input data
-  gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
+  // input stores input data
+  gb_t *input = load_input(fn, nvars, ht, verbose, nthreads);
+
+  // initialize basis
+  gb_t *basis = initialize_basis
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
@@ -170,7 +173,7 @@ int main(int argc, char *argv[])
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
     printf("field characteristic        %15d\n", basis->modulus);
-    printf("number of variables         %15d\n", basis->nvars);
+    printf("number of variables         %15d\n", basis->nv);
     // See note on gb_t in src/types.h why we decrement basis->load here.
     printf("number of generators        %15d\n", basis->load-1);
     printf("input file size             %18.2f %s\n", basis->fs, basis->fsu);

@@ -136,7 +136,7 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell,
       mon->hpos[mon->load]  = sp->lcm;
 #if SYMBOL_DEBUG
       printf("hpos[%u] = %u\n", mon->load, mon->hpos[mon->load]);
-      for (int ii=0; ii<ht->nvars; ++ii)
+      for (int ii=0; ii<ht->nv; ++ii)
         printf("%u ", ht->exp[sp->lcm][ii]);
       printf("\n");
 #endif
@@ -176,13 +176,13 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
     ht->idx[pos]++;
     mon->hpos[mon->load]  = pos;
 #if SYMBOL_DEBUG
-    for (int i=0; i<ht->nvars; ++i)
+    for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[h1][i]);
     printf("\n");
-    for (int i=0; i<ht->nvars; ++i)
+    for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[h2][i]);
     printf("\n");
-    for (int i=0; i<ht->nvars; ++i)
+    for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
     printf("new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
@@ -258,7 +258,7 @@ inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   // Note that this loop only works since we assume that h1 =/= h2.
   // Otherwise i might get to zero and decremented again, which
   // means that we would get into an infinite loop as nvars_t is unsigned.
-  for (i=ht->nvars-1; i>=0; --i) {
+  for (i=ht->nv-1; i>=0; --i) {
     if (expa[i] < expb[i]) {
       return -1;
     } else {

@@ -32,7 +32,7 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
   mat->D  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
   mat->DR = NULL;
 
-  mat->mod  = basis->modulus;
+  mat->mod  = basis->mod;
   mat->bs   = __GBLA_SIMD_BLOCK_SIZE;
   mat->ncl  = spd->col->nlm;
   mat->ncr  = spd->col->load - spd->col->nlm;
@@ -160,7 +160,7 @@ void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
 
     store_in_buffer(dbr, pi, mul, fr, bs, basis, ht);
 
-    store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->modulus);
+    store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->mod);
   }
   free_dense_block_row(dbr, ncb);
 }

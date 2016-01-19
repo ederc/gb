@@ -196,7 +196,7 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
   spair_t *spb  = *((spair_t **)b);
 #if SPAIR_DEBUG
   printf("%p | %p\n", spa, spb);
-  printf("nvars %u\n",ht->nvars);
+  printf("nvars %u\n",ht->nv);
   printf("%u | %u\n",spa->lcm, spb->lcm);
   printf("%u | %u\n",spa->deg, spb->deg);
 #endif
@@ -215,7 +215,7 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
     // Note that this loop only works since we assume that spa->lcm =/=
     // spb->lcm. Otherwise i might get to zero and decremented again, which
     // means that we would get into an infinite loop as nvars_t is unsigned.
-    for (i=ht->nvars-1; i>=0; --i) {
+    for (i=ht->nv-1; i>=0; --i) {
       if (expa[i] < expb[i]) {
         return 1;
       } else {

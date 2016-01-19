@@ -20,12 +20,28 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 #include "poly.h"
+/*
+gb_t *initialize_basis(const nelts_t size)
+{
+  gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
 
+  basis->size   = size;
+  basis->load   = 0;
+  basis->nv  = nvars;
+  basis->mod    = modulus;
+  basis->nt     = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
+  basis->deg    = (deg_t *)malloc(basis->size * sizeof(deg_t));
+  basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
+  basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
+
+  return basis;
+}
+*/
 inline void free_basis(gb_t *basis)
 {
   if (basis) {
     nelts_t i;
-    for (i=0; i<basis->nvars; ++i) {
+    for (i=0; i<basis->nv; ++i) {
       free(basis->vnames[i]);
     }
     free(basis->vnames);

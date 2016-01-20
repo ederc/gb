@@ -35,6 +35,18 @@
 #endif
 
 /**
+ * \brief Initializes basis by taking meta data from input elements.
+ *
+ * \note Input elements are not directly added to the basis, they are added as
+ * spairs to the pair set and enter basis afterwards.
+ *
+ * \param input elements input
+ *
+ * \return intermediate groebner basis basis
+ */
+gb_t *initialize_basis(const gb_t *input);
+
+/**
  * \brief Frees dynamically allocated memory from groebner basis
  *
  * \param groebner basis basis

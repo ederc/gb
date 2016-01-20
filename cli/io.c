@@ -293,15 +293,16 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   fclose(fh);
 
   // #generators of the input system = nlines - 2 since the first line has the
-  // variable names and second line is the field modulus
-  basis->load = nlines-2;
+  // variable names and second line is the field modulus. Then we add 1 since we
+  // keep the element at position 0 NULL for faster divisibility checks
+  basis->load = nlines -2 +1;
 
 #if IO_DEBUG
   printf("bload = %u\n",basis->load);
 #endif
 
-  // now initialize the size of the basis 3 times as big as the input system
-  basis->size = 3 * basis->load;
+  // now initialize the size of the input system
+  basis->size = basis->load;
   basis->nt   = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
   basis->deg  = (deg_t *)malloc(basis->size * sizeof(deg_t));
   basis->cf   = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));

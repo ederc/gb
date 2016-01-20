@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
   gb_t *input = load_input(fn, nvars, ht, verbose, nthreads);
 
   // initialize basis
-  gb_t *basis = initialize_basis
+  gb_t *basis = initialize_basis(input);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
@@ -172,11 +172,11 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
-    printf("field characteristic        %15d\n", basis->modulus);
-    printf("number of variables         %15d\n", basis->nv);
+    printf("field characteristic        %15d\n", input->mod);
+    printf("number of variables         %15d\n", input->nv);
     // See note on gb_t in src/types.h why we decrement basis->load here.
-    printf("number of generators        %15d\n", basis->load-1);
-    printf("input file size             %18.2f %s\n", basis->fs, basis->fsu);
+    printf("number of generators        %15d\n", input->load-1);
+    printf("input file size             %18.2f %s\n", input->fs, input->fsu);
   }
 
   /*  track time for the complete reduction process (excluding load) */

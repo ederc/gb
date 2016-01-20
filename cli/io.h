@@ -56,7 +56,7 @@
 nvars_t get_nvars(const char *fn);
 
 /**
- * \brief Loads input file and intializes basis
+ * \brief Loads input file and intializes input data structure
  *
  * \note The input files need to have the following format at the moment:
  * First line: comma-separated list of variables, e.g. x1,x2,x3
@@ -78,7 +78,7 @@ nvars_t get_nvars(const char *fn);
  *
  * \param number of threads nthrds
  *
- * \return initial state of groebner basis
+ * \return initial state of input
  */
 gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht,
     int vb, int nthrds);

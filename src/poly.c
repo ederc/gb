@@ -20,23 +20,32 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 #include "poly.h"
-/*
-gb_t *initialize_basis(const nelts_t size)
+inline gb_t *initialize_basis(const gb_t *input)
 {
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
 
-  basis->size   = size;
+  // get meta data from input
+  basis->size   = 3 * input->size;
   basis->load   = 0;
-  basis->nv  = nvars;
-  basis->mod    = modulus;
+  basis->nv     = input->nv;
+  basis->mod    = input->mod;
+  basis->vnames = input->vnames;
+  
+  // allocate memory for elements
   basis->nt     = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
   basis->deg    = (deg_t *)malloc(basis->size * sizeof(deg_t));
   basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
 
+  // initialize element at position 0 to NULL for faster divisibility checks
+  // later on
+  basis->cf[0]  = NULL;
+  basis->eh[0]  = NULL;
+  basis->load++;
+
   return basis;
 }
-*/
+
 inline void free_basis(gb_t *basis)
 {
   if (basis) {
@@ -94,7 +103,7 @@ void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   basis->load++;
 }
 
-void enlarge_basis(gb_t *basis, const nelts_t size)
+inline void enlarge_basis(gb_t *basis, const nelts_t size)
 {
   basis->size = size;
   basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));

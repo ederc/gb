@@ -40,11 +40,25 @@
 /**
  * \brief Initialize pair set
  *
- * \param groebner basis gb
+ * \param input elements input
  *
  * \param hash table ht
  */
-ps_t *init_pair_set(const gb_t *basis, mp_cf4_ht_t *ht);
+ps_t *initialize_pair_set(const gb_t *input, mp_cf4_ht_t *ht);
+
+/**
+ * \brief Enters the input elements as sepcial spairs to the pair set:
+ * Their second generator is zero. Thus, when handling these pairs we
+ * automatically interreduce the input.
+ *
+ * \note We do not need to check for pair set enlargement since the number of
+ * added pairs here is fixed and smaller than the initially allocated size.
+ *
+ * \param pair set ps
+ *
+ * \param input elements input
+ */
+void enter_input_elements_to_pair_set(ps_t *ps, const gb_t *input);
 
 /**
  * \brief Enlarge pair set ps to size new_size
@@ -61,6 +75,20 @@ void enlarge_pair_set(ps_t *ps, const nelts_t new_size);
  * \param pair set ps
  */
 void free_pair_set(ps_t *ps);
+
+/**
+ * \brief Generates spair given by one input element. The second generator is 0.
+ *
+ * \param first generator gen1
+ *
+ * \param input elements input
+ *
+ * \param hash table ht
+ *
+ * \return generated spair
+ */
+spair_t *generate_input_element_spair(const nelts_t gen1, const gb_t *input,
+    mp_cf4_ht_t *ht);
 
 /**
  * \brief Generates spair given by gen1 and gen2

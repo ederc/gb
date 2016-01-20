@@ -20,25 +20,27 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 #include "spair.h"
-
-inline ps_t *init_pair_set(const gb_t *basis, mp_cf4_ht_t *ht)
+inline ps_t *initialize_pair_set(const gb_t *input, mp_cf4_ht_t *ht)
 {
-  nelts_t i;
-
   ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
-  ps->size  = 2 * basis->size;
+  ps->size  = 5 * input->size;
   ps->pairs = (spair_t **)malloc(ps->size * sizeof(spair_t *));
   ps->load  = 0;
 
-  // generate spairs with the initial elements in basis
-  // See note on gb_t in src/types.h why we start at position 2 here.
-  for (i=2; i<basis->load; ++i) {
-    update_pair_set(ps, basis, i);
-#if META_DATA_DEBUG
-    printf("criteria applied %u / %u\n", meta_data->ncrit_last, meta_data->ncrit_total);
-#endif
-  }
+  // enter input elements as special spairs
+  enter_input_elements_to_pair_set(ps, input);
+
   return ps;
+}
+
+void enter_input_elements_to_pair_set(ps_t *ps, const gb_t *input)
+{
+  nelts_t i;
+
+  for (i=1; i<input->load; ++i) {
+    ps->pairs[ps->load] = generate_input_element_spair(i, input, ht);
+    ps->load++;
+  }
 }
 
 inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
@@ -172,6 +174,18 @@ inline void free_pair_set(ps_t *ps)
   free(ps->pairs);
   free(ps);
   ps  = NULL;
+}
+
+inline spair_t *generate_input_element_spair(const nelts_t gen1, const gb_t *input, mp_cf4_ht_t *ht)
+{
+  spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
+  sp->gen1  = gen1;
+  sp->gen2  = 0;
+  sp->lcm   = input->eh[gen1][0];
+  sp->deg   = ht->deg[sp->lcm];
+  sp->crit  = NO_CRIT;
+
+  return sp;
 }
 
 inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)

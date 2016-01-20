@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
   if (verbose > 0)
     gettimeofday(&t_complete, NULL);
   // initialize spair set
-  ps_t *ps = init_pair_set(basis, ht);
+  ps_t *ps = initialize_pair_set(input, ht);
 
   if (verbose > 1) {
     printf("---------------------------------------------------------------------\n");

@@ -359,8 +359,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   // in the basis.
   basis->cf[0]  = NULL;
   basis->eh[0]  = NULL;
-  basis->load++;
-
 
   // get all remaining lines, i.e. generators
   coeff_t iv = 0; //inverse value of lead coeff in order to normalize input

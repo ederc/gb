@@ -89,7 +89,9 @@ void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
     if (mat->DR->row[ri]->piv_val[i] != 0) {
       cf[ctr] = mat->DR->row[ri]->piv_val[i];
-      eh[ctr] = spd->col->hpos[i];
+      // note that we have to adjust the position via shifting it by
+      // spd->col->nlm since DR is on the righthand side of the matrix
+      eh[ctr] = spd->col->hpos[spd->col->nlm+i];
       deg = ht->deg[eh[ctr]] > deg ? ht->deg[eh[ctr]] : deg; 
       ctr++;
     }

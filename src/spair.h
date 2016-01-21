@@ -143,22 +143,24 @@ void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx);
  *
  * \param pair set ps
  *
- * \param hash position of newly added basis element hash
+ * \param intermediate groebner basis basis
  *
  * \param index in basis of newly added basis element idx
  */
-void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx);
+void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx);
 
 /**
  * \brief Remove spairs detected by either product or chain criterion
  *
  * \param pair set ps
  *
+ * \param intermediate groebner basis basis
+ *
  * \param index of basis element the new pairs were generated with idx
  *
  * \return number of removed pairs
  */
-nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
+nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t idx);
 
 /**
  * \brief Selects pairs by lowest degree (normal selection strategy) and returns

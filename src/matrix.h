@@ -127,7 +127,7 @@ void allocate_densee_block(sb_fl_t *A, const nelts_t rbi, const nelts_t bir,
  *
  * \param number of rows nr
  *
- * \param first row for the righthand side in matrix fr
+ * \param last column on the lefthand side in matrix ll
  *
  * \param block size bs
  *
@@ -141,7 +141,7 @@ void allocate_densee_block(sb_fl_t *A, const nelts_t rbi, const nelts_t bir,
  * \param symbolic preprocessing monomials col
  */
 void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
-    const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
+    const nelts_t nr, const nelts_t ll, const bi_t bs, const nelts_t ncb,
     const gb_t *basis, const sel_t *sel, const pre_t *col);
 
 /**
@@ -162,7 +162,7 @@ void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
  *
  * \param hash position of multiplier mul
  *
- * \param first row for the righthand side in matrix fr
+ * \param last column on the lefthand side in matrix ll
  *
  * \param block size bs
  *
@@ -171,7 +171,7 @@ void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
  * \param hash table ht
  */
 void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
-    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht);
+    const nelts_t ll, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht);
 
 /**
  * \brief After we have stored the data from one polynomial in the dense buffer,
@@ -189,14 +189,14 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
  *
  * \param number of column blocks ncb
  *
- * \param first row for the righthand side in matrix fr
+ * \param last column on the lefthand side in matrix ll
  *
  * \param block size bs
  *
  * \param field characteristic mod
  */
 void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr, const nelts_t  rbi,
-    const nelts_t rib, const nelts_t ncb, const nelts_t fr, const bi_t bs,
+    const nelts_t rib, const nelts_t ncb, const nelts_t ll, const bi_t bs,
     const coeff_t mod);
 
 /**
@@ -309,4 +309,15 @@ mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd,
  * \return rank of D, negative value if failure happens
  */
 int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads);
+
+/**
+ * \brief Resets buffer to all entries zero once the a row is done.
+ *
+ * \param dense block row buffer dbr
+ *
+ * \param number of column blocks ncb
+ *
+ * \param block size bs
+ */
+void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs);
 #endif

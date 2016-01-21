@@ -153,10 +153,7 @@ int main(int argc, char *argv[])
   // initialize hash table
   ht = init_hash_table(ht_size, nvars);
   // input stores input data
-  gb_t *input = load_input(fn, nvars, ht, verbose, nthreads);
-
-  // initialize basis
-  gb_t *basis = initialize_basis(input);
+  gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
@@ -172,18 +169,18 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
-    printf("field characteristic        %15d\n", input->mod);
-    printf("number of variables         %15d\n", input->nv);
+    printf("field characteristic        %15d\n", basis->mod);
+    printf("number of variables         %15d\n", basis->nv);
     // See note on gb_t in src/types.h why we decrement basis->load here.
-    printf("number of generators        %15d\n", input->load-1);
-    printf("input file size             %18.2f %s\n", input->fs, input->fsu);
+    printf("number of generators        %15d\n", basis->load-1);
+    printf("basis file size             %18.2f %s\n", basis->fs, basis->fsu);
   }
 
   /*  track time for the complete reduction process (excluding load) */
   if (verbose > 0)
     gettimeofday(&t_complete, NULL);
   // initialize spair set
-  ps_t *ps = initialize_pair_set(input, ht);
+  ps_t *ps = initialize_pair_set(basis, ht);
 
   if (verbose > 1) {
     printf("---------------------------------------------------------------------\n");
@@ -210,6 +207,15 @@ int main(int argc, char *argv[])
     // select next bunch of spairs
     spd_t *spd  = symbolic_preprocessing(ps, basis);
 
+    if (verbose > 1) {
+      printf("---------------------------------------------------------------------\n");
+      printf("sel->deg                          %9u\n",spd->selu->deg);
+      printf("selu->load                        %9u\n",spd->selu->load);
+      printf("sell->load                        %9u\n",spd->sell->load);
+      printf("mon->load                         %9u\n",spd->col->load);
+      printf("mon->nlm                          %9u\n",spd->col->nlm);
+    }
+
     // next we have to store arrays for the connection between lead monomials
     // and matrix column indices resp. non-lead monomials and matrix column
     // indices. Note that we already know the sizes of the arrays due to
@@ -231,15 +237,6 @@ int main(int argc, char *argv[])
     // corresponds to sorting by columns (=rows as this is one-to-one for lead
     // monomials).
     sort_selection_by_column_index(spd, ht, nthreads);
-
-    if (verbose > 1) {
-      printf("---------------------------------------------------------------------\n");
-      printf("sel->deg                          %9u\n",spd->selu->deg);
-      printf("selu->load                        %9u\n",spd->selu->load);
-      printf("sell->load                        %9u\n",spd->sell->load);
-      printf("mon->load                         %9u\n",spd->col->load);
-      printf("mon->nlm                          %9u\n",spd->col->nlm);
-    }
 
     // generate gbla matrix out of data from symbolic preprocessing
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);

@@ -83,8 +83,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis);
  *
  * \param last index of pair selection in pair list idx
  */
-void select_pairs(ps_t *ps, sel_t *sel_upp, sel_t *sel_low,
-    pre_t *mon, const gb_t *basis, const nelts_t idx);
+void select_pairs(ps_t *ps, sel_t *sel_upp, sel_t *sel_low, pre_t *mon,
+    const gb_t *basis, const nelts_t idx);
 
 /**
  * \brief Enters the lower order monomials of the selected spair generators to
@@ -97,6 +97,16 @@ void select_pairs(ps_t *ps, sel_t *sel_upp, sel_t *sel_low,
  * \param preprocessing hash list mon
  */
 void enter_spairs_to_preprocessing_hash_list(const gb_t *basis, sel_t *sel, pre_t *mon);
+
+/**
+ * \brief Enters one monomial h1 to preprocessing hash list.
+ *
+ * \param monomial hash position h1
+ *
+ * \param preprocessing hash list mon
+ */
+void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_t h1,
+    pre_t *mon);
 
 /**
  * \brief Enters one monomial (h1*h2) to preprocessing hash list.

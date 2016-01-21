@@ -20,25 +20,25 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 #include "spair.h"
-inline ps_t *initialize_pair_set(const gb_t *input, mp_cf4_ht_t *ht)
+inline ps_t *initialize_pair_set(const gb_t *basis, mp_cf4_ht_t *ht)
 {
   ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
-  ps->size  = 5 * input->size;
+  ps->size  = 2 * basis->size;
   ps->pairs = (spair_t **)malloc(ps->size * sizeof(spair_t *));
   ps->load  = 0;
 
   // enter input elements as special spairs
-  enter_input_elements_to_pair_set(ps, input);
+  enter_input_elements_to_pair_set(ps, basis);
 
   return ps;
 }
 
-void enter_input_elements_to_pair_set(ps_t *ps, const gb_t *input)
+void enter_input_elements_to_pair_set(ps_t *ps, const gb_t *basis)
 {
   nelts_t i;
 
-  for (i=1; i<input->load; ++i) {
-    ps->pairs[ps->load] = generate_input_element_spair(i, input, ht);
+  for (i=1; i<basis->st; ++i) {
+    ps->pairs[ps->load] = generate_input_element_spair(i, basis, ht);
     ps->load++;
   }
 }
@@ -51,10 +51,10 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
     enlarge_pair_set(ps, 2*ps->size);
   // generate spairs with the initial elements in basis
   // See note on gb_t in src/types.h why we start at position 1 here.
-  for (i=1; i<idx; ++i) {
-    ps->pairs[ps->load+i-1] = generate_spair(idx, i, basis, ht);
+  for (i=basis->st; i<idx; ++i) {
+    ps->pairs[ps->load+i-basis->st] = generate_spair(idx, i, basis, ht);
 #if SPAIR_DEBUG
-    printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-1]->deg);
+    printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-basis->st]->deg);
 #endif
   }
   // we do not update ps->load at the moment in order to be able to distinguish
@@ -63,25 +63,30 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // check product and chain criterion in gebauer moeller style
   // note that we have already marked the pairs for which the product criterion
   // applies in generate_spair()
-  gebauer_moeller(ps, basis->eh[idx][0], idx);
+  gebauer_moeller(ps, basis, idx);
 
   // fix pair set and remove detected pairs
-  meta_data->ncrit_last   =   remove_detected_pairs(ps, idx);
+  meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, idx);
   meta_data->ncrit_total  +=  meta_data->ncrit_last;
 }
 
-void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
+void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
   nelts_t pos1, pos2;
-  nelts_t cur_len = ps->load + (idx - 1);
+  // current length can be computed already, need to adjust by the starting
+  // position in basis
+  const nelts_t cur_len = ps->load + idx - basis->st;
+  const hash_t hash     = basis->eh[idx][0];
   int i, j; // we need ints to cover cases where i=0 and j=i-1
 
+  //printf("idx %u | psl %u | cl %u\n", idx, ps->load, cur_len);
   // first step: remove elements already in ps due to chain criterion with new
   // pairs in new_pairs
   for (i=0; i<ps->load; ++i) {
     // See note on gb_t in src/types.h why we adjust position by -1.
-    pos1  = ps->pairs[i]->gen1 - 1;
-    pos2  = ps->pairs[i]->gen2 - 1;
+    pos1  = ps->pairs[i]->gen1 - basis->st;
+    pos2  = ps->pairs[i]->gen2 - basis->st;
+    //printf("gen1 %u | gen2 %u | pos1 %u | pos2 %u\n", ps->pairs[i]->gen1, ps->pairs[i]->gen2, pos1, pos2);
     if (ps->pairs[i]->lcm != ps->pairs[ps->load+pos1]->lcm &&
         ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
         monomial_division(ps->pairs[i]->lcm, hash, ht)) {
@@ -93,7 +98,7 @@ void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
   }
 
   // next: sort new pairs
-  qsort(ps->pairs+ps->load, idx-1, sizeof(spair_t **), cmp_spairs_grevlex);
+  qsort(ps->pairs+ps->load, idx-basis->st, sizeof(spair_t **), cmp_spairs_grevlex);
   
   // second step: remove new pairs by themselves w.r.t the chain criterion
   for (i=ps->load; i<cur_len; ++i) {
@@ -138,9 +143,11 @@ void gebauer_moeller(ps_t *ps, const hash_t hash, const nelts_t idx)
   }
 }
 
-inline nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx)
+inline nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
-  nelts_t cur_len = ps->load + (idx-1);
+  // current length can be computed already, need to adjust by the starting
+  // position in basis
+  const nelts_t cur_len = ps->load + idx - basis->st;
   nelts_t i, j, nremoved;
 
   j         = 0;
@@ -151,6 +158,7 @@ inline nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx)
       printf("REMOVED (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
 #endif
       nremoved++;
+      //printf("%p %u\n", ps->pairs[i], i);
       free(ps->pairs[i]);
       ps->pairs[i]  = NULL;
       continue;
@@ -176,12 +184,12 @@ inline void free_pair_set(ps_t *ps)
   ps  = NULL;
 }
 
-inline spair_t *generate_input_element_spair(const nelts_t gen1, const gb_t *input, mp_cf4_ht_t *ht)
+inline spair_t *generate_input_element_spair(const nelts_t gen1, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
   sp->gen1  = gen1;
   sp->gen2  = 0;
-  sp->lcm   = input->eh[gen1][0];
+  sp->lcm   = basis->eh[gen1][0];
   sp->deg   = ht->deg[sp->lcm];
   sp->crit  = NO_CRIT;
 

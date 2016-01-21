@@ -165,12 +165,16 @@ typedef struct info_t
  * the first position of basis, i.e. index 0 a NULL element.
  * Thus, basis->load is always one bigger than the actual number of elements
  * in the basis.
+ *
+ * \note The first elements are just the input data. Those elements are not a
+ * priori part of the basis. The basis starts at index st.
  */
 typedef struct gb_t
 {
   // global data
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in basis*/
+  nelts_t st;       /*!<  start of the real basis, everything before is input data */
   nvars_t nv;       /*!<  number of variables */
   coeff_t mod;      /*!<  modulo/field characteristic */
   // element data

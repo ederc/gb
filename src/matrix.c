@@ -42,6 +42,9 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
   mat->rbl  = get_number_of_row_blocks(spd->sell, mat->bs);
   mat->cbl  = get_number_of_left_column_blocks(spd->col, mat->bs);
   mat->cbr  = get_number_of_right_column_blocks(spd->col, mat->bs);
+#if MATRIX_DEBUG
+  printf("cbl %u | cbr %u\n",mat->cbl, mat->cbr);
+#endif
 
   // initialize parts of gbla matrix with known dimensions
   init_sb(mat->A, spd->selu->load, spd->col->nlm);
@@ -123,7 +126,7 @@ inline ri_t get_number_of_row_blocks(const sel_t *sel, const nelts_t bs)
   return (ri_t) ceil((float) sel->load / bs);
 }
 
-inline void reset_buffer(dbr_t *dbr, nelts_t ncb, bi_t bs)
+inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
 {
   nelts_t i;
 
@@ -133,7 +136,7 @@ inline void reset_buffer(dbr_t *dbr, nelts_t ncb, bi_t bs)
 }
 
 void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
-    const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
+    const nelts_t nr, const nelts_t ll, const bi_t bs, const nelts_t ncb,
     const gb_t *basis, const sel_t *sel, const pre_t *col)
 {
   nelts_t i;
@@ -158,9 +161,27 @@ void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
     pi  = sel->mpp[i].idx;
     mul = sel->mpp[i].mul;
 
-    store_in_buffer(dbr, pi, mul, fr, bs, basis, ht);
+    store_in_buffer(dbr, pi, mul, ll, bs, basis, ht);
+#if MATRIX_DEBUG
+    printf("ROW %u\n",i);
+    for (int ii=0; ii<ncb; ++ii)
+      for (int jj=0; jj<bs; ++jj)
+        printf("%u ",dbr->cf[ii][jj]);
+    printf("\n");
+#endif
 
-    store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->mod);
+    store_in_matrix(A, B, dbr, rbi, rib, ncb, ll, bs, basis->mod);
+    
+#if MATRIX_DEBUG
+    printf("rbi %u | ncb-1 %u | rib %u\n",rbi,ncb-1,rib);
+    for (int ii=0; ii<ncb-1; ++ii) {
+      if (A->blocks[rbi][ii].val != NULL) {
+        for (int jj=0; jj<A->blocks[rbi][ii].sz[rib]; ++jj)
+          printf("%u|%u ",A->blocks[rbi][ii].val[rib][jj],A->blocks[rbi][ii].pos[rib][jj]);
+      }
+    }
+    printf("\n");
+#endif
   }
   free_dense_block_row(dbr, ncb);
 }
@@ -218,17 +239,19 @@ inline void write_to_dense_row(dbm_fl_t *A, const coeff_t *cf, const nelts_t rbi
   }
 
 inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
-    const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t fr,
+    const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t ll,
     const bi_t bs, const coeff_t mod)
 {
   nelts_t i;
 
-  // calculate index of last block on left side, i.e. dr->cf[ldl+*] stores the
-  // right hand side, then add 1 and get first block on the right side
-  const nelts_t fbr = (fr-1)/bs + 1;
+  // calculate index of last block on left side
+  // if there is nothing on the lefthand side what can happen when interreducing
+  // the initial input elements then we have to adjust fbr to 0
+  const nelts_t fbr = ll == 0 ? 0 : ll/bs + 1;
 
   // do sparse left side A
   for (i=0; i<fbr; ++i) {
+    //printf("dbr->ctr[%u] = %u\n",i,dbr->ctr[i]);
     if (dbr->ctr[i] > 0) {
       if (A->blocks[rbi][i].val == NULL)
         allocate_sparse_block(A, rbi, i, bs);
@@ -245,24 +268,29 @@ inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
       write_to_dense_row(B, dbr->cf[fbr+i], rbi, i, rib, bs);
     }
   }
-  // check if memory for complete block is allocate
 }
 
- void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
-    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
+void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
+    const nelts_t ll, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
   nelts_t j, tmp;
   // hash position and column position
   hash_t hp, cp;
 
-  // calculate index of last block on left side, i.e. dr->cf[ldl+*] stores the
-  // right hand side, then add 1 and get first block on the right side
-  const nelts_t fbr = (fr-1)/bs + 1;
+  // calculate index of last block on left side
+  // if there is nothing on the lefthand side what can happen when interreducing
+  // the initial input elements then we have to adjust fbr to 0
+  const nelts_t fbr = ll == 0 ? 0 : ll/bs + 1;
 
+  // set first righthand side column index
+  const nelts_t fr  = ll + 1 == 1 ? 0 : ll + 1;  
   // do some loop unrolling
   for (j=0; j<basis->nt[pi]-3; j=j+4) {
     hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
     cp  = ht->idx[hp];
+#if MATRIX_DEBUG
+    printf("ll %u | fr %u | hp %u | eh[%u][%u] %u | cp %u\n", ll, fr, hp, pi, j, basis->eh[pi][j], cp);
+#endif
     if (cp<fr) {
       dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
       dbr->ctr[cp/bs]++;
@@ -328,7 +356,7 @@ inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const in
     for (ri_t i=0; i<mat->rbu; ++i) {
       #pragma omp task
       {
-        generate_row_blocks(mat->A, mat->B, i, spd->selu->load, spd->col->nlm+1,
+        generate_row_blocks(mat->A, mat->B, i, spd->selu->load, spd->col->nlm,
             mat->bs, mat->cbl+mat->cbr, basis, spd->selu, spd->col);
       }
     }
@@ -336,7 +364,7 @@ inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const in
     for (ri_t i=0; i<mat->rbl; ++i) {
       #pragma omp task
       {
-        generate_row_blocks(mat->C, mat->D, i, spd->sell->load, spd->col->nlm+1,
+        generate_row_blocks(mat->C, mat->D, i, spd->sell->load, spd->col->nlm,
             mat->bs, mat->cbl+mat->cbr, basis, spd->sell, spd->col);
       }
     }

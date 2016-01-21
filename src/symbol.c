@@ -66,7 +66,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
       }
       // only if i > 0 we have found a reducer.
       // note: all reducers are added to the upper selection list!
-      if (i != 0) {
+      if (i > basis->st) {
         mon->nlm++;
         ht->div[hash_pos]  = i;
         // if multiple is not already in the selected list
@@ -109,8 +109,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
   return mat;
 }
 
-void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell,
-    pre_t *mon, const gb_t *basis, const nelts_t nsel)
+void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
+    const gb_t *basis, const nelts_t nsel)
 {
   nelts_t i, j, k;
   spair_t *sp;
@@ -125,34 +125,55 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell,
 #if SYMBOL_DEBUG
     printf("gen1 %u -- gen2 %u -- lcm %u\n", sp->gen1, sp->gen2, sp->lcm);
 #endif
-    // first generator for upper part of gbla matrix
-    add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
-    // second generator for lower part of gbla matrix
-    add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
-    // corresponds to lcm of spair, tracking this information by setting ht->idx
-    // to 1 keeping track that this monomial is a lead monomial
-    if (ht->idx[sp->lcm] == 0) {
-      ht->idx[sp->lcm] = 2;
-      mon->hpos[mon->load]  = sp->lcm;
+    // We have to distinguish between usual spairs and spairs consisting of one
+    // initial input element: The latter ones have only 1 generator and the
+    // corresponding lead monomial is not part of the basis. Thus we cannot set
+    // ht->idx[*] = 2 for these. The whole data for these special spairs is in
+    // basis before basis->st, whereas the data of the usual spairs is
+    // completely in basis starting at position basis->st.
+    if (sp->gen2 == 0) {
+      // first generator for lower part since it is an initial input element
+      // second generator does not exist
+      add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
+      if (ht->idx[sp->lcm] == 0) {
+        mon->hpos[mon->load]  = sp->lcm;
+        ht->idx[sp->lcm]      = 1;
+        mon->load++;
+      }
+      j = sell->load-1;
+      for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
+        enter_not_multiplied_monomial_to_preprocessing_hash_list(
+            basis->eh[sell->mpp[j].idx][k], mon);
+    } else {
+      // first generator for upper part of gbla matrix
+      add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
+      // second generator for lower part of gbla matrix
+      add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
+      // corresponds to lcm of spair, tracking this information by setting ht->idx
+      // to 1 keeping track that this monomial is a lead monomial
+      if (ht->idx[sp->lcm] == 0) {
+        mon->hpos[mon->load]  = sp->lcm;
+        ht->idx[sp->lcm]      = 2;
 #if SYMBOL_DEBUG
       printf("hpos[%u] = %u\n", mon->load, mon->hpos[mon->load]);
       for (int ii=0; ii<ht->nv; ++ii)
         printf("%u ", ht->exp[sp->lcm][ii]);
       printf("\n");
 #endif
-      mon->load++;
-      mon->nlm++;
+        mon->nlm++;
+        mon->load++;
+      }
+      // now add new monomials to preprocessing hash list for both generators of
+      // the spair, i.e. sel->load-2 and sel->load-1
+      j = selu->load-1;
+      for (k=1; k<basis->nt[selu->mpp[j].idx]; ++k)
+        enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
+            basis->eh[selu->mpp[j].idx][k], mon);
+      j = sell->load-1;
+      for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
+        enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
+            basis->eh[sell->mpp[j].idx][k], mon);
     }
-    // now add new monomials to preprocessing hash list for both generators of
-    // the spair, i.e. sel->load-2 and sel->load-1
-    j = selu->load-1;
-    for (k=1; k<basis->nt[selu->mpp[j].idx]; ++k)
-      enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
-          basis->eh[selu->mpp[j].idx][k], mon);
-    j = sell->load-1;
-    for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
-      enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
-          basis->eh[sell->mpp[j].idx][k], mon);
     // remove the selected pair from the pair set
     free(sp);
   }
@@ -164,6 +185,30 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell,
     k++;
   }
   ps->load  = k;
+}
+
+inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_t h1,
+    pre_t *mon)
+{
+  hash_t pos  = h1;;
+  // only in this case we have this monomial hash for the first time,
+  // otherwise it has already been taken care of
+  if (ht->idx[pos] == 0) {
+    ht->idx[pos]++;
+    mon->hpos[mon->load]  = pos;
+#if SYMBOL_DEBUG
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[h1][i]);
+    printf("\n");
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[pos][i]);
+    printf("\n");
+    printf("new mon %u == %u\n", h1,mon->hpos[mon->load]);
+#endif
+    mon->load++;
+    if (mon->load == mon->size)
+      adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+  }
 }
 
 inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
@@ -278,9 +323,11 @@ inline void sort_columns_by_lead(spd_t *spd)
 
 inline void sort_lead_columns_by_grevlex(spd_t *spd)
 {
-  // sort the start of spd->col, i.e. the lead monomial list
-  qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
-      cmp_symbolic_preprocessing_monomials_by_grevlex);
+  if (spd->col->nlm != 0) {
+    // sort the start of spd->col, i.e. the lead monomial list
+    qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
+        cmp_symbolic_preprocessing_monomials_by_grevlex);
+  }
 }
 
 inline void sort_non_lead_columns_by_grevlex(spd_t *spd)

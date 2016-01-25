@@ -34,6 +34,11 @@
 #define META_DATA_DEBUG 0
 #endif
 
+#ifndef POLY_DEBUG
+#define POLY_DEBUG 1
+#endif
+
+
 /**
  * \brief Initializes basis by taking meta data from input elements.
  *

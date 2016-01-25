@@ -81,18 +81,24 @@ void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   // use shorter names in here
   basis->cf[basis->load]  = (coeff_t *)malloc(ms * sizeof(coeff_t)); 
   basis->eh[basis->load]  = (hash_t *)malloc(ms * sizeof(hash_t)); 
-  coeff_t *cf = basis->cf[basis->load];
-  hash_t *eh  = basis->eh[basis->load];
   
   nelts_t ctr = 0;
   deg_t deg   = 0;
+#if POLY_DEBUG
+  nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
+  printf("new lm: ");
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
+  printf(" (%u)\n",spd->col->hpos[fc]);
+#endif
   for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
     if (mat->DR->row[ri]->piv_val[i] != 0) {
-      cf[ctr] = mat->DR->row[ri]->piv_val[i];
+      basis->cf[basis->load][ctr] = mat->DR->row[ri]->piv_val[i];
       // note that we have to adjust the position via shifting it by
       // spd->col->nlm since DR is on the righthand side of the matrix
-      eh[ctr] = spd->col->hpos[spd->col->nlm+i];
-      deg = ht->deg[eh[ctr]] > deg ? ht->deg[eh[ctr]] : deg; 
+      basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
+        ht->deg[basis->eh[basis->load][ctr]] : deg;
       ctr++;
     }
   }
@@ -100,8 +106,10 @@ void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   basis->deg[basis->load] = deg;
 
   // realloc memory to the correct number of terms
-  cf  = realloc(cf, basis->nt[basis->load] * sizeof(coeff_t)); 
-  eh  = realloc(eh, basis->nt[basis->load] * sizeof(hash_t)); 
+  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
+    basis->nt[basis->load] * sizeof(coeff_t));
+  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
+      basis->nt[basis->load] * sizeof(hash_t));
   basis->load++;
 }
 

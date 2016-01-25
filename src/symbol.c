@@ -66,7 +66,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
       }
       // only if i > 0 we have found a reducer.
       // note: all reducers are added to the upper selection list!
-      if (i > basis->st) {
+      if (i >= basis->st) {
         if (i == last_div)
           hash_div  = monomial_division(hash_pos, basis->eh[i][0], ht);
         mon->nlm++;
@@ -136,6 +136,7 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     if (sp->gen2 == 0) {
       // first generator for lower part since it is an initial input element
       // second generator does not exist
+        printf("init low %u %u\n",sp->lcm, sp->gen1);
       add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
       if (ht->idx[sp->lcm] == 0) {
         mon->hpos[mon->load]  = sp->lcm;
@@ -154,9 +155,11 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       if (ht->idx[sp->lcm] == 0) {
         add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
       } else {
+        printf("low1 %u %u\n",sp->lcm, sp->gen1);
         add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
       }
       // second generator for lower part of gbla matrix
+        printf("low2 %u %u\n",sp->lcm, sp->gen1);
       add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
       // corresponds to lcm of spair, tracking this information by setting ht->idx
       // to 1 keeping track that this monomial is a lead monomial

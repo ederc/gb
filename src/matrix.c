@@ -224,9 +224,10 @@ inline void write_to_dense_row(dbm_fl_t *A, const coeff_t *cf, const nelts_t rbi
 {
   bi_t i;
 
-  for (i=0; i<bs; ++i)
+  for (i=0; i<bs; ++i) {
     A->blocks[rbi][bir].val[(rib*bs)+i] = cf[i];
   }
+}
 
 inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
     const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t fr,

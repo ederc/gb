@@ -82,6 +82,9 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   basis->cf[basis->load]  = (coeff_t *)malloc(ms * sizeof(coeff_t)); 
   basis->eh[basis->load]  = (hash_t *)malloc(ms * sizeof(hash_t)); 
   
+  for (int ii=0; ii<basis->load; ++ii)
+    printf("degi[%u] = %u\n",ii,basis->deg[ii]);
+
   nelts_t ctr = 0;
   deg_t deg   = 0;
 #if POLY_DEBUG
@@ -99,6 +102,7 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
       // note that we have to adjust the position via shifting it by
       // spd->col->nlm since DR is on the righthand side of the matrix
       basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+      printf("deg[%u] = %u\n",ctr, ht->deg[basis->eh[basis->load][ctr]]); 
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
       ctr++;
@@ -106,6 +110,7 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   }
   basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;
+  printf("bdeg[%u] = %u\n",basis->load, basis->deg[basis->load]);
 
   // realloc memory to the correct number of terms
   basis->cf[basis->load]  = realloc(basis->cf[basis->load],

@@ -534,7 +534,7 @@ void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
   for (i=0; i<cbr; ++i) {
     if (B->blocks[rbi][i].val != NULL) {
       for (j=0; j<bs; ++j) {
-        if (B->blocks[rbi][i].val[rib*bs + j] != 0) {
+        if (B->blocks[rbi][i].val[(rib*bs) + j] != 0) {
           buffer[A->ncols + i*bs + j]  = '1';
         }
       }

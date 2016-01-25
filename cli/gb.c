@@ -196,6 +196,7 @@ int main(int argc, char *argv[])
 
 
   nelts_t i;
+  hash_t hv;
 
   // run while there exist spairs to be handled
   while (ps->load > 0)
@@ -266,7 +267,11 @@ int main(int argc, char *argv[])
 
     // add new elements to basis and update pair set
     for (i=0; i<rankDR; ++i) {
-      add_new_element_to_basis_grevlex(basis, mat, i, spd, ht);
+      hv  = add_new_element_to_basis_grevlex(basis, mat, i, spd, ht);
+      // if hash value 0 is new lead monomial we are done, since we have found a
+      // unit in the basis, i.e. basis = { 1 }
+      if (hv == 0)
+        goto done;
       update_pair_set(ps, basis, basis->load-1);
     }
     free_gbla_matrix(mat);
@@ -275,7 +280,7 @@ int main(int argc, char *argv[])
     if (verbose > 1)
       printf("<<< step %u\n", steps);
   }
-
+  done:
   // free allocated memory
   free(meta_data);
   free_pair_set(ps);

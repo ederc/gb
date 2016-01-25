@@ -68,7 +68,7 @@ inline void free_basis(gb_t *basis)
   basis = NULL;
 }
 
-void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
+hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
     const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
 {
   nelts_t i;
@@ -89,8 +89,10 @@ void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   printf("new lm: ");
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-  printf(" (%u)\n",spd->col->hpos[fc]);
+  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
+  hash_t hv  = ht->val[spd->col->hpos[fc]];
+
   for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
     if (mat->DR->row[ri]->piv_val[i] != 0) {
       basis->cf[basis->load][ctr] = mat->DR->row[ri]->piv_val[i];
@@ -111,6 +113,8 @@ void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
   basis->load++;
+
+  return hv;
 }
 
 inline void enlarge_basis(gb_t *basis, const nelts_t size)

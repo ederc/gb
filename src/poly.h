@@ -35,7 +35,7 @@
 #endif
 
 #ifndef POLY_DEBUG
-#define POLY_DEBUG 0
+#define POLY_DEBUG 1
 #endif
 
 
@@ -84,7 +84,9 @@ void enlarge_basis(gb_t *basis, nelts_t size);
  * \param symbolic preprocessing data spd
  *
  * \param hash table ht
+ *
+ * \return hash value of new lead monomial
  */
-void add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
+hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
     const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
 #endif

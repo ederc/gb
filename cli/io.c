@@ -386,6 +386,10 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       // get coefficient first
       if (term != NULL) {
         iv = (coeff_t)atoi(term);
+        // if shortcut notation is used coeff 1 is not written down and atoi
+        // boils down to 0. so we adjust this value to 1 again
+        if (iv == 0)
+          iv = 1;
         inverse_coefficient(&iv, basis->mod);
         basis->cf[i][0] = 1;
       }
@@ -405,6 +409,10 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         // get coefficient first
         if (term != NULL) {
           basis->cf[i][j] = (coeff_t)atoi(term);
+          // if shortcut notation is used coeff 1 is not written down and atoi
+          // boils down to 0. so we adjust this value to 1 again
+          if (basis->cf[i][j] == 0)
+            basis->cf[i][j] = 1;
           basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
         }
         // now loop over variables of term

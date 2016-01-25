@@ -47,7 +47,6 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
 #endif
 
   // initialize parts of gbla matrix with known dimensions
-  printf("CONSTRUCTING MATRICES %u %u %u %u\n", spd->selu->load, spd->col->nlm, spd->sell->load, spd->col->load);
   init_sb(mat->A, spd->selu->load, spd->col->nlm);
   init_dbm(mat->B, spd->selu->load, spd->col->load - spd->col->nlm);
   init_sb(mat->C, spd->sell->load, spd->col->nlm);
@@ -273,21 +272,17 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
   // the initial input elements then we have to adjust fbr to 0
   const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
 
-  printf("FBR %u\n", fbr);
-  const nelts_t ll=0;
   // do some loop unrolling
   for (j=0; j<basis->nt[pi]-3; j=j+4) {
     hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
     cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("ll %u | fr %u | hp %u | eh[%u][%u] %u | cp %u\n", ll, fr, hp, pi, j, basis->eh[pi][j], cp);
+    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j, basis->eh[pi][j], cp);
 #endif
     if (cp<fr) {
-      printf("cp1 %u\n",cp);
       dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
       dbr->ctr[cp/bs]++;
     } else {
-      printf("cp2 %u\n",cp);
       cp = cp - fr;
       dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j];
       dbr->ctr[fbr+cp/bs]++;
@@ -295,14 +290,12 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j+1], ht);
     cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("ll %u | fr %u | hp %u | eh[%u][%u] %u | cp %u\n", ll, fr, hp, pi, j+1, basis->eh[pi][j+1], cp);
+    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j+1, basis->eh[pi][j+1], cp);
 #endif
     if (cp<fr) {
-      printf("cp1 %u\n",cp);
       dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+1];
       dbr->ctr[cp/bs]++;
     } else {
-      printf("cp2 %u\n",cp);
       cp = cp - fr;
       dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+1];
       dbr->ctr[fbr+cp/bs]++;
@@ -310,14 +303,12 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j+2], ht);
     cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("ll %u | fr %u | hp %u | eh[%u][%u] %u | cp %u\n", ll, fr, hp, pi, j+2, basis->eh[pi][j+2], cp);
+    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j+2, basis->eh[pi][j+2], cp);
 #endif
     if (cp<fr) {
-      printf("cp1 %u\n",cp);
       dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+2];
       dbr->ctr[cp/bs]++;
     } else {
-      printf("cp2 %u\n",cp);
       cp = cp - fr;
       dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+2];
       dbr->ctr[fbr+cp/bs]++;
@@ -325,15 +316,13 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j+3], ht);
     cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("ll %u | fr %u | hp %u | eh[%u][%u] %u | cp %u\n", ll, fr, hp, pi, j+3, basis->eh[pi][j+3], cp);
+    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j+3, basis->eh[pi][j+3], cp);
 #endif
     if (cp<fr) {
-      printf("cp1 %u\n",cp);
       dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+3];
       dbr->ctr[cp/bs]++;
     } else {
       cp = cp - fr;
-      printf("cp2 %u\n",cp);
       dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+3];
       dbr->ctr[fbr+cp/bs]++;
     }
@@ -343,15 +332,13 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j], ht);
     cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("ll %u | fr %u | hp %u | eh[%u][%u] %u | cp %u\n", ll, fr, hp, pi, j, basis->eh[pi][j], cp);
+    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j, basis->eh[pi][j], cp);
 #endif
     if (cp<fr) {
-      printf("cp1 %u\n",cp);
       dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
       dbr->ctr[cp/bs]++;
     } else {
       cp = cp - fr;
-      printf("cp2 %u\n",cp);
       dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j];
       dbr->ctr[fbr+cp/bs]++;
     }
@@ -361,7 +348,6 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
 inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const int nthreads)
 {
   mat_t *mat  = initialize_gbla_matrix(spd, basis);
-  printf("cbl %u | cbr %u | rbu %u | rbl %u\n",mat->cbl, mat->cbr, mat->rbu, mat->rbl);
   #pragma omp parallel num_threads(nthreads)
   {
     #pragma omp single nowait

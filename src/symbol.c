@@ -44,16 +44,12 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
   sel_upp->deg    = ps->pairs[0]->deg;
   sel_low->deg    = ps->pairs[0]->deg;
   // list of polynomials and their multipliers
-  printf("nsel %u\n", nsel);
-  printf("1--> %u | %u\n",mon->load, mon->size);
   select_pairs(ps, sel_upp, sel_low, mon, basis, nsel);
-  printf("2--> %u | %u\n",mon->load, mon->size);
 
   // we use mon as LIFO: last in, first out. thus we can easily remove and add
   // new elements to mon
   idx = 0;
   while (idx < mon->load) {
-    printf("idx %u / %u | %u\n",idx, mon->load, mon->size);
     hash_pos  = mon->hpos[idx];
     // only if not already a lead monomial, e.g. if coming from spair
     if (ht->idx[hash_pos] != 2) {
@@ -62,14 +58,12 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
       // takes last element in basis and test for division, goes down until we
       // reach the last known divisor last_div
       i = basis->load-1;
-      printf("last_div %u\n",last_div);
       while (i != last_div) {
         hash_div  = monomial_division(hash_pos, basis->eh[i][0], ht);
         if (hash_div != 0)
           break;
         i--;
       }
-      printf("div %u with %u of %u\n",i,hash_div, hash_pos);
       // only if i > 0 we have found a reducer.
       // note: all reducers are added to the upper selection list!
       if (i > basis->st) {
@@ -94,7 +88,6 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
 
         // now add new monomials to preprocessing hash list
         for (k=1; k<basis->nt[i]; ++k) {
-          printf("poly %u term %u\n",i, k);
           enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1].mul,
               basis->eh[sel_upp->mpp[sel_upp->load-1].idx][k], mon);
         }
@@ -148,9 +141,8 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         mon->hpos[mon->load]  = sp->lcm;
         ht->idx[sp->lcm]      = 1;
         mon->load++;
-        printf("6--> %u | %u\n",mon->load, mon->size);
-          if (mon->load == mon->size)
-            adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+        if (mon->load == mon->size)
+          adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
       }
       j = sell->load-1;
       for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
@@ -179,9 +171,8 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 #endif
         mon->nlm++;
         mon->load++;
-        printf("7--> %u | %u\n",mon->load, mon->size);
-          if (mon->load == mon->size)
-            adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+        if (mon->load == mon->size)
+          adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
       }
       // now add new monomials to preprocessing hash list for both generators of
       // the spair, i.e. sel->load-2 and sel->load-1
@@ -226,7 +217,6 @@ inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_
     printf("new mon %u == %u\n", h1,mon->hpos[mon->load]);
 #endif
     mon->load++;
-  printf("3--> %u | %u\n",mon->load, mon->size);
     if (mon->load == mon->size)
       adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
   }
@@ -254,7 +244,6 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
     printf("new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
 #endif
     mon->load++;
-    printf("4--> %u | %u\n",mon->load, mon->size);
     if (mon->load == mon->size)
       adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
   }

@@ -434,8 +434,8 @@ void write_reduced_matrix_to_pbm(mat_t *mat, const char *fn)
 	ri_t m        = mat->nru + mat->nrl;
 	ci_t n        = mat->ncl + mat->ncr;
   ri_t min      = n > 512 ? n : 512;
-  // min+1 since we need to end line with '\n'
-	char *buffer  = malloc(min+1 * sizeof(char));
+  // min+2 since we need to end line with '\n\0'
+	char *buffer  = malloc(min+2 * sizeof(char));
 
 	FILE *fh  = fopen(fn, "wb");
 
@@ -469,11 +469,8 @@ void write_matrix_to_pbm(mat_t *mat, const char *fn)
 	ri_t m        = mat->nru + mat->nrl;
 	ci_t n        = mat->ncl + mat->ncr;
   ri_t min      = n > 512 ? n : 512;
-  // min+1 since we need to end line with '\n'
-	char *buffer  = malloc(min+1 * sizeof(char));
-  printf("min %u, n %u\n",min,n);
-  printf("strlen = %lu\n", sizeof(buffer));
-
+  // min+2 since we need to end line with '\n\0'
+	char *buffer  = malloc(min+2 * sizeof(char));
 	FILE *fh  = fopen(fn, "wb");
 
 	/*  magic PBM header */
@@ -511,8 +508,8 @@ void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
   nelts_t nc  = A->ncols + B->ncols;
 
   memset(buffer, '0', nc);
-  printf("nc %u\n",nc);
-  buffer[nc]  = '\n';
+  buffer[nc]    = '\n';
+  buffer[nc+1]  = '\0';
   
   ri_t rbi = idx / bs;
   ri_t rib = idx % bs;
@@ -526,12 +523,10 @@ void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
     }
   }
   // row in B, righthand side
-  printf("A->ncols %u\n",A->ncols);
   for (i=0; i<cbr; ++i) {
     if (B->blocks[rbi][i].val != NULL) {
       for (j=0; j<bs; ++j) {
         if (B->blocks[rbi][i].val[rib*bs + j] != 0) {
-          printf("written 1 to column %u\n", A->ncols + i*bs + j);
           buffer[A->ncols + i*bs + j]  = '1';
         }
       }
@@ -547,7 +542,8 @@ void write_upper_part_row_to_buffer(char *buffer, const nelts_t idx,
   nelts_t nc  = mat->ncl + mat->ncr;
 
   memset(buffer, '0', nc);
-  buffer[nc]  = '\n';
+  buffer[nc]    = '\n';
+  buffer[nc+1]  = '\0';
   
   ri_t rbi = idx / mat->bs;
   ri_t rib = idx % mat->bs;
@@ -575,7 +571,8 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   nelts_t nc  = mat->ncl + mat->ncr;
 
   memset(buffer, '0', nc);
-  buffer[nc]  = '\n';
+  buffer[nc]    = '\n';
+  buffer[nc+1]  = '\0';
   
   // row in C, lefthand side is zero!
 

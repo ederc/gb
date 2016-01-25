@@ -238,15 +238,11 @@ int main(int argc, char *argv[])
     // monomials).
     sort_selection_by_column_index(spd, ht, nthreads);
 
-    for (int ii=0; ii<spd->col->load; ++ii)
-      printf("%u | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
-    printf("\n");
     // generate gbla matrix out of data from symbolic preprocessing
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
     // generate pbm files of gbla matrix
     if (pbm) {
       snprintf(pbm_fn, 300, "%s-mat%u.pbm", fn, steps);
-      printf("WRITING\n");
       write_matrix_to_pbm(mat, pbm_fn);
     }
 

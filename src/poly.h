@@ -35,7 +35,7 @@
 #endif
 
 #ifndef POLY_DEBUG
-#define POLY_DEBUG 1
+#define POLY_DEBUG 0
 #endif
 
 

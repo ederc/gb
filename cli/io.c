@@ -146,13 +146,19 @@ inline char *get_variable_name(const char *line, char **prev_pos)
 
 inline int get_number_of_terms(const char *line)
 {
-  const char add_splicer  = '+';
+  const char add_splicer    = '+';
+  const char minus_splicer  = '-';
   char *tmp;
   int nterms  = 1;
   tmp = strchr(line, add_splicer);
   while (tmp != NULL) {
     nterms++;
     tmp = strchr(tmp+1, add_splicer);
+  }
+  tmp = strchr(line, minus_splicer);
+  while (tmp != NULL) {
+    nterms++;
+    tmp = strchr(tmp+1, minus_splicer);
   }
 
   return nterms;
@@ -198,19 +204,56 @@ inline void get_term(const char *line, char **prev_pos,
     char **term)
 {
   // note that maximal term length we handle
-  const char add_splicer  = '+';
+  const char add_splicer    = '+';
+  const char minus_splicer  = '-';
 
-  char *curr_pos  = strchr(*prev_pos, add_splicer);
-  if (curr_pos != NULL) {
-    int term_diff = (int)(curr_pos - *prev_pos);
-    memcpy(*term, *prev_pos, term_diff);
-    (*term)[term_diff]  = '\0';
-    *prev_pos           = curr_pos+1;
-  } else { // we are at the last term
-    int prev_idx  = (int)(*prev_pos - line);
-    int term_diff = strlen(line) + 1 - prev_idx;
-    memcpy(*term, *prev_pos, term_diff);
-    (*term)[term_diff]  = '\0';
+  char *start_pos;
+  char *curr_pos_add    = strchr(*prev_pos, add_splicer);
+  char *curr_pos_minus  = strchr(*prev_pos, minus_splicer);
+
+  if (*prev_pos != line)
+    start_pos = *prev_pos - 1;
+  else
+    start_pos = *prev_pos;
+
+  if (curr_pos_add != NULL && curr_pos_minus != NULL) {
+    int term_diff_add   = (int)(curr_pos_add - start_pos);
+    int term_diff_minus = (int)(curr_pos_minus - start_pos);
+    // if minus is nearer
+    if (term_diff_add > term_diff_minus) {
+      memcpy(*term, start_pos, term_diff_minus);
+      (*term)[term_diff_minus]  = '\0';
+      *prev_pos                 = curr_pos_minus+1;
+      return;
+    // if plus is nearer
+    } else {
+      memcpy(*term, start_pos, term_diff_add);
+      (*term)[term_diff_add]  = '\0';
+      *prev_pos               = curr_pos_add+1;
+      return;
+    }
+  } else {
+    if (curr_pos_add != NULL) {
+      int term_diff_add   = (int)(curr_pos_add - start_pos);
+      memcpy(*term, start_pos, term_diff_add);
+      (*term)[term_diff_add]  = '\0';
+      *prev_pos               = curr_pos_add+1;
+      return;
+    }
+    if (curr_pos_minus != NULL) {
+      int term_diff_minus = (int)(curr_pos_minus - start_pos);
+      memcpy(*term, start_pos, term_diff_minus);
+      (*term)[term_diff_minus]  = '\0';
+      *prev_pos                 = curr_pos_minus+1;
+      return;
+    }
+    if (curr_pos_add == NULL && curr_pos_minus == NULL) {
+      int prev_idx  = (int)(start_pos - line);
+      int term_diff = strlen(line) + 1 - prev_idx;
+      memcpy(*term, start_pos, term_diff);
+      (*term)[term_diff]  = '\0';
+      return;
+    }
   }
 }
 
@@ -362,7 +405,9 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   basis->eh[0]  = NULL;
 
   // get all remaining lines, i.e. generators
-  coeff_t iv = 0; //inverse value of lead coeff in order to normalize input
+  int cf_tmp  = 0; // temp for coefficient value, possibly coeff is negative.
+  int iv_tmp  = 0; // temp for inverse value, possibly coeff is negative.
+  coeff_t iv  = 0; //inverse value of lead coeff in order to normalize input
   for (i=1; i<basis->load; ++i) {
     if (fgets(line, max_line_size, fh) != NULL) {
       // get number of terms first
@@ -385,11 +430,17 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       get_term(line, &prev_pos, &term);
       // get coefficient first
       if (term != NULL) {
-        iv = (coeff_t)atoi(term);
+        iv_tmp  = (int)atoi(term);
         // if shortcut notation is used coeff 1 is not written down and atoi
         // boils down to 0. so we adjust this value to 1 again
-        if (iv == 0)
-          iv = 1;
+        if (iv_tmp == 0) {
+          iv_tmp = 1;
+        } else {
+          while (iv_tmp < 0) {
+            iv_tmp  +=  basis->mod;
+          }
+        }
+        iv  = iv_tmp;
         inverse_coefficient(&iv, basis->mod);
         basis->cf[i][0] = 1;
       }
@@ -401,18 +452,22 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       basis->eh[i][0] = check_in_hash_table(ht);
       max_deg = max_deg > deg ? max_deg : deg;
 #if IO_DEBUG
-      printf("eh[%u][%u] = %u --> %lu\n",i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
+      printf("cf[%u] = %u | eh[%u][%u] = %u --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
 #endif
       for (j=1; j<nterms; ++j) {
         deg = 0;
         get_term(line, &prev_pos, &term);
         // get coefficient first
         if (term != NULL) {
-          basis->cf[i][j] = (coeff_t)atoi(term);
-          // if shortcut notation is used coeff 1 is not written down and atoi
-          // boils down to 0. so we adjust this value to 1 again
-          if (basis->cf[i][j] == 0)
-            basis->cf[i][j] = 1;
+          cf_tmp = (int)atoi(term);
+          if (cf_tmp == 0) {
+            cf_tmp = 1;
+          } else {
+            while (cf_tmp < 0) {
+              cf_tmp  +=  basis->mod;
+            }
+          }
+          basis->cf[i][j] = cf_tmp;
           basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
         }
         // now loop over variables of term
@@ -423,7 +478,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         basis->eh[i][j] = check_in_hash_table(ht);
         max_deg = max_deg > deg ? max_deg : deg;
 #if IO_DEBUG
-        printf("eh[%u][%u] = %u --> %lu\n",i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
+        printf("cf[%u] = %u | eh[%u][%u] = %u --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
 #endif
       }
       basis->deg[i] = max_deg;

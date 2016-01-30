@@ -546,15 +546,17 @@ void write_matrix_to_pbm(mat_t *mat, const char *fn)
 	fwrite(buffer, sizeof(char), strlen(buffer), fh);
 
   // write top block AB
-  for (i=0; i<mat->nru; ++i) {
-    write_sparse_dense_block_row_to_buffer(buffer, i, mat->A, mat->B, mat->cbl,
+  //for (i=0; i<mat->nru; ++i) {
+  for (i=mat->nru; i>0; --i) {
+    write_sparse_dense_block_row_to_buffer(buffer, i-1, mat->A, mat->B, mat->cbl,
         mat->cbr, mat->bs);
 	  fwrite(buffer, sizeof(char), strlen(buffer), fh);
     fflush(fh);
   }
   // write bottom block CD
-  for (i=0; i<mat->nrl; ++i) {
-    write_sparse_dense_block_row_to_buffer(buffer, i, mat->C, mat->D, mat->cbl,
+  //for (i=0; i<mat->nrl; ++i) {
+  for (i=mat->nrl; i>0; --i) {
+    write_sparse_dense_block_row_to_buffer(buffer, i-1, mat->C, mat->D, mat->cbl,
         mat->cbr, mat->bs);
 	  fwrite(buffer, sizeof(char), strlen(buffer), fh);
     fflush(fh);
@@ -581,7 +583,8 @@ void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
   for (i=0; i<cbl; ++i) {
     if (A->blocks[rbi][i].val != NULL) {
       for (j=0; j<A->blocks[rbi][i].sz[rib]; ++j) {
-        buffer[i*bs + A->blocks[rbi][i].pos[rib][j]]  = '1';
+        printf("nc %u --> %u\n",nc,i*bs+(A->blocks[rbi][i].pos[rib][j]));
+        buffer[A->ncols-1 - (i*bs +  A->blocks[rbi][i].pos[rib][j])]  = '1';
       }
     }
   }
@@ -604,15 +607,18 @@ void write_upper_part_row_to_buffer(char *buffer, const nelts_t idx,
 
   nelts_t nc  = mat->ncl + mat->ncr;
 
+  // need inverse index since rows of B has to be written in inverse order
+  nelts_t iidx  = mat->nru-1-idx;
+
   memset(buffer, '0', nc);
   buffer[nc]    = '\n';
   buffer[nc+1]  = '\0';
   
-  ri_t rbi = idx / mat->bs;
-  ri_t rib = idx % mat->bs;
+  ri_t rbi = iidx / mat->bs;
+  ri_t rib = iidx % mat->bs;
 
   // row in A, lefthand side
-  // has only 1 at diagonal
+  // has only 1 at diagonal at position idx not iidx!
   buffer[idx] = '1';
   // row in B, righthand side
   for (i=0; i<mat->cbr; ++i) {

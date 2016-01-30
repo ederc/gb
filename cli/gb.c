@@ -246,6 +246,19 @@ int main(int argc, char *argv[])
       printf("\n");
     }
 
+    for (int ii=0; ii<spd->selu->load; ++ii) {
+      for (int jj=0; jj<ht->nv; ++jj) {
+        printf("%u ",ht->exp[spd->selu->mpp[ii].mul][jj]);
+      }
+      printf("upper %u * %u\n",spd->selu->mpp[ii].mul, spd->selu->mpp[ii].idx);
+    }
+    for (int ii=0; ii<spd->sell->load; ++ii) {
+      for (int jj=0; jj<ht->nv; ++jj) {
+        printf("%u ",ht->exp[spd->sell->mpp[ii].mul][jj]);
+      }
+      printf("lower %u * %u\n",spd->sell->mpp[ii].mul, spd->sell->mpp[ii].idx);
+    }
+
     // generate gbla matrix out of data from symbolic preprocessing
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
     // generate pbm files of gbla matrix
@@ -273,8 +286,10 @@ int main(int argc, char *argv[])
     }
 
     // add new elements to basis and update pair set
+    
     for (i=0; i<rankDR; ++i) {
-      hv  = add_new_element_to_basis_grevlex(basis, mat, i, spd, ht);
+      // add lowest row first, it has the smallest new lead monomial
+      hv  = add_new_element_to_basis_grevlex(basis, mat, rankDR-1-i, spd, ht);
       // if hash value 0 is new lead monomial we are done, since we have found a
       // unit in the basis, i.e. basis = { 1 }
       if (hv == 0)

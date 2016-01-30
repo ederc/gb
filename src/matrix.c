@@ -47,10 +47,31 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
 #endif
 
   // initialize parts of gbla matrix with known dimensions
-  init_sb(mat->A, spd->selu->load, spd->col->nlm);
-  init_dbm(mat->B, spd->selu->load, spd->col->load - spd->col->nlm);
-  init_sb(mat->C, spd->sell->load, spd->col->nlm);
+
+  // D exists always
   init_dbm(mat->D, spd->sell->load, spd->col->load - spd->col->nlm);
+  
+  // if no upper part A & B are NULL and so is C
+  if (spd->selu->load == 0 || spd->col->nlm == 0) {
+    mat->A->blocks  = NULL;
+    mat->A->nrows   = spd->selu->load;
+    mat->A->ncols   = spd->col->nlm;;
+    mat->B->blocks  = NULL;
+    mat->A->nrows   = spd->selu->load;
+    mat->B->ncols   = spd->col->load - spd->col->nlm;;
+    mat->C->blocks  = NULL;
+    mat->C->nrows   = spd->sell->load;
+    mat->C->ncols   = spd->col->nlm;;
+  } else {
+    init_sb(mat->A, spd->selu->load, spd->col->nlm);
+    init_sb(mat->C, spd->sell->load, spd->col->nlm);
+    init_dbm(mat->B, spd->selu->load, spd->col->load - spd->col->nlm);
+  }
+
+    printf("A (%u x %u)\n", mat->A->nrows, mat->A->ncols);
+    printf("B (%u x %u)\n", mat->B->nrows, mat->B->ncols);
+    printf("C (%u x %u)\n", mat->C->nrows, mat->C->ncols);
+    printf("D (%u x %u)\n", mat->D->nrows, mat->D->ncols);
 
   return mat;
 }
@@ -170,6 +191,7 @@ void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
     printf("\n");
 #endif
 
+    printf("stores row %u in %u\n", rib, A->nrows-1-rib);
     store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->mod);
   }
   free_dense_block_row(dbr, ncb);
@@ -209,11 +231,12 @@ inline void write_to_sparse_row(sb_fl_t *A, const coeff_t *cf, const nelts_t rbi
     const bi_t bs, const coeff_t mod)
 {
   bi_t i;
-  for (i=0; i<bs; ++i) {
-    if (cf[i] != 0) {
+  for (i=bs; i>0; --i) {
+  //for (i=0; i<bs; ++i) {
+    if (cf[i-1] != 0) {
       A->blocks[rbi][bir].val[rib][sz - A->blocks[rbi][bir].sz[rib] - 1]  =
-        (re_t)((re_m_t)mod - cf[i]);
-      A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib] - 1]  = i;
+        (re_t)((re_m_t)mod - cf[i-1]);
+      A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib] - 1]  = i-1;
       A->blocks[rbi][bir].sz[rib]++;
     }
   }
@@ -273,59 +296,63 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
   // the initial input elements then we have to adjust fbr to 0
   const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
 
-  // do some loop unrolling
-  for (j=0; j<basis->nt[pi]-3; j=j+4) {
-    hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
-    cp  = ht->idx[hp];
+  // do some loop unrollinga
+  j = 0;
+  if (basis->nt[pi]>3) {
+    for (j=0; j<basis->nt[pi]-3; j=j+4) {
+      printf("j %u , nt[%u] = %u\n",j,pi,basis->nt[pi]);
+      hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
+      cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j, basis->eh[pi][j], cp);
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j, basis->eh[pi][j], cp, basis->cf[pi][j]);
 #endif
-    if (cp<fr) {
-      dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
-      dbr->ctr[cp/bs]++;
-    } else {
-      cp = cp - fr;
-      dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j];
-      dbr->ctr[fbr+cp/bs]++;
-    }
-    hp  = find_in_hash_table_product(mul, basis->eh[pi][j+1], ht);
-    cp  = ht->idx[hp];
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j];
+        dbr->ctr[fbr+cp/bs]++;
+      }
+      hp  = find_in_hash_table_product(mul, basis->eh[pi][j+1], ht);
+      cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j+1, basis->eh[pi][j+1], cp);
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+1, basis->eh[pi][j+1], cp, basis->cf[pi][j+1]);
 #endif
-    if (cp<fr) {
-      dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+1];
-      dbr->ctr[cp/bs]++;
-    } else {
-      cp = cp - fr;
-      dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+1];
-      dbr->ctr[fbr+cp/bs]++;
-    }
-    hp  = find_in_hash_table_product(mul, basis->eh[pi][j+2], ht);
-    cp  = ht->idx[hp];
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+1];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+1];
+        dbr->ctr[fbr+cp/bs]++;
+      }
+      hp  = find_in_hash_table_product(mul, basis->eh[pi][j+2], ht);
+      cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j+2, basis->eh[pi][j+2], cp);
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+2, basis->eh[pi][j+2], cp, basis->cf[pi][j+2]);
 #endif
-    if (cp<fr) {
-      dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+2];
-      dbr->ctr[cp/bs]++;
-    } else {
-      cp = cp - fr;
-      dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+2];
-      dbr->ctr[fbr+cp/bs]++;
-    }
-    hp  = find_in_hash_table_product(mul, basis->eh[pi][j+3], ht);
-    cp  = ht->idx[hp];
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+2];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+2];
+        dbr->ctr[fbr+cp/bs]++;
+      }
+      hp  = find_in_hash_table_product(mul, basis->eh[pi][j+3], ht);
+      cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j+3, basis->eh[pi][j+3], cp);
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+3, basis->eh[pi][j+3], cp, basis->cf[pi][j+3]);
 #endif
-    if (cp<fr) {
-      dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+3];
-      dbr->ctr[cp/bs]++;
-    } else {
-      cp = cp - fr;
-      dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+3];
-      dbr->ctr[fbr+cp/bs]++;
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+3];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+3];
+        dbr->ctr[fbr+cp/bs]++;
+      }
     }
   }
   tmp = j;
@@ -333,7 +360,7 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
     hp  = find_in_hash_table_product(mul, basis->eh[pi][j], ht);
     cp  = ht->idx[hp];
 #if MATRIX_DEBUG
-    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u\n", fr, hp, pi, j, basis->eh[pi][j], cp);
+    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j, basis->eh[pi][j], cp, basis->cf[pi][j]);
 #endif
     if (cp<fr) {
       dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
@@ -392,9 +419,29 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     printf("%-38s","Reducing A ...");
     fflush(stdout);
   }
-  if (elim_fl_A_sparse_dense_block(&(mat->A), mat->B, mat->mod, nthreads)) {
-    printf("Error while reducing A.\n");
-    return -1;
+  printf("---- A1 -----\n");
+  for (int ii=0; ii<mat->A->nrows; ++ii) {
+    printf("%u || ", ii);
+    for (int jj=0; jj<mat->A->blocks[0][0].sz[ii]; ++jj) {
+      printf("%u - %u | ",mat->A->blocks[0][0].val[ii][jj],mat->A->blocks[0][0].pos[ii][jj]);
+    }
+    printf("\n");
+  }
+  if (mat->B != NULL && mat->B->blocks != NULL) {
+  printf("---- B1 -----\n");
+  for (int ii=0; ii<mat->bs; ++ii) {
+    printf("%u || ", ii);
+    for (int jj=0; jj<mat->bs; ++jj) {
+      printf("%u ",mat->B->blocks[0][0].val[mat->bs*ii+jj]);
+    }
+    printf("\n");
+  }
+  }
+  if (mat->A->blocks != NULL) {
+    if (elim_fl_A_sparse_dense_block(&(mat->A), mat->B, mat->mod, nthreads)) {
+      printf("Error while reducing A.\n");
+      return -1;
+    }
   }
   if (verbose > 1) {
     printf("%9.3f sec\n",
@@ -403,15 +450,28 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   if (verbose > 2) {
     print_mem_usage();
   }
+  if (mat->B != NULL && mat->B->blocks != NULL) {
+  printf("---- B2 -----\n");
+  for (int ii=0; ii<mat->bs; ++ii) {
+    printf("%u || ", ii);
+    for (int jj=0; jj<mat->bs; ++jj) {
+      printf("%u ",mat->B->blocks[0][0].val[mat->bs*ii+jj]);
+    }
+    printf("\n");
+  }
+  }
+  printf("\n");
   // reducing submatrix C to zero using methods of Faugère & Lachartre
   if (verbose > 1) {
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Reducing C ...");
     fflush(stdout);
   }
-  if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 1, mat->mod, nthreads)) {
-    printf("Error while reducing C.\n");
-    return -1;
+  if (mat->C->blocks != NULL) {
+    if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 1, mat->mod, nthreads)) {
+      printf("Error while reducing C.\n");
+      return -1;
+    }
   }
   if (verbose > 1) {
     printf("%9.3f sec\n",

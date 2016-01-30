@@ -299,21 +299,21 @@ inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,
 inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
     const void *b)
 {
-  hash_t h1 = *((hash_t *)a);
-  hash_t h2 = *((hash_t *)b);
+  hash_t ha = *((hash_t *)a);
+  hash_t hb = *((hash_t *)b);
 
   // compare degree first
-  if (ht->deg[h2] > ht->deg[h1]) {
+  if (ht->deg[hb] > ht->deg[ha]) {
     return 1;
   } else {
-    if (ht->deg[h1] > ht->deg[h2])
+    if (ht->deg[ha] > ht->deg[hb])
       return -1;
   }
 
   // else we have to check reverse lexicographical
   nvars_t i;
-  exp_t *expa = ht->exp[h1];
-  exp_t *expb = ht->exp[h2];
+  exp_t *expa = ht->exp[ha];
+  exp_t *expb = ht->exp[hb];
   // Note that this loop only works since we assume that h1 =/= h2.
   // Otherwise i might get to zero and decremented again, which
   // means that we would get into an infinite loop as nvars_t is unsigned.
@@ -329,18 +329,51 @@ inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   return 0;
 }
 
+inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a,
+    const void *b)
+{
+  hash_t ha = *((hash_t *)a);
+  hash_t hb = *((hash_t *)b);
+
+  // compare degree first
+  if (ht->deg[hb] > ht->deg[ha]) {
+    return -1;
+  } else {
+    if (ht->deg[ha] > ht->deg[hb])
+      return 1;
+  }
+
+  // else we have to check reverse lexicographical
+  nvars_t i;
+  exp_t *expa = ht->exp[ha];
+  exp_t *expb = ht->exp[hb];
+  // Note that this loop only works since we assume that h1 =/= h2.
+  // Otherwise i might get to zero and decremented again, which
+  // means that we would get into an infinite loop as nvars_t is unsigned.
+  for (i=ht->nv-1; i>=0; --i) {
+    if (expa[i] < expb[i]) {
+      return 1;
+    } else {
+      if (expa[i] != expb[i])
+        return -1;
+    }
+  }
+  // we should never get here since a =/= b by assumption
+  return 0;
+}
+
 inline void sort_columns_by_lead(spd_t *spd)
 {
   qsort(spd->col->hpos, spd->col->load, sizeof(hash_t),
       cmp_symbolic_preprocessing_monomials_by_lead);
 }
 
-inline void sort_lead_columns_by_grevlex(spd_t *spd)
+inline void sort_lead_columns_by_inverse_grevlex(spd_t *spd)
 {
   if (spd->col->nlm != 0) {
     // sort the start of spd->col, i.e. the lead monomial list
     qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
-        cmp_symbolic_preprocessing_monomials_by_grevlex);
+        cmp_symbolic_preprocessing_monomials_by_inverse_grevlex);
   }
 }
 
@@ -358,7 +391,7 @@ inline void sort_presorted_columns_by_grevlex(spd_t *spd, const int nthreads)
     #pragma omp single
     {
       #pragma omp task
-      sort_lead_columns_by_grevlex(spd);
+      sort_lead_columns_by_inverse_grevlex(spd);
       #pragma omp task
       sort_non_lead_columns_by_grevlex(spd);
       #pragma omp taskwait

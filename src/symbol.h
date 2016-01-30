@@ -184,6 +184,25 @@ int cmp_symbolic_preprocessing_monomials_by_lead(const void *a, const void *b);
 int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a, const void *b);
 
 /**
+ * \brief Comparison function of monomials for quicksort. Compares w.r.t. the
+ * given monomial order grevlex and inverts the order.
+ *
+ * \note This is used in symbolic preprocessing, thus we know already that a =/=
+ * b and we do not have to check this again.
+ *
+ * \note We invert grevlex since we have to align the A and C parts of the gbla
+ * matrix in order to efficiently compute.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a, const void *b);
+
+/**
  * \brief Sorts columns resp. monomials found by symbolic preprocessing to get
  * two different parts: Monomials which are lead monomials and monomials which
  * are non lead monomials.
@@ -203,6 +222,21 @@ void sort_columns_by_lead(spd_t *spd);
  * \param symbolic preprocessing data spd
  */
 void sort_lead_columns_by_grevlex(spd_t *spd);
+
+/**
+ * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
+ * given monomial order grevlex and inverts the order
+ *
+ * \note The list of columns resp. monomials was already presorted to
+ * distinguish lead ones (at the beginning of the list) from non lead ones (at
+ * the end of the list).
+ *
+ * \note We invert grevlex since we have to align the A and C parts of the gbla
+ * matrix in order to efficiently compute.
+ *
+ * \param symbolic preprocessing data spd
+ */
+void sort_lead_columns_by_inverse_grevlex(spd_t *spd);
 
 /**
  * \brief Sorts non lead monomials found by symbolic preprocessing w.r.t. the

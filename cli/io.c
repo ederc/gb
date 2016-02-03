@@ -583,7 +583,6 @@ void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,
   for (i=0; i<cbl; ++i) {
     if (A->blocks[rbi][i].val != NULL) {
       for (j=0; j<A->blocks[rbi][i].sz[rib]; ++j) {
-        printf("nc %u --> %u\n",nc,i*bs+(A->blocks[rbi][i].pos[rib][j]));
         buffer[A->ncols-1 - (i*bs +  A->blocks[rbi][i].pos[rib][j])]  = '1';
       }
     }

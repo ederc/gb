@@ -83,17 +83,20 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // first step: remove elements already in ps due to chain criterion with new
   // pairs in new_pairs
   for (i=0; i<ps->load; ++i) {
-    // See note on gb_t in src/types.h why we adjust position by -1.
-    pos1  = ps->pairs[i]->gen1 - basis->st;
-    pos2  = ps->pairs[i]->gen2 - basis->st;
-    //printf("gen1 %u | gen2 %u | pos1 %u | pos2 %u\n", ps->pairs[i]->gen1, ps->pairs[i]->gen2, pos1, pos2);
-    if (ps->pairs[i]->lcm != ps->pairs[ps->load+pos1]->lcm &&
-        ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
-        monomial_division(ps->pairs[i]->lcm, hash, ht)) {
-      ps->pairs[i]->crit  = CHAIN_CRIT;
+    // do not check on initial spairs
+    if (ps->pairs[i]->gen1 != 0) {
+      // See note on gb_t in src/types.h why we adjust position by -1.
+      pos1  = ps->pairs[i]->gen1 - basis->st;
+      pos2  = ps->pairs[i]->gen2 - basis->st;
+      //printf("gen1 %u | gen2 %u | pos1 %u | pos2 %u\n", ps->pairs[i]->gen1, ps->pairs[i]->gen2, pos1, pos2);
+      if (ps->pairs[i]->lcm != ps->pairs[ps->load+pos1]->lcm &&
+          ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
+          monomial_division(ps->pairs[i]->lcm, hash, ht)) {
+        ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
-      printf("CC for (%u,%u)\n",pos1+1, pos2+1);
+        printf("CC for (%u,%u)\n",pos1+1, pos2+1);
 #endif
+      }
     }
   }
 
@@ -184,12 +187,12 @@ inline void free_pair_set(ps_t *ps)
   ps  = NULL;
 }
 
-inline spair_t *generate_input_element_spair(const nelts_t gen1, const gb_t *basis, mp_cf4_ht_t *ht)
+inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
-  sp->gen1  = gen1;
-  sp->gen2  = 0;
-  sp->lcm   = basis->eh[gen1][0];
+  sp->gen1  = 0;
+  sp->gen2  = gen2;
+  sp->lcm   = basis->eh[gen2][0];
   sp->deg   = ht->deg[sp->lcm];
   sp->crit  = NO_CRIT;
 

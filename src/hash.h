@@ -34,7 +34,9 @@
 #define META_DATA_DEBUG 0
 #endif
 
+#ifndef HASH_DEBUG
 #define HASH_DEBUG  0
+#endif
 
 /***************************
  * OUR HASH TABLE IS GLOBAL

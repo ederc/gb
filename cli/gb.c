@@ -239,26 +239,6 @@ int main(int argc, char *argv[])
     // monomials).
     sort_selection_by_column_index(spd, ht, nthreads);
 
-    for (int ii=0; ii<spd->col->load; ++ii) {
-      printf("%u %u | ", ht->idx[spd->col->hpos[ii]], spd->col->hpos[ii]);
-      for (int jj=0; jj<ht->nv; ++jj)
-        printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
-      printf("\n");
-    }
-
-    for (int ii=0; ii<spd->selu->load; ++ii) {
-      for (int jj=0; jj<ht->nv; ++jj) {
-        printf("%u ",ht->exp[spd->selu->mpp[ii].mul][jj]);
-      }
-      printf("upper %u * %u\n",spd->selu->mpp[ii].mul, spd->selu->mpp[ii].idx);
-    }
-    for (int ii=0; ii<spd->sell->load; ++ii) {
-      for (int jj=0; jj<ht->nv; ++jj) {
-        printf("%u ",ht->exp[spd->sell->mpp[ii].mul][jj]);
-      }
-      printf("lower %u * %u\n",spd->sell->mpp[ii].mul, spd->sell->mpp[ii].idx);
-    }
-
     // generate gbla matrix out of data from symbolic preprocessing
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
     // generate pbm files of gbla matrix

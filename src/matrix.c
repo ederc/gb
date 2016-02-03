@@ -68,10 +68,12 @@ inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
     init_dbm(mat->B, spd->selu->load, spd->col->load - spd->col->nlm);
   }
 
+#if MATRIX_DEBUG
     printf("A (%u x %u)\n", mat->A->nrows, mat->A->ncols);
     printf("B (%u x %u)\n", mat->B->nrows, mat->B->ncols);
     printf("C (%u x %u)\n", mat->C->nrows, mat->C->ncols);
     printf("D (%u x %u)\n", mat->D->nrows, mat->D->ncols);
+#endif
 
   return mat;
 }
@@ -191,7 +193,6 @@ void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
     printf("\n");
 #endif
 
-    printf("stores row %u in %u\n", rib, A->nrows-1-rib);
     store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->mod);
   }
   free_dense_block_row(dbr, ncb);
@@ -234,10 +235,11 @@ inline void write_to_sparse_row(sb_fl_t *A, const coeff_t *cf, const nelts_t rbi
   for (i=bs; i>0; --i) {
   //for (i=0; i<bs; ++i) {
     if (cf[i-1] != 0) {
-      A->blocks[rbi][bir].val[rib][sz - A->blocks[rbi][bir].sz[rib] - 1]  =
-        (re_t)((re_m_t)mod - cf[i-1]);
-      A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib] - 1]  = i-1;
       A->blocks[rbi][bir].sz[rib]++;
+      A->blocks[rbi][bir].val[rib][sz - A->blocks[rbi][bir].sz[rib]]  =
+        (re_t)((re_m_t)mod - cf[i-1]);
+      A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib]]  = i-1;
+      //printf("i %u | A->blocks[%u][%u].pos[%u][%u - %u] = %u\n",i, rbi,bir,rib, sz,A->blocks[rbi][bir].sz[rib],A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib]]);
     }
   }
 }
@@ -300,7 +302,6 @@ void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
   j = 0;
   if (basis->nt[pi]>3) {
     for (j=0; j<basis->nt[pi]-3; j=j+4) {
-      printf("j %u , nt[%u] = %u\n",j,pi,basis->nt[pi]);
       hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
       cp  = ht->idx[hp];
 #if MATRIX_DEBUG
@@ -419,13 +420,16 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     printf("%-38s","Reducing A ...");
     fflush(stdout);
   }
+  /*
   printf("---- A1 -----\n");
+  if (mat->A != NULL && mat->A->blocks != NULL) {
   for (int ii=0; ii<mat->A->nrows; ++ii) {
     printf("%u || ", ii);
     for (int jj=0; jj<mat->A->blocks[0][0].sz[ii]; ++jj) {
       printf("%u - %u | ",mat->A->blocks[0][0].val[ii][jj],mat->A->blocks[0][0].pos[ii][jj]);
     }
     printf("\n");
+  }
   }
   if (mat->B != NULL && mat->B->blocks != NULL) {
   printf("---- B1 -----\n");
@@ -437,6 +441,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     printf("\n");
   }
   }
+  */
   if (mat->A->blocks != NULL) {
     if (elim_fl_A_sparse_dense_block(&(mat->A), mat->B, mat->mod, nthreads)) {
       printf("Error while reducing A.\n");
@@ -450,6 +455,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   if (verbose > 2) {
     print_mem_usage();
   }
+  /*
   if (mat->B != NULL && mat->B->blocks != NULL) {
   printf("---- B2 -----\n");
   for (int ii=0; ii<mat->bs; ++ii) {
@@ -461,6 +467,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   }
   }
   printf("\n");
+  */
   // reducing submatrix C to zero using methods of Faugère & Lachartre
   if (verbose > 1) {
     gettimeofday(&t_load_start, NULL);

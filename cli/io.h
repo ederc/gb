@@ -43,7 +43,9 @@
 #define META_DATA_DEBUG 0
 #endif
 
-#define IO_DEBUG  1
+#ifndef IO_DEBUG
+#define IO_DEBUG  0
+#endif
 
 /**
  * \brief Gets number of variables, needs to be done before reading file

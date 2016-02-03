@@ -36,7 +36,10 @@
 #define META_DATA_DEBUG 0
 #endif
 
-#define SYMBOL_DEBUG 1
+#ifndef SYMBOL_DEBUG
+#define SYMBOL_DEBUG 0
+#endif
+
 #define __GB_SYM_LIST_LEN   1000
 
 /**

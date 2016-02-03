@@ -35,7 +35,9 @@
 #define META_DATA_DEBUG 0
 #endif
 
+#ifndef SPAIR_DEBUG
 #define SPAIR_DEBUG  0
+#endif
 
 /**
  * \brief Initialize pair set
@@ -77,9 +79,13 @@ void enlarge_pair_set(ps_t *ps, const nelts_t new_size);
 void free_pair_set(ps_t *ps);
 
 /**
- * \brief Generates spair given by one input element. The second generator is 0.
+ * \brief Generates spair given by one input element. The first generator is 0.
  *
- * \param first generator gen1
+ * \note We use the second generator since then it is easier in symbolic
+ * preprocessing: For all spairs, intial ones or normal ones, gen2 has to go to
+ * selection sell (lower one). So not so many conditionals have to be done.
+ *
+ * \param second generator gen2
  *
  * \param input elements input
  *

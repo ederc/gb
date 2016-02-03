@@ -38,7 +38,9 @@
 #define META_DATA_DEBUG 0
 #endif
 
-#define MATRIX_DEBUG 1
+#ifndef MATRIX_DEBUG
+#define MATRIX_DEBUG 0
+#endif
 
 /**
  * \brief Initilializes the gbla matrix corresponding to the selection done

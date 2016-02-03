@@ -82,13 +82,10 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   basis->cf[basis->load]  = (coeff_t *)malloc(ms * sizeof(coeff_t)); 
   basis->eh[basis->load]  = (hash_t *)malloc(ms * sizeof(hash_t)); 
   
-  for (int ii=0; ii<basis->load; ++ii)
-    printf("degi[%u] = %u\n",ii,basis->deg[ii]);
-
   nelts_t ctr = 0;
   deg_t deg   = 0;
-#if POLY_DEBUG
   nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
+#if POLY_DEBUG
   printf("new lm: ");
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);

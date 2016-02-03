@@ -128,16 +128,22 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     printf("gen1 %u -- gen2 %u -- lcm %u\n", sp->gen1, sp->gen2, sp->lcm);
 #endif
     // We have to distinguish between usual spairs and spairs consisting of one
-    // initial input element: The latter ones have only 1 generator and the
+    // initial input element: The latter ones have only 1 generator (gen2 has
+    // the generator, gen1 is zero) and the
     // corresponding lead monomial is not part of the basis. Thus we cannot set
     // ht->idx[*] = 2 for these. The whole data for these special spairs is in
     // basis before basis->st, whereas the data of the usual spairs is
     // completely in basis starting at position basis->st.
-    if (sp->gen2 == 0) {
-      // first generator for lower part since it is an initial input element
-      // second generator does not exist
-        printf("init low %u %u\n",sp->lcm, sp->gen1);
-      add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
+
+    // so we can always put gen2 in the lower selection list sell
+    add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
+    j = sell->load-1;
+    for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
+      enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
+          basis->eh[sell->mpp[j].idx][k], mon);
+
+    // now we distinguish cases for gen1
+    if (sp->gen1 == 0) {
       if (ht->idx[sp->lcm] == 0) {
         mon->hpos[mon->load]  = sp->lcm;
         ht->idx[sp->lcm]      = 1;
@@ -145,24 +151,9 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         if (mon->load == mon->size)
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
       }
-      j = sell->load-1;
-      for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
-        enter_not_multiplied_monomial_to_preprocessing_hash_list(
-            basis->eh[sell->mpp[j].idx][k], mon);
     } else {
       // first generator for upper part of gbla matrix if there is no other pair
       // with the same lcm
-      if (ht->idx[sp->lcm] == 0) {
-        add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
-      } else {
-        printf("low1 %u %u\n",sp->lcm, sp->gen1);
-        add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
-      }
-      // second generator for lower part of gbla matrix
-        printf("low2 %u %u\n",sp->lcm, sp->gen1);
-      add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
-      // corresponds to lcm of spair, tracking this information by setting ht->idx
-      // to 1 keeping track that this monomial is a lead monomial
       if (ht->idx[sp->lcm] == 0) {
         mon->hpos[mon->load]  = sp->lcm;
         ht->idx[sp->lcm]      = 2;
@@ -176,17 +167,18 @@ void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         mon->load++;
         if (mon->load == mon->size)
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+        add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
+        j = selu->load-1;
+        for (k=1; k<basis->nt[selu->mpp[j].idx]; ++k)
+          enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
+              basis->eh[selu->mpp[j].idx][k], mon);
+      } else {
+        add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
+        j = sell->load-1;
+        for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
+          enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
+              basis->eh[sell->mpp[j].idx][k], mon);
       }
-      // now add new monomials to preprocessing hash list for both generators of
-      // the spair, i.e. sel->load-2 and sel->load-1
-      j = selu->load-1;
-      for (k=1; k<basis->nt[selu->mpp[j].idx]; ++k)
-        enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
-            basis->eh[selu->mpp[j].idx][k], mon);
-      j = sell->load-1;
-      for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
-        enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
-            basis->eh[sell->mpp[j].idx][k], mon);
     }
     // remove the selected pair from the pair set
     free(sp);

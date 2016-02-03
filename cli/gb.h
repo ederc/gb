@@ -39,6 +39,10 @@
 #define META_DATA_DEBUG 0
 #endif
 
+#ifndef GB_DEBUG
+#define GB_DEBUG 0
+#endif
+
 /**
  * \brief Prints help for gb call.
  */

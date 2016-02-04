@@ -185,11 +185,11 @@ inline exp_t get_exponent(const char *term, const char *var_name)
           int exp_len = (int)(mult_pos - (var+strlen(var_name)) - 1);
           memcpy(exp_str, var+strlen(var_name)+1, exp_len);
           exp_str[exp_len] = '\0';
-          exp = (exp_t)atoi(exp_str);
+          exp = (exp_t)strtol(exp_str, NULL, 10);
         } else { // no further variables in this term
           int exp_len = (int)((var+strlen(var)) + 1 - (var+strlen(var_name)) - 1);
           memcpy(exp_str, var+strlen(var_name)+1, exp_len);
-          exp = (exp_t)atoi(exp_str);
+          exp = (exp_t)strtol(exp_str, NULL, 10);
           exp_str[exp_len] = '\0';
         }
       } else { // we are at the last variable with exp = 1
@@ -441,15 +441,18 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       get_term(line, &prev_pos, &term);
       // get coefficient first
       if (term != NULL) {
-        iv_tmp  = (int)atoi(term);
-        // if shortcut notation is used coeff 1 is not written down and atoi
+        iv_tmp  = (int)strtol(term, NULL, 10);
+        // if shortcut notation is used coeff 1 is not written down and strtol
         // boils down to 0. so we adjust this value to 1 again
         if (iv_tmp == 0) {
-          iv_tmp = 1;
-        } else {
-          while (iv_tmp < 0) {
-            iv_tmp  +=  basis->mod;
+          if (term[0] == '-') {
+            iv_tmp = -1;
+          } else {
+            iv_tmp = 1;
           }
+        }
+        while (iv_tmp < 0) {
+          iv_tmp  +=  basis->mod;
         }
         iv  = iv_tmp;
         inverse_coefficient(&iv, basis->mod);
@@ -470,13 +473,16 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         get_term(line, &prev_pos, &term);
         // get coefficient first
         if (term != NULL) {
-          cf_tmp = (int)atoi(term);
+          cf_tmp  = (int)strtol(term, NULL, 10);
           if (cf_tmp == 0) {
-            cf_tmp = 1;
-          } else {
-            while (cf_tmp < 0) {
-              cf_tmp  +=  basis->mod;
+            if (term[0] == '-') {
+              cf_tmp = -1;
+            } else {
+              cf_tmp = 1;
             }
+          }
+          while (cf_tmp < 0) {
+            cf_tmp  +=  basis->mod;
           }
           basis->cf[i][j] = cf_tmp;
           basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
@@ -708,6 +714,9 @@ void print_basis(const gb_t *basis)
   nelts_t i, j;
   nvars_t k;
 
+  for (k=0; k<basis->nv; ++k) {
+    printf("%s\n",basis->vnames[k]);
+  }
   for (i=basis->st; i<basis->load; ++i) {
     // we do the first term differently, since we do not have a "+" in front of
     // it

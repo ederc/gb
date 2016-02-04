@@ -47,6 +47,8 @@
 #define IO_DEBUG  0
 #endif
 
+#define COEFFICIENT_CHAR_LENGTH 10
+
 /**
  * \brief Gets number of variables, needs to be done before reading file
  * completely as we need to initialize the hash table beforehand
@@ -262,4 +264,20 @@ static inline info_t *init_meta_data()
  * \param modulus w.r.t. which the inverse is computed modulus
  */
 void inverse_coefficient(coeff_t *x, const coeff_t modulus);
+
+/**
+ * \brief Prints resulting groebner basis to stdout.
+ *
+ * \param groebner basis basis
+ */
+void print_basis(const gb_t *basis);
+
+/**
+ * \brief Writes resulting groebner basis to file in Singular style.
+ *
+ *  \param file name
+ *
+ * \param groebner basis basis
+ */
+void write_basis_to_singular_file(const char *fn, const gb_t *basis);
 #endif

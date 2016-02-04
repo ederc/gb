@@ -38,6 +38,7 @@ void print_help()
   printf("    -c HTC      Hash table cache resp. size.\n");
   printf("                Default: 2^(16).\n");
   printf("    -h HELP     Print help.\n");
+  printf("    -o OUTPUT   Prints resulting groebner basis at the end.\n");
   printf("    -p PBM      Generates .pbm files of gbla matrices.\n");
   printf("                Note: These files can become huge, handle with care.\n");
   printf("    -r REDGB    Compute the reduced Groebner basis.\n");
@@ -52,6 +53,8 @@ void print_help()
   printf("                3 -> additionally meta information printed\n");
   printf("                Note: Everything >2 is time consuming and might\n");
   printf("                      slow down the overall computations.\n");
+  printf("    -w WRITE    Writes resulting groebner basis in singular format\n");
+  printf("                to a local file.\n");
   printf("\n");
 
   return;
@@ -67,9 +70,14 @@ int main(int argc, char *argv[])
   ht_size_t ht_size     = pow(2,16);
   int simplify          = 0;
   int pbm               = 0;
+  int write_file        = 0;
+  int print_gb          = 0;
 
   // generate file name holder if pbms are generated
   char pbm_fn[400];
+
+  // generate file name holder if singular output is generated
+  char singular_fn[400];
 
   int index;
   int opt;
@@ -86,7 +94,7 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:hpr:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:hopr:s:t:v:w")) != -1) {
     switch (opt) {
       case 'c':
         ht_size = atoi(optarg);
@@ -94,6 +102,9 @@ int main(int argc, char *argv[])
       case 'h':
         print_help();
         return 0;
+      case 'o':
+        print_gb = 1;
+        break;
       case 'p':
         pbm = 1;
         break;
@@ -112,6 +123,9 @@ int main(int argc, char *argv[])
         verbose = atoi(optarg);
         if (verbose > 3)
           verbose = 2;
+        break;
+      case 'w':
+        write_file  = 1;
         break;
       case '?':
         if (optopt == 'f')
@@ -145,6 +159,7 @@ int main(int argc, char *argv[])
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("use simplify?               %15d\n", simplify);
     printf("generate pbm files?         %15d\n", pbm);
+    printf("write result in file?       %15d\n", write_file);
     printf("---------------------------------------------------------------------\n");
   }
 
@@ -164,6 +179,8 @@ int main(int argc, char *argv[])
   if (verbose > 0) {
     printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
   }  
+  if (verbose == 1)
+    printf("---------------------------------------------------------------------\n");
   if (verbose > 1) {
     print_mem_usage();
     printf("---------------------------------------------------------------------\n");
@@ -283,21 +300,31 @@ int main(int argc, char *argv[])
       printf("<<< step %u\n", steps);
   }
   done:
-  // free allocated memory
-  free(meta_data);
-  free_pair_set(ps);
-  free_basis(basis);
-  free_hash_table(ht);
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
     printf("%-38s","Computation completed ...");
     fflush(stdout);
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
-    if (verbose > 1) 
+    printf("---------------------------------------------------------------------\n");
+    printf("size of basis                     %9u\n",basis->load - basis->st);
+    if (verbose > 1)
       print_mem_usage();
   }
-  printf("---------------------------------------------------------------------\n");
+
+  // writing and printing of output
+  if (write_file) {
+    snprintf(singular_fn, 300, "%s-gb.res", fn);
+    write_basis_to_singular_file(singular_fn, basis);
+  }
+  if (print_gb)
+    print_basis(basis);
+  
+  // free allocated memory
+  free(meta_data);
+  free_pair_set(ps);
+  free_basis(basis);
+  free_hash_table(ht);
   return 0;
 
 }

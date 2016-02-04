@@ -184,7 +184,9 @@ typedef struct gb_t
   hash_t **eh;      /*!<  monomial exponent hash*/
   // meta data
   char **vnames;    /*!<  variable names */
-  double fs;         /*!<  file size of input matrix */
+  uint16_t mtl;     /*!<  maximal length of term (needed for
+                          estimating buffer size when writing result)*/
+  double fs;        /*!<  file size of input matrix */
   char *fsu;        /*!<  file size unit of input matrix, e.g. GB */
 } gb_t;
 

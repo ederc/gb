@@ -367,7 +367,18 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
     tmp = line;
     for (i=0; i<basis->nv; ++i) {
       basis->vnames[i]  = get_variable_name(line, &tmp);
+      // calculates the maximal term length: here we take the longes variable
+      // name, later we add 10 for coefficient and "+")
+      if (basis->mtl < strlen(basis->vnames[i]))
+          basis->mtl  = strlen(basis->vnames[i]);
     }
+    // add to max. term length 5 for "^{exp}"
+    basis->mtl  +=  5;
+    // multiply max. term length by number of variables
+    basis->mtl  *=  basis->nv;
+    // now add maximal coefficient length to mtl (max. term length)
+    basis->mtl  +=  COEFFICIENT_CHAR_LENGTH;
+
 #if IO_DEBUG
     for (i=0; i<basis->nv; ++i) {
       printf(basis->vnames[i]);
@@ -690,4 +701,68 @@ void inverse_coefficient(coeff_t *x, const coeff_t modulus) {
   /* check_inverse(*x,u1,modulus); */
   *x  = (re_t)u1;
   return;
+}
+
+void print_basis(const gb_t *basis)
+{
+  nelts_t i, j;
+  nvars_t k;
+
+  for (i=basis->st; i<basis->load; ++i) {
+    // we do the first term differently, since we do not have a "+" in front of
+    // it
+    printf("%u", basis->cf[i][0]);
+    for (k=0; k<basis->nv; ++k) {
+      if (ht->exp[basis->eh[i][0]][k] != 0) {
+        printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
+      }
+    }
+    for (j=1; j<basis->nt[i]; ++j) {
+      printf("+%u", basis->cf[i][j]);
+      for (k=0; k<basis->nv; ++k) {
+        if (ht->exp[basis->eh[i][j]][k] != 0) {
+          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+        }
+      }
+    }
+    printf("\n");
+  }
+}
+
+void write_basis_to_singular_file(const char *fn, const gb_t *basis)
+{
+  nelts_t i, j;
+  nvars_t k;
+
+  FILE *fh  = fopen(fn,"w");
+  
+  int pos;
+
+  fprintf(fh, "ideal g;\r\n");
+  for (i=basis->st; i<basis->load; ++i) {
+    pos = 0;
+    // 10 chars extra for "g[i]=" and ";" in each line
+    char *buffer = (char *)malloc((10+basis->nt[i] * basis->mtl) * sizeof(char));
+    pos +=  sprintf(buffer+pos, "g[%u]=", i-(basis->st-1));
+    // we do the first term differently, since we do not have a "+" in front of
+    // it
+    pos  +=  sprintf(buffer+pos, "%u", basis->cf[i][0]);
+    for (k=0; k<basis->nv; ++k) {
+      if (ht->exp[basis->eh[i][0]][k] != 0) {
+        pos +=  sprintf(buffer+pos, "*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
+      }
+    }
+    for (j=1; j<basis->nt[i]; ++j) {
+      pos +=  sprintf(buffer+pos, "+%u", basis->cf[i][j]);
+      for (k=0; k<basis->nv; ++k) {
+        if (ht->exp[basis->eh[i][j]][k] != 0) {
+          pos +=  sprintf(buffer+pos, "*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+        }
+      }
+    }
+    pos +=  sprintf(buffer+pos, ";\r\n");
+    fprintf(fh, buffer);
+    free(buffer);
+  }
+  fclose(fh);
 }

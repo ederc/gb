@@ -738,40 +738,60 @@ void print_basis(const gb_t *basis)
   }
 }
 
-void write_basis_to_singular_file(const char *fn, const gb_t *basis)
+void print_basis_in_singular_format(const gb_t *basis)
 {
   nelts_t i, j;
   nvars_t k;
-
-  FILE *fh  = fopen(fn,"w");
   
-  int pos;
+  // prints ring
+  printf("ring r = %u, (%s", basis->mod, basis->vnames[0]);
+  for (k=1; k<basis->nv; ++k)
+    printf(",%s", basis->vnames[k]);
+  printf("), dp;\r\n");
 
-  fprintf(fh, "ideal g;\r\n");
-  for (i=basis->st; i<basis->load; ++i) {
-    pos = 0;
-    // 10 chars extra for "g[i]=" and ";" in each line
-    char *buffer = (char *)malloc((10+basis->nt[i] * basis->mtl) * sizeof(char));
-    pos +=  sprintf(buffer+pos, "g[%u]=", i-(basis->st-1));
+  // prints input ideal
+  printf("ideal i;\r\n");
+  for (i=1; i<basis->st; ++i) {
+    printf("i[%u]=", i);
     // we do the first term differently, since we do not have a "+" in front of
     // it
-    pos  +=  sprintf(buffer+pos, "%u", basis->cf[i][0]);
+    printf("%u", basis->cf[i][0]);
     for (k=0; k<basis->nv; ++k) {
       if (ht->exp[basis->eh[i][0]][k] != 0) {
-        pos +=  sprintf(buffer+pos, "*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
+        printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
       }
     }
     for (j=1; j<basis->nt[i]; ++j) {
-      pos +=  sprintf(buffer+pos, "+%u", basis->cf[i][j]);
+      printf("+%u", basis->cf[i][j]);
       for (k=0; k<basis->nv; ++k) {
         if (ht->exp[basis->eh[i][j]][k] != 0) {
-          pos +=  sprintf(buffer+pos, "*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
         }
       }
     }
-    pos +=  sprintf(buffer+pos, ";\r\n");
-    fprintf(fh, buffer);
-    free(buffer);
+    printf(";\r\n");
   }
-  fclose(fh);
+
+  // prints groebner basis
+  printf("ideal g;\r\n");
+  for (i=basis->st; i<basis->load; ++i) {
+    printf("g[%u]=", i-(basis->st-1));
+    // we do the first term differently, since we do not have a "+" in front of
+    // it
+    printf("%u", basis->cf[i][0]);
+    for (k=0; k<basis->nv; ++k) {
+      if (ht->exp[basis->eh[i][0]][k] != 0) {
+        printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
+      }
+    }
+    for (j=1; j<basis->nt[i]; ++j) {
+      printf("+%u", basis->cf[i][j]);
+      for (k=0; k<basis->nv; ++k) {
+        if (ht->exp[basis->eh[i][j]][k] != 0) {
+          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+        }
+      }
+    }
+    printf(";\r\n");
+  }
 }

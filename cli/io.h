@@ -273,11 +273,9 @@ void inverse_coefficient(coeff_t *x, const coeff_t modulus);
 void print_basis(const gb_t *basis);
 
 /**
- * \brief Writes resulting groebner basis to file in Singular style.
- *
- *  \param file name
+ * \brief Prints resulting groebner basis in Singular style.
  *
  * \param groebner basis basis
  */
-void write_basis_to_singular_file(const char *fn, const gb_t *basis);
+void print_basis_in_singular_format(const gb_t *basis);
 #endif

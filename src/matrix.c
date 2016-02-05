@@ -500,7 +500,8 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     fflush(stdout);
   }
   if (D_red->nrows > 0)
-    rank_D = elim_fl_dense_D(D_red, nthreads);
+    //rank_D = elim_fl_dense_D(D_red, nthreads);
+    rank_D = elim_fl_dense_D_completely(D_red, nthreads);
   if (verbose > 1) {
     printf("%9.3f sec (rank D: %u)\n",
         walltime(t_load_start) / (1000000), rank_D);

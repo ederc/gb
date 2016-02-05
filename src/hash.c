@@ -300,12 +300,13 @@ inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)
 {
   hash_t i, hash;
 
-  hash_table->lut   = realloc(hash_table->lut, new_size);
-  hash_table->val   = realloc(hash_table->val, new_size);
-  hash_table->deg   = realloc(hash_table->deg, new_size);
-  hash_table->idx   = realloc(hash_table->idx, new_size);
-  hash_table->div   = realloc(hash_table->div, new_size);
-  hash_table->exp   = realloc(hash_table->exp, new_size);
+  hash_table->lut   = realloc(hash_table->lut, new_size * sizeof(hash_t));
+  hash_table->val   = realloc(hash_table->val, new_size * sizeof(hash_t));
+  hash_table->deg   = realloc(hash_table->deg, new_size * sizeof(deg_t));
+  hash_table->idx   = realloc(hash_table->idx, new_size * sizeof(hash_t));
+  hash_table->div   = realloc(hash_table->div, new_size * sizeof(nelts_t));
+  hash_table->exp   = realloc(hash_table->exp, new_size * sizeof(exp_t *));
+  printf("new size %u / %u\n", hash_table->size, new_size);
   for (i=hash_table->size; i<new_size; ++i) {
     hash_table->exp[i]  = (exp_t *)calloc(hash_table->nv, sizeof(exp_t));
   }

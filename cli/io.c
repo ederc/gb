@@ -802,5 +802,4 @@ void print_basis_in_singular_format(const gb_t *basis)
       printf(";\r\n");
     }
   }
-  printf("ctr %u\n",ctr);
 }

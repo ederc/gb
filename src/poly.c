@@ -127,19 +127,24 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
 
+  basis->load++;
+
+  return hv;
+}
+
+inline void track_redundant_elements_in_basis(gb_t *basis)
+{
+  nelts_t i;
   // check for redundancy of other elements in basis
-  for (i=basis->st; i<basis->load; ++i) {
+  for (i=basis->st; i<basis->load-2; ++i) {
     if (basis->red[i] == NOT_REDUNDANT) {
-      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load][0], ht) == 1) {
+      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht) == 1) {
         basis->red[i] = REDUNDANT;
         basis->nred++;
       }
     }
   }
 
-  basis->load++;
-
-  return hv;
 }
 
 inline void enlarge_basis(gb_t *basis, const nelts_t size)

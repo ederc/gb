@@ -90,4 +90,14 @@ void enlarge_basis(gb_t *basis, nelts_t size);
  */
 hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
     const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+
+/**
+ * \brief Tracks and labels redundant elements in basis. In particular, we check
+ * if the lead monomial of the last basis element (currently added to the basis)
+ * divides the lead monomial of other elements in the basis. Those elements are
+ * then labeled to be redundant.
+ *
+ * \param intermediate groebner basis basis
+ */
+void track_redundant_elements_in_basis(gb_t *basis);
 #endif

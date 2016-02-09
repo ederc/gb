@@ -294,6 +294,7 @@ int main(int argc, char *argv[])
       if (hv == 0)
         goto done;
       update_pair_set(ps, basis, basis->load-1);
+      track_redundant_elements_in_basis(basis);
     }
     free_gbla_matrix(mat);
     free_symbolic_preprocessing_data(spd);

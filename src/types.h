@@ -159,6 +159,13 @@ typedef struct info_t
 
 
 /**
+ * \brief Typedef of enum for redundancy: if a new element is added to the
+ * groebner basis which lead monomial divides the lead monomial of an existing
+ * element, this element is redundant.
+ */
+typedef enum {NOT_REDUNDANT, REDUNDANT} red_t;
+
+/**
  * \brief Groebner basis, starts with input data
  * 
  * \note For easier divisibility checks in symbolic preprocessing we put at
@@ -176,10 +183,12 @@ typedef struct gb_t
   nelts_t load;     /*!<  number of elements in basis*/
   nelts_t st;       /*!<  start of the real basis, everything before is input data */
   nvars_t nv;       /*!<  number of variables */
+  nelts_t nred;     /*!<  number of redundant elements in basis */
   coeff_t mod;      /*!<  modulo/field characteristic */
   // element data
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
+  red_t *red;       /*!<  stores if the the element is redundant or not*/
   coeff_t **cf;     /*!<  coefficients of input elements*/
   hash_t **eh;      /*!<  monomial exponent hash*/
   // meta data

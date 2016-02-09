@@ -257,6 +257,24 @@ hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
 hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht);
 
 /**
+ * \brief Tests if exp of h1 is divisible by exp of h2. If divisibility is
+ * fulfilled only 1 is returned, else 0.
+ *
+ * \note This procedure only tests "if" divisible, but not "by which" it is
+ * divisible. This is enough for detecting redundant elements when new elements
+ * are added to the intermediate groebner basis.
+ *
+ * \param hash position h1
+ *
+ * \param hash position h2
+ *
+ * \param hash table ht
+ *
+ * \return 0 if not divisible, 1 is divisible
+ */
+hash_t check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_t *ht);
+
+/**
  * \brief Returns the multiplier needed to multiply h2 with in order to get
  * h1
  *

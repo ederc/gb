@@ -34,8 +34,10 @@ inline gb_t *initialize_basis(const gb_t *input)
   // allocate memory for elements
   basis->nt     = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
   basis->deg    = (deg_t *)malloc(basis->size * sizeof(deg_t));
+  basis->red    = (red_t *)malloc(basis->size * sizeof(red_t));
   basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
+  printf("bred %p\n", basis->red);
 
   // initialize element at position 0 to NULL for faster divisibility checks
   // later on
@@ -54,6 +56,7 @@ inline void free_basis(gb_t *basis)
       free(basis->vnames[i]);
     }
     free(basis->vnames);
+    free(basis->red);
     free(basis->deg);
     free(basis->nt);
     for (i=0; i<basis->load; ++i) {
@@ -115,12 +118,25 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
 #endif
   basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;
+  basis->red[basis->load] = NOT_REDUNDANT;
+
 
   // realloc memory to the correct number of terms
   basis->cf[basis->load]  = realloc(basis->cf[basis->load],
     basis->nt[basis->load] * sizeof(coeff_t));
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
+
+  // check for redundancy of other elements in basis
+  for (i=basis->st; i<basis->load; ++i) {
+    if (basis->red[i] == NOT_REDUNDANT) {
+      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load][0], ht) == 1) {
+        basis->red[i] = REDUNDANT;
+        basis->nred++;
+      }
+    }
+  }
+
   basis->load++;
 
   return hv;
@@ -131,6 +147,7 @@ inline void enlarge_basis(gb_t *basis, const nelts_t size)
   basis->size = size;
   basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
   basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
+  basis->red  = realloc(basis->red, basis->size * sizeof(red_t));
   basis->cf   = realloc(basis->cf, basis->size * sizeof(coeff_t *));
   basis->eh   = realloc(basis->eh, basis->size * sizeof(hash_t *));
 }

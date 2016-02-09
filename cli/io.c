@@ -297,6 +297,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   hash_t i, j, k;
 
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
+  basis->nred = 0;
 
   struct timeval t_load_start;
   if (vb > 1) {
@@ -349,6 +350,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   basis->size = 3 * basis->load;
   basis->nt   = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
   basis->deg  = (deg_t *)malloc(basis->size * sizeof(deg_t));
+  basis->red  = (red_t *)malloc(basis->size * sizeof(red_t));
   basis->cf   = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh   = (hash_t **)malloc(basis->size * sizeof(hash_t *));
 
@@ -711,30 +713,32 @@ void inverse_coefficient(coeff_t *x, const coeff_t modulus) {
 
 void print_basis(const gb_t *basis)
 {
-  nelts_t i, j;
+  nelts_t i, j, ctr;
   nvars_t k;
 
   for (k=0; k<basis->nv; ++k) {
     printf("%s\n",basis->vnames[k]);
   }
   for (i=basis->st; i<basis->load; ++i) {
-    // we do the first term differently, since we do not have a "+" in front of
-    // it
-    printf("%u", basis->cf[i][0]);
-    for (k=0; k<basis->nv; ++k) {
-      if (ht->exp[basis->eh[i][0]][k] != 0) {
-        printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
-      }
-    }
-    for (j=1; j<basis->nt[i]; ++j) {
-      printf("+%u", basis->cf[i][j]);
+    if (basis->red[i] == NOT_REDUNDANT) {
+      // we do the first term differently, since we do not have a "+" in front of
+      // it
+      printf("%u", basis->cf[i][0]);
       for (k=0; k<basis->nv; ++k) {
-        if (ht->exp[basis->eh[i][j]][k] != 0) {
-          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+        if (ht->exp[basis->eh[i][0]][k] != 0) {
+          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
         }
       }
+      for (j=1; j<basis->nt[i]; ++j) {
+        printf("+%u", basis->cf[i][j]);
+        for (k=0; k<basis->nv; ++k) {
+          if (ht->exp[basis->eh[i][j]][k] != 0) {
+            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+          }
+        }
+      }
+      printf("\n");
     }
-    printf("\n");
   }
 }
 
@@ -773,25 +777,30 @@ void print_basis_in_singular_format(const gb_t *basis)
   }
 
   // prints groebner basis
+  nelts_t ctr = 0;
   printf("ideal g;\r\n");
   for (i=basis->st; i<basis->load; ++i) {
-    printf("g[%u]=", i-(basis->st-1));
-    // we do the first term differently, since we do not have a "+" in front of
-    // it
-    printf("%u", basis->cf[i][0]);
-    for (k=0; k<basis->nv; ++k) {
-      if (ht->exp[basis->eh[i][0]][k] != 0) {
-        printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
-      }
-    }
-    for (j=1; j<basis->nt[i]; ++j) {
-      printf("+%u", basis->cf[i][j]);
+    if (basis->red[i] == NOT_REDUNDANT) {
+      ctr++;
+      printf("g[%u]=", ctr);
+      // we do the first term differently, since we do not have a "+" in front of
+      // it
+      printf("%u", basis->cf[i][0]);
       for (k=0; k<basis->nv; ++k) {
-        if (ht->exp[basis->eh[i][j]][k] != 0) {
-          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+        if (ht->exp[basis->eh[i][0]][k] != 0) {
+          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
         }
       }
+      for (j=1; j<basis->nt[i]; ++j) {
+        printf("+%u", basis->cf[i][j]);
+        for (k=0; k<basis->nv; ++k) {
+          if (ht->exp[basis->eh[i][j]][k] != 0) {
+            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+          }
+        }
+      }
+      printf(";\r\n");
     }
-    printf(";\r\n");
   }
+  printf("ctr %u\n",ctr);
 }

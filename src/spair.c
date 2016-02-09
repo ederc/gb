@@ -46,6 +46,8 @@ void enter_input_elements_to_pair_set(ps_t *ps, const gb_t *basis)
 inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
   nelts_t i;
+
+  nelts_t ctr = 0;
   // we get maximal idx-1 new pairs
   if (ps->size <= ps->load + (idx-1))
     enlarge_pair_set(ps, 2*ps->size);
@@ -53,6 +55,7 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // See note on gb_t in src/types.h why we start at position 1 here.
   for (i=basis->st; i<idx; ++i) {
     ps->pairs[ps->load+i-basis->st] = generate_spair(idx, i, basis, ht);
+    ctr++;
 #if SPAIR_DEBUG
     printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-basis->st]->deg);
 #endif
@@ -63,19 +66,19 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // check product and chain criterion in gebauer moeller style
   // note that we have already marked the pairs for which the product criterion
   // applies in generate_spair()
-  gebauer_moeller(ps, basis, idx);
+  gebauer_moeller(ps, basis, idx, ctr);
 
   // fix pair set and remove detected pairs
-  meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, idx);
+  meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, ctr);
   meta_data->ncrit_total  +=  meta_data->ncrit_last;
 }
 
-void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
+void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts_t ctr)
 {
   nelts_t pos1, pos2;
   // current length can be computed already, need to adjust by the starting
   // position in basis
-  const nelts_t cur_len = ps->load + idx - basis->st;
+  const nelts_t cur_len = ps->load + ctr;
   const hash_t hash     = basis->eh[idx][0];
   int i, j; // we need ints to cover cases where i=0 and j=i-1
 
@@ -85,7 +88,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   for (i=0; i<ps->load; ++i) {
     // do not check on initial spairs
     if (ps->pairs[i]->gen1 != 0) {
-      // See note on gb_t in src/types.h why we adjust position by -1.
+      // See note on gb_t in src/types.h why we adjust position by -basis->st.
       pos1  = ps->pairs[i]->gen1 - basis->st;
       pos2  = ps->pairs[i]->gen2 - basis->st;
       //printf("gen1 %u | gen2 %u | pos1 %u | pos2 %u\n", ps->pairs[i]->gen1, ps->pairs[i]->gen2, pos1, pos2);
@@ -101,7 +104,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   }
 
   // next: sort new pairs
-  qsort(ps->pairs+ps->load, idx-basis->st, sizeof(spair_t **), cmp_spairs_grevlex);
+  qsort(ps->pairs+ps->load, ctr, sizeof(spair_t **), cmp_spairs_grevlex);
   
   // second step: remove new pairs by themselves w.r.t the chain criterion
   for (i=ps->load; i<cur_len; ++i) {
@@ -146,11 +149,11 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   }
 }
 
-inline nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t idx)
+inline nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t ctr)
 {
   // current length can be computed already, need to adjust by the starting
   // position in basis
-  const nelts_t cur_len = ps->load + idx - basis->st;
+  const nelts_t cur_len = ps->load + ctr;
   nelts_t i, j, nremoved;
 
   j         = 0;
@@ -202,12 +205,27 @@ inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *bas
 inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
-  sp->gen1  = gen1;
-  sp->gen2  = gen2;
+  // number of terms in polynomials decides which one is going to the upper part
+  // of the gbla matrix (sp->gen1) and which one to the lower part (sp->gen2)
+  if (basis->nt[gen1] < basis->nt[gen2]) {
+    sp->gen1  = gen1;
+    sp->gen2  = gen2;
+  } else {
+    sp->gen1  = gen2;
+    sp->gen2  = gen1;
+  }
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
   sp->deg   = ht->deg[sp->lcm];
+  
+  // if one of the generators is redundant we can stop already here and mark it
+  // with the CHAIN_CRIT in order to remove it later on
+  /*
+  if (basis->red[gen1] | basis->red[gen2]) {
+    sp->crit  = CHAIN_CRIT;
+    return sp;
+  }
+  */
   sp->crit  = NO_CRIT;
-
   // check for product criterion and mark correspondingly, i.e. we set sp->deg=0
   if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]])
     sp->crit  = PROD_CRIT;

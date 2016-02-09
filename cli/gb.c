@@ -17,7 +17,6 @@
 
 
 #include "gb.h"
-#include <getopt.h>
 
 // extern declaration in src/types.h
 info_t *meta_data;
@@ -43,7 +42,7 @@ void print_help()
   printf("                1 -> default print out of basis.\n");
   printf("                2 -> Singular format print out of basis.\n");
   printf("    -p PBM      Generates .pbm files of gbla matrices.\n");
-  printf("                Note: These files can become huge, handle with care.\n");
+  printf("                Considers as argument a folder to write into.\n");
   printf("    -r REDGB    Compute the reduced Groebner basis.\n");
   printf("                Default: 0 (not reduced).\n");
   printf("    -s SIMP     Use simplify in F4 algorithm.\n");
@@ -70,10 +69,11 @@ int main(int argc, char *argv[])
   int reduce_gb         = 0;
   ht_size_t ht_size     = pow(2,16);
   int simplify          = 0;
-  int pbm               = 0;
+  int generate_pbm      = 0;
   int print_gb          = 0;
 
   // generate file name holder if pbms are generated
+  char *pbm_dir;
   char pbm_fn[400];
 
   int index;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:ho:pr:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:ho:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
         ht_size = (int)strtol(optarg, NULL, 10);
@@ -105,7 +105,8 @@ int main(int argc, char *argv[])
           print_gb = 0;
         break;
       case 'p':
-        pbm = 1;
+        pbm_dir       = optarg;
+        generate_pbm  = 1;
         break;
       case 'r':
         reduce_gb = (int)strtol(optarg, NULL, 10);
@@ -154,7 +155,7 @@ int main(int argc, char *argv[])
     printf("hash table size             %15d (+/- 2^%.1f)\n", ht_size, log_size);
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("use simplify?               %15d\n", simplify);
-    printf("generate pbm files?         %15d\n", pbm);
+    printf("generate pbm files?         %15d\n", generate_pbm);
     printf("print resulting basis?      %15d\n", print_gb);
     printf("---------------------------------------------------------------------\n");
   }
@@ -255,11 +256,13 @@ int main(int argc, char *argv[])
     // generate gbla matrix out of data from symbolic preprocessing
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
     // generate pbm files of gbla matrix
-    if (pbm) {
-      snprintf(pbm_fn, 300, "%s-mat%u.pbm", fn, steps);
+    if (generate_pbm) {
+      int pos = 0;
+      pos = snprintf(pbm_fn+pos, 200, "%s/",pbm_dir);
+      pos = snprintf(pbm_fn+pos, 200, "%s-mat%u.pbm", fn, steps);
+      printf("%s\n", pbm_fn);
       write_matrix_to_pbm(mat, pbm_fn);
     }
-
     // reduce matrix using gbla
     if (verbose == 1) {
       gettimeofday(&t_load_start, NULL);
@@ -273,8 +276,11 @@ int main(int argc, char *argv[])
           walltime(t_load_start) / (1000000), rankDR);
     }
     // generate pbm files of gbla matrix
-    if (pbm) {
-      snprintf(pbm_fn, 300, "%s-mat%u-red.pbm", fn, steps);
+    if (generate_pbm) {
+      int pos = 0;
+      pos = snprintf(pbm_fn+pos, 200, "%s/",pbm_dir);
+      pos = snprintf(pbm_fn+pos, 200, "%s-mat%u-red.pbm", fn, steps);
+      printf("%s\n", pbm_fn);
       write_reduced_matrix_to_pbm(mat, pbm_fn);
     }
 
@@ -303,7 +309,7 @@ int main(int argc, char *argv[])
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
     printf("---------------------------------------------------------------------\n");
-    printf("size of basis                     %9u\n",basis->load - basis->st);
+    printf("size of basis                     %9u\n",basis->load - basis->st - basis->nred);
     if (verbose > 1)
       print_mem_usage();
   }

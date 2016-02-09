@@ -29,6 +29,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <limits.h>
+#include <getopt.h>
 #include "io.h"
 #include <src/poly.h>
 #include <src/spair.h>

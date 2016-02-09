@@ -29,6 +29,7 @@
 #include <math.h>
 #include <omp.h>
 #include "types.h"
+#include "hash.h"
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0

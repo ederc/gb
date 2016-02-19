@@ -24,6 +24,25 @@
 #define GB_TYPES_H
 
 #include <gbla/matrix.h>
+#if defined(_MSC_VER)
+     /* Microsoft C/C++-compatible compiler */
+     #include <intrin.h>
+#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+     /* GCC-compatible compiler, targeting x86/x86-64 */
+     #include <x86intrin.h>
+#elif defined(__GNUC__) && defined(__ARM_NEON__)
+     /* GCC-compatible compiler, targeting ARM with NEON */
+     #include <arm_neon.h>
+#elif defined(__GNUC__) && defined(__IWMMXT__)
+     /* GCC-compatible compiler, targeting ARM with WMMX */
+     #include <mmintrin.h>
+#elif (defined(__GNUC__) || defined(__xlC__)) && (defined(__VEC__) || defined(__ALTIVEC__))
+     /* XLC or GCC-compatible compiler, targeting PowerPC with VMX/VSX */
+     #include <altivec.h>
+#elif defined(__GNUC__) && defined(__SPE__)
+     /* GCC-compatible compiler, targeting PowerPC with SPE */
+     #include <spe.h>
+#endif
 
 #if 0
 #define GB_USE_FLOAT XXX
@@ -46,13 +65,17 @@ typedef uint32_t nelts_t;
 typedef uint32_t ht_size_t;
 
 /* hash table entry size */
-typedef uint32_t hash_t;
+typedef uint64_t hash_t;
 
 /* degree size */
-typedef uint8_t deg_t;
+typedef uint16_t deg_t;
 
 /* exponent size */
-typedef uint8_t exp_t;
+typedef uint8_t exp_s;
+typedef exp_s exp_t;
+#if HAVE_SSE2
+typedef __m128i exp_v;
+#endif
 
 #ifdef GB_USE_FLOAT
 /** coefficient storage type */
@@ -332,7 +355,11 @@ typedef struct mp_cf4_ht_t
   hash_t *lut;      /*!<  lookup table between hash value and position in
                           exponent array*/
   hash_t *val;      /*!<  array of hash values*/
-  exp_t **exp;      /*!<  array of exponents*/
+#if HAVE_SSE2
+  exp_v *ev;        /*!<  sse vector of exponents*/
+#endif
+  exp_t **exp;      /*!<  array of exponents, note that exp_t is possibly
+                          SSE/AVX vector if available*/
   hash_t *rand;     /*!<  array of random values for each variable
                           to generate hash values out of exponents*/
   deg_t *deg;       /*!<  degree of monmial, for faster sorting and searching*/

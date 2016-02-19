@@ -44,7 +44,7 @@
 #endif
 
 #ifndef IO_DEBUG
-#define IO_DEBUG  0
+#define IO_DEBUG  1
 #endif
 
 #define COEFFICIENT_CHAR_LENGTH 10
@@ -132,6 +132,18 @@ char *get_variable_name(const char *line, char **prev_pos);
 void get_term(const char *line, char **prev_pos,
     char **term);
 
+#if HAVE_SSE2
+/**
+ * \brief Stores exponent vector of term in last entry of exp in hash table
+ *
+ * \param term term
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param hash table ht
+ */
+void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht);
+#endif
 /**
  * \brief Returns exponent for variable var_name of term term
  *
@@ -141,7 +153,7 @@ void get_term(const char *line, char **prev_pos,
  *
  * \return exponent of variable
  */
-exp_t get_exponent(const char *term, const char *var_name);
+exp_s get_exponent(const char *term, const char *var_name);
 
 /**
  * \brief Returns number of terms in polynomial represented by a line in a text

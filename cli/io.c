@@ -163,7 +163,52 @@ inline int get_number_of_terms(const char *line)
 
   return nterms;
 }
+#if HAVE_SSE2
+inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
+{
+  nvars_t k;
+  exp_s *expv = (exp_s *)calloc(ht->nv * 16, sizeof(exp_s));
+  const char mult_splicer = '*';
+  const char exp_splicer  = '^';
+  exp_s exp;
 
+  for (k=0; k<basis->nv; ++k) {
+    exp = 0;
+    char *var = strstr(term, basis->vnames[k]);
+    if (var != NULL) {
+      // if the next variable follows directly => exp = 1
+      if (strncmp(&mult_splicer, var+strlen(basis->vnames[k]), 1) == 0) {
+        exp = 1;
+      } else {
+        // if there follows an exp symbol "^"
+        if (strncmp(&exp_splicer, var+strlen(basis->vnames[k]), 1) == 0) {
+          char exp_str[100];
+          char *mult_pos;
+          mult_pos  = strchr(var, mult_splicer);
+          if (mult_pos != NULL) {
+            int exp_len = (int)(mult_pos - (var+strlen(basis->vnames[k])) - 1);
+            memcpy(exp_str, var+strlen(basis->vnames[k])+1, exp_len);
+            exp_str[exp_len] = '\0';
+            exp = (exp_s)strtol(exp_str, NULL, 10);
+          } else { // no further variables in this term
+            int exp_len = (int)((var+strlen(var)) + 1 - (var+strlen(basis->vnames[k])) - 1);
+            memcpy(exp_str, var+strlen(basis->vnames[k])+1, exp_len);
+            exp = (exp_s)strtol(exp_str, NULL, 10);
+            exp_str[exp_len] = '\0';
+          }
+        } else { // we are at the last variable with exp = 1
+          exp = 1;
+        }
+      }
+    }
+    expv[k] = exp;
+  }
+  for (k=0; k<ht->nv; ++k)
+    //ht->exp[ht->load][k]  = _mm_load_si128((__m128i *)expv+(k*16));
+
+  free(expv);
+}
+#endif
 inline exp_t get_exponent(const char *term, const char *var_name)
 {
   const char mult_splicer = '*';
@@ -407,7 +452,11 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));
   int nterms;
-  //exp_t *exp  = (exp_t *)malloc(basis->nv * sizeof(exp_t));
+#if HAVE_SSE2
+  // for intermediate storage of exp vector, needs to have 128bit size in order
+  // to hinder memory corruption when loading in sse vector
+  exp_t *exp = (exp_t *)calloc(16, sizeof(exp_t));
+#endif
   deg_t deg, max_deg;
 
   // NOTE: For easier divisibility checks in symbolic preprocessing we put at
@@ -464,6 +513,13 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       for (k=0; k<basis->nv; ++k) {
         ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
       }
+#if HAVE_SSE2
+      memset(exp, 0, 16 * sizeof(exp_t));
+      for (k=0; k<basis->nv; ++k) {
+        exp[k]  = ht->exp[ht->load][k];
+      }
+      ht->ev[ht->load] = _mm_loadu_si128((exp_v *)exp);
+#endif
       // hash exponent and store degree
       basis->eh[i][0] = check_in_hash_table(ht);
       max_deg = max_deg > deg ? max_deg : deg;
@@ -493,6 +549,13 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         for (k=0; k<basis->nv; ++k) {
           ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
         }
+#if HAVE_SSE2
+      memset(exp, 0, 16 * sizeof(exp_t));
+      for (k=0; k<basis->nv; ++k) {
+        exp[k]  = ht->exp[ht->load][k];
+      }
+      ht->ev[ht->load] = _mm_loadu_si128((exp_v *)exp);
+#endif
         // hash exponent and store degree
         basis->eh[i][j] = check_in_hash_table(ht);
         max_deg = max_deg > deg ? max_deg : deg;
@@ -503,7 +566,9 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       basis->deg[i] = max_deg;
     }
   }
-  //free(exp);
+#if HAVE_SSE2
+  free(exp);
+#endif
   free(term);
   free(line);
 
@@ -676,7 +741,8 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   }
 }
 
-void inverse_coefficient(coeff_t *x, const coeff_t modulus) {
+void inverse_coefficient(coeff_t *x, const coeff_t modulus)
+{
   assert(*x);
   if ( *x == 1 ) return ;
   assert((int32_t)modulus > 0);
@@ -713,7 +779,7 @@ void inverse_coefficient(coeff_t *x, const coeff_t modulus) {
 
 void print_basis(const gb_t *basis)
 {
-  nelts_t i, j, ctr;
+  nelts_t i, j;
   nvars_t k;
 
   for (k=0; k<basis->nv; ++k) {

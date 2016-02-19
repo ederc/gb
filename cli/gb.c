@@ -34,7 +34,7 @@ void print_help()
   printf("    Computes a Groebner basis of the given input ideal.\n");
   printf("\n");
   printf("OPTIONS\n");
-  printf("    -c HTC      Hash table cache resp. size.\n");
+  printf("    -c HTC      Hash table cache resp. size in log2.\n");
   printf("                Default: 2^(16).\n");
   printf("    -h HELP     Print help.\n");
   printf("    -o OUTPUT   Prints resulting groebner basis.\n");
@@ -63,15 +63,14 @@ void print_help()
 
 int main(int argc, char *argv[])
 {
-  const char *fn        = NULL;
-  int verbose           = 0;
-  int nthreads          = 1;
-  int reduce_gb         = 0;
-  ht_size_t ht_size     = pow(2,16);
-  int simplify          = 0;
-  int generate_pbm      = 0;
-  int print_gb          = 0;
-
+  const char *fn    = NULL;
+  int verbose       = 0;
+  int nthreads      = 1;
+  int reduce_gb     = 0;
+  int simplify      = 0;
+  int generate_pbm  = 0;
+  int print_gb      = 0;
+  int htc           = 16;
   // generate file name holder if pbms are generated
   char *pbm_dir;
   char pbm_fn[400];
@@ -84,6 +83,9 @@ int main(int argc, char *argv[])
   /*  timing structs */
   struct timeval t_load_start;
   struct timeval t_complete;
+  double t_linear_algebra = 0;
+  double t_symbolic_preprocessing = 0;
+  double t_update_pairs = 0;
 
   // keep track of meta data, meta_data is global to be used wherever we need it
   // to keep track of data
@@ -94,7 +96,7 @@ int main(int argc, char *argv[])
   while ((opt = getopt(argc, argv, "c:ho:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
-        ht_size = (int)strtol(optarg, NULL, 10);
+        htc = (int)strtol(optarg, NULL, 10);
         break;
       case 'h':
         print_help();
@@ -145,14 +147,15 @@ int main(int argc, char *argv[])
     fprintf(stderr, "File name is required.\nSee help using '-h' option.\n");
     return 1;
   }
+
+  ht_size_t ht_size     = pow(2,htc);
   if (verbose > 1) {
-    double log_size = log2(ht_size);
     printf("---------------------------------------------------------------------\n");
     printf("-------------------------- Computing Groebner -----------------------\n");
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
     printf("number of threads           %15d\n", nthreads);
-    printf("hash table size             %15d (+/- 2^%.1f)\n", ht_size, log_size);
+    printf("hash table size             %15lu (+/- 2^%d)\n", ht_size, htc);
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("use simplify?               %15d\n", simplify);
     printf("generate pbm files?         %15d\n", generate_pbm);
@@ -191,10 +194,15 @@ int main(int argc, char *argv[])
   }
 
   /*  track time for the complete reduction process (excluding load) */
-  if (verbose > 0)
+  if (verbose > 0) {
     gettimeofday(&t_complete, NULL);
+    gettimeofday(&t_load_start, NULL);
+  }
   // initialize spair set
   ps_t *ps = initialize_pair_set(basis, ht);
+
+  if (verbose > 0)
+    t_update_pairs  +=  walltime(t_load_start);
 
   if (verbose > 1) {
     printf("---------------------------------------------------------------------\n");
@@ -220,6 +228,8 @@ int main(int argc, char *argv[])
       printf(">>> step %u\n", steps);
     
     // select next bunch of spairs
+    if (verbose > 0)
+      gettimeofday(&t_load_start, NULL);
     spd_t *spd  = symbolic_preprocessing(ps, basis);
 
     if (verbose > 1) {
@@ -244,6 +254,15 @@ int main(int argc, char *argv[])
     // symbolic preprocessing minus the number of spairs)
     sort_presorted_columns_by_grevlex(spd, nthreads);
 
+#if GB_DEBUG
+    for (int ii=0; ii<spd->col->load; ++ii) {
+      for (int jj=0; jj<ht->nv; ++jj) {
+        printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
+      }
+      printf("| %u\n", ht->idx[spd->col->hpos[ii]]);
+    }
+#endif
+
     // connect monomial hash positions with columns in to be constructed gbla
     // matrix
     set_column_index_in_hash_table(ht, spd);
@@ -253,8 +272,19 @@ int main(int argc, char *argv[])
     // monomials).
     sort_selection_by_column_index(spd, ht, nthreads);
 
+#if GB_DEBUG
+    for (int ii=0; ii<spd->col->load; ++ii) {
+      for (int jj=0; jj<ht->nv; ++jj) {
+        printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
+      }
+      printf("| %u\n", ht->idx[spd->col->hpos[ii]]);
+    }
+#endif
+
     // generate gbla matrix out of data from symbolic preprocessing
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
+    if (verbose > 0)
+      t_symbolic_preprocessing +=  walltime(t_load_start);
     // generate pbm files of gbla matrix
     if (generate_pbm) {
       int pos = 0;
@@ -274,7 +304,9 @@ int main(int argc, char *argv[])
     if (verbose == 1) {
       printf("%9.3f sec (rank DR: %d)\n",
           walltime(t_load_start) / (1000000), rankDR);
+      t_linear_algebra  +=  walltime(t_load_start);
     }
+
     // generate pbm files of gbla matrix
     if (generate_pbm) {
       int pos = 0;
@@ -285,6 +317,8 @@ int main(int argc, char *argv[])
     }
 
     // add new elements to basis and update pair set
+    if (verbose > 0)
+      gettimeofday(&t_load_start, NULL);
     
     for (i=0; i<rankDR; ++i) {
       // add lowest row first, it has the smallest new lead monomial
@@ -299,11 +333,28 @@ int main(int argc, char *argv[])
     free_gbla_matrix(mat);
     free_symbolic_preprocessing_data(spd);
     clear_hash_table_idx(ht);
+
+    if (verbose > 0)
+      t_update_pairs  +=  walltime(t_load_start);
+
     if (verbose > 1)
       printf("<<< step %u\n", steps);
   }
   done:
   if (verbose > 0) {
+    printf("---------------------------------------------------------------------\n");
+    printf("%-38s","Time for updating pairs ...");
+    fflush(stdout);
+    printf("%9.3f sec\n",
+        t_update_pairs / (1000000));
+    printf("%-38s","Time for symbolic preprocessing ...");
+    fflush(stdout);
+    printf("%9.3f sec\n",
+        t_symbolic_preprocessing / (1000000));
+    printf("%-38s","Time for linear algebra ...");
+    fflush(stdout);
+    printf("%9.3f sec\n",
+        t_linear_algebra / (1000000));
     printf("---------------------------------------------------------------------\n");
     printf("%-38s","Computation completed ...");
     fflush(stdout);

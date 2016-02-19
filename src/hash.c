@@ -22,6 +22,18 @@
 
 #include "hash.h"
 
+/****************************************************************************************
+ * AVX/SSE stuff to try
+ *
+ * _mm256_add_epi8
+ * _mm_add_epi8
+ * _mm_adds_epu8 (unsigned with saturation)
+ * _mm256_adds_epu8
+ * _mm_subs_epu8 (unsigned with saturation)
+ * _mm256_subs_epu8
+ * _mm_cmplt_epi8 (-1 if true, 0 if false)
+ * _mm256_cmpgt_epi8 (-1 if true, 0 if false)
+ ***************************************************************************************/
 // extern declaration in src/hash.h
 mp_cf4_ht_t *ht;
 
@@ -71,7 +83,7 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   mp_cf4_ht_t *ht = (mp_cf4_ht_t *)malloc(sizeof(mp_cf4_ht_t));
   
   // global table data
-  ht->nv = number_variables;
+  ht->nv    = number_variables;
   ht->size  = hash_table_size;
   // for easier divisibility checks we start at index 1. If the divisibility
   // check routines return 0, there is no division.
@@ -89,6 +101,9 @@ inline mp_cf4_ht_t *init_hash_table(const ht_size_t hash_table_size,
   for (i=0; i<ht->size; ++i) {
     ht->exp[i]  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
   }
+#if HAVE_SSE2
+  ht->ev    = (exp_v *)malloc(ht->size * sizeof(exp_v));
+#endif
 
   return ht;
 }
@@ -108,6 +123,9 @@ inline void free_hash_table(mp_cf4_ht_t *hash_table)
     for (i=0; i<hash_table->size; ++i)
       free(hash_table->exp[i]);
     free(hash_table->exp);
+#if HAVE_SSE2
+    free(hash_table->ev);
+#endif
   }
 
   free(ht);
@@ -125,7 +143,7 @@ inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)
   return hash;
 }
 
-inline hash_t insert_with_quadratic_probing(const exp_t *exp,
+inline hash_t insert_with_linear_probing(const exp_t *exp,
     const hash_t hash, mp_cf4_ht_t *ht)
 {
   hash_t i, j, tmp;
@@ -177,7 +195,11 @@ inline hash_t insert_in_hash_table(const hash_t hash,
 
   // we need to keep one place open in ht->exp since the next element to be
   // checked against the hash table will be intermediately stored there
+#if HASH_QUADRATIC_PROBING
+  if (ht->load >= ht->size/2-1)
+#else
   if (ht->load >= ht->size-1)
+#endif
     enlarge_hash_table(ht, 2*ht->size);
 
   return (ht->load-1);
@@ -197,9 +219,21 @@ inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_
   ht->deg[last_pos] = ht->deg[mon_1] + ht->deg[mon_2];
   ht->val[last_pos] = hash;
   ht->lut[pos]      = last_pos;
+
+#if HAVE_SSE2
+  exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
+  for (i=0; i<ht->nv; ++i)
+    exp[i]  = ht->exp[last_pos][i];
+  ht->ev[last_pos] = _mm_loadu_si128((exp_v *)exp);
+  free(exp);
+#endif
   ht->load++;
 
-  if (ht->load >= ht->size)
+#if HASH_QUADRATIC_PROBING
+  if (ht->load >= ht->size/2-1)
+#else
+  if (ht->load >= ht->size-1)
+#endif
     enlarge_hash_table(ht, 2*ht->size);
 
   return last_pos;
@@ -212,9 +246,9 @@ inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   // ht->exp
   exp_t *exp  = ht->exp[ht->load];
 
-  hash_t hash   = get_hash(exp, ht);
-  hash_t tmp_h  = hash; // temporary hash values for quadratic probing
-  hash_t tmp_l;         // temporary lookup table value
+  hash_t hash     = get_hash(exp, ht);
+  ht_size_t tmp_h = (ht_size_t)(hash & (ht->size - 1));; // temporary hash values for linear probing
+  ht_size_t tmp_l;         // temporary lookup table value
 
 #if HASH_DEBUG
   for (i=0; i<ht->nv; ++i)
@@ -223,17 +257,29 @@ inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 #endif
 
   for (i=0; i<ht->size; ++i) {
+#if HASH_QUADRATIC_PROBING
+    tmp_h = (tmp_h + (i*i)) & (ht->size - 1);
+#else
     tmp_h = (tmp_h + i) & (ht->size - 1);
+#endif
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
     if (ht->val[tmp_l] != hash)
       continue;
+#if HAVE_SSE2
+    exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], ht->ev[ht->load]);
+    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+      return tmp_l;
+    }
+#else
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
         break;
-    if (j == ht->nv)
+    if (j == ht->nv) {
       return tmp_l;
+    }
+#endif
   }
   
   // at this point we know that we do not have the hash value of exp in the
@@ -248,22 +294,37 @@ inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2
 
   // hash value of the product is the sum of the hash values in our setting
   hash_t hash   = ht->val[mon_1] + ht->val[mon_2];
-  hash_t tmp_h  = hash; // temporary hash values for quadratic probing
-  hash_t tmp_l;         // temporary lookup table value
+  ht_size_t tmp_h = (ht_size_t)(hash & (ht->size - 1));; // temporary hash values for linear probing
+  ht_size_t tmp_l;         // temporary lookup table value
 
+#if HAVE_SSE2
+  exp_v prod  = _mm_adds_epu8(ht->ev[mon_1], ht->ev[mon_2]);
+#endif
   for (i=0; i<ht->size; ++i) {
+#if HASH_QUADRATIC_PROBING
+    tmp_h = (tmp_h + (i*i)) & (ht->size - 1);
+#else
     tmp_h = (tmp_h + i) & (ht->size - 1);
+#endif
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
     if (ht->val[tmp_l] != hash)
       continue;
+#if HAVE_SSE2
+    exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
+    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+      return tmp_l;
+    }
+#else
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+#endif
   }
+
   
   // at this point we know that we do not have the hash value of exp in the
   // table, so we have to insert it
@@ -277,23 +338,38 @@ inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
 
   // hash value of the product is the sum of the hash values in our setting
   hash_t hash   = ht->val[mon_1] + ht->val[mon_2];
-  hash_t tmp_h  = hash; // temporary hash values for quadratic probing
-  hash_t tmp_l;         // temporary lookup table value
+  ht_size_t tmp_h = (ht_size_t)(hash & (ht->size - 1));; // temporary hash values for linear probing
+  ht_size_t tmp_l;         // temporary lookup table value
+#if HAVE_SSE2
+  exp_v prod  = _mm_adds_epu8(ht->ev[mon_1], ht->ev[mon_2]);
+#endif
 
   for (i=0; i<ht->size; ++i) {
+#if HASH_QUADRATIC_PROBING
+    tmp_h = (tmp_h + (i*i)) & (ht->size - 1);
+#else
     tmp_h = (tmp_h + i) & (ht->size - 1);
+#endif
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
     if (ht->val[tmp_l] != hash)
       continue;
+#if HAVE_SSE2
+    exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
+    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+      return tmp_l;
+    }
+#else
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+#endif
   }
   return 0;
+
 }
 
 inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)
@@ -306,6 +382,9 @@ inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)
   hash_table->idx   = realloc(hash_table->idx, new_size * sizeof(hash_t));
   hash_table->div   = realloc(hash_table->div, new_size * sizeof(nelts_t));
   hash_table->exp   = realloc(hash_table->exp, new_size * sizeof(exp_t *));
+#if HAVE_SSE2
+  hash_table->ev    = realloc(hash_table->ev, new_size * sizeof(exp_v));
+#endif
   printf("new size %u / %u\n", hash_table->size, new_size);
   for (i=hash_table->size; i<new_size; ++i) {
     hash_table->exp[i]  = (exp_t *)calloc(hash_table->nv, sizeof(exp_t));
@@ -316,7 +395,7 @@ inline void enlarge_hash_table(mp_cf4_ht_t *hash_table, const hash_t new_size)
   for (i=0; i<hash_table->load; ++i) {
     hash  = hash_table->val[i];
 
-    // insert using quadratic probing
+    // insert using linear probing
     insert_while_enlarging(hash, hash_table);
   }
 }
@@ -334,6 +413,13 @@ inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   for (i=0; i<ht->nv; ++i) {
     lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
   }
+#if HAVE_SSE2
+  exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
+  for (i=0; i<ht->nv; ++i)
+    exp[i]  = ht->exp[ht->load][i];
+  ht->ev[ht->load] = _mm_loadu_si128((exp_v *)exp);
+  free(exp);
+#endif
   return check_in_hash_table(ht);
 }
 
@@ -351,6 +437,13 @@ inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
       return 0;
     e[i]  = e1[i] - e2[i];
   }
+#if HAVE_SSE2
+  exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
+  for (i=0; i<ht->nv; ++i)
+    exp[i]  = ht->exp[ht->load][i];
+  ht->ev[ht->load] = _mm_loadu_si128((exp_v *)exp);
+  free(exp);
+#endif
   return check_in_hash_table(ht);
 }
 
@@ -383,6 +476,13 @@ inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   // we know that exp e2 divides exp e1, so no check for e1[i] < e2[i]
   for (i=0; i<ht->nv; ++i)
     e[i]  = e1[i] - e2[i];
+#if HAVE_SSE2
+  exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
+  for (i=0; i<ht->nv; ++i)
+    exp[i]  = ht->exp[ht->load][i];
+  ht->ev[ht->load] = _mm_loadu_si128((exp_v *)exp);
+  free(exp);
+#endif
   return check_in_hash_table(ht);
 }
 

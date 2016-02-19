@@ -4,11 +4,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <limits.h>
+#include "config.h"
 
 /* Defines determined during configuration of gb. */
 #define __GB_HAVE_MM_MALLOC		@GB_HAVE_MM_MALLOC@
 #define __GB_HAVE_POSIX_MEMALIGN	@GB_HAVE_POSIX_MEMALIGN@
 #define __GB_HAVE_SSE2		@GB_HAVE_SSE2@
+#define __GB_HAVE_SSE42		@GB_HAVE_SSE42@
+#define __GB_HAVE_AVX		  @GB_HAVE_AVX@
+#define __GB_HAVE_AVX2		@GB_HAVE_AVX2@
 #define __GB_HAVE_OPENMP		@GB_HAVE_OPENMP@
 #define __GB_CPU_L1_CACHE		@GB_CPU_L1_CACHE@
 #define __GB_CPU_L2_CACHE		@GB_CPU_L2_CACHE@

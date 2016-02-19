@@ -236,7 +236,7 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
     for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
-    printf("new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
+    printf("2 new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
 #endif
     mon->load++;
     if (mon->load == mon->size)

@@ -47,7 +47,7 @@ missing
 src/.dirstamp
 src/config.h
 src/config.h.in
-src/gbla_config.h
+src/gb_config.h
 src/stamp-h1
 tags
 test/read-jcf-matrix-density

@@ -524,7 +524,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       basis->eh[i][0] = check_in_hash_table(ht);
       max_deg = max_deg > deg ? max_deg : deg;
 #if IO_DEBUG
-      printf("cf[%u] = %u | eh[%u][%u] = %u --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
+      printf("cf[%u] = %lu | eh[%u][%u] = %lu --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
 #endif
       for (j=1; j<nterms; ++j) {
         deg = 0;
@@ -560,7 +560,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         basis->eh[i][j] = check_in_hash_table(ht);
         max_deg = max_deg > deg ? max_deg : deg;
 #if IO_DEBUG
-        printf("cf[%u] = %u | eh[%u][%u] = %u --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
+        printf("cf[%u] = %lu | eh[%u][%u] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
 #endif
       }
       basis->deg[i] = max_deg;

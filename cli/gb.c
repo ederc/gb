@@ -34,8 +34,9 @@ void print_help()
   printf("    Computes a Groebner basis of the given input ideal.\n");
   printf("\n");
   printf("OPTIONS\n");
-  printf("    -c HTC      Hash table cache resp. size in log2.\n");
-  printf("                Default: 2^(16).\n");
+  printf("    -c HTC      Hash table cache resp. size in log_2: The size is then set\n");
+  printf("                to the biggest non-Mersenne prime smaller then 2^(given value).\n");
+  printf("                Default: 18.\n");
   printf("    -h HELP     Print help.\n");
   printf("    -o OUTPUT   Prints resulting groebner basis.\n");
   printf("                0 -> no printing (default if option is not set at all).\n");
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
   int simplify      = 0;
   int generate_pbm  = 0;
   int print_gb      = 0;
-  int htc           = 16;
+  int htc           = 18;
   // generate file name holder if pbms are generated
   char *pbm_dir;
   char pbm_fn[400];
@@ -148,25 +149,31 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  ht_size_t ht_size     = pow(2,htc);
-  if (verbose > 1) {
-    printf("---------------------------------------------------------------------\n");
-    printf("-------------------------- Computing Groebner -----------------------\n");
-    printf("------------------ with the following options set -------------------\n");
-    printf("---------------------------------------------------------------------\n");
-    printf("number of threads           %15d\n", nthreads);
-    printf("hash table size             %15lu (+/- 2^%d)\n", ht_size, htc);
-    printf("compute reduced basis?      %15d\n", reduce_gb);
-    printf("use simplify?               %15d\n", simplify);
-    printf("generate pbm files?         %15d\n", generate_pbm);
-    printf("print resulting basis?      %15d\n", print_gb);
-    printf("---------------------------------------------------------------------\n");
-  }
+  // we start with hash table sizes being non-Mersenne primes < 2^18, nothing
+  // smaller. So we shift htc to the corresponding index of ht->primes.
+  if (htc < 18)
+    htc =   0;
+  else
+    htc -=  18;
 
   // first get number of variables in order to initialize hash table
   nvars_t nvars = get_nvars(fn);
   // initialize hash table
-  ht = init_hash_table(ht_size, nvars);
+  ht = init_hash_table(htc, nvars);
+
+  if (verbose > 0) {
+    printf("---------------------------------------------------------------------\n");
+    printf("-------------------------- Computing Groebner -----------------------\n");
+    printf("------------------ with the following options set -------------------\n");
+    printf("---------------------------------------------------------------------\n");
+    printf("number of threads           %12d\n", nthreads);
+    printf("hash table size             %12lu (non-Mersenne prime < 2^%d)\n", ht->primes[ht->si], ht->si+18);
+    printf("compute reduced basis?      %12d\n", reduce_gb);
+    printf("use simplify?               %12d\n", simplify);
+    printf("generate pbm files?         %12d\n", generate_pbm);
+    printf("print resulting basis?      %12d\n", print_gb);
+    printf("---------------------------------------------------------------------\n");
+  }
   // input stores input data
   gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
 

@@ -348,26 +348,27 @@ typedef struct mat_t
 typedef struct mp_cf4_ht_t
 {
   // size and load counters
-  ht_size_t nv;     /*!<  number of variables*/
-  ht_size_t size;   /*!<  size of hash table*/
-  ht_size_t load;   /*!<  load of hash table*/
+  ht_size_t nv;       /*!<  number of variables*/
+  ht_size_t *primes;  /*!<  possible non-Mersenne primes for hash table size */
+  ht_size_t si;       /*!<  current index in size primes list*/
+  ht_size_t load;     /*!<  load of hash table*/
   // data and arrays for storage
-  hash_t *lut;      /*!<  lookup table between hash value and position in
-                          exponent array*/
-  hash_t *val;      /*!<  array of hash values*/
+  hash_t *lut;        /*!<  lookup table between hash value and position in
+                            exponent array*/
+  hash_t *val;        /*!<  array of hash values*/
 #if HAVE_SSE2
-  exp_v *ev;        /*!<  sse vector of exponents*/
+  exp_v *ev;          /*!<  sse vector of exponents*/
 #endif
-  exp_t **exp;      /*!<  array of exponents, note that exp_t is possibly
-                          SSE/AVX vector if available*/
-  hash_t *rand;     /*!<  array of random values for each variable
-                          to generate hash values out of exponents*/
-  deg_t *deg;       /*!<  degree of monmial, for faster sorting and searching*/
-  nelts_t *div;     /*!<  latest element from gb checked for its leading
-                          term dividing corresponding monomial in hash table*/
-  hash_t *idx;      /*!<  index used for matrix generation and marking
-                          monomials already taken care of in symbolic
-                          preprocessing*/
+  exp_t **exp;        /*!<  array of exponents, note that exp_t is possibly
+                            SSE/AVX vector if available*/
+  hash_t *rand;       /*!<  array of random values for each variable
+                            to generate hash values out of exponents*/
+  deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/
+  nelts_t *div;       /*!<  latest element from gb checked for its leading
+                            term dividing corresponding monomial in hash table*/
+  hash_t *idx;        /*!<  index used for matrix generation and marking
+                            monomials already taken care of in symbolic
+                            preprocessing*/
 } mp_cf4_ht_t;
 
 /**

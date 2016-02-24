@@ -110,11 +110,11 @@ mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
   // check routines return 0, there is no division.
   ht->load  = 1;
   ht->exp   = (exp_t **)malloc(ht->primes[ht->si] * sizeof(exp_t *));
-  ht->lut   = (hash_t *)calloc(ht->primes[ht->si], sizeof(hash_t));
+  ht->lut   = (ht_size_t *)calloc(ht->primes[ht->si], sizeof(ht_size_t));
   ht->val   = (hash_t *)calloc(ht->primes[ht->si], sizeof(hash_t));
   ht->deg   = (deg_t *)calloc(ht->primes[ht->si], sizeof(deg_t));
   ht->div   = (nelts_t *)calloc(ht->primes[ht->si], sizeof(nelts_t));
-  ht->idx   = (hash_t *)calloc(ht->primes[ht->si], sizeof(hash_t));
+  ht->idx   = (ht_size_t *)calloc(ht->primes[ht->si], sizeof(ht_size_t));
   ht->rand  = (hash_t *)malloc(ht->nv * sizeof(hash_t));
   // use random_seed, no zero values are allowed
   set_random_seed(ht);
@@ -135,10 +135,10 @@ inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   const ht_size_t old_si  = ht->si;
   ht->si++;
 
-  ht->lut   = realloc(ht->lut, ht->primes[ht->si] * sizeof(hash_t));
+  ht->lut   = realloc(ht->lut, ht->primes[ht->si] * sizeof(ht_size_t));
   ht->val   = realloc(ht->val, ht->primes[ht->si] * sizeof(hash_t));
   ht->deg   = realloc(ht->deg, ht->primes[ht->si] * sizeof(deg_t));
-  ht->idx   = realloc(ht->idx, ht->primes[ht->si] * sizeof(hash_t));
+  ht->idx   = realloc(ht->idx, ht->primes[ht->si] * sizeof(ht_size_t));
   ht->div   = realloc(ht->div, ht->primes[ht->si] * sizeof(nelts_t));
   ht->exp   = realloc(ht->exp, ht->primes[ht->si] * sizeof(exp_t *));
 #if HAVE_SSE2
@@ -148,7 +148,7 @@ inline void enlarge_hash_table(mp_cf4_ht_t *ht)
     ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
   }
   // re-insert all elements in block
-  memset(ht->lut, 0, ht->primes[ht->si] * sizeof(hash_t));
+  memset(ht->lut, 0, ht->primes[ht->si] * sizeof(ht_size_t));
   for (i=0; i<ht->load; ++i) {
     hash  = ht->val[i];
 

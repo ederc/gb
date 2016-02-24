@@ -353,7 +353,7 @@ typedef struct mp_cf4_ht_t
   ht_size_t si;       /*!<  current index in size primes list*/
   ht_size_t load;     /*!<  load of hash table*/
   // data and arrays for storage
-  hash_t *lut;        /*!<  lookup table between hash value and position in
+  ht_size_t *lut;     /*!<  lookup table between hash value and position in
                             exponent array*/
   hash_t *val;        /*!<  array of hash values*/
 #if HAVE_SSE2
@@ -366,7 +366,7 @@ typedef struct mp_cf4_ht_t
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/
   nelts_t *div;       /*!<  latest element from gb checked for its leading
                             term dividing corresponding monomial in hash table*/
-  hash_t *idx;        /*!<  index used for matrix generation and marking
+  ht_size_t *idx;     /*!<  index used for matrix generation and marking
                             monomials already taken care of in symbolic
                             preprocessing*/
 } mp_cf4_ht_t;

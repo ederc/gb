@@ -122,10 +122,10 @@ inline void free_hash_table(mp_cf4_ht_t *ht)
     free(ht->deg);
     free(ht->div);
     free(ht->idx);
-    free(ht->primes);
     for (i=0; i<ht->primes[ht->si]; ++i)
       free(ht->exp[i]);
     free(ht->exp);
+    free(ht->primes);
 #if HAVE_SSE2
     free(ht->ev);
 #endif
@@ -150,8 +150,9 @@ inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)
   hash_t hash = 0;
 
   for (i=0; i<ht->nv; ++i)
-    hash  +=  ht->rand[i] * (hash_t)exp[i];
+    hash  +=  ht->rand[i] * exp[i];
 
+  //return (hash_t)MODP(hash, ht->primes[ht->si]);
   return hash;
 }
 
@@ -169,7 +170,9 @@ inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)
 inline hash_t insert_with_quadratic_probing(const exp_t *exp,
     const hash_t hash, mp_cf4_ht_t *ht)
 {
-  hash_t i, j, tmp;
+  ht_size_t i;
+  nvars_t j;
+  hash_t tmp;
 
   tmp = hash;
   for (i=0; i<ht->primes[ht->si]; ++i) {
@@ -202,7 +205,9 @@ inline hash_t insert_with_quadratic_probing(const exp_t *exp,
 inline hash_t insert_with_linear_probing(const exp_t *exp,
     const hash_t hash, mp_cf4_ht_t *ht)
 {
-  hash_t i, j, tmp;
+  ht_size_t i;
+  nvars_t j;
+  hash_t tmp;
 
   tmp = hash;
   for (i=0; i<ht->primes[ht->si]; ++i) {
@@ -230,9 +235,9 @@ inline hash_t insert_with_linear_probing(const exp_t *exp,
  */
 inline void insert_while_enlarging(const hash_t hash, mp_cf4_ht_t *ht)
 {
-  hash_t i, tmp;
+  ht_size_t i;
+  ht_size_t tmp = MODP(hash,ht->primes[ht->si]);
 
-  tmp = hash;
   for (i=0; i<ht->primes[ht->si]; ++i) {
 #if HASH_QUADRATIC_PROBING
     tmp = MODP(tmp+(i*i),ht->primes[ht->si]);
@@ -263,7 +268,7 @@ inline void insert_while_enlarging(const hash_t hash, mp_cf4_ht_t *ht)
  * \return position of hash of exp in table
  */
 inline hash_t insert_in_hash_table(const hash_t hash,
-    const hash_t pos,  mp_cf4_ht_t *ht)
+    const ht_size_t pos,  mp_cf4_ht_t *ht)
 {
   nvars_t i;
   // the new exponent is already stored in ht->exp[ht->load]
@@ -313,11 +318,11 @@ inline hash_t insert_in_hash_table(const hash_t hash,
  * \return position of hash of exp in table
  */
 inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
-    const hash_t hash, const hash_t pos,  mp_cf4_ht_t *ht)
+    const hash_t hash, const ht_size_t pos,  mp_cf4_ht_t *ht)
 {
-  hash_t i;
+  nvars_t i;
 
-  hash_t last_pos = ht->load;
+  ht_size_t last_pos = ht->load;
 
   for (i=0; i<ht->nv; ++i)
     ht->exp[last_pos][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
@@ -361,7 +366,7 @@ inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_
  */
 inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 {
-  hash_t i,j;
+  nvars_t i;
   // element to be checked, intermediately stored in the first free position of
   // ht->exp
   exp_t *exp  = ht->exp[ht->load];
@@ -370,17 +375,38 @@ inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   ht_size_t tmp_h = (ht_size_t)MODP(hash, ht->primes[ht->si]); // temporary hash values for linear probing
   ht_size_t tmp_l;         // temporary lookup table value
 
+  // first check directly
+  tmp_l = ht->lut[tmp_h];
+  if (tmp_l == 0)
+    return insert_in_hash_table(hash, tmp_h, ht);
+  if (ht->val[tmp_l] == hash) {
+#if HAVE_SSE2
+    exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], ht->ev[ht->load]);
+    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+      return tmp_l;
+    }
+#else
+    nvars_t j;
+    for (j=0; j<ht->nv; ++j)
+      if (exp[j] != ht->exp[tmp_l][j])
+        break;
+    if (j == ht->nv) {
+      return tmp_l;
+    }
+#endif
+  }
 #if HASH_DEBUG
   for (i=0; i<ht->nv; ++i)
     printf("%u ",exp[i]);
   printf("\nhash = %u\n",hash);
 #endif
 
-  for (i=0; i<ht->primes[ht->si]; ++i) {
+  // remaining checks with probing
+  for (i=1; i<ht->primes[ht->si]; ++i) {
 #if HASH_QUADRATIC_PROBING
     tmp_h = MODP(tmp_h+(i*i),ht->primes[ht->si]);
 #else
-    tmp_H = MODP(tmp_h+(i),ht->primes[ht->si]);
+    tmp_h = MODP(tmp_h+(i),ht->primes[ht->si]);
 #endif
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
@@ -393,6 +419,7 @@ inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
       return tmp_l;
     }
 #else
+    nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
         break;
@@ -424,17 +451,38 @@ inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     const mp_cf4_ht_t *ht)
 {
-  hash_t i,j;
+  ht_size_t i;
 
   // hash value of the product is the sum of the hash values in our setting
   hash_t hash   = ht->val[mon_1] + ht->val[mon_2];
   ht_size_t tmp_h = (ht_size_t)MODP(hash, ht->primes[ht->si]); // temporary hash values for linear probing
   ht_size_t tmp_l;         // temporary lookup table value
+  
+  // first check directly
+  tmp_l = ht->lut[tmp_h];
 #if HAVE_SSE2
   exp_v prod  = _mm_adds_epu8(ht->ev[mon_1], ht->ev[mon_2]);
 #endif
+  if (tmp_l == 0)
+    return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
+  if (ht->val[tmp_l] == hash) {
+#if HAVE_SSE2
+    exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
+    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+      return tmp_l;
+    }
+#else
+    nvars_t j;
+    for (j=0; j<ht->nv; ++j)
+      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+        break;
+    if (j == ht->nv)
+      return tmp_l;
+#endif
+  }
 
-  for (i=0; i<ht->primes[ht->si]; ++i) {
+  // remaining checks with probing
+  for (i=1; i<ht->primes[ht->si]; ++i) {
 #if HASH_QUADRATIC_PROBING
     tmp_h = MODP(tmp_h+(i*i),ht->primes[ht->si]);
 #else
@@ -451,6 +499,7 @@ inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
       return tmp_l;
     }
 #else
+    nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
         break;
@@ -484,17 +533,38 @@ inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
 inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     mp_cf4_ht_t *ht)
 {
-  hash_t i,j;
+  ht_size_t i;
 
   // hash value of the product is the sum of the hash values in our setting
   hash_t hash   = ht->val[mon_1] + ht->val[mon_2];
   ht_size_t tmp_h = (ht_size_t)MODP(hash, ht->primes[ht->si]); // temporary hash values for linear probing
   ht_size_t tmp_l;         // temporary lookup table value
 
+  // first check directly
+  tmp_l = ht->lut[tmp_h];
 #if HAVE_SSE2
   exp_v prod  = _mm_adds_epu8(ht->ev[mon_1], ht->ev[mon_2]);
 #endif
-  for (i=0; i<ht->primes[ht->si]; ++i) {
+  if (tmp_l == 0)
+    return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
+  if (ht->val[tmp_l] == hash) {
+#if HAVE_SSE2
+    exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
+    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+      return tmp_l;
+    }
+#else
+    nvars_t j;
+    for (j=0; j<ht->nv; ++j)
+      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+        break;
+    if (j == ht->nv)
+      return tmp_l;
+#endif
+  }
+
+  // remaining checks with probing
+  for (i=1; i<ht->primes[ht->si]; ++i) {
 #if HASH_QUADRATIC_PROBING
     tmp_h = MODP(tmp_h+(i*i),ht->primes[ht->si]);
 #else
@@ -511,6 +581,7 @@ inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2
       return tmp_l;
     }
 #else
+    nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
         break;
@@ -614,16 +685,14 @@ inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
 inline hash_t check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_t *ht)
 {
   nvars_t i;
-  exp_t *e, *e1, *e2;
+  exp_t *e1, *e2;
 
-  e   = ht->exp[ht->load];
   e1  = ht->exp[h1];
   e2  = ht->exp[h2];
 
   for (i=0; i<ht->nv; ++i) {
     if (e1[i] < e2[i])
       return 0;
-    e[i]  = e1[i] - e2[i];
   }
   return 1;
 }
@@ -672,6 +741,6 @@ inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 inline void clear_hash_table_idx(mp_cf4_ht_t *ht)
 {
-  memset(ht->idx, 0, ht->primes[ht->si] * sizeof(hash_t));
+  memset(ht->idx, 0, ht->primes[ht->si] * sizeof(ht_size_t));
 }
 #endif /* GB_HASH_TABLE_H */

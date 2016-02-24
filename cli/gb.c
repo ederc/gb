@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
     printf("------------------ with the following options set -------------------\n");
     printf("---------------------------------------------------------------------\n");
     printf("number of threads           %12d\n", nthreads);
-    printf("hash table size             %12lu (non-Mersenne prime < 2^%d)\n", ht->primes[ht->si], ht->si+18);
+    printf("hash table size             %12u (non-Mersenne prime < 2^%d)\n", ht->primes[ht->si], ht->si+18);
     printf("compute reduced basis?      %12d\n", reduce_gb);
     printf("use simplify?               %12d\n", simplify);
     printf("generate pbm files?         %12d\n", generate_pbm);

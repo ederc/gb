@@ -464,7 +464,7 @@ inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
   exp_v prod  = _mm_adds_epu8(ht->ev[mon_1], ht->ev[mon_2]);
 #endif
   if (tmp_l == 0)
-    return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
+    return 0;
   if (ht->val[tmp_l] == hash) {
 #if HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);

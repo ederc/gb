@@ -43,6 +43,51 @@
 #endif
 
 /**
+ * \brief Computes the number of column blocks on the left side in the gbla
+ * matrix for a given set of monomials and a given block size.
+ *
+ * \param symbolic preprocessing monomials col
+ *
+ * \param block size bs
+ *
+ * \return number of left hand side column blocks
+ */
+static inline ci_t get_number_of_left_column_blocks(const pre_t *col, const nelts_t bs)
+{
+  return (ci_t) ceil((float) col->nlm/ bs);
+}
+
+/**
+ * \brief Computes the number of column blocks on the right side in the gbla
+ * matrix for a given set of monomials and a given block size.
+ *
+ * \param symbolic preprocessing monomials col
+ *
+ * \param block size bs
+ *
+ * \return number of right hand side column blocks
+ */
+static inline ci_t get_number_of_right_column_blocks(const pre_t *col, const nelts_t bs)
+{
+  return (ci_t) ceil((float) (col->load - col->nlm)/ bs);
+}
+
+/**
+ * \brief Computes the number of row blocks in the gbla matrix for a given
+ * selection (could be upper or lower part) and a given block size.
+ *
+ * \param symbolic preprocessing selection sel
+ *
+ * \param block size bs
+ *
+ * \return number of row blocks
+ */
+static inline ri_t get_number_of_row_blocks(const sel_t *sel, const nelts_t bs)
+{
+  return (ri_t) ceil((float) sel->load / bs);
+}
+
+/**
  * \brief Initilializes the gbla matrix corresponding to the selection done
  * during symbolic preprocessing. It also converts the polynomial representation
  * to rows resp. blocks in the matrix.
@@ -53,35 +98,97 @@
  *
  * \return gbla matrix
  */
-mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis);
+static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
+{
+  mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
+
+  mat->A  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
+  mat->B  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
+  mat->C  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
+  mat->D  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
+  mat->DR = NULL;
+
+  mat->mod  = basis->mod;
+  mat->bs   = __GBLA_SIMD_BLOCK_SIZE;
+  mat->ncl  = spd->col->nlm;
+  mat->ncr  = spd->col->load - spd->col->nlm;
+  mat->nru  = spd->selu->load;
+  mat->nrl  = spd->sell->load;
+  mat->rbu  = get_number_of_row_blocks(spd->selu, mat->bs);
+  mat->rbl  = get_number_of_row_blocks(spd->sell, mat->bs);
+  mat->cbl  = get_number_of_left_column_blocks(spd->col, mat->bs);
+  mat->cbr  = get_number_of_right_column_blocks(spd->col, mat->bs);
+#if MATRIX_DEBUG
+  printf("cbl %u | cbr %u\n",mat->cbl, mat->cbr);
+#endif
+
+  // initialize parts of gbla matrix with known dimensions
+
+  // D exists always
+  init_dbm(mat->D, spd->sell->load, spd->col->load - spd->col->nlm);
+  
+  // if no upper part A & B are NULL and so is C
+  if (spd->selu->load == 0 || spd->col->nlm == 0) {
+    mat->A->blocks  = NULL;
+    mat->A->nrows   = spd->selu->load;
+    mat->A->ncols   = spd->col->nlm;;
+    mat->B->blocks  = NULL;
+    mat->A->nrows   = spd->selu->load;
+    mat->B->ncols   = spd->col->load - spd->col->nlm;;
+    mat->C->blocks  = NULL;
+    mat->C->nrows   = spd->sell->load;
+    mat->C->ncols   = spd->col->nlm;;
+  } else {
+    init_sb(mat->A, spd->selu->load, spd->col->nlm);
+    init_sb(mat->C, spd->sell->load, spd->col->nlm);
+    init_dbm(mat->B, spd->selu->load, spd->col->load - spd->col->nlm);
+  }
+
+#if MATRIX_DEBUG
+    printf("A (%u x %u)\n", mat->A->nrows, mat->A->ncols);
+    printf("B (%u x %u)\n", mat->B->nrows, mat->B->ncols);
+    printf("C (%u x %u)\n", mat->C->nrows, mat->C->ncols);
+    printf("D (%u x %u)\n", mat->D->nrows, mat->D->ncols);
+#endif
+
+  return mat;
+}
 
 /**
  * \brief Frees gbla matrix after reduction.
  *
  * \param gbla matrix mat
  */
-void free_gbla_matrix(mat_t *mat);
+static inline void free_gbla_matrix(mat_t *mat)
+{
+  nelts_t i, j;
 
-/**
- * \brief Initializes a dense block row for buffering values when converting a
- * polynomial to a row in the gbla matrix.
- *
- * \param number of blocks nb
- *
- * \param block size bs
- *
- * \return dense block row
- */
-dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs);
+  // A, C and D are already freed, just check again
+  
+  // B is dense block matrix
+  for (i=0; i<mat->rbu; ++i) {
+    for (j=0; j<mat->cbr; ++j) {
+      if (mat->B->blocks[i][j].val != NULL)
+        free(mat->B->blocks[i][j].val);
+    }
+    free(mat->B->blocks[i]);
+  }
+  free(mat->B->blocks);
+  free(mat->B);
 
-/**
- * \brief Frees dense block row.
- *
- * \param dense block row dbr
- *
- * \param number of blocks nb
- */
-void free_dense_block_row(dbr_t *dbr, const nelts_t nb);
+  // DR is a dense row matrix
+  for (i=0; i<mat->DR->nrows; ++i) {
+    free(mat->DR->row[i]->piv_val);
+    free(mat->DR->row[i]->init_val);
+    free(mat->DR->row[i]->val);
+  }
+  free(mat->DR->row);
+  free(mat->DR);
+  mat->DR = NULL;
+
+  free(mat);
+  mat = NULL;
+}
 
 /**
  * \brief Allocates memory for a sparse block in gbla matrix.
@@ -97,8 +204,20 @@ void free_dense_block_row(dbr_t *dbr, const nelts_t nb);
  *
  * \param block size bs
  */
-void allocate_sparse_block(sb_fl_t *A, const nelts_t rbi, const nelts_t bir,
-    const bi_t bs);
+static inline void allocate_sparse_block(sb_fl_t *A, const nelts_t rbi, const nelts_t bir,
+    const bi_t bs)
+{
+  bi_t i;
+
+  A->blocks[rbi][bir].val = (re_t **)malloc(bs * sizeof(re_t *));
+  A->blocks[rbi][bir].pos = (bi_t **)malloc(bs * sizeof(bi_t *));
+  A->blocks[rbi][bir].sz  = (bi_t *)malloc(bs * sizeof(bi_t));
+  for (i=0; i<bs; ++i) {
+    A->blocks[rbi][bir].val[i]  = NULL;
+    A->blocks[rbi][bir].pos[i]  = NULL;
+    A->blocks[rbi][bir].sz[i]   = 0;
+  }
+}
 
 /**
  * \brief Allocates memory for a dense block in gbla matrix.
@@ -111,8 +230,138 @@ void allocate_sparse_block(sb_fl_t *A, const nelts_t rbi, const nelts_t bir,
  *
  * \param block size bs
  */
-void allocate_densee_block(sb_fl_t *A, const nelts_t rbi, const nelts_t bir,
-    const bi_t bs);
+static inline void allocate_dense_block(dbm_fl_t *A, const nelts_t rbi, const nelts_t bir,
+    const bi_t bs)
+{
+  A->blocks[rbi][bir].val = (re_t *)calloc(bs * bs, sizeof(re_t));
+}
+
+/**
+ * \brief Initializes a dense block row for buffering values when converting a
+ * polynomial to a row in the gbla matrix.
+ *
+ * \param number of blocks nb
+ *
+ * \param block size bs
+ *
+ * \return dense block row
+ */
+static inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
+{
+  nelts_t i;
+
+  dbr_t *dbr  = (dbr_t *)malloc(sizeof(dbr_t));
+  dbr->ctr    = (nelts_t *)malloc(nb * sizeof(nelts_t));
+  dbr->cf     = (coeff_t **)malloc(nb * sizeof(coeff_t *));
+  for (i=0; i<nb; ++i)
+    dbr->cf[i]  = (coeff_t *)malloc(bs * sizeof(coeff_t));
+
+  return dbr;
+}
+
+/**
+ * \brief Frees dense block row.
+ *
+ * \param dense block row dbr
+ *
+ * \param number of blocks nb
+ */
+static inline void free_dense_block_row(dbr_t *dbr, const nelts_t nb)
+{
+  nelts_t i;
+
+  free(dbr->ctr);
+  for (i=0; i<nb; ++i)
+    free(dbr->cf[i]);
+  free(dbr->cf);
+  free(dbr);
+  dbr = NULL;
+}
+
+/**
+ * \brief Writes buffered data to sparse matrix row in block
+ *
+ * \param sparse block matrix A
+ *
+ * \param coefficients to be written cf
+ *
+ * \param row block index rbi
+ *
+ * \param block index in row bir
+ *
+ * \param row in block rib
+ *
+ * \param size of row sz
+ *
+ * \param block size bs
+ *
+ * \param field characteristic mod
+ */
+static inline void write_to_sparse_row(sb_fl_t *A, const coeff_t *cf, const nelts_t rbi,
+    const nelts_t bir, const nelts_t rib, const nelts_t sz,
+    const bi_t bs, const coeff_t mod)
+{
+  bi_t i;
+  for (i=bs; i>0; --i) {
+  //for (i=0; i<bs; ++i) {
+    if (cf[i-1] != 0) {
+      A->blocks[rbi][bir].sz[rib]++;
+      A->blocks[rbi][bir].val[rib][sz - A->blocks[rbi][bir].sz[rib]]  =
+        (re_t)((re_m_t)mod - cf[i-1]);
+      A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib]]  = i-1;
+      //printf("i %u | A->blocks[%u][%u].pos[%u][%u - %u] = %u\n",i, rbi,bir,rib, sz,A->blocks[rbi][bir].sz[rib],A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib]]);
+    }
+  }
+}
+
+/**
+ * \brief Writes buffered data to dense matrix row in block
+ *
+ * \param sparse block matrix A
+ *
+ * \param coefficients to be written cf
+ *
+ * \param row block index rbi
+ *
+ * \param block index in row bir
+ *
+ * \param row in block rib
+ *
+ * \param block size bs
+ */
+static inline void write_to_dense_row(dbm_fl_t *A, const coeff_t *cf, const nelts_t rbi,
+    const nelts_t bir, const nelts_t rib, const bi_t bs)
+{
+  bi_t i;
+
+  for (i=0; i<bs; ++i) {
+    A->blocks[rbi][bir].val[(rib*bs)+i] = cf[i];
+  }
+}
+
+
+/**
+ * \brief Allocates memory for sparse row in gbla matrix block.
+ *
+ * \param sparse block matrix A
+ *
+ * \param row block index rbi
+ *
+ * \param block index in row bir
+ *
+ * \param row in block rib
+ *
+ * \param size of row sz
+ *
+ * \param block size bs
+ */ 
+static inline void allocate_sparse_row_in_block(sb_fl_t *A, const nelts_t rbi,
+    const nelts_t bir, const bi_t rib, const nelts_t sz, const bi_t bs)
+{
+  //printf("rbi %u | bir %u | rib %u | sz %u\n",rbi, bir, rib, sz);
+  A->blocks[rbi][bir].val[rib]  = (re_t *)malloc(sz * sizeof(re_t));
+  A->blocks[rbi][bir].pos[rib]  = (bi_t *)malloc(sz * sizeof(bi_t));
+}
 
 /**
  * \brief After we have stored the data from one polynomial in the dense buffer,
@@ -136,120 +385,37 @@ void allocate_densee_block(sb_fl_t *A, const nelts_t rbi, const nelts_t bir,
  *
  * \param field characteristic mod
  */
-void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr, const nelts_t  rbi,
-    const nelts_t rib, const nelts_t ncb, const nelts_t fr, const bi_t bs,
-    const coeff_t mod);
+static inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
+    const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t fr,
+    const bi_t bs, const coeff_t mod)
+{
+  nelts_t i;
 
-/**
- * \brief Writes buffered data to sparse matrix row in block
- *
- * \param sparse block matrix A
- *
- * \param coefficients to be written cf
- *
- * \param row block index rbi
- *
- * \param block index in row bir
- *
- * \param row in block rib
- *
- * \param size of row sz
- *
- * \param block size bs
- *
- * \param field characteristic mod
- */
-void write_to_sparse_row(sb_fl_t *A, const coeff_t *cf, const nelts_t rbi,
-    const nelts_t bir, const nelts_t rib, const nelts_t sz,
-    const bi_t bs, const coeff_t mod);
+  // calculate index of last block on left side
+  // if there is nothing on the lefthand side what can happen when interreducing
+  // the initial input elements then we have to adjust fbr to 0
+  const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
 
-/**
- * \brief Writes buffered data to dense matrix row in block
- *
- * \param sparse block matrix A
- *
- * \param coefficients to be written cf
- *
- * \param row block index rbi
- *
- * \param block index in row bir
- *
- * \param row in block rib
- *
- * \param block size bs
- */
-void write_to_dense_row(dbm_fl_t *A, const coeff_t *cf, const nelts_t rbi,
-    const nelts_t bir, const nelts_t rib, const bi_t bs);
+  // do sparse left side A
+  for (i=0; i<fbr; ++i) {
+    //printf("dbr->ctr[%u] = %u\n",i,dbr->ctr[i]);
+    if (dbr->ctr[i] > 0) {
+      if (A->blocks[rbi][i].val == NULL)
+        allocate_sparse_block(A, rbi, i, bs);
+      allocate_sparse_row_in_block(A, rbi, i, rib, dbr->ctr[i], bs);
+      write_to_sparse_row(A, dbr->cf[i], rbi, i, rib, dbr->ctr[i], bs, mod);
+    }
+  }
 
-/**
- * \brief Computes the number of column blocks on the left side in the gbla
- * matrix for a given set of monomials and a given block size.
- *
- * \param symbolic preprocessing monomials col
- *
- * \param block size bs
- *
- * \return number of left hand side column blocks
- */
-ci_t get_number_of_left_column_blocks(const pre_t *col, const nelts_t bs);
-
-/**
- * \brief Computes the number of column blocks on the right side in the gbla
- * matrix for a given set of monomials and a given block size.
- *
- * \param symbolic preprocessing monomials col
- *
- * \param block size bs
- *
- * \return number of right hand side column blocks
- */
-ci_t get_number_of_right_column_blocks(const pre_t *col, const nelts_t bs);
-
-/**
- * \brief Computes the number of row blocks in the gbla matrix for a given
- * selection (could be upper or lower part) and a given block size.
- *
- * \param symbolic preprocessing selection sel
- *
- * \param block size bs
- *
- * \return number of row blocks
- */
-ri_t get_number_of_row_blocks(const sel_t *sel, const nelts_t bs);
-
-/**
- * \brief Generates gbla matrix: enters all coefficients from the essential data
- * given by symbolic preprocessing
- *
- * \note It splices the matrix in block rows of mat->bs row size and handles
- * each block row separately. Thus, if available, the generation of the matrix
- * can be done in parallel on different threads using OpenMP.
- *
- * \param intermediate groebner basis basis
- *
- * \param symbplic preprocessing data spd
- *
- * \param number of threads nthreads
- *
- * \return gbla matrix mat
- */
-mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd,
-    const int nthreads);
-
-/**
- * \brief Reduces gbla matrix generated by symbolic preprocessing data. Stores
- * reduced D in mat->DR in dense row format. This computation is completely done
- * in gbla.
- *
- * \param gbla matrix mat
- *
- * \param verbosity level verbose
- *
- * \param number of threads nthreads
- *
- * \return rank of D, negative value if failure happens
- */
-int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads);
+  // do dense right side B
+  for (i=0; i<ncb-fbr; ++i) {
+    if (dbr->ctr[fbr+i] > 0) {
+      if (B->blocks[rbi][i].val == NULL)
+        allocate_dense_block(B, rbi, i, bs);
+      write_to_dense_row(B, dbr->cf[fbr+i], rbi, i, rib, bs);
+    }
+  }
+}
 
 /**
  * \brief Resets buffer to all entries zero once the a row is done.
@@ -260,7 +426,14 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads);
  *
  * \param block size bs
  */
-void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs);
+static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
+{
+  nelts_t i;
+
+  memset(dbr->ctr, 0, ncb * sizeof(nelts_t));
+  for (i=0; i<ncb; ++i)
+    memset(dbr->cf[i], 0, bs * sizeof(coeff_t));
+}
 
 /**
  * \brief Stores polynomial data in dense block row which is a buffer for the
@@ -375,7 +548,6 @@ static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mu
     }
   }
 }
-
 /**
  * \brief Generates one row block of gbla matrix.
  *
@@ -443,4 +615,65 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
   }
   free_dense_block_row(dbr, ncb);
 }
+
+/**
+ * \brief Generates gbla matrix: enters all coefficients from the essential data
+ * given by symbolic preprocessing
+ *
+ * \note It splices the matrix in block rows of mat->bs row size and handles
+ * each block row separately. Thus, if available, the generation of the matrix
+ * can be done in parallel on different threads using OpenMP.
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param symbplic preprocessing data spd
+ *
+ * \param number of threads nthreads
+ *
+ * \return gbla matrix mat
+ */
+static inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const int nthreads)
+{
+  mat_t *mat  = initialize_gbla_matrix(spd, basis);
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single nowait
+    {
+    // fill the upper part AB
+    for (ri_t i=0; i<mat->rbu; ++i) {
+      #pragma omp task
+      {
+        generate_row_blocks(mat->A, mat->B, i, spd->selu->load, spd->col->nlm,
+            mat->bs, mat->cbl+mat->cbr, basis, spd->selu, spd->col);
+      }
+    }
+    // fill the lower part CD
+    for (ri_t i=0; i<mat->rbl; ++i) {
+      #pragma omp task
+      {
+        generate_row_blocks(mat->C, mat->D, i, spd->sell->load, spd->col->nlm,
+            mat->bs, mat->cbl+mat->cbr, basis, spd->sell, spd->col);
+      }
+    }
+    }
+    #pragma omp taskwait
+  }
+
+  return mat;
+}
+
+/**
+ * \brief Reduces gbla matrix generated by symbolic preprocessing data. Stores
+ * reduced D in mat->DR in dense row format. This computation is completely done
+ * in gbla.
+ *
+ * \param gbla matrix mat
+ *
+ * \param verbosity level verbose
+ *
+ * \param number of threads nthreads
+ *
+ * \return rank of D, negative value if failure happens
+ */
+int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads);
 #endif

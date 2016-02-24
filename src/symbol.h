@@ -304,7 +304,7 @@ void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
  *
  * \param last index of pair selection in pair list idx
  */
-inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
+static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     const gb_t *basis, const nelts_t nsel)
 {
   nelts_t i, j, k;

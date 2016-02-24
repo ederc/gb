@@ -288,7 +288,7 @@ void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs);
  *
  * \param hash table ht
  */
-inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
+static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
     const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
   nelts_t j, tmp;
@@ -404,7 +404,7 @@ inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
  *
  * \param symbolic preprocessing monomials col
  */
-inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
+static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
     const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
     const gb_t *basis, const sel_t *sel, const pre_t *col)
 {

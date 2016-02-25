@@ -163,7 +163,7 @@ inline int get_number_of_terms(const char *line)
 
   return nterms;
 }
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
 inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   nvars_t k;
@@ -452,7 +452,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));
   int nterms;
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   // for intermediate storage of exp vector, needs to have 128bit size in order
   // to hinder memory corruption when loading in sse vector
   exp_t *exp = (exp_t *)calloc(16, sizeof(exp_t));
@@ -513,7 +513,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       for (k=0; k<basis->nv; ++k) {
         ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
       }
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
       memset(exp, 0, 16 * sizeof(exp_t));
       for (k=0; k<basis->nv; ++k) {
         exp[k]  = ht->exp[ht->load][k];
@@ -549,7 +549,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         for (k=0; k<basis->nv; ++k) {
           ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
         }
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
       memset(exp, 0, 16 * sizeof(exp_t));
       for (k=0; k<basis->nv; ++k) {
         exp[k]  = ht->exp[ht->load][k];
@@ -566,7 +566,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       basis->deg[i] = max_deg;
     }
   }
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   free(exp);
 #endif
   free(term);

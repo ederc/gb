@@ -132,7 +132,7 @@ char *get_variable_name(const char *line, char **prev_pos);
 void get_term(const char *line, char **prev_pos,
     char **term);
 
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
 /**
  * \brief Stores exponent vector of term in last entry of exp in hash table
  *

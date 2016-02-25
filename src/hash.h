@@ -24,6 +24,7 @@
 
 #include "gb_config.h"
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -66,13 +67,41 @@
  **************************/
 extern mp_cf4_ht_t *ht;
 
+// global variables used as random seeds, initialized to max unsigned values
+// depending on available wordsize of the machine
+#if __GB_WORDSIZE==64
 /**
  * \brief Generates pseudo random numbers using xorshifts using global defined
  * random_seed variable
  *
  * \return some pseudo random number
  */
-void pseudo_random_generator();
+static inline uint64_t pseudo_random_generator(uint64_t random_seed)
+{
+  random_seed ^=  (random_seed << 13);
+  random_seed ^=  (random_seed << 7);
+  random_seed ^=  (random_seed << 17);
+
+  return random_seed;
+}
+
+#elif __GB_WORDSIZE==32
+/**
+ * \brief Generates pseudo random numbers using xorshifts using global defined
+ * random_seed variable
+ *
+ * \return some pseudo random number
+ */
+static inline uint32_t pseudo_random_generator(uint32_t random_seed)
+{
+  random_seed ^=  (random_seed << 13);
+  random_seed ^=  (random_seed << 17);
+  random_seed ^=  (random_seed << 5);
+
+  return random_seed;
+}
+
+#endif
 
 /********************************************************************************
  * FOLLOWING HASH TABLE IMPLEMENTATION IS COPIED FROM COMPACT F4 IMPLEMENTATION 
@@ -83,7 +112,21 @@ void pseudo_random_generator();
  *
  * \param hash table ht
  */
-void set_random_seed(mp_cf4_ht_t *ht);
+static inline void set_random_seed(mp_cf4_ht_t *ht)
+{
+  hash_t i;
+
+#if __GB_WORDSIZE==64
+uint64_t random_seed  = 0xFFFFFFFFFFFFFFFF;
+#elif __GB_WORDSIZE==32
+uint32_t random_seed  = 0xFFFFFFFF;
+#endif
+  // use random_seed, no zero values are allowed
+  for (i=0; i<ht->nv; ++i) {
+    random_seed = pseudo_random_generator(random_seed);
+    ht->rand[i] = random_seed | 1;
+  }
+}
 
 /**
  * \brief Generates hash table as defined in compact F4 implementation by
@@ -95,15 +138,118 @@ void set_random_seed(mp_cf4_ht_t *ht);
  *
  * \return hash table
  */
-mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
-    const nvars_t nv);
+static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
+    const nvars_t nv)
+{
+  hash_t i;
+
+  mp_cf4_ht_t *ht = (mp_cf4_ht_t *)malloc(sizeof(mp_cf4_ht_t));
+
+  // global table data
+
+  // sets possible non-Mersenne primes for hash table size
+  // we assume minimal <2^18 and a maximal of <2^32 as feasible range
+  ht->primes  = (ht_size_t *)malloc(15 * sizeof(ht_size_t));
+  ht->primes[0]   = 262139;     // < 2^18
+  ht->primes[1]   = 524269;     // < 2^19
+  ht->primes[2]   = 1048573;    // < 2^20
+  ht->primes[3]   = 2097143;    // < 2^21
+  ht->primes[4]   = 4194301;    // < 2^22
+  ht->primes[5]   = 8388593;    // < 2^23
+  ht->primes[6]   = 16777213;   // < 2^24
+  ht->primes[7]   = 33554393;   // < 2^25
+  ht->primes[8]   = 67108859;   // < 2^26
+  ht->primes[9]   = 134217689;  // < 2^27
+  ht->primes[10]  = 268435399;  // < 2^28
+  ht->primes[11]  = 536870909;  // < 2^29
+  ht->primes[12]  = 1073741789; // < 2^30
+  ht->primes[13]  = 2147483629; // < 2^31
+  ht->primes[14]  = 4294967295; // < 2^32
+
+  ht->nv    = nv;
+  // sets size index in primes array for hash table size
+  ht->si    = ht_si;
+  // for easier divisibility checks we start at index 1. If the divisibility
+  // check routines return 0, there is no division.
+  ht->load  = 1;
+  ht->exp   = (exp_t **)malloc(ht->primes[ht->si] * sizeof(exp_t *));
+  ht->lut   = (ht_size_t *)calloc(ht->primes[ht->si], sizeof(ht_size_t));
+  ht->val   = (hash_t *)calloc(ht->primes[ht->si], sizeof(hash_t));
+  ht->deg   = (deg_t *)calloc(ht->primes[ht->si], sizeof(deg_t));
+  ht->div   = (nelts_t *)calloc(ht->primes[ht->si], sizeof(nelts_t));
+  ht->idx   = (ht_size_t *)calloc(ht->primes[ht->si], sizeof(ht_size_t));
+  ht->rand  = (hash_t *)malloc(ht->nv * sizeof(hash_t));
+  // get memory for each exponent
+  for (i=0; i<ht->primes[ht->si]; ++i) {
+    ht->exp[i]  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+  }
+#if __GB_HAVE_SSE2
+  ht->randv = (exp_v *)malloc(1 * sizeof(exp_v));
+  ht->ev    = (exp_v *)malloc(ht->primes[ht->si] * sizeof(exp_v));
+#endif
+  // use random_seed, no zero values are allowed
+  set_random_seed(ht);
+
+  return ht;
+}
+
+/**
+ * \brief Inserts in hash table using quadratic probing when enlarging table
+ *
+ * \param hash value to be inserted hash
+ *
+ * \param hash table hash_table
+ */
+static inline void insert_while_enlarging(const hash_t hash, mp_cf4_ht_t *ht)
+{
+  ht_size_t i;
+  ht_size_t tmp = MODP(hash,ht->primes[ht->si]);
+
+  for (i=0; i<ht->primes[ht->si]; ++i) {
+#if HASH_QUADRATIC_PROBING
+    tmp = MODP(tmp+(i*i),ht->primes[ht->si]);
+#else
+    tmp = MODP(tmp+(i),ht->primes[ht->si]);
+#endif
+    if (ht->lut[tmp])
+      continue;
+    ht->lut[tmp]  = i;
+    break;
+  }
+}
 
 /**
  * \brief Enlarges hash table to next prime number size
  *
  * \param hash table ht
  */
-void enlarge_hash_table(mp_cf4_ht_t *ht);
+static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
+{
+  hash_t i, hash;
+  const ht_size_t old_si  = ht->si;
+  ht->si++;
+
+  ht->lut   = realloc(ht->lut, ht->primes[ht->si] * sizeof(ht_size_t));
+  ht->val   = realloc(ht->val, ht->primes[ht->si] * sizeof(hash_t));
+  ht->deg   = realloc(ht->deg, ht->primes[ht->si] * sizeof(deg_t));
+  ht->idx   = realloc(ht->idx, ht->primes[ht->si] * sizeof(ht_size_t));
+  ht->div   = realloc(ht->div, ht->primes[ht->si] * sizeof(nelts_t));
+  ht->exp   = realloc(ht->exp, ht->primes[ht->si] * sizeof(exp_t *));
+#if __GB_HAVE_SSE2
+  ht->ev    = realloc(ht->ev, ht->primes[ht->si] * sizeof(exp_v));
+#endif
+  for (i=old_si; i<ht->primes[ht->si]; ++i) {
+    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
+  }
+  // re-insert all elements in block
+  memset(ht->lut, 0, ht->primes[ht->si] * sizeof(ht_size_t));
+  for (i=0; i<ht->load; ++i) {
+    hash  = ht->val[i];
+
+    // insert using linear probing
+    insert_while_enlarging(hash, ht);
+  }
+}
 
 /**
  * \brief Frees dynamically allocated data in hash table
@@ -126,7 +272,8 @@ static inline void free_hash_table(mp_cf4_ht_t *ht)
       free(ht->exp[i]);
     free(ht->exp);
     free(ht->primes);
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
+    free(ht->randv);
     free(ht->ev);
 #endif
   }
@@ -144,6 +291,23 @@ static inline void free_hash_table(mp_cf4_ht_t *ht)
  *
  * \return hash value
  */
+#if __GB_HAVE_SSE2
+static inline hash_t get_hash(const exp_v ev, mp_cf4_ht_t *ht)
+{
+  hash_t i;
+  hash_t hash = 0;
+
+  exp_t *exp  = (exp_t *)malloc(16*sizeof(exp_t));
+
+  _mm_storeu_si128((exp_v *)exp, ev);
+
+  for (i=0; i<ht->nv; ++i)
+    hash  +=  ht->rand[i] * exp[i];
+
+  free(exp);
+  return hash;
+}
+#else
 static inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)
 {
   hash_t i;
@@ -152,9 +316,9 @@ static inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)
   for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
 
-  //return (hash_t)MODP(hash, ht->primes[ht->si]);
   return hash;
 }
+#endif
 
 /**
  * \brief Inserts in hash table using quadratic probing in general
@@ -224,31 +388,6 @@ static inline hash_t insert_with_linear_probing(const exp_t *exp,
       return ht->lut[tmp];
   }
   return ht->lut[tmp];
-}
-
-/**
- * \brief Inserts in hash table using quadratic probing when enlarging table
- *
- * \param hash value to be inserted hash
- *
- * \param hash table hash_table
- */
-static inline void insert_while_enlarging(const hash_t hash, mp_cf4_ht_t *ht)
-{
-  ht_size_t i;
-  ht_size_t tmp = MODP(hash,ht->primes[ht->si]);
-
-  for (i=0; i<ht->primes[ht->si]; ++i) {
-#if HASH_QUADRATIC_PROBING
-    tmp = MODP(tmp+(i*i),ht->primes[ht->si]);
-#else
-    tmp = MODP(tmp+(i),ht->primes[ht->si]);
-#endif
-    if (ht->lut[tmp])
-      continue;
-    ht->lut[tmp]  = i;
-    break;
-  }
 }
 
 /**
@@ -332,7 +471,7 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
   ht->val[last_pos] = hash;
   ht->lut[pos]      = last_pos;
 
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
   for (i=0; i<ht->nv; ++i)
     exp[i]  = ht->exp[last_pos][i];
@@ -369,9 +508,13 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   nvars_t i;
   // element to be checked, intermediately stored in the first free position of
   // ht->exp
-  exp_t *exp  = ht->exp[ht->load];
 
-  hash_t hash     = get_hash(exp, ht);
+#if __GB_HAVE_SSE2
+  hash_t hash = get_hash(ht->ev[ht->load], ht);
+#else
+  exp_t *exp  = ht->exp[ht->load];
+  hash_t hash = get_hash(exp, ht);
+#endif
   ht_size_t tmp_h = (ht_size_t)MODP(hash, ht->primes[ht->si]); // temporary hash values for linear probing
   ht_size_t tmp_l;         // temporary lookup table value
 
@@ -380,7 +523,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   if (tmp_l == 0)
     return insert_in_hash_table(hash, tmp_h, ht);
   if (ht->val[tmp_l] == hash) {
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], ht->ev[ht->load]);
     if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
@@ -413,7 +556,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
       break;
     if (ht->val[tmp_l] != hash)
       continue;
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], ht->ev[ht->load]);
     if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
@@ -460,13 +603,13 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   
   // first check directly
   tmp_l = ht->lut[tmp_h];
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   exp_v prod  = _mm_adds_epu8(ht->ev[mon_1], ht->ev[mon_2]);
 #endif
   if (tmp_l == 0)
     return 0;
   if (ht->val[tmp_l] == hash) {
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
     if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
@@ -493,7 +636,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
       break;
     if (ht->val[tmp_l] != hash)
       continue;
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
     if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
@@ -542,13 +685,13 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
 
   // first check directly
   tmp_l = ht->lut[tmp_h];
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   exp_v prod  = _mm_adds_epu8(ht->ev[mon_1], ht->ev[mon_2]);
 #endif
   if (tmp_l == 0)
     return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
   if (ht->val[tmp_l] == hash) {
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
     if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
@@ -575,7 +718,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
       break;
     if (ht->val[tmp_l] != hash)
       continue;
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
     if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
@@ -619,7 +762,7 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   for (i=0; i<ht->nv; ++i) {
     lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
   }
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   ht->ev[ht->load] = _mm_max_epu8(ht->ev[h1], ht->ev[h2]);
 #endif
   return check_in_hash_table(ht);
@@ -640,7 +783,7 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
 {
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   exp_v cmpv  = _mm_cmplt_epi8(ht->ev[h1], ht->ev[h2]);
   if (_mm_movemask_epi8(cmpv) != 0)
     return 0;
@@ -653,13 +796,13 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   e2  = ht->exp[h2];
 
   for (i=0; i<ht->nv; ++i) {
-#if !HAVE_SSE2
+#if !__GB_HAVE_SSE2
     if (e1[i] < e2[i])
       return 0;
 #endif
     e[i]  = e1[i] - e2[i];
   }
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   ht->ev[ht->load] = _mm_subs_epi8(ht->ev[h1], ht->ev[h2]);
 #endif
   return check_in_hash_table(ht);
@@ -683,7 +826,7 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline int check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_t *ht)
 {
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   exp_v cmpv  = _mm_cmplt_epi8(ht->ev[h1], ht->ev[h2]);
   return (_mm_movemask_epi8(cmpv) == 0);
 #else
@@ -728,7 +871,7 @@ static inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   // we know that exp e2 divides exp e1, so no check for e1[i] < e2[i]
   for (i=0; i<ht->nv; ++i)
     e[i]  = e1[i] - e2[i];
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
   exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
   for (i=0; i<ht->nv; ++i)
     exp[i]  = ht->exp[ht->load][i];

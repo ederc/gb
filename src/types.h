@@ -361,6 +361,9 @@ typedef struct mp_cf4_ht_t
 #endif
   exp_t **exp;        /*!<  array of exponents, note that exp_t is possibly
                             SSE/AVX vector if available*/
+#if HAVE_SSE2
+  exp_v *randv;       /*!<  sse vector of random values*/
+#endif
   hash_t *rand;       /*!<  array of random values for each variable
                             to generate hash values out of exponents*/
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/

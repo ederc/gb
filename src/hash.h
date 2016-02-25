@@ -644,6 +644,11 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
 {
+#if HAVE_SSE2
+  exp_v cmpv  = _mm_cmplt_epi8(ht->ev[h1], ht->ev[h2]);
+  if (_mm_movemask_epi8(cmpv) != 0)
+    return 0;
+#endif
   nvars_t i;
   exp_t *e, *e1, *e2;
 
@@ -652,16 +657,14 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   e2  = ht->exp[h2];
 
   for (i=0; i<ht->nv; ++i) {
+#if !HAVE_SSE2
     if (e1[i] < e2[i])
       return 0;
+#endif
     e[i]  = e1[i] - e2[i];
   }
 #if HAVE_SSE2
-  exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
-  for (i=0; i<ht->nv; ++i)
-    exp[i]  = ht->exp[ht->load][i];
-  ht->ev[ht->load] = _mm_loadu_si128((exp_v *)exp);
-  free(exp);
+  ht->ev[ht->load] = _mm_subs_epi8(ht->ev[h1], ht->ev[h2]);
 #endif
   return check_in_hash_table(ht);
 }

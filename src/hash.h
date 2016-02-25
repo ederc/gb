@@ -382,7 +382,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   if (ht->val[tmp_l] == hash) {
 #if HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], ht->ev[ht->load]);
-    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+    if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
     }
 #else
@@ -415,7 +415,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
       continue;
 #if HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], ht->ev[ht->load]);
-    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+    if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
     }
 #else
@@ -468,7 +468,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   if (ht->val[tmp_l] == hash) {
 #if HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
-    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+    if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
     }
 #else
@@ -495,7 +495,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
       continue;
 #if HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
-    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+    if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
     }
 #else
@@ -550,7 +550,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   if (ht->val[tmp_l] == hash) {
 #if HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
-    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+    if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
     }
 #else
@@ -577,7 +577,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
       continue;
 #if HAVE_SSE2
     exp_v cmpv  = _mm_cmpeq_epi64(ht->ev[tmp_l], prod);
-    if (_mm_movemask_epi8(cmpv) == 0xFFFF) {
+    if (_mm_movemask_epi8(cmpv) != 0) {
       return tmp_l;
     }
 #else
@@ -620,11 +620,7 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
     lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
   }
 #if HAVE_SSE2
-  exp_t *exp  = (exp_t *)calloc(16, sizeof(exp_t));
-  for (i=0; i<ht->nv; ++i)
-    exp[i]  = ht->exp[ht->load][i];
-  ht->ev[ht->load] = _mm_loadu_si128((exp_v *)exp);
-  free(exp);
+  ht->ev[ht->load] = _mm_max_epu8(ht->ev[h1], ht->ev[h2]);
 #endif
   return check_in_hash_table(ht);
 }

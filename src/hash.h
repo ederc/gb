@@ -682,8 +682,12 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  *
  * \return 0 if not divisible, 1 is divisible
  */
-static inline hash_t check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_t *ht)
+static inline int check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_t *ht)
 {
+#if HAVE_SSE2
+  exp_v cmpv  = _mm_cmplt_epi8(ht->ev[h1], ht->ev[h2]);
+  return (_mm_movemask_epi8(cmpv) == 0);
+#else
   nvars_t i;
   exp_t *e1, *e2;
 
@@ -695,6 +699,7 @@ static inline hash_t check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_
       return 0;
   }
   return 1;
+#endif
 }
 
 /**

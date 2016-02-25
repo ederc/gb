@@ -138,7 +138,7 @@ inline void track_redundant_elements_in_basis(gb_t *basis)
   // check for redundancy of other elements in basis
   for (i=basis->st; i<basis->load-2; ++i) {
     if (basis->red[i] == NOT_REDUNDANT) {
-      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht) == 1) {
+      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
         basis->red[i] = REDUNDANT;
         basis->nred++;
       }

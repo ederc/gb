@@ -335,7 +335,8 @@ nvars_t get_nvars(const char *fn)
   return nvars;
 }
 
-gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nthrds)
+gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
+    mp_cf4_ht_t *ht, int vb, int nthrds)
 {
   uint64_t fl;
 
@@ -343,6 +344,9 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
 
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
   basis->nred = 0;
+  basis->ord  = (ord_t)ordering;
+  // we check for homogeneity of the input when storing input
+  basis->hom  = 0;
 
   struct timeval t_load_start;
   if (vb > 1) {
@@ -511,7 +515,13 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
       }
       // now loop over variables of term
       for (k=0; k<basis->nv; ++k) {
-        ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
+        // if we use graded reverse lexicographical order (basis->ord=0) then we
+        // store the exponent's entries in reverse order => we can use memcmp
+        // when sorting the columns of the gbla matrix
+        if (basis->ord == 0)
+          ht->exp[ht->load][basis->nv-1-k]  = get_exponent(term, basis->vnames[k]);
+        else
+          ht->exp[ht->load][k]  = get_exponent(term, basis->vnames[k]);
       }
 #if __GB_HAVE_SSE2
       memset(exp, 0, 16 * sizeof(exp_t));
@@ -547,7 +557,14 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         }
         // now loop over variables of term
         for (k=0; k<basis->nv; ++k) {
-          ht->exp[ht->load][k]  =   get_exponent(term, basis->vnames[k]);
+          // if we use graded reverse lexicographical order (basis->ord=0) then we
+          // store the exponent's entries in reverse order => we can use memcmp
+          // when sorting the columns of the gbla matrix
+          //ht->exp[ht->load][k]  = get_exponent(term, basis->vnames[k]);
+          if (basis->ord == 0)
+            ht->exp[ht->load][basis->nv-1-k]  = get_exponent(term, basis->vnames[k]);
+          else
+            ht->exp[ht->load][k]  = get_exponent(term, basis->vnames[k]);
         }
 #if __GB_HAVE_SSE2
       memset(exp, 0, 16 * sizeof(exp_t));
@@ -563,6 +580,10 @@ gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht, int vb, int nth
         printf("cf[%lu] = %u | eh[%lu][%lu] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
 #endif
       }
+      if (ht->deg[basis->eh[i][0]] == ht->deg[basis->eh[i][basis->nt[i]-1]])
+        basis->hom  = 1;
+      else
+        basis->hom  = 0;
       basis->deg[i] = max_deg;
     }
   }
@@ -853,15 +874,25 @@ void print_basis_in_singular_format(const gb_t *basis)
       // it
       printf("%u", basis->cf[i][0]);
       for (k=0; k<basis->nv; ++k) {
+        /*
         if (ht->exp[basis->eh[i][0]][k] != 0) {
           printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
+        }
+        */
+        if (ht->exp[basis->eh[i][0]][basis->nv-1-k] != 0) {
+          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][basis->nv-1-k]);
         }
       }
       for (j=1; j<basis->nt[i]; ++j) {
         printf("+%u", basis->cf[i][j]);
         for (k=0; k<basis->nv; ++k) {
+          /*
           if (ht->exp[basis->eh[i][j]][k] != 0) {
             printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
+          }
+          */
+          if (ht->exp[basis->eh[i][j]][basis->nv-1-k] != 0) {
+            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][basis->nv-1-k]);
           }
         }
       }

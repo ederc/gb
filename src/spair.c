@@ -258,6 +258,7 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
     // Note that this loop only works since we assume that spa->lcm =/=
     // spb->lcm. Otherwise i might get to zero and decremented again, which
     // means that we would get into an infinite loop as nvars_t is unsigned.
+    return memcmp(expb,expa, ht->nv);
     for (i=ht->nv-1; i>=0; --i) {
       if (expa[i] < expb[i]) {
         return 1;

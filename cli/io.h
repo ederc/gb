@@ -76,6 +76,8 @@ nvars_t get_nvars(const char *fn);
  *
  * \param number of variables nvars
  *
+ * \param chosen monomial ordering ordering
+ *
  * \param hash table to store the exponents ht
  *
  * \param level of verbosity vb
@@ -84,7 +86,7 @@ nvars_t get_nvars(const char *fn);
  *
  * \return initial state of input
  */
-gb_t *load_input(const char *fn, nvars_t nvars, mp_cf4_ht_t *ht,
+gb_t *load_input(const char *fn, nvars_t nvars, int ordering, mp_cf4_ht_t *ht,
     int vb, int nthrds);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */

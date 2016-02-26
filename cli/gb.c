@@ -28,7 +28,7 @@ void print_help()
   printf("    gb - Groebner basis computations\n");
   printf("\n");
   printf("SYNOPSIS\n");
-  printf("    gb [options] [file..]\n");
+  printf("    gb [options] file\n");
   printf("\n");
   printf("DESCRIPTION\n");
   printf("    Computes a Groebner basis of the given input ideal.\n");
@@ -37,6 +37,9 @@ void print_help()
   printf("    -c HTC      Hash table cache resp. size in log_2: The size is then set\n");
   printf("                to the biggest non-Mersenne prime smaller then 2^(given value).\n");
   printf("                Default: 18.\n");
+  printf("    -d ORDER    Ordering w.r.t. which the Groebner basis is computed.\n");
+  printf("                Graded reverse lexicographical: 0\n");
+  printf("                Default: 0.\n");
   printf("    -h HELP     Print help.\n");
   printf("    -o OUTPUT   Prints resulting groebner basis.\n");
   printf("                0 -> no printing (default if option is not set at all).\n");
@@ -71,9 +74,10 @@ int main(int argc, char *argv[])
   int simplify      = 0;
   int generate_pbm  = 0;
   int print_gb      = 0;
+  int ordering      = 0;
   int htc           = 18;
   // generate file name holder if pbms are generated
-  char *pbm_dir;
+  char *pbm_dir = NULL;
   char pbm_fn[400];
 
   int index;
@@ -94,10 +98,13 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:ho:p:r:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:d:ho:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
         htc = (int)strtol(optarg, NULL, 10);
+        break;
+      case 'd':
+        ordering  = (int)strtol(optarg, NULL, 10);
         break;
       case 'h':
         print_help();
@@ -148,7 +155,10 @@ int main(int argc, char *argv[])
     fprintf(stderr, "File name is required.\nSee help using '-h' option.\n");
     return 1;
   }
-
+  if (ordering != 0) {
+    fprintf(stderr, "At the moment only computations w.r.t. the degree reverse lexicographical\nordering are possible.\nSee help using '-h' option.\n");
+    return 1;
+  }
   // we start with hash table sizes being non-Mersenne primes < 2^18, nothing
   // smaller. So we shift htc to the corresponding index of ht->primes.
   if (htc < 18)
@@ -175,7 +185,7 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------\n");
   }
   // input stores input data
-  gb_t *basis = load_input(fn, nvars, ht, verbose, nthreads);
+  gb_t *basis = load_input(fn, nvars, ordering, ht, verbose, nthreads);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
@@ -186,18 +196,19 @@ int main(int argc, char *argv[])
   if (verbose > 0) {
     printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
   }  
-  if (verbose == 1)
-    printf("---------------------------------------------------------------------\n");
-  if (verbose > 1) {
+  if (verbose > 0) {
     print_mem_usage();
     printf("---------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
     printf("field characteristic        %15d\n", basis->mod);
+    printf("monomial ordering           %15d\n", basis->ord);
     printf("number of variables         %15d\n", basis->nv);
     // See note on gb_t in src/types.h why we decrement basis->load here.
     printf("number of generators        %15d\n", basis->load-1);
-    printf("basis file size             %18.2f %s\n", basis->fs, basis->fsu);
+    printf("homogeneous input?          %15d\n", basis->hom);
+    printf("input file size             %18.2f %s\n", basis->fs, basis->fsu);
+    printf("---------------------------------------------------------------------\n");
   }
 
   /*  track time for the complete reduction process (excluding load) */

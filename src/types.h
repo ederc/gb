@@ -70,6 +70,12 @@ typedef uint64_t hash_t;
 /* degree size */
 typedef uint16_t deg_t;
 
+/* homogeneity */
+typedef uint8_t hom_t;
+
+/* monomial ordering */
+typedef uint8_t ord_t;
+
 /* exponent size */
 typedef uint8_t exp_s;
 typedef exp_s exp_t;
@@ -206,6 +212,8 @@ typedef struct gb_t
   nelts_t load;     /*!<  number of elements in basis*/
   nelts_t st;       /*!<  start of the real basis, everything before is input data */
   nvars_t nv;       /*!<  number of variables */
+  hom_t hom;        /*!<  homogeneous input? 1=yes, 0=no */
+  ord_t ord;        /*!<  monomial ordering */
   nelts_t nred;     /*!<  number of redundant elements in basis */
   coeff_t mod;      /*!<  modulo/field characteristic */
   // element data

@@ -221,22 +221,16 @@ inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   }
 
   // else we have to check reverse lexicographical
-  nvars_t i;
-  exp_t *expa = ht->exp[ha];
-  exp_t *expb = ht->exp[hb];
-  // Note that this loop only works since we assume that h1 =/= h2.
-  // Otherwise i might get to zero and decremented again, which
-  // means that we would get into an infinite loop as nvars_t is unsigned.
-  for (i=ht->nv-1; i>=0; --i) {
-    if (expa[i] < expb[i]) {
-      return -1;
-    } else {
-      if (expa[i] != expb[i])
-        return 1;
-    }
-  }
-  // we should never get here since a =/= b by assumption
-  return 0;
+  // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
+  // => we can use memcmp() here and still get reverse lexicographical ordering
+#if __GB_HAVE_SSE2
+  exp_t *expa = (exp_t *)malloc(16 * sizeof(exp_t));
+  exp_t *expb = (exp_t *)malloc(16 * sizeof(exp_t));
+  _mm_storeu_si128((exp_v *)expa, ht->ev[ha]);
+  _mm_storeu_si128((exp_v *)expb, ht->ev[hb]);
+  return memcmp(expa, expb, ht->nv);
+#endif
+  return memcmp(ht->exp[ha], ht->exp[hb], ht->nv);
 }
 
 inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a,
@@ -254,22 +248,15 @@ inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a
   }
 
   // else we have to check reverse lexicographical
-  nvars_t i;
-  exp_t *expa = ht->exp[ha];
-  exp_t *expb = ht->exp[hb];
-  // Note that this loop only works since we assume that h1 =/= h2.
-  // Otherwise i might get to zero and decremented again, which
-  // means that we would get into an infinite loop as nvars_t is unsigned.
-  for (i=ht->nv-1; i>=0; --i) {
-    if (expa[i] < expb[i]) {
-      return 1;
-    } else {
-      if (expa[i] != expb[i])
-        return -1;
-    }
-  }
-  // we should never get here since a =/= b by assumption
-  return 0;
+#if __GB_HAVE_SSE2
+  exp_t *expa = (exp_t *)malloc(16 * sizeof(exp_t));
+  exp_t *expb = (exp_t *)malloc(16 * sizeof(exp_t));
+  _mm_storeu_si128((exp_v *)expa, ht->ev[ha]);
+  _mm_storeu_si128((exp_v *)expb, ht->ev[hb]);
+  return memcmp(expb, expa, ht->nv);
+#else
+  return memcmp(ht->exp[hb], ht->exp[ha], ht->nv);
+#endif
 }
 
 inline void sort_columns_by_lead(spd_t *spd)

@@ -297,14 +297,13 @@ static inline hash_t get_hash(const exp_v ev, mp_cf4_ht_t *ht)
   hash_t i;
   hash_t hash = 0;
 
-  exp_t *exp  = (exp_t *)malloc(16*sizeof(exp_t));
+  exp_t exp[16];
 
   _mm_storeu_si128((exp_v *)exp, ev);
 
   for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
 
-  free(exp);
   return hash;
 }
 #else

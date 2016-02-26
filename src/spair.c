@@ -252,22 +252,19 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
         return -1;
     }
     // compare reverse lexicographical
-    nvars_t i;
+    // NOTE: for graded reverse lexicographical ordering we store the exponents
+    // ht->exp and ht->ev in reverse order => we can use memcmp() for reverse
+    // lex comparison
+#if __GB_HAVE_SSE2
+    exp_t expa[16];
+    exp_t expb[16];
+    _mm_storeu_si128((exp_v *)expa, ht->ev[spa->lcm]);
+    _mm_storeu_si128((exp_v *)expb, ht->ev[spb->lcm]);
+#else
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
-    // Note that this loop only works since we assume that spa->lcm =/=
-    // spb->lcm. Otherwise i might get to zero and decremented again, which
-    // means that we would get into an infinite loop as nvars_t is unsigned.
+#endif
     return memcmp(expb,expa, ht->nv);
-    for (i=ht->nv-1; i>=0; --i) {
-      if (expa[i] < expb[i]) {
-        return 1;
-      } else {
-        if (expa[i] != expb[i])
-          return -1;
-      }
-    }
-    return 0;
   } else {
     // we check for spairs labeled by the product criterion, those are moved to
     // the end in order to have an efficient Gebauer-Moeller implementation: If

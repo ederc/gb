@@ -786,6 +786,183 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   }
 }
 
+void print_basis(const gb_t *basis)
+{
+  nelts_t i, j;
+  nvars_t k;
+
+#if __GB_HAVE_SSE2
+  exp_t exp[ht->nev*ht->vl];
+#else
+  exp_t *exp = NULL;
+#endif
+  for (k=0; k<basis->nv-1; ++k) {
+    printf("%s, ",basis->vnames[k]);
+  }
+  printf("%s\n",basis->vnames[k]);
+  for (i=basis->st; i<basis->load; ++i) {
+    if (basis->red[i] == NOT_REDUNDANT) {
+      // we do the first term differently, since we do not have a "+" in front of
+      // it
+      printf("%u", basis->cf[i][0]);
+#if __GB_HAVE_SSE2
+      for (k=0; k<ht->nev; ++k)
+        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][0]][k]);
+#else
+      exp = ht->exp[basis->eh[i][0]];
+#endif
+      for (k=0; k<basis->nv; ++k) {
+        for (k=0; k<basis->nv; ++k) {
+          if (basis->ord == 0) {
+            if (exp[basis->nv-1-k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[basis->nv-1-k]);
+            }
+          } else {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[k]);
+            }
+          }
+        }
+      }
+      for (j=1; j<basis->nt[i]; ++j) {
+        printf("+%u", basis->cf[i][j]);
+#if __GB_HAVE_SSE2
+        for (k=0; k<ht->nev; ++k)
+          _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][j]][k]);
+#else
+        exp = ht->exp[basis->eh[i][j]];
+#endif
+        for (k=0; k<basis->nv; ++k) {
+          if (basis->ord == 0) {
+            if (exp[basis->nv-1-k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[basis->nv-1-k]);
+            }
+          } else {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[k]);
+            }
+          }
+        }
+      }
+      printf("\n");
+    }
+  }
+}
+
+void print_basis_in_singular_format(const gb_t *basis)
+{
+  nelts_t i, j;
+  nvars_t k;
+
+#if __GB_HAVE_SSE2
+  exp_t exp[ht->nev*ht->vl];
+#else
+  exp_t *exp = NULL;
+#endif
+  // prints ring
+  printf("ring r = %u, (%s", basis->mod, basis->vnames[0]);
+  for (k=1; k<basis->nv; ++k)
+    printf(",%s", basis->vnames[k]);
+  printf("), dp;\r\n");
+
+  // prints input ideal
+  printf("ideal i;\r\n");
+  for (i=1; i<basis->st; ++i) {
+    printf("i[%u]=", i);
+    // we do the first term differently, since we do not have a "+" in front of
+    // it
+    printf("%u", basis->cf[i][0]);
+#if __GB_HAVE_SSE2
+    for (k=0; k<ht->nev; ++k)
+      _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][0]][k]);
+#else
+    exp = ht->exp[basis->eh[i][0]];
+#endif
+    for (k=0; k<basis->nv; ++k) {
+      if (basis->ord == 0) {
+        if (exp[basis->nv-1-k] != 0) {
+          printf("*%s^%u", basis->vnames[k], exp[basis->nv-1-k]);
+        }
+      } else {
+        if (exp[k] != 0) {
+          printf("*%s^%u", basis->vnames[k], exp[k]);
+        }
+      }
+    }
+    for (j=1; j<basis->nt[i]; ++j) {
+      printf("+%u", basis->cf[i][j]);
+#if __GB_HAVE_SSE2
+      for (k=0; k<ht->nev; ++k)
+        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][j]][k]);
+#else
+      exp = ht->exp[basis->eh[i][j]];
+#endif
+      for (k=0; k<basis->nv; ++k) {
+        if (basis->ord == 0) {
+          if (exp[basis->nv-1-k] != 0) {
+            printf("*%s^%u", basis->vnames[k], exp[basis->nv-1-k]);
+          }
+        } else {
+          if (exp[k] != 0) {
+            printf("*%s^%u", basis->vnames[k], exp[k]);
+          }
+        }
+      }
+    }
+    printf(";\r\n");
+  }
+
+  // prints groebner basis
+  nelts_t ctr = 0;
+  printf("ideal g;\r\n");
+  for (i=basis->st; i<basis->load; ++i) {
+    if (basis->red[i] == NOT_REDUNDANT) {
+      ctr++;
+      printf("g[%u]=", ctr);
+      // we do the first term differently, since we do not have a "+" in front of
+      // it
+      printf("%u", basis->cf[i][0]);
+#if __GB_HAVE_SSE2
+      for (k=0; k<ht->nev; ++k)
+        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][0]][k]);
+#else
+      exp = ht->exp[basis->eh[i][0]];
+#endif
+      for (k=0; k<basis->nv; ++k) {
+        if (basis->ord == 0) {
+          if (exp[basis->nv-1-k] != 0) {
+            printf("*%s^%u", basis->vnames[k], exp[basis->nv-1-k]);
+          }
+        } else {
+          if (exp[k] != 0) {
+            printf("*%s^%u", basis->vnames[k], exp[k]);
+          }
+        }
+      }
+      for (j=1; j<basis->nt[i]; ++j) {
+        printf("+%u", basis->cf[i][j]);
+#if __GB_HAVE_SSE2
+        for (k=0; k<ht->nev; ++k)
+          _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][j]][k]);
+#else
+        exp = ht->exp[basis->eh[i][j]];
+#endif
+        for (k=0; k<basis->nv; ++k) {
+          if (basis->ord == 0) {
+            if (exp[basis->nv-1-k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[basis->nv-1-k]);
+            }
+          } else {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[k]);
+            }
+          }
+        }
+      }
+      printf(";\r\n");
+    }
+  }
+}
 void inverse_coefficient(coeff_t *x, const coeff_t modulus)
 {
   assert(*x);
@@ -821,121 +998,3 @@ void inverse_coefficient(coeff_t *x, const coeff_t modulus)
   *x  = (re_t)u1;
   return;
 }
-/*
-void print_basis(const gb_t *basis)
-{
-  nelts_t i, j;
-  nvars_t k;
-
-  for (k=0; k<basis->nv; ++k) {
-    printf("%s\n",basis->vnames[k]);
-  }
-  for (i=basis->st; i<basis->load; ++i) {
-    if (basis->red[i] == NOT_REDUNDANT) {
-      // we do the first term differently, since we do not have a "+" in front of
-      // it
-      printf("%u", basis->cf[i][0]);
-      for (k=0; k<basis->nv; ++k) {
-        if (ht->exp[basis->eh[i][0]][k] != 0) {
-          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
-        }
-      }
-      for (j=1; j<basis->nt[i]; ++j) {
-        printf("+%u", basis->cf[i][j]);
-        for (k=0; k<basis->nv; ++k) {
-          if (ht->exp[basis->eh[i][j]][k] != 0) {
-            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
-          }
-        }
-      }
-      printf("\n");
-    }
-  }
-}
-
-void print_basis_in_singular_format(const gb_t *basis)
-{
-  nelts_t i, j;
-  nvars_t k;
-  
-  // prints ring
-  printf("ring r = %u, (%s", basis->mod, basis->vnames[0]);
-  for (k=1; k<basis->nv; ++k)
-    printf(",%s", basis->vnames[k]);
-  printf("), dp;\r\n");
-
-  // prints input ideal
-  printf("ideal i;\r\n");
-  for (i=1; i<basis->st; ++i) {
-    printf("i[%u]=", i);
-    // we do the first term differently, since we do not have a "+" in front of
-    // it
-    printf("%u", basis->cf[i][0]);
-    for (k=0; k<basis->nv; ++k) {
-      if (basis->ord == 0) {
-        if (ht->exp[basis->eh[i][0]][basis->nv-1-k] != 0) {
-          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][basis->nv-1-k]);
-        }
-      } else {
-        if (ht->exp[basis->eh[i][0]][k] != 0) {
-          printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
-        }
-      }
-    }
-    for (j=1; j<basis->nt[i]; ++j) {
-      printf("+%u", basis->cf[i][j]);
-      for (k=0; k<basis->nv; ++k) {
-        if (basis->ord == 0) {
-          if (ht->exp[basis->eh[i][j]][basis->nv-1-k] != 0) {
-            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][basis->nv-1-k]);
-          }
-        } else {
-          if (ht->exp[basis->eh[i][j]][k] != 0) {
-            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
-          }
-        }
-      }
-    }
-    printf(";\r\n");
-  }
-
-  // prints groebner basis
-  nelts_t ctr = 0;
-  printf("ideal g;\r\n");
-  for (i=basis->st; i<basis->load; ++i) {
-    if (basis->red[i] == NOT_REDUNDANT) {
-      ctr++;
-      printf("g[%u]=", ctr);
-      // we do the first term differently, since we do not have a "+" in front of
-      // it
-      printf("%u", basis->cf[i][0]);
-      for (k=0; k<basis->nv; ++k) {
-        if (basis->ord == 0) {
-          if (ht->exp[basis->eh[i][0]][basis->nv-1-k] != 0) {
-            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][basis->nv-1-k]);
-          }
-        } else {
-          if (ht->exp[basis->eh[i][0]][k] != 0) {
-            printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][0]][k]);
-          }
-        }
-      }
-      for (j=1; j<basis->nt[i]; ++j) {
-        printf("+%u", basis->cf[i][j]);
-        for (k=0; k<basis->nv; ++k) {
-          if (basis->ord == 0) {
-            if (ht->exp[basis->eh[i][j]][basis->nv-1-k] != 0) {
-              printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][basis->nv-1-k]);
-            }
-          } else {
-            if (ht->exp[basis->eh[i][j]][k] != 0) {
-              printf("*%s^%u", basis->vnames[k],ht->exp[basis->eh[i][j]][k]);
-            }
-          }
-        }
-      }
-      printf(";\r\n");
-    }
-  }
-}
-*/

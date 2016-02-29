@@ -401,13 +401,21 @@ int main(int argc, char *argv[])
     if (verbose > 1)
       print_mem_usage();
   }
-  /*
+
   // printing of output
-  if (print_gb == 1)
-    print_basis(basis);
-  if (print_gb == 2)
-    print_basis_in_singular_format(basis);
-  */
+  switch (print_gb) {
+    case 0:
+      break;
+    case 1:
+      print_basis(basis);
+      break;
+    case 2:
+      print_basis_in_singular_format(basis);
+      break;
+    default:
+      break;
+  }
+
   // free allocated memory
   free(meta_data);
   free_pair_set(ps);

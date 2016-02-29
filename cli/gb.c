@@ -88,9 +88,11 @@ int main(int argc, char *argv[])
   /*  timing structs */
   struct timeval t_load_start;
   struct timeval t_complete;
-  double t_linear_algebra = 0;
+  double t_linear_algebra         = 0;
   double t_symbolic_preprocessing = 0;
-  double t_update_pairs = 0;
+  double t_sorting_columns        = 0;
+  double t_generating_gbla_matrix = 0;
+  double t_update_pairs           = 0;
 
   // keep track of meta data, meta_data is global to be used wherever we need it
   // to keep track of data
@@ -249,6 +251,8 @@ int main(int argc, char *argv[])
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
     spd_t *spd  = symbolic_preprocessing(ps, basis);
+    if (verbose > 0)
+      t_symbolic_preprocessing +=  walltime(t_load_start);
 
     if (verbose > 1) {
       printf("---------------------------------------------------------------------\n");
@@ -265,6 +269,8 @@ int main(int argc, char *argv[])
     // symbolic preprocessing:
     // We first sort spd->col via lead and non lead monomials, i.e. ht->idx[i] =
     // 1 or = 2
+    if (verbose > 0)
+      gettimeofday(&t_load_start, NULL);
     sort_columns_by_lead(spd);
 
     // next we can sort both parts (we know the number of lead monomials =
@@ -289,6 +295,8 @@ int main(int argc, char *argv[])
     // corresponds to sorting by columns (=rows as this is one-to-one for lead
     // monomials).
     sort_selection_by_column_index(spd, ht, nthreads);
+    if (verbose > 0)
+      t_sorting_columns +=  walltime(t_load_start);
 
 #if GB_DEBUG
     for (int ii=0; ii<spd->col->load; ++ii) {
@@ -300,9 +308,11 @@ int main(int argc, char *argv[])
 #endif
 
     // generate gbla matrix out of data from symbolic preprocessing
+    if (verbose > 0)
+      gettimeofday(&t_load_start, NULL);
     mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
     if (verbose > 0)
-      t_symbolic_preprocessing +=  walltime(t_load_start);
+      t_generating_gbla_matrix  +=  walltime(t_load_start);
     // generate pbm files of gbla matrix
     if (generate_pbm) {
       int pos = 0;
@@ -369,6 +379,14 @@ int main(int argc, char *argv[])
     fflush(stdout);
     printf("%9.3f sec\n",
         t_symbolic_preprocessing / (1000000));
+    printf("%-38s","Time for sorting of columns ...");
+    fflush(stdout);
+    printf("%9.3f sec\n",
+        t_sorting_columns / (1000000));
+    printf("%-38s","Time for constructing matrices ...");
+    fflush(stdout);
+    printf("%9.3f sec\n",
+        t_generating_gbla_matrix / (1000000));
     printf("%-38s","Time for linear algebra ...");
     fflush(stdout);
     printf("%9.3f sec\n",
@@ -383,13 +401,13 @@ int main(int argc, char *argv[])
     if (verbose > 1)
       print_mem_usage();
   }
-
+  /*
   // printing of output
   if (print_gb == 1)
     print_basis(basis);
   if (print_gb == 2)
     print_basis_in_singular_format(basis);
-  
+  */
   // free allocated memory
   free(meta_data);
   free_pair_set(ps);

@@ -90,8 +90,10 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
 #if POLY_DEBUG
   printf("new lm: ");
+#if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
+#endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
   hash_t hv  = ht->val[spd->col->hpos[fc]];
@@ -104,9 +106,11 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
       basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
+#if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
   printf("  ");
+#endif
 #endif
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
@@ -115,6 +119,7 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   }
 #if POLY_DEBUG
   printf("\n");
+  printf("deg: %u\n", deg);
 #endif
   basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;

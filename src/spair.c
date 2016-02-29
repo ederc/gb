@@ -256,10 +256,13 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
     // ht->exp and ht->ev in reverse order => we can use memcmp() for reverse
     // lex comparison
 #if __GB_HAVE_SSE2
-    exp_t expa[16];
-    exp_t expb[16];
-    _mm_storeu_si128((exp_v *)expa, ht->ev[spa->lcm]);
-    _mm_storeu_si128((exp_v *)expb, ht->ev[spb->lcm]);
+    nvars_t i;
+    exp_t expa[ht->nev * ht->vl];
+    exp_t expb[ht->nev * ht->vl];
+    for (i=0; i<ht->nev; ++i) {
+      _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[spa->lcm][i]);
+      _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[spb->lcm][i]);
+    }
 #else
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];

@@ -79,7 +79,7 @@ typedef uint8_t ord_t;
 /* exponent size */
 typedef uint8_t exp_s;
 typedef exp_s exp_t;
-#if HAVE_SSE2
+#if __GB_HAVE_SSE2
 typedef __m128i exp_v;
 #endif
 
@@ -356,7 +356,7 @@ typedef struct mat_t
 typedef struct mp_cf4_ht_t
 {
   // size and load counters
-  ht_size_t nv;       /*!<  number of variables*/
+  nvars_t nv;         /*!<  number of variables*/
   ht_size_t *primes;  /*!<  possible non-Mersenne primes for hash table size */
   ht_size_t si;       /*!<  current index in size primes list*/
   ht_size_t load;     /*!<  load of hash table*/
@@ -364,13 +364,13 @@ typedef struct mp_cf4_ht_t
   ht_size_t *lut;     /*!<  lookup table between hash value and position in
                             exponent array*/
   hash_t *val;        /*!<  array of hash values*/
-#if HAVE_SSE2
-  exp_v *ev;          /*!<  sse vector of exponents*/
-#endif
+#if __GB_HAVE_SSE2
+  exp_v **ev;         /*!<  sse vector of exponents*/
+  nvars_t nev;        /*!<  number of sse vectors for exponents*/
+  nvars_t vl;         /*!<  length of each SSE vector*/
+#else
   exp_t **exp;        /*!<  array of exponents, note that exp_t is possibly
                             SSE/AVX vector if available*/
-#if HAVE_SSE2
-  exp_v *randv;       /*!<  sse vector of random values*/
 #endif
   hash_t *rand;       /*!<  array of random values for each variable
                             to generate hash values out of exponents*/

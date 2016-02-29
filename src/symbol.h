@@ -40,8 +40,6 @@
 #define SYMBOL_DEBUG 0
 #endif
 
-#define __GB_SYM_LIST_LEN   1000
-
 /**
  * \brief Symbolic preprocessing searching for all possible reducers of all
  * ocurring monomials. These data are then used to construct the matrices for

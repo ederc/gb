@@ -347,8 +347,11 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
 {
   uint64_t fl;
 
-  hash_t i, j, k;
+  hash_t i, j;
 
+#if !__GB_HAVE_SSE2
+  hash_t k;
+#endif
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
   basis->nred = 0;
   basis->ord  = (ord_t)ordering;
@@ -467,8 +470,10 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
   // for intermediate storage of exp vector, needs to have 128bit size in order
   // to hinder memory corruption when loading in sse vector
   exp_t *exp = (exp_t *)calloc(16, sizeof(exp_t));
+#else
+  deg_t deg;
 #endif
-  deg_t deg, max_deg;
+  deg_t max_deg;
 
   // NOTE: For easier divisibility checks in symbolic preprocessing we put at
   // the first position of basis, i.e. index 0 a NULL element.
@@ -499,7 +504,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
       // next: go through line, term by term
       // we do first term differently since we normalize polynomial with lead
       // coefficient
-      deg = 0;
       get_term(line, &prev_pos, &term);
       // get coefficient first
       if (term != NULL) {
@@ -530,6 +534,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
       */
       store_exponent(term, basis, ht);
 #else
+      deg = 0;
       // now loop over variables of term
       for (k=0; k<basis->nv; ++k) {
         // if we use graded reverse lexicographical order (basis->ord=0) then we
@@ -550,7 +555,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
       printf("cf[%lu] = %u | eh[%lu][%u] = %lu --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
 #endif
       for (j=1; j<nterms; ++j) {
-        deg = 0;
         get_term(line, &prev_pos, &term);
         // get coefficient first
         if (term != NULL) {
@@ -578,6 +582,7 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
       */
       store_exponent(term, basis, ht);
 #else
+        deg = 0;
         // now loop over variables of term
         for (k=0; k<basis->nv; ++k) {
           // if we use graded reverse lexicographical order (basis->ord=0) then we

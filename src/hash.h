@@ -656,7 +656,6 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     }
     return tmp_l;
 #else
-    nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
         break;

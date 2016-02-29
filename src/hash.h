@@ -59,7 +59,7 @@
 #endif
 
 #ifndef HASH_QUADRATIC_PROBING
-#define HASH_QUADRATIC_PROBING  1
+#define HASH_QUADRATIC_PROBING  0
 #endif
 
 /***************************
@@ -209,7 +209,7 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
 static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos, mp_cf4_ht_t *ht)
 {
   ht_size_t i;
-  ht_size_t tmp = MODP(hash,ht->primes[ht->si]);
+  ht_size_t tmp = (ht_size_t)MODP(hash,ht->primes[ht->si]);
 
   for (i=0; i<ht->primes[ht->si]; ++i) {
 #if HASH_QUADRATIC_PROBING
@@ -221,7 +221,6 @@ static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos
       continue;
     } else {
       ht->lut[tmp]  = pos;
-      printf("%u -> %u\n",tmp,pos);
     }
     return;
   }
@@ -239,7 +238,9 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   const ht_size_t old_si  = ht->si;
   ht->si++;
 
-  printf("enlarge:%u :  %u|%u -> %u|%u\n",ht->load,old_si,ht->primes[old_si], ht->si,ht->primes[ht->si]);
+#if HASH_DEBUG
+  printf("enlarging hash table: load = %u || primes[ %u] = %u --> primes[%u] = %u\n",ht->load,old_si,ht->primes[old_si], ht->si,ht->primes[ht->si]);
+#endif
   ht->lut   = realloc(ht->lut, ht->primes[ht->si] * sizeof(ht_size_t));
   ht->val   = realloc(ht->val, ht->primes[ht->si] * sizeof(hash_t));
   ht->deg   = realloc(ht->deg, ht->primes[ht->si] * sizeof(deg_t));
@@ -260,7 +261,6 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   memset(ht->lut, 0, ht->primes[ht->si] * sizeof(ht_size_t));
   for (i=0; i<ht->load; ++i) {
     hash  = ht->val[i];
-    printf("insert %u\n",i);
     insert_while_enlarging(hash, i, ht);
   }
 }

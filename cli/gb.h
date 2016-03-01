@@ -49,5 +49,23 @@
  */
 void print_help();
 
-
+/**
+ * \brief Updates basis and pair set after reducing current gbla matrix.
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param pair set ps
+ *
+ * \param symbolic preprocessing data structure spd
+ *
+ * \param already reduced gbla matrix mat
+ *
+ * \param hash table ht
+ *
+ * \param rank of reduced D part of gbla matrix rankDR
+ *
+ * \return returns 1 if we have added the constant 1 to the groebner basis, i.e.
+ * then the computation is done; else it returns 0.
+ */
+int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat, const mp_cf4_ht_t *ht,  const ri_t rankDR);
 #endif

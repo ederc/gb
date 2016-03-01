@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
 
   int index;
   int opt;
+  int done;
 
   int steps = 0;
 
@@ -237,9 +238,6 @@ int main(int argc, char *argv[])
   }
 
 
-  nelts_t i;
-  hash_t hv;
-
   // run while there exist spairs to be handled
   while (ps->load > 0)
   {
@@ -348,16 +346,8 @@ int main(int argc, char *argv[])
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
     
-    for (i=0; i<rankDR; ++i) {
-      // add lowest row first, it has the smallest new lead monomial
-      hv  = add_new_element_to_basis_grevlex(basis, mat, rankDR-1-i, spd, ht);
-      // if hash value 0 is new lead monomial we are done, since we have found a
-      // unit in the basis, i.e. basis = { 1 }
-      if (hv == 0)
-        goto done;
-      update_pair_set(ps, basis, basis->load-1);
-      track_redundant_elements_in_basis(basis);
-    }
+    done  = update_basis(basis, ps, spd, mat, ht, rankDR);
+
     free_gbla_matrix(mat);
     free_symbolic_preprocessing_data(spd);
     clear_hash_table_idx(ht);
@@ -367,8 +357,11 @@ int main(int argc, char *argv[])
 
     if (verbose > 1)
       printf("<<< step %u\n", steps);
+
+    // if we are done then we have found the constant 1 as element in the basis
+    if (done)
+      break;
   }
-  done:
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
     printf("%-38s","Time for updating pairs ...");
@@ -424,3 +417,25 @@ int main(int argc, char *argv[])
   return 0;
 
 }
+
+int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat, const mp_cf4_ht_t *ht,  const ri_t rankDR)
+{
+  ri_t i;
+  hash_t hash;
+  for (i=0; i<rankDR; ++i) {
+    // add lowest row first, it has the smallest new lead monomial
+    hash = add_new_element_to_basis_grevlex(basis, mat, rankDR-1-i, spd, ht);
+    // if hash value 0 is new lead monomial we are done, since we have found a
+    // unit in the basis, i.e. basis = { 1 }
+    if (hash == 0)
+      return 1;
+    update_pair_set(ps, basis, basis->load-1);
+    track_redundant_elements_in_basis(basis);
+  }
+  return 0;
+}
+/*
+int update_basis_and_add_simplifier()
+{
+}
+*/

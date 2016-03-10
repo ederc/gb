@@ -38,7 +38,6 @@ inline gb_t *initialize_basis(const gb_t *input)
   basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
   printf("bred %p\n", basis->red);
-
   // initialize element at position 0 to NULL for faster divisibility checks
   // later on
   basis->cf[0]  = NULL;
@@ -46,6 +45,33 @@ inline gb_t *initialize_basis(const gb_t *input)
   basis->load++;
 
   return basis;
+}
+
+inline gb_t *initialize_simplifier_list(const gb_t *basis)
+{
+  gb_t *sf = (gb_t *)malloc(sizeof(gb_t));
+
+  // get meta data from input
+  sf->size    = basis->size; // TODO: This is too small, what is a good factor?
+  sf->load    = 0;
+  sf->nv      = basis->nv;
+  sf->mod     = basis->mod;
+  sf->vnames  = NULL;
+
+  // allocate memory for elements
+  sf->nt     = (nelts_t *)malloc(sf->size * sizeof(nelts_t));
+  sf->deg    = (deg_t *)malloc(sf->size * sizeof(deg_t));
+  sf->red    = (red_t *)malloc(sf->size * sizeof(red_t));
+  sf->cf     = (coeff_t **)malloc(sf->size * sizeof(coeff_t *));
+  sf->eh     = (hash_t **)malloc(sf->size * sizeof(hash_t *));
+
+  // initialize element at position 0 to NULL for faster divisibility checks
+  // later on
+  sf->cf[0]  = NULL;
+  sf->eh[0]  = NULL;
+  sf->load++;
+
+  return sf;
 }
 
 inline void free_basis(gb_t *basis)
@@ -69,6 +95,89 @@ inline void free_basis(gb_t *basis)
 
   free(basis);
   basis = NULL;
+}
+
+inline void free_simplifier_list(gb_t *sf)
+{
+  if (sf) {
+    nelts_t i;
+    free(sf->vnames);
+    free(sf->red);
+    free(sf->deg);
+    free(sf->nt);
+    for (i=0; i<sf->load; ++i) {
+      free(sf->cf[i]);
+      free(sf->eh[i]);
+    }
+    free(sf->cf);
+    free(sf->eh);
+  }
+
+  free(sf);
+  sf = NULL;
+}
+
+void add_new_element_to_simplifier_list_grevlex(gb_t *sf, const dm_t *B,
+    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  nelts_t i;
+
+  if (sf->load == sf->size)
+    enlarge_basis(sf, 2*sf->size);
+
+  // maximal size is B->ncols + 1 (for A)
+  nelts_t ms  = B->ncols + 1;
+  // use shorter names in here
+  sf->cf[sf->load] = (coeff_t *)malloc(ms * sizeof(coeff_t));
+  sf->eh[sf->load] = (hash_t *)malloc(ms * sizeof(hash_t));
+
+  nelts_t ctr = 0;
+  deg_t deg   = 0;
+
+  // first we add the term from A
+#if POLY_DEBUG
+  printf("new simplifier lm: ");
+#if !__GB_HAVE_SSE2
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
+#endif
+  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
+#endif
+  // now we do B
+  for (i=0; i<B->ncols; ++i) {
+    if (B->row[ri]->init_val[i] != 0) {
+      sf->cf[sf->load][ctr] = B->row[ri]->init_val[i];
+      // note that we have to adjust the position via shifting it by
+      // spd->col->nlm since DR is on the righthand side of the matrix
+      sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+#if POLY_DEBUG
+    printf("%u|",sf->cf[sf->load][ctr]);
+#if !__GB_HAVE_SSE2
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
+  printf("  ");
+#endif
+#endif
+      deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
+        ht->deg[sf->eh[sf->load][ctr]] : deg;
+      ctr++;
+    }
+  }
+#if POLY_DEBUG
+  printf("\n");
+  printf("deg: %u\n", deg);
+#endif
+  sf->nt[sf->load]  = ctr;
+  sf->deg[sf->load] = deg;
+
+
+  // realloc memory to the correct number of terms
+  sf->cf[sf->load]  = realloc(sf->cf[sf->load],
+    sf->nt[sf->load] * sizeof(coeff_t));
+  sf->eh[sf->load]  = realloc(sf->eh[sf->load],
+      sf->nt[sf->load] * sizeof(hash_t));
+
+  sf->load++;
 }
 
 hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,

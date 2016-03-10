@@ -53,7 +53,26 @@
 gb_t *initialize_basis(const gb_t *input);
 
 /**
- * \brief Frees dynamically allocated memory from groebner basis
+ * \brief Initializes simplifier list, takes meta data from intermediate
+ * groebner basis and allocates memory correspondingly for list entries.
+ *
+ * \param input elements input
+ *
+ * \return intermediate groebner basis basis
+ */
+gb_t *initialize_simplifier_list(const gb_t *basis);
+
+/**
+ * \brief Frees dynamically allocated memory from simplifier list. Sets the list
+ * to NULL.
+ *
+ * \param simplifier list sf
+ */
+void free_simplifier_list(gb_t *sf);
+
+/**
+ * \brief Frees dynamically allocated memory from groebner basis. Sets the basis
+ * to NULL.
  *
  * \param groebner basis basis
  */
@@ -89,6 +108,27 @@ void enlarge_basis(gb_t *basis, nelts_t size);
  * \return hash value of new lead monomial
  */
 hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
+    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+
+/**
+ * \brief Adds new element from reduced B part of gbla matrix to simplifier list.
+ *
+ * \note Also enlarges list if needed.
+ *
+ * \note Symbolic preprocessing data is needed to convert a matrix row back to a
+ * polynomial with hashed exponents.
+ *
+ * \param simplifier list sf
+ *
+ * \param part B of gbla matrix after reduction B
+ *
+ * \param row index in reduced D part ri
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \param hash table ht
+ */
+void add_new_element_to_simplifier_list_grevlex(gb_t *sf, const dm_t *B,
     const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
 
 /**

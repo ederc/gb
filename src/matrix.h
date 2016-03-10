@@ -166,25 +166,29 @@ static inline void free_gbla_matrix(mat_t *mat)
   // A, C and D are already freed, just check again
   
   // B is dense block matrix
-  for (i=0; i<mat->rbu; ++i) {
-    for (j=0; j<mat->cbr; ++j) {
-      if (mat->B->blocks[i][j].val != NULL)
-        free(mat->B->blocks[i][j].val);
+  if (mat->B != NULL) {
+    for (i=0; i<mat->rbu; ++i) {
+      for (j=0; j<mat->cbr; ++j) {
+        if (mat->B->blocks[i][j].val != NULL)
+          free(mat->B->blocks[i][j].val);
+      }
+      free(mat->B->blocks[i]);
     }
-    free(mat->B->blocks[i]);
+    free(mat->B->blocks);
+    free(mat->B);
   }
-  free(mat->B->blocks);
-  free(mat->B);
 
-  // DR is a dense row matrix
-  for (i=0; i<mat->DR->nrows; ++i) {
-    free(mat->DR->row[i]->piv_val);
-    free(mat->DR->row[i]->init_val);
-    free(mat->DR->row[i]->val);
+  if (mat->DR != NULL) {
+    // DR is a dense row matrix
+    for (i=0; i<mat->DR->nrows; ++i) {
+      free(mat->DR->row[i]->piv_val);
+      free(mat->DR->row[i]->init_val);
+      free(mat->DR->row[i]->val);
+    }
+    free(mat->DR->row);
+    free(mat->DR);
+    mat->DR = NULL;
   }
-  free(mat->DR->row);
-  free(mat->DR);
-  mat->DR = NULL;
 
   free(mat);
   mat = NULL;
@@ -548,6 +552,7 @@ static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mu
     }
   }
 }
+
 /**
  * \brief Generates one row block of gbla matrix.
  *

@@ -189,7 +189,12 @@ int main(int argc, char *argv[])
   }
   // input stores input data
   gb_t *basis = load_input(fn, nvars, ordering, ht, verbose, nthreads);
+  // simplifier list
+  gb_t *sf    = NULL;
 
+  // generate simplifier list if simplification is enabled
+  if (simplify == 1)
+    sf = initialize_simplifier_list(basis);
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
     gettimeofday(&t_load_start, NULL);
@@ -346,8 +351,13 @@ int main(int argc, char *argv[])
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
     
-    done  = update_basis(basis, ps, spd, mat, ht, rankDR);
-
+    if (simplify == 0)
+      done  = update_basis(basis, ps, spd, mat, ht, rankDR);
+    else
+      done  = update_basis_and_add_simplifier(basis, sf, ps,
+          spd, mat, ht, rankDR, nthreads);
+    if (verbose > 1)
+      printf("basis->load %u | sf->load %u (%u)\n",basis->load, sf->load, spd->col->nlm);
     free_gbla_matrix(mat);
     free_symbolic_preprocessing_data(spd);
     clear_hash_table_idx(ht);
@@ -413,12 +423,15 @@ int main(int argc, char *argv[])
   free(meta_data);
   free_pair_set(ps);
   free_basis(basis);
+  if (simplify == 1)
+    free_simplifier_list(sf);
   free_hash_table(ht);
   return 0;
 
 }
 
-int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat, const mp_cf4_ht_t *ht,  const ri_t rankDR)
+int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
+    const mp_cf4_ht_t *ht,  const ri_t rankDR)
 {
   ri_t i;
   hash_t hash;
@@ -434,8 +447,42 @@ int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat, const mp_c
   }
   return 0;
 }
-/*
-int update_basis_and_add_simplifier()
+
+void add_simplifier_grevlex(gb_t *sf, mat_t *mat, const spd_t *spd, const mp_cf4_ht_t *ht)
 {
+  if (spd->col->nlm != 0) {
+    ri_t i;
+    // store B in dense non-block matrix
+    dm_t *B = copy_block_to_dense_matrix(&(mat->B), 1);
+    // we add the polys to sf, we know that there is one coefficient at col pos i
+    // for row i.
+    for (i=0; i<B->nrows; ++i)
+      add_new_element_to_simplifier_list_grevlex(sf, B, i, spd, ht);
+  }
 }
-*/
+
+int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
+    spd_t *spd, mat_t *mat, const mp_cf4_ht_t *ht,  const ri_t rankDR,
+    const int nthreads)
+{
+  int done;
+#pragma omp parallel num_threads(nthreads)
+  {
+    // update basis and pair set, mark redundant elements in basis
+#pragma omp single nowait
+    {
+#pragma omp task
+      {
+        done  = update_basis(basis, ps, spd, mat, ht, rankDR);
+      }
+      // add simplifier, i.e. polynomials corresponding to the rows in AB,
+      // for further computation
+#pragma omp task
+      {
+        add_simplifier_grevlex(sf, mat, spd, ht);
+      }
+    }
+    #pragma omp taskwait
+  }
+  return done;
+}

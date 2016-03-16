@@ -78,6 +78,15 @@ inline void free_basis(gb_t *basis)
 {
   if (basis) {
     nelts_t i;
+
+    if (basis->sf != NULL) {
+      for (i=0; i<basis->load; ++i) {
+        free(basis->sf[i].mul);
+        free(basis->sf[i].idx);
+      }
+      free(basis->sf);
+    }
+
     for (i=0; i<basis->nv; ++i) {
       free(basis->vnames[i]);
     }
@@ -117,8 +126,8 @@ inline void free_simplifier_list(gb_t *sf)
   sf = NULL;
 }
 
-void add_new_element_to_simplifier_list_grevlex(gb_t *sf, const dm_t *B,
-    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
+void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
+    const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
 {
   nelts_t i;
 
@@ -178,6 +187,10 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *sf, const dm_t *B,
       sf->nt[sf->load] * sizeof(hash_t));
 
   sf->load++;
+  // now we have to link the simplifier with the corresponding element in basis
+  
+  // get index of element in basis
+  link_simplifier_to_basis(basis, sf, spd, ri);
 }
 
 hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
@@ -241,32 +254,13 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
 
+  if (basis->sf != NULL) {
+    basis->sf[basis->load].size = 3;
+    basis->sf[basis->load].load = 0;
+    basis->sf[basis->load].mul  = (hash_t *)malloc(basis->sf[i].size * sizeof(hash_t));
+    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[i].size * sizeof(nelts_t));
+  }
   basis->load++;
 
   return hv;
-}
-
-inline void track_redundant_elements_in_basis(gb_t *basis)
-{
-  nelts_t i;
-  // check for redundancy of other elements in basis
-  for (i=basis->st; i<basis->load-2; ++i) {
-    if (basis->red[i] == NOT_REDUNDANT) {
-      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
-        basis->red[i] = REDUNDANT;
-        basis->nred++;
-      }
-    }
-  }
-
-}
-
-inline void enlarge_basis(gb_t *basis, const nelts_t size)
-{
-  basis->size = size;
-  basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
-  basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
-  basis->red  = realloc(basis->red, basis->size * sizeof(red_t));
-  basis->cf   = realloc(basis->cf, basis->size * sizeof(coeff_t *));
-  basis->eh   = realloc(basis->eh, basis->size * sizeof(hash_t *));
 }

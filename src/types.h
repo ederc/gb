@@ -194,6 +194,14 @@ typedef struct info_t
  */
 typedef enum {NOT_REDUNDANT, REDUNDANT} red_t;
 
+typedef struct sf_t
+{
+  hash_t *mul;  /*!<  hash of multiplier of simplified element */
+  nelts_t *idx; /*!<  index of simplified element in simplifier list */
+  nelts_t size; /*!<  memory allocated */
+  nelts_t load; /*!<  number of elements in simplifier list for this polynomial */
+} sf_t;
+
 /**
  * \brief Groebner basis, starts with input data
  * 
@@ -222,6 +230,8 @@ typedef struct gb_t
   red_t *red;       /*!<  stores if the the element is redundant or not*/
   coeff_t **cf;     /*!<  coefficients of input elements*/
   hash_t **eh;      /*!<  monomial exponent hash*/
+  sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if
+                          simplification is not used */
   // meta data
   char **vnames;    /*!<  variable names */
   uint16_t mtl;     /*!<  maximal length of term (needed for

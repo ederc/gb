@@ -49,10 +49,12 @@
  *
  * \param intermediate groebner basis basis
  *
+ * \param simplifier list sf
+ *
  * \return full information from symbolic preprocessing for generationg corresponding
  * matrices out of polynomial data
  */
-spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis);
+spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf);
 
 /**
  * \brief Enters the lower order monomials of the selected spair generators to

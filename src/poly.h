@@ -79,15 +79,6 @@ void free_simplifier_list(gb_t *sf);
 void free_basis(gb_t *basis);
 
 /**
- * \brief Enlarges groebner basis to given new size.
- *
- * \param intermediate groebner basis basis
- *
- * \param new size size
- */
-void enlarge_basis(gb_t *basis, nelts_t size);
-
-/**
  * \brief Adds new element from reduced D part of gbla matrix to basis.
  *
  * \note Also enlarges basis if needed.
@@ -118,6 +109,8 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
  * \note Symbolic preprocessing data is needed to convert a matrix row back to a
  * polynomial with hashed exponents.
  *
+ * \param intermediate groebner basis basis
+ *
  * \param simplifier list sf
  *
  * \param part B of gbla matrix after reduction B
@@ -128,8 +121,46 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
  *
  * \param hash table ht
  */
-void add_new_element_to_simplifier_list_grevlex(gb_t *sf, const dm_t *B,
-    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
+    const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+
+/**
+ * \brief Enlarges groebner basis to given new size.
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param new size size
+ */
+static inline void enlarge_basis(gb_t *basis, const nelts_t size)
+{
+  nelts_t os  = basis->size;
+  basis->size = size;
+  basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
+  basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
+  basis->red  = realloc(basis->red, basis->size * sizeof(red_t));
+  basis->cf   = realloc(basis->cf, basis->size * sizeof(coeff_t *));
+  basis->eh   = realloc(basis->eh, basis->size * sizeof(hash_t *));
+  if (basis->sf != NULL)
+    basis->sf   = realloc(basis->sf, basis->size * sizeof(sf_t));
+}
+
+/**
+ * \brief Initializes simplifier link between elements of intermediate groebner
+ * basis and simplifier list.
+ *
+ * \param intermediate groebner basis basis
+ */
+static inline void initialize_simplifier_link(gb_t *basis)
+{
+  nelts_t i;
+  basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
+  for (i=0; i<basis->size; ++i) {
+    basis->sf[i].size = 3;
+    basis->sf[i].load = 0;
+    basis->sf[i].mul  = (hash_t *)malloc(basis->sf[i].size * sizeof(hash_t));
+    basis->sf[i].idx  = (nelts_t *)malloc(basis->sf[i].size * sizeof(nelts_t));
+  }
+}
 
 /**
  * \brief Tracks and labels redundant elements in basis. In particular, we check
@@ -139,5 +170,52 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *sf, const dm_t *B,
  *
  * \param intermediate groebner basis basis
  */
-void track_redundant_elements_in_basis(gb_t *basis);
+static inline void track_redundant_elements_in_basis(gb_t *basis)
+{
+  nelts_t i;
+  // check for redundancy of other elements in basis
+  for (i=basis->st; i<basis->load-2; ++i) {
+    if (basis->red[i] == NOT_REDUNDANT) {
+      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
+        basis->red[i] = REDUNDANT;
+        basis->nred++;
+      }
+    }
+  }
+
+}
+
+
+/**
+ * \brief Connects simplifier entries for an element in the intermediate
+ * groebner basis with entry in the global simplifier list.
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param simplifier list sf
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \param row index from gbla matrix ri
+ */
+static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
+    const spd_t *spd, const ri_t ri)
+{
+  // get index of basis element
+  const nelts_t bi  = spd->selu->mpp[ri].idx;
+
+  //printf("%u | %u / %u\n",bi,basis->sf[bi].load,basis->sf[bi].size);
+  // enlarge array if needed
+  if (basis->sf[bi].load  ==  basis->sf[bi].size) {
+    basis->sf[bi].mul   =   realloc(basis->sf[bi].mul,
+                              2 * basis->sf[bi].size * sizeof(hash_t));
+    basis->sf[bi].idx   =   realloc(basis->sf[bi].idx,
+                              2 * basis->sf[bi].size * sizeof(nelts_t));
+    basis->sf[bi].size  *=  2;
+  }
+  // insert link to simplifier list
+  basis->sf[bi].mul[basis->sf[bi].load] = spd->selu->mpp[ri].mul;
+  basis->sf[bi].idx[basis->sf[bi].load] = sf->load-1;
+  basis->sf[bi].load++;
+}
 #endif

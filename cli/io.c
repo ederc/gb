@@ -343,7 +343,7 @@ nvars_t get_nvars(const char *fn)
 }
 
 gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
-    mp_cf4_ht_t *ht, int vb, int nthrds)
+    mp_cf4_ht_t *ht, int simplify, int vb, int nthrds)
 {
   uint64_t fl;
 
@@ -412,6 +412,11 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
   basis->red  = (red_t *)malloc(basis->size * sizeof(red_t));
   basis->cf   = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh   = (hash_t **)malloc(basis->size * sizeof(hash_t *));
+
+  if (simplify == 1)
+    initialize_simplifier_link(basis);
+  else
+    basis->sf = NULL;
 
   fh  = fopen(fn,"r");
   // load lines and store data

@@ -22,7 +22,7 @@
 
 #include "symbol.h"
 
-spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis)
+spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 {
   nelts_t i, k, idx, last_div, nsel;
   hash_t hash_pos, hash_div = 0;

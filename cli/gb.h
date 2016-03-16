@@ -102,6 +102,7 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
  * spair generators or reducers during upcoming symbolic preprocessing. For this
  * we use the rows from AB in mat.
  *
+ * \param intermediate groebner basis basis
  * \param simplifier list sf
  *
  * \param reduced gbla matrix mat
@@ -110,5 +111,6 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
  *
  * \param hash table ht
  */
-void add_simplifier_grevlex(gb_t *sf, mat_t *mat, const spd_t *spd, const mp_cf4_ht_t *ht);
+void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
+    const mp_cf4_ht_t *ht);
 #endif

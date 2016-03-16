@@ -37,6 +37,7 @@
 #include <src/gb_config.h>
 #include <omp.h>
 #include <src/hash.h>
+#include <src/poly.h>
 #include <src/matrix.h>
 
 #ifndef META_DATA_DEBUG
@@ -80,6 +81,8 @@ nvars_t get_nvars(const char *fn);
  *
  * \param hash table to store the exponents ht
  *
+ * \param should simplifications be used? simplify
+ *
  * \param level of verbosity vb
  *
  * \param number of threads nthrds
@@ -87,7 +90,7 @@ nvars_t get_nvars(const char *fn);
  * \return initial state of input
  */
 gb_t *load_input(const char *fn, nvars_t nvars, int ordering, mp_cf4_ht_t *ht,
-    int vb, int nthrds);
+    int simplify, int vb, int nthrds);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 

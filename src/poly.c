@@ -144,6 +144,12 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   deg_t deg   = 0;
 
   // first we add the term from A
+  sf->cf[sf->load][ctr] = 1;
+  sf->eh[sf->load][ctr] = spd->col->hpos[ri];
+  deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
+    ht->deg[sf->eh[sf->load][ctr]] : deg;
+  ctr++;
+
 #if POLY_DEBUG
   printf("new simplifier lm: ");
 #if !__GB_HAVE_SSE2
@@ -186,6 +192,12 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   sf->eh[sf->load]  = realloc(sf->eh[sf->load],
       sf->nt[sf->load] * sizeof(hash_t));
 
+#if POLY_DEBUG
+  printf("new simplifier: %u\n",ri);
+  for (int ii=0; ii<sf->nt[sf->load]; ++ii)
+    printf("%lu ", sf->eh[sf->load][ii]);
+  printf("\n");
+#endif
   sf->load++;
   // now we have to link the simplifier with the corresponding element in basis
   

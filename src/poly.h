@@ -36,8 +36,10 @@
 #endif
 
 #ifndef POLY_DEBUG
-#define POLY_DEBUG 0
+#define POLY_DEBUG 1
 #endif
+
+#define COEFFICIENT_CHAR_LENGTH 10
 
 
 /**
@@ -46,11 +48,25 @@
  * \note Input elements are not directly added to the basis, they are added as
  * spairs to the pair set and enter basis afterwards.
  *
- * \param input elements input
+ * \param given monomial ordering ordering
+ *
+ * \param number of lines of input files nlines
+ *
+ * \param number of variables nvars
+ *
+ * \param variable names vnames
+ *
+ * \param modulo resp. field characteristic mod
+ *
+ * \param switch for possible simplification simplify
+ *
+ * \param file length of input file fl
  *
  * \return intermediate groebner basis basis
  */
-gb_t *initialize_basis(const gb_t *input);
+gb_t *initialize_basis(const int ordering, const int nlines,
+    const nvars_t nvars, char **vnames, const mod_t mod,
+    const int simplify, const uint64_t fl);
 
 /**
  * \brief Initializes simplifier list, takes meta data from intermediate
@@ -133,7 +149,6 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
  */
 static inline void enlarge_basis(gb_t *basis, const nelts_t size)
 {
-  nelts_t os  = basis->size;
   basis->size = size;
   basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
   basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
@@ -153,7 +168,7 @@ static inline void enlarge_basis(gb_t *basis, const nelts_t size)
 static inline void initialize_simplifier_link(gb_t *basis)
 {
   nelts_t i;
-  basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
+  //basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
   for (i=0; i<basis->size; ++i) {
     basis->sf[i].size = 3;
     basis->sf[i].load = 0;
@@ -201,10 +216,11 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
 static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
     const spd_t *spd, const ri_t ri)
 {
+  printf("ri drin %u\n", ri);
   // get index of basis element
   const nelts_t bi  = spd->selu->mpp[ri].idx;
 
-  //printf("%u | %u / %u\n",bi,basis->sf[bi].load,basis->sf[bi].size);
+  printf("%u | %u / %u\n",bi,basis->sf[bi].load,basis->sf[bi].size);
   // enlarge array if needed
   if (basis->sf[bi].load  ==  basis->sf[bi].size) {
     basis->sf[bi].mul   =   realloc(basis->sf[bi].mul,
@@ -213,6 +229,8 @@ static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
                               2 * basis->sf[bi].size * sizeof(nelts_t));
     basis->sf[bi].size  *=  2;
   }
+  printf("ri drin %u\n", ri);
+  printf("%u | %u / %u\n",bi,basis->sf[bi].load,basis->sf[bi].size);
   // insert link to simplifier list
   basis->sf[bi].mul[basis->sf[bi].load] = spd->selu->mpp[ri].mul;
   basis->sf[bi].idx[basis->sf[bi].load] = sf->load-1;

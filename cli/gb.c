@@ -189,12 +189,13 @@ int main(int argc, char *argv[])
   }
   // input stores input data
   gb_t *basis = load_input(fn, nvars, ordering, ht, simplify, verbose, nthreads);
-  // simplifier list
-  gb_t *sf    = NULL;
 
+  // global simplifier list
   // generate simplifier list if simplification is enabled
+  gb_t *sf  = NULL;
   if (simplify == 1)
     sf = initialize_simplifier_list(basis);
+
   if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
     gettimeofday(&t_load_start, NULL);
@@ -282,12 +283,14 @@ int main(int argc, char *argv[])
     sort_presorted_columns_by_grevlex(spd, nthreads);
 
 #if GB_DEBUG
+    /*
     for (int ii=0; ii<spd->col->load; ++ii) {
       for (int jj=0; jj<ht->nv; ++jj) {
         printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
       }
-      printf("| %u\n", ht->idx[spd->col->hpos[ii]]);
+      printf("|| %lu | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
     }
+    */
 #endif
 
     // connect monomial hash positions with columns in to be constructed gbla
@@ -306,7 +309,7 @@ int main(int argc, char *argv[])
       for (int jj=0; jj<ht->nv; ++jj) {
         printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
       }
-      printf("| %u\n", ht->idx[spd->col->hpos[ii]]);
+      printf("|| %lu | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
     }
 #endif
 
@@ -457,8 +460,10 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
     dm_t *B = copy_block_to_dense_matrix(&(mat->B), 1);
     // we add the polys to sf, we know that there is one coefficient at col pos i
     // for row i.
-    for (i=0; i<B->nrows; ++i)
+    for (i=0; i<B->nrows; ++i) {
+      printf("B->nrows %u / %u\n", i, B->nrows);
       add_new_element_to_simplifier_list_grevlex(basis, sf, B, i, spd, ht);
+    }
   }
 }
 

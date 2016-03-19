@@ -342,8 +342,8 @@ nvars_t get_nvars(const char *fn)
   return nvars;
 }
 
-gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
-    mp_cf4_ht_t *ht, int simplify, int vb, int nthrds)
+gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
+    mp_cf4_ht_t *ht, const int simplify, const int vb, const int nthrds)
 {
   uint64_t fl;
 
@@ -352,12 +352,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
 #if !__GB_HAVE_SSE2
   hash_t k;
 #endif
-  gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
-  basis->nred = 0;
-  basis->ord  = (ord_t)ordering;
-  // we check for homogeneity of the input when storing input
-  basis->hom  = 0;
-
   struct timeval t_load_start;
   if (vb > 1) {
     gettimeofday(&t_load_start, NULL);
@@ -375,17 +369,6 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
     fclose(fh);
   }
 
-  basis->fs   = (double) fl / 1024;
-  basis->fsu  = "KB";
-  if (basis->fs > 1000) {
-    basis->fs   = basis->fs / 1024;
-    basis->fsu  = "MB";
-  }
-  if (basis->fs > 1000) {
-    basis->fs   = basis->fs / 1024;
-    basis->fsu  = "GB";
-  }
-
   // get number of lines in file:
   // number of lines - 2 is number of generators in input system
   int nlines  = 0;
@@ -395,70 +378,33 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
     nlines++;
   fclose(fh);
 
-  // #generators of the input system = nlines - 2 since the first line has the
-  // variable names and second line is the field modulus. Then we add 1 since we
-  // keep the element at position 0 NULL for faster divisibility checks
-  basis->load = nlines -2 +1;
-  basis->st   = basis->load;
-
-#if IO_DEBUG
-  printf("bload = %u\n",basis->load);
-#endif
-
-  // now initialize the size of the input system
-  basis->size = 3 * basis->load;
-  basis->nt   = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
-  basis->deg  = (deg_t *)malloc(basis->size * sizeof(deg_t));
-  basis->red  = (red_t *)malloc(basis->size * sizeof(red_t));
-  basis->cf   = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
-  basis->eh   = (hash_t **)malloc(basis->size * sizeof(hash_t *));
-
-  if (simplify == 1)
-    initialize_simplifier_link(basis);
-  else
-    basis->sf = NULL;
-
   fh  = fopen(fn,"r");
   // load lines and store data
   const size_t max_line_size  = 1000;
   char *line  = (char *)malloc(max_line_size * sizeof(char));
 
   // we already know the number of variables
-  basis->nv  = nvars;
+  // basis->nv  = nvars;
 
   char *tmp;
   // allocate memory for storing variable names
-  basis->vnames = (char **)malloc(basis->nv * sizeof(char *));
+  char **vnames = (char **)malloc(nvars * sizeof(char *));
   if (fgets(line, max_line_size, fh) != NULL) {
     tmp = line;
-    for (i=0; i<basis->nv; ++i) {
-      basis->vnames[i]  = get_variable_name(line, &tmp);
-      // calculates the maximal term length: here we take the longes variable
-      // name, later we add 10 for coefficient and "+")
-      if (basis->mtl < strlen(basis->vnames[i]))
-          basis->mtl  = strlen(basis->vnames[i]);
+    for (i=0; i<nvars; ++i) {
+      vnames[i]  = get_variable_name(line, &tmp);
     }
-    // add to max. term length 5 for "^{exp}"
-    basis->mtl  +=  5;
-    // multiply max. term length by number of variables
-    basis->mtl  *=  basis->nv;
-    // now add maximal coefficient length to mtl (max. term length)
-    basis->mtl  +=  COEFFICIENT_CHAR_LENGTH;
-
-#if IO_DEBUG
-    for (i=0; i<basis->nv; ++i) {
-      printf(basis->vnames[i]);
-    }
-#endif
   } else {
     printf("Bad file format.\n");
     return NULL;
   }
+
   // get second line (modulus)
+  mod_t mod = 0;
   if (fgets(line, max_line_size, fh) != NULL) {
     int64_t tmp_mod = atol(line);
     if (tmp_mod > 0) {
-      basis->mod  = (mod_t)tmp_mod;
+      mod  = (mod_t)tmp_mod;
     } else {
       printf("Bad file format.\n");
       return NULL;
@@ -467,6 +413,9 @@ gb_t *load_input(const char *fn, nvars_t nvars, int ordering,
     printf("Bad file format.\n");
     return NULL;
   }
+
+  // initialize basis with information from above
+  gb_t *basis = initialize_basis(ordering, nlines, nvars, vnames, mod, simplify, fl);
 
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));

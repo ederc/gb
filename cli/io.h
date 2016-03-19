@@ -48,8 +48,6 @@
 #define IO_DEBUG  0
 #endif
 
-#define COEFFICIENT_CHAR_LENGTH 10
-
 /**
  * \brief Gets number of variables, needs to be done before reading file
  * completely as we need to initialize the hash table beforehand
@@ -89,8 +87,8 @@ nvars_t get_nvars(const char *fn);
  *
  * \return initial state of input
  */
-gb_t *load_input(const char *fn, nvars_t nvars, int ordering, mp_cf4_ht_t *ht,
-    int simplify, int vb, int nthrds);
+gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
+    mp_cf4_ht_t *ht, const int simplify, const int vb, const int nthrds);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 

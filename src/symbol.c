@@ -44,7 +44,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   sel_upp->deg    = ps->pairs[0]->deg;
   sel_low->deg    = ps->pairs[0]->deg;
   // list of polynomials and their multipliers
-  select_pairs(ps, sel_upp, sel_low, mon, basis, nsel);
+  select_pairs(ps, sel_upp, sel_low, mon, basis, sf, nsel);
 
   // we use mon as LIFO: last in, first out. thus we can easily remove and add
   // new elements to mon

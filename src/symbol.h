@@ -37,7 +37,7 @@
 #endif
 
 #ifndef SYMBOL_DEBUG
-#define SYMBOL_DEBUG 0
+#define SYMBOL_DEBUG 1
 #endif
 
 /**
@@ -302,13 +302,22 @@ void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
  *
  * \param intermediate grobner basis basis
  *
+ * \param simplifier list sf
+ *
  * \param last index of pair selection in pair list idx
  */
 static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
-    const gb_t *basis, const nelts_t nsel)
+    const gb_t *basis, const gb_t *sf, const nelts_t nsel)
 {
   nelts_t i, j, k;
   spair_t *sp;
+
+  hash_t mul  = 0;
+  nelts_t nt  = 0;
+  hash_t *pol = NULL;
+
+  nelts_t have_sf = 0;
+
   // wVe do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
@@ -331,10 +340,50 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     // so we can always put gen2 in the lower selection list sell
     add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
     j = sell->load-1;
+    if (basis->sf != NULL) {
+      nelts_t l     = 0;
+      hash_t sf_mul = 0;
+      const nelts_t load  = basis->sf[sell->mpp[j].idx].load;
+      for (l=0; l<load; ++l) {
+        // we start searching from the end of the list since those elements
+        // might be best reduced
+        //sf_mul = monomial_division(sell->mpp[j].mul, basis->sf[sell->mpp[j].idx].mul[load-1-l], ht);
+        sf_mul = monomial_division(sell->mpp[j].mlm, sf->eh[basis->sf[sell->mpp[j].idx].idx[load-1-l]][0], ht);
+        if (sf_mul != 0) {
+          printf("-- SIMPLIFY --\n");
+          for (int ii=0; ii<basis->nv; ++ii)
+            printf("%u ",ht->exp[sell->mpp[j].mul][ii]);
+          printf("\n");
+          for (int ii=0; ii<basis->nv; ++ii)
+            printf("%u ",ht->exp[basis->eh[sell->mpp[j].idx][0]][ii]);
+          printf("\n - - -\n");
+          for (int ii=0; ii<basis->nv; ++ii)
+            printf("%u ",ht->exp[sf_mul][ii]);
+          printf("\n");
+          for (int ii=0; ii<basis->nv; ++ii)
+            printf("%u ",ht->exp[sf->eh[basis->sf[sell->mpp[j].idx].idx[load-1-l]][0]][ii]);
+          printf("\n");
+          have_sf = 1;
+          mul = sf_mul;
+          nt  = sf->nt[basis->sf[sell->mpp[j].idx].idx[load-1-l]];
+          pol = sf->eh[basis->sf[sell->mpp[j].idx].idx[load-1-l]];
+          printf("nt: %u\n", nt);
+          break; 
+        }
+      }
+    }
+    if (have_sf == 0) {
+      mul = sell->mpp[j].mul;
+      nt  = basis->nt[sell->mpp[j].idx];
+      pol = basis->eh[sell->mpp[j].idx];
+    }
+    for (k=1; k<nt; ++k)
+      enter_monomial_to_preprocessing_hash_list(mul, pol[k], mon);
+    /*
     for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
       enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
           basis->eh[sell->mpp[j].idx][k], mon);
-
+    */
     // now we distinguish cases for gen1
     if (sp->gen1 == 0) {
       if (ht->idx[sp->lcm] == 0) {

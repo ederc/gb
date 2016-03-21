@@ -138,6 +138,7 @@ inline char *get_variable_name(const char *line, char **prev_pos)
   int final_length  = (int)(tmp_var_end - tmp_var_begin + 1);
   char *final_var   = (char *)malloc((final_length+1) * sizeof(char));
   memcpy(final_var, tmp_var_begin, final_length);
+  final_var[final_length] = '\0';
   
   free(tmp_var);
 
@@ -391,12 +392,12 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
   char **vnames = (char **)malloc(nvars * sizeof(char *));
   if (fgets(line, max_line_size, fh) != NULL) {
     tmp = line;
-    for (i=0; i<nvars; ++i) {
-      vnames[i]  = get_variable_name(line, &tmp);
-    }
   } else {
     printf("Bad file format.\n");
     return NULL;
+  }
+  for (i=0; i<nvars; ++i) {
+    vnames[i]  = get_variable_name(line, &tmp);
   }
 
   // get second line (modulus)

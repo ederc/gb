@@ -30,6 +30,7 @@ inline gb_t *initialize_basis(const int ordering, const int nlines,
   basis->ord  = (ord_t)ordering;
   basis->nred = 0;
   basis->hom  = 0;
+  basis->mtl  = 0;
   // #generators of the input system = nlines - 2 since the first line has the
   // variable names and second line is the field modulus. Then we add 1 since we
   // keep the element at position 0 NULL for faster divisibility checks
@@ -105,59 +106,6 @@ inline gb_t *initialize_simplifier_list(const gb_t *basis)
   sf->load++;
 
   return sf;
-}
-
-inline void free_basis(gb_t *basis)
-{
-  if (basis) {
-    nelts_t i;
-
-    if (basis->sf != NULL) {
-      for (i=0; i<basis->load; ++i) {
-        free(basis->sf[i].mul);
-        free(basis->sf[i].idx);
-      }
-      free(basis->sf);
-      basis->sf = NULL;
-    }
-
-    for (i=0; i<basis->nv; ++i) {
-      free(basis->vnames[i]);
-    }
-    free(basis->vnames);
-    free(basis->red);
-    free(basis->deg);
-    free(basis->nt);
-    for (i=0; i<basis->load; ++i) {
-      free(basis->cf[i]);
-      free(basis->eh[i]);
-    }
-    free(basis->cf);
-    free(basis->eh);
-  }
-
-  free(basis);
-  basis = NULL;
-}
-
-inline void free_simplifier_list(gb_t *sf)
-{
-  if (sf) {
-    nelts_t i;
-    free(sf->vnames);
-    free(sf->red);
-    free(sf->deg);
-    free(sf->nt);
-    for (i=0; i<sf->load; ++i) {
-      free(sf->cf[i]);
-      free(sf->eh[i]);
-    }
-    free(sf->cf);
-    free(sf->eh);
-  }
-
-  free(sf);
-  sf = NULL;
 }
 
 void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,

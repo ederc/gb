@@ -609,6 +609,7 @@ void write_reduced_matrix_to_pbm(mat_t *mat, const char *fn)
     fflush(fh);
   }
   fclose(fh);
+  free(buffer);
 }
 
 void write_matrix_to_pbm(mat_t *mat, const char *fn)
@@ -647,6 +648,7 @@ void write_matrix_to_pbm(mat_t *mat, const char *fn)
     fflush(fh);
   }
   fclose(fh);
+  free(buffer);
 }
 
 void write_sparse_dense_block_row_to_buffer(char *buffer, const nelts_t idx,

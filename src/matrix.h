@@ -164,18 +164,34 @@ static inline void free_gbla_matrix(mat_t *mat)
   nelts_t i, j;
 
   // A, C and D are already freed, just check again
+  if (mat->A != NULL) {
+    if (mat->A->blocks != NULL)
+      free_sparse_submatrix(&(mat->A), 1);
+    mat->A  = NULL;
+  }
+  if (mat->C != NULL) {
+    if (mat->C->blocks != NULL)
+      free_sparse_submatrix(&(mat->C), 1);
+    mat->C  = NULL;
+  }
+
+  if (mat->D != NULL) {
+    for (i=0; i<mat->rbl; ++i) {
+      for (j=0; j<mat->cbr; ++j) {
+        if (mat->D->blocks[i][j].val != NULL)
+          free(mat->D->blocks[i][j].val);
+      }
+      free(mat->D->blocks[i]);
+    }
+    free(mat->D->blocks);
+    free(mat->D);
+  }
   
   // B is dense block matrix
   if (mat->B != NULL) {
-    for (i=0; i<mat->rbu; ++i) {
-      for (j=0; j<mat->cbr; ++j) {
-        if (mat->B->blocks[i][j].val != NULL)
-          free(mat->B->blocks[i][j].val);
-      }
-      free(mat->B->blocks[i]);
-    }
-    free(mat->B->blocks);
-    free(mat->B);
+    if (mat->B->blocks != NULL)
+      free_dense_submatrix(&(mat->B), 1);
+    mat->B  = NULL;
   }
 
   if (mat->DR != NULL) {

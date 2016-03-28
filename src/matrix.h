@@ -161,37 +161,43 @@ static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
  */
 static inline void free_gbla_matrix(mat_t *mat)
 {
-  nelts_t i, j;
+  nelts_t i;
 
   // A, C and D are already freed, just check again
   if (mat->A != NULL) {
-    if (mat->A->blocks != NULL)
+    if (mat->A->blocks != NULL) {
       free_sparse_submatrix(&(mat->A), 1);
-    mat->A  = NULL;
+    } else {
+      free(mat->A);
+      mat->A  = NULL;
+    }
   }
   if (mat->C != NULL) {
-    if (mat->C->blocks != NULL)
+    if (mat->C->blocks != NULL) {
       free_sparse_submatrix(&(mat->C), 1);
-    mat->C  = NULL;
+    } else {
+      free(mat->C);
+      mat->C  = NULL;
+    }
   }
 
   if (mat->D != NULL) {
-    for (i=0; i<mat->rbl; ++i) {
-      for (j=0; j<mat->cbr; ++j) {
-        if (mat->D->blocks[i][j].val != NULL)
-          free(mat->D->blocks[i][j].val);
-      }
-      free(mat->D->blocks[i]);
+    if (mat->D->blocks != NULL) {
+      free_dense_submatrix(&(mat->D), 1);
+    } else {
+      free(mat->D);
+      mat->D  = NULL;
     }
-    free(mat->D->blocks);
-    free(mat->D);
   }
   
   // B is dense block matrix
   if (mat->B != NULL) {
-    if (mat->B->blocks != NULL)
+    if (mat->B->blocks != NULL) {
       free_dense_submatrix(&(mat->B), 1);
-    mat->B  = NULL;
+    } else {
+      free(mat->B);
+      mat->B  = NULL;
+    }
   }
 
   if (mat->DR != NULL) {
@@ -200,6 +206,7 @@ static inline void free_gbla_matrix(mat_t *mat)
       free(mat->DR->row[i]->piv_val);
       free(mat->DR->row[i]->init_val);
       free(mat->DR->row[i]->val);
+      free(mat->DR->row[i]);
     }
     free(mat->DR->row);
     free(mat->DR);

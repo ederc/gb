@@ -159,9 +159,9 @@ static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
  *
  * \param gbla matrix mat
  */
-static inline void free_gbla_matrix(mat_t *mat)
+static inline void free_gbla_matrix(mat_t **mat_in)
 {
-  nelts_t i;
+  mat_t *mat  = *mat_in;
 
   // A, C and D are already freed, just check again
   if (mat->A != NULL) {
@@ -202,19 +202,13 @@ static inline void free_gbla_matrix(mat_t *mat)
 
   if (mat->DR != NULL) {
     // DR is a dense row matrix
-    for (i=0; i<mat->DR->nrows; ++i) {
-      free(mat->DR->row[i]->piv_val);
-      free(mat->DR->row[i]->init_val);
-      free(mat->DR->row[i]->val);
-      free(mat->DR->row[i]);
-    }
-    free(mat->DR->row);
-    free(mat->DR);
-    mat->DR = NULL;
+    free_dense_row_submatrix(&(mat->DR), 1);
   }
 
   free(mat);
   mat = NULL;
+
+  *mat_in = mat;
 }
 
 /**

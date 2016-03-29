@@ -37,7 +37,7 @@
 #endif
 
 #ifndef SYMBOL_DEBUG
-#define SYMBOL_DEBUG 1
+#define SYMBOL_DEBUG 0
 #endif
 
 /**
@@ -115,14 +115,32 @@ void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size);
  *
  * \param preprocessing hash list hl
  */
-void free_preprocessing_hash_list(pre_t *hl);
+static inline void free_preprocessing_hash_list(pre_t **hl_in)
+{
+  pre_t *hl = *hl_in;
+  free(hl->hpos);
+  free(hl);
+  hl      = NULL;
+  *hl_in  = hl;
+}
+
 
 /**
  * \brief Frees data structure for symbolic preprocessing.
  *
  * \param symbolic preprocessing data structure spd
  */
-void free_symbolic_preprocessing_data(spd_t *spd);
+static inline void free_symbolic_preprocessing_data(spd_t **spd_in)
+{
+  spd_t *spd = *spd_in;
+  free_preprocessing_hash_list(&(spd->col));
+  free_selection(&(spd->selu));
+  free_selection(&(spd->sell));
+  free(spd);
+  spd     = NULL;
+  *spd_in = spd;
+}
+
 
 /**
  * \brief Comparison function of monomials for quicksort. Compares the property
@@ -340,6 +358,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     // so we can always put gen2 in the lower selection list sell
     add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
     j = sell->load-1;
+    /*
     if (basis->sf != NULL) {
       nelts_t l     = 0;
       hash_t sf_mul = 0;
@@ -372,6 +391,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         }
       }
     }
+    */
     if (have_sf == 0) {
       mul = sell->mpp[j].mul;
       nt  = basis->nt[sell->mpp[j].idx];

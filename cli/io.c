@@ -340,6 +340,7 @@ nvars_t get_nvars(const char *fn)
     nvars = 0;
   }
   free(line);
+  fclose(fh);
 
   return nvars;
 }
@@ -572,6 +573,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
 #endif
   free(term);
   free(line);
+  fclose(fh);
 
   return basis;
 }

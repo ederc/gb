@@ -183,13 +183,6 @@ inline void enlarge_pair_set(ps_t *ps, const nelts_t new_size)
   ps->size  = new_size;
 }
 
-inline void free_pair_set(ps_t *ps)
-{
-  free(ps->pairs);
-  free(ps);
-  ps  = NULL;
-}
-
 inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
@@ -320,28 +313,4 @@ inline void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
   sel->mpp[sel->load].mul  = mul;
   sel->mpp[sel->load].idx  = gen;
   sel->load++;
-}
-
-inline sel_t *init_selection(const nelts_t size)
-{
-  sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
-  sel->size   = size;
-  sel->load   = 0;
-
-  sel->mpp    = (mpp_t *)malloc(size * sizeof(mpp_t));
-
-  return sel;
-}
-
-inline void adjust_size_of_selection(sel_t *sel, const nelts_t new_size)
-{
-  sel->size = new_size;
-  sel->mpp  = realloc(sel->mpp, sel->size * sizeof(mpp_t));
-}
-
-inline void free_selection(sel_t *sel)
-{
-  free(sel->mpp);
-  free(sel);
-  sel = NULL;
 }

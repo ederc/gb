@@ -36,7 +36,7 @@
 #endif
 
 #ifndef POLY_DEBUG
-#define POLY_DEBUG 1
+#define POLY_DEBUG 0
 #endif
 
 #define COEFFICIENT_CHAR_LENGTH 10
@@ -77,22 +77,6 @@ gb_t *initialize_basis(const int ordering, const int nlines,
  * \return intermediate groebner basis basis
  */
 gb_t *initialize_simplifier_list(const gb_t *basis);
-
-/**
- * \brief Frees dynamically allocated memory from simplifier list. Sets the list
- * to NULL.
- *
- * \param simplifier list sf
- */
-void free_simplifier_list(gb_t *sf);
-
-/**
- * \brief Frees dynamically allocated memory from groebner basis. Sets the basis
- * to NULL.
- *
- * \param groebner basis basis
- */
-void free_basis(gb_t *basis);
 
 /**
  * \brief Adds new element from reduced D part of gbla matrix to basis.
@@ -139,6 +123,76 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
  */
 void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
     const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+
+/**
+ * \brief Frees dynamically allocated memory from simplifier list. Sets the list
+ * to NULL.
+ *
+ * \param simplifier list sf
+ */
+static inline void free_simplifier_list(gb_t **sf_in)
+{
+  gb_t *sf  = *sf_in;
+  if (sf) {
+    nelts_t i;
+    free(sf->vnames);
+    free(sf->red);
+    free(sf->deg);
+    free(sf->nt);
+    for (i=0; i<sf->load; ++i) {
+      free(sf->cf[i]);
+      free(sf->eh[i]);
+    }
+    free(sf->cf);
+    free(sf->eh);
+  }
+
+  free(sf);
+  sf      = NULL;
+  *sf_in  = sf;
+}
+
+
+/**
+ * \brief Frees dynamically allocated memory from groebner basis. Sets the basis
+ * to NULL.
+ *
+ * \param groebner basis basis
+ */
+static inline void free_basis(gb_t **basis_in)
+{
+  gb_t *basis = *basis_in;
+  if (basis) {
+    nelts_t i;
+
+    if (basis->sf != NULL) {
+      for (i=basis->st; i<basis->load; ++i) {
+        free(basis->sf[i].mul);
+        free(basis->sf[i].idx);
+      }
+      free(basis->sf);
+      basis->sf = NULL;
+    }
+
+    for (i=0; i<basis->nv; ++i) {
+      free(basis->vnames[i]);
+    }
+    free(basis->vnames);
+    free(basis->red);
+    free(basis->deg);
+    free(basis->nt);
+    for (i=0; i<basis->load; ++i) {
+      free(basis->cf[i]);
+      free(basis->eh[i]);
+    }
+    free(basis->cf);
+    free(basis->eh);
+  }
+
+  free(basis);
+  basis     = NULL;
+  *basis_in = basis;
+}
 
 /**
  * \brief Enlarges groebner basis to given new size.
@@ -200,7 +254,6 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
 
 }
 
-
 /**
  * \brief Connects simplifier entries for an element in the intermediate
  * groebner basis with entry in the global simplifier list.
@@ -216,11 +269,9 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
 static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
     const spd_t *spd, const ri_t ri)
 {
-  printf("ri drin %u\n", ri);
   // get index of basis element
   const nelts_t bi  = spd->selu->mpp[ri].idx;
 
-  printf("%u | %u / %u\n",bi,basis->sf[bi].load,basis->sf[bi].size);
   // enlarge array if needed
   if (basis->sf[bi].load  ==  basis->sf[bi].size) {
     basis->sf[bi].mul   =   realloc(basis->sf[bi].mul,
@@ -229,8 +280,6 @@ static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
                               2 * basis->sf[bi].size * sizeof(nelts_t));
     basis->sf[bi].size  *=  2;
   }
-  printf("ri drin %u\n", ri);
-  printf("%u | %u / %u\n",bi,basis->sf[bi].load,basis->sf[bi].size);
   // insert link to simplifier list
   basis->sf[bi].mul[basis->sf[bi].load] = spd->selu->mpp[ri].mul;
   basis->sf[bi].idx[basis->sf[bi].load] = sf->load-1;

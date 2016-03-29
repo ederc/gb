@@ -270,8 +270,9 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
  *
  * \param hash table ht
  */
-static inline void free_hash_table(mp_cf4_ht_t *ht)
+static inline void free_hash_table(mp_cf4_ht_t **ht_in)
 {
+  mp_cf4_ht_t *ht = *ht_in;
   if (ht) {
 
     hash_t i;
@@ -295,7 +296,8 @@ static inline void free_hash_table(mp_cf4_ht_t *ht)
   }
 
   free(ht);
-  ht  = NULL;
+  ht      = NULL;
+  *ht_in  = ht;
 }
 
 /**

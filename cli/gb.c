@@ -361,8 +361,8 @@ int main(int argc, char *argv[])
           spd, mat, ht, rankDR, nthreads);
     if (verbose > 1)
       printf("basis->load %u | sf->load %u (%u)\n",basis->load, sf->load, spd->col->nlm);
-    free_gbla_matrix(mat);
-    free_symbolic_preprocessing_data(spd);
+    free_gbla_matrix(&mat);
+    free_symbolic_preprocessing_data(&spd);
     clear_hash_table_idx(ht);
 
     if (verbose > 0)
@@ -424,13 +424,13 @@ int main(int argc, char *argv[])
 
   // free allocated memory
   free(meta_data);
-  free_pair_set(ps);
-  free_basis(basis);
+  free_pair_set(&ps);
+  free_basis(&basis);
   if (simplify == 1)
-    free_simplifier_list(sf);
-  free_hash_table(ht);
-  return 0;
+    free_simplifier_list(&sf);
+  free_hash_table(&ht);
 
+  return 0;
 }
 
 int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
@@ -457,13 +457,12 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
   if (spd->col->nlm != 0) {
     ri_t i;
     // store B in dense non-block matrix
-    dm_t *B = copy_block_to_dense_matrix(&(mat->B), 1);
+    dm_t *BR  = copy_block_to_dense_matrix(&(mat->B), 1);
     // we add the polys to sf, we know that there is one coefficient at col pos i
     // for row i.
-    for (i=0; i<B->nrows; ++i) {
-      printf("B->nrows %u / %u\n", i, B->nrows);
-      add_new_element_to_simplifier_list_grevlex(basis, sf, B, i, spd, ht);
-    }
+    for (i=0; i<BR->nrows; ++i)
+      add_new_element_to_simplifier_list_grevlex(basis, sf, BR, i, spd, ht);
+    free_dense_row_submatrix(&BR, 1);
   }
 }
 

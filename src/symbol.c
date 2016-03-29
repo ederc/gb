@@ -181,22 +181,6 @@ inline void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size
   hl->size  = size;
 }
 
-inline void free_preprocessing_hash_list(pre_t *hl)
-{
-  free(hl->hpos);
-  free(hl);
-  hl  = NULL;
-}
-
-inline void free_symbolic_preprocessing_data(spd_t *spd)
-{
-  free_preprocessing_hash_list(spd->col);
-  free_selection(spd->selu);
-  free_selection(spd->sell);
-  free(spd);
-  spd = NULL;
-}
-
 inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,
     const void *b)
 {

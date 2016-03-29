@@ -76,7 +76,15 @@ void enlarge_pair_set(ps_t *ps, const nelts_t new_size);
  *
  * \param pair set ps
  */
-void free_pair_set(ps_t *ps);
+static inline void free_pair_set(ps_t **ps_in)
+{
+  ps_t *ps  = *ps_in;
+  free(ps->pairs);
+  free(ps);
+  ps      = NULL;
+  *ps_in  = ps;
+}
+
 
 /**
  * \brief Generates spair given by one input element. The first generator is 0.
@@ -207,7 +215,11 @@ void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
  *
  *  \param new size new_size
  */
-void adjust_size_of_selection(sel_t *sel, const nelts_t new_size);
+static inline void adjust_size_of_selection(sel_t *sel, const nelts_t new_size)
+{
+  sel->size = new_size;
+  sel->mpp  = realloc(sel->mpp, sel->size * sizeof(mpp_t));
+}
 
 /**
  * \brief Initializes selection for next reduction step of size size
@@ -216,12 +228,28 @@ void adjust_size_of_selection(sel_t *sel, const nelts_t new_size);
  *
  * \return selection set sel
  */
-sel_t *init_selection(const nelts_t size);
+static inline sel_t *init_selection(const nelts_t size)
+{
+  sel_t *sel  = (sel_t *)malloc(sizeof(sel_t));
+  sel->size   = size;
+  sel->load   = 0;
+
+  sel->mpp    = (mpp_t *)malloc(size * sizeof(mpp_t));
+
+  return sel;
+}
 
 /**
  * \brief Frees selection set
  *
  * \param selection set
  */
-void free_selection(sel_t *sel);
+static inline void free_selection(sel_t **sel_in)
+{
+  sel_t *sel  = *sel_in;
+  free(sel->mpp);
+  free(sel);
+  sel     = NULL;
+  *sel_in = sel;
+}
 #endif

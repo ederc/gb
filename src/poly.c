@@ -184,7 +184,6 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   // now we have to link the simplifier with the corresponding element in basis
   
   // get index of element in basis
-  printf("ri aussen %u\n", ri);
   link_simplifier_to_basis(basis, sf, spd, ri);
 }
 

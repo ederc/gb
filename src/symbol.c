@@ -34,6 +34,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
   nsel  = get_pairs_by_minimal_degree(ps);
 
+  printf("# S-pairs in upcoming matrix: %u\n", nsel);
   // list of monomials that appear in the matrix
   pre_t *mon      = init_preprocessing_hash_list(2*nsel);
   // the lower part of the gbla matrix resp. the selection is fixed:

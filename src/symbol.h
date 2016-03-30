@@ -343,7 +343,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   printf("selected pairs in this step of the algorithm:\n");
 #endif
   for (i=0; i<nsel; ++i) {
-    sp = ps->pairs[i];
+    have_sf = 0;
+    sp      = ps->pairs[i];
 #if SYMBOL_DEBUG
     printf("gen1 %u -- gen2 %u -- lcm %u\n", sp->gen1, sp->gen2, sp->lcm);
 #endif
@@ -358,10 +359,10 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     // so we can always put gen2 in the lower selection list sell
     add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
     j = sell->load-1;
-    /*
     if (basis->sf != NULL) {
       nelts_t l     = 0;
       hash_t sf_mul = 0;
+      //printf("sf idx %u / %u (%p)\n",sell->mpp[j].idx, basis->load, &basis->sf[sell->mpp[j].idx]);
       const nelts_t load  = basis->sf[sell->mpp[j].idx].load;
       for (l=0; l<load; ++l) {
         // we start searching from the end of the list since those elements
@@ -391,14 +392,14 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         }
       }
     }
-    */
     if (have_sf == 0) {
       mul = sell->mpp[j].mul;
       nt  = basis->nt[sell->mpp[j].idx];
       pol = basis->eh[sell->mpp[j].idx];
     }
-    for (k=1; k<nt; ++k)
+    for (k=1; k<nt; ++k) {
       enter_monomial_to_preprocessing_hash_list(mul, pol[k], mon);
+    }
     /*
     for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
       enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,

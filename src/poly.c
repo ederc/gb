@@ -49,10 +49,17 @@ inline gb_t *initialize_basis(const int ordering, const int nlines,
   basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
 
-  if (simplify == 1)
+  if (simplify == 1) {
     basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
-  else
+    // initialize dummy values for input polynomials
+    for (i=0; i<basis->st; ++i) {
+      basis->sf[i].load = basis->sf[i].size = 0;
+      basis->sf[i].mul  = NULL;
+      basis->sf[i].idx  = NULL;
+    }
+  } else {
     basis->sf = NULL;
+  }
 
   // enter meta information from input file
   basis->fs   = (double) fl / 1024;

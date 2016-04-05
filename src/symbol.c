@@ -81,17 +81,23 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         ht->idx[hash_pos] = 2;
         if (sel_upp->load == sel_upp->size)
           adjust_size_of_selection(sel_upp, 2*sel_upp->size);
+        sel_upp->mpp[sel_upp->load].bi = i;
         sel_upp->mpp[sel_upp->load].mlm = hash_pos;
         sel_upp->mpp[sel_upp->load].mul = hash_div;
-        sel_upp->mpp[sel_upp->load].bi = i;
-        sel_upp->mpp[sel_upp->load].si = 0;
+        sel_upp->mpp[sel_upp->load].nt  = basis->nt[i];
+        sel_upp->mpp[sel_upp->load].eh  = basis->eh[i];
+        sel_upp->mpp[sel_upp->load].cf  = basis->cf[i];
         sel_upp->load++;
 
         // now add new monomials to preprocessing hash list
+        enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
+          mon, ht);
+        /*
         for (k=1; k<basis->nt[i]; ++k) {
           enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1].mul,
             basis->eh[sel_upp->mpp[sel_upp->load-1].bi][k], mon);
         }
+        */
       }
     }
     idx++;
@@ -138,36 +144,6 @@ inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_
   }
 }
 
-inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
-    const hash_t h2, pre_t *mon)
-{
-  hash_t pos = check_in_hash_table_product(h1, h2, ht);
-  // only in this case we have this monomial hash for the first time,
-  // otherwise it has already been taken care of
-#if SYMBOL_DEBUG
-    for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[h1][i]);
-    printf("\n");
-    for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[h2][i]);
-    printf("\n");
-    for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[pos][i]);
-    printf("\n");
-#endif
-  if (ht->idx[pos] == 0) {
-    ht->idx[pos]++;
-    mon->hpos[mon->load]  = pos;
-#if SYMBOL_DEBUG
-    printf("hash %lu at position %u\n", h1+h2,pos);
-    printf("2 new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
-#endif
-    mon->load++;
-    if (mon->load == mon->size)
-      adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
-  }
-}
-
 inline pre_t *init_preprocessing_hash_list(const nelts_t size)
 {
   // allocate a list for hashes of monomials to be checked in the symbolic
@@ -179,12 +155,6 @@ inline pre_t *init_preprocessing_hash_list(const nelts_t size)
   mon->nlm    = 0;
   
   return mon;
-}
-
-inline void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size)
-{
-  hl->hpos  = realloc(hl->hpos, size * sizeof(hash_t));
-  hl->size  = size;
 }
 
 inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,

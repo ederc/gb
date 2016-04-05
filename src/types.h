@@ -196,7 +196,7 @@ typedef enum {NOT_REDUNDANT, REDUNDANT} red_t;
 
 typedef struct sf_t
 {
-  hash_t *mul;  /*!<  hash of multiplier of simplified element */
+  //hash_t *mul;  /*!<  hash of multiplier of simplified element */
   nelts_t *idx; /*!<  index of simplified element in simplifier list */
   nelts_t size; /*!<  memory allocated */
   nelts_t load; /*!<  number of elements in simplifier list for this polynomial */
@@ -276,8 +276,12 @@ typedef struct ps_t
 typedef struct mpp_t
 {
   nelts_t bi;   /*!<  index of polynomial in basis */
-  nelts_t si;   /*!<  index of polynomial in simplifier list, zero if no
-                      simplifier is found */
+  hash_t *eh;   /*!<  exponent vector hash, either from basis element or from
+                      corresponding simplifier*/
+  coeff_t *cf;  /*!<  coefficient vector, either from basis element or from
+                      corresponding simplifier*/
+  nelts_t nt;   /*!<  number of terms, either from basis element or from
+                      corresponding simplifier*/
   hash_t mul;   /*!<  hash of multiplier */
   hash_t mlm;   /*!<  hash of multiplied leading monomial, needed for faster
                       sorting of rows when generating the gbla matrix */

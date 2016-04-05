@@ -487,24 +487,16 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
  *
  * \param hash table ht
  */
-static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t si,
-    const hash_t mul, const nelts_t fr, const bi_t bs, const gb_t *basis,
-    const gb_t *sf, const mp_cf4_ht_t *ht)
+static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t nt,
+    const hash_t *eh, const coeff_t *cf, const nelts_t fr, const bi_t bs,
+    const gb_t *basis, const gb_t *sf, const mp_cf4_ht_t *ht)
+//static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t si,
+//    const hash_t mul, const nelts_t fr, const bi_t bs, const gb_t *basis,
+//    const gb_t *sf, const mp_cf4_ht_t *ht)
+//
 //static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
 //    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
-  coeff_t *cf;
-  hash_t *eh;
-  nelts_t nt;
-  if (si != 0) {
-    nt  = sf->nt[si];
-    cf  = sf->cf[si];
-    eh  = sf->eh[si];
-  } else {
-    nt  = basis->nt[bi];
-    cf  = basis->cf[bi];
-    eh  = basis->eh[bi];
-  }
   nelts_t j, tmp;
   // hash position and column position
   hash_t hp, cp;
@@ -640,12 +632,14 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
   nelts_t i;
   // get new row index in block rib
   bi_t rib;
-  // polynomial index in basis
-  nelts_t bi;
-  // polynomial index in simplifier list
-  nelts_t si;
   // multiplier
   hash_t mul;
+  // polynomial exponent array
+  hash_t *eh;
+  // polynomial coefficient array
+  coeff_t *cf;
+  // polynomial number of terms
+  nelts_t nt;
 
   // preallocate buffer to store row in dense format
   dbr_t *dbr  = initialize_dense_block_row(ncb, bs);
@@ -658,12 +652,12 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
     reset_buffer(dbr, ncb, bs);
 
     rib = i % bs;
-    bi  = sel->mpp[i].bi;
-    si  = sel->mpp[i].si;
     mul = sel->mpp[i].mul;
+    eh  = sel->mpp[i].eh;
+    cf  = sel->mpp[i].cf;
+    nt  = sel->mpp[i].nt;
 
-    //store_in_buffer(dbr, pi, mul, fr, bs, basis, ht);
-    store_in_buffer(dbr, bi, si, mul, fr, bs, basis, sf, ht);
+    store_in_buffer(dbr, mul, nt, eh, cf, fr, bs, basis, sf, ht);
 #if MATRIX_DEBUG
     printf("ROW %u\n",i);
     for (int ii=0; ii<ncb; ++ii)

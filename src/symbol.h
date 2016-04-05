@@ -57,6 +57,22 @@
 spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf);
 
 /**
+ * \brief Adjusts size of hash list for symbolic preprocessing to new_size.
+ *
+ * \note It is not only used to enlarge the size, but also for cutting down
+ * memory once symbolic preprocessing is done.
+ *
+ * \param preprocessing hash list hl
+ *
+ * \param new size of hash list size
+ */
+static inline void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size)
+{
+  hl->hpos  = realloc(hl->hpos, size * sizeof(hash_t));
+  hl->size  = size;
+}
+
+/**
  * \brief Enters the lower order monomials of the selected spair generators to
  * the preprocessing hash list.
  *
@@ -87,7 +103,73 @@ void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_t h1,
  *
  * \param preprocessing hash list mon
  */
-void enter_monomial_to_preprocessing_hash_list(const hash_t h1, const hash_t h2, pre_t *mon);
+//void enter_monomial_to_preprocessing_hash_list(const hash_t h1, const hash_t h2, pre_t *mon);
+static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pre_t *mon,
+    mp_cf4_ht_t *ht)
+{
+  nelts_t i;
+  const hash_t h1 = mpp.mul;
+  
+  for (i=0; i<mpp.nt; ++i) {
+    const hash_t h2 = mpp.eh[i];
+    hash_t pos = check_in_hash_table_product(h1, h2, ht);
+    // only in this case we have this monomial hash for the first time,
+    // otherwise it has already been taken care of
+#if SYMBOL_DEBUG
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[h1][i]);
+    printf("\n");
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[h2][i]);
+    printf("\n");
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[pos][i]);
+    printf("\n");
+#endif
+    if (ht->idx[pos] == 0) {
+      ht->idx[pos]++;
+      mon->hpos[mon->load]  = pos;
+#if SYMBOL_DEBUG
+      printf("hash %lu at position %u\n", h1+h2,pos);
+      printf("2 new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
+#endif
+      mon->load++;
+      if (mon->load == mon->size)
+        adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+    }
+  }
+}
+/*
+inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
+    const hash_t h2, pre_t *mon)
+{
+  hash_t pos = check_in_hash_table_product(h1, h2, ht);
+  // only in this case we have this monomial hash for the first time,
+  // otherwise it has already been taken care of
+#if SYMBOL_DEBUG
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[h1][i]);
+    printf("\n");
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[h2][i]);
+    printf("\n");
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[pos][i]);
+    printf("\n");
+#endif
+  if (ht->idx[pos] == 0) {
+    ht->idx[pos]++;
+    mon->hpos[mon->load]  = pos;
+#if SYMBOL_DEBUG
+    printf("hash %lu at position %u\n", h1+h2,pos);
+    printf("2 new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
+#endif
+    mon->load++;
+    if (mon->load == mon->size)
+      adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+  }
+}
+*/
 
 /**
  * \brief Initializes a hash list for symbolic preprocessing.
@@ -98,17 +180,6 @@ void enter_monomial_to_preprocessing_hash_list(const hash_t h1, const hash_t h2,
  */
 pre_t *init_preprocessing_hash_list(const nelts_t size);
 
-/**
- * \brief Adjusts size of hash list for symbolic preprocessing to new_size.
- *
- * \note It is not only used to enlarge the size, but also for cutting down
- * memory once symbolic preprocessing is done.
- *
- * \param preprocessing hash list hl
- *
- * \param new size of hash list size
- */
-void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size);
 
 /**
  * \brief Frees hash list for symbolic preprocessing.
@@ -385,22 +456,19 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
           printf("\n");
 #endif
           have_sf = 1;
-          sell->mpp[j].mul  = mul = sf_mul;
-          nt                = sf->nt[basis->sf[sell->mpp[j].bi].idx[load-1-l]];
-          pol               = sf->eh[basis->sf[sell->mpp[j].bi].idx[load-1-l]];
-          sell->mpp[j].si   = basis->sf[sell->mpp[j].bi].idx[load-1-l];
+          sell->mpp[j].mul  = sf_mul;
+          sell->mpp[j].nt   = sf->nt[basis->sf[sell->mpp[j].bi].idx[load-1-l]];
+          sell->mpp[j].eh   = sf->eh[basis->sf[sell->mpp[j].bi].idx[load-1-l]];
+          sell->mpp[j].cf   = sf->cf[basis->sf[sell->mpp[j].bi].idx[load-1-l]];
           break; 
         }
       }
     }
-    if (have_sf == 0) {
-      mul = sell->mpp[j].mul;
-      nt  = basis->nt[sell->mpp[j].bi];
-      pol = basis->eh[sell->mpp[j].bi];
-    }
+    /*
     for (k=1; k<nt; ++k)
       enter_monomial_to_preprocessing_hash_list(mul, pol[k], mon);
-
+    */
+    enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
     // now we distinguish cases for gen1
     if (sp->gen1 == 0) {
       if (ht->idx[sp->lcm] == 0) {
@@ -428,15 +496,23 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
         add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
         j = selu->load-1;
+        enter_monomial_to_preprocessing_hash_list(selu->mpp[j],
+            mon, ht);
+        /*
         for (k=1; k<basis->nt[selu->mpp[j].bi]; ++k)
           enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
               basis->eh[selu->mpp[j].bi][k], mon);
+              */
       } else {
         add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
         j = sell->load-1;
+        enter_monomial_to_preprocessing_hash_list(sell->mpp[j],
+            mon, ht);
+        /*
         for (k=1; k<basis->nt[sell->mpp[j].bi]; ++k)
           enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
               basis->eh[sell->mpp[j].bi][k], mon);
+              */
       }
     }
     // remove the selected pair from the pair set

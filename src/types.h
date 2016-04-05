@@ -275,7 +275,9 @@ typedef struct ps_t
  */
 typedef struct mpp_t
 {
-  nelts_t idx;  /*!<  index of polynomial in basis */
+  nelts_t bi;   /*!<  index of polynomial in basis */
+  nelts_t si;   /*!<  index of polynomial in simplifier list, zero if no
+                      simplifier is found */
   hash_t mul;   /*!<  hash of multiplier */
   hash_t mlm;   /*!<  hash of multiplied leading monomial, needed for faster
                       sorting of rows when generating the gbla matrix */

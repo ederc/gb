@@ -309,8 +309,9 @@ inline void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
   mul = get_multiplier(lcm, basis->eh[gen][0], ht);
   if (sel->load == sel->size)
     adjust_size_of_selection(sel, 2*sel->size);
-  sel->mpp[sel->load].mlm  = lcm;
-  sel->mpp[sel->load].mul  = mul;
-  sel->mpp[sel->load].idx  = gen;
+  sel->mpp[sel->load].mlm = lcm;
+  sel->mpp[sel->load].mul = mul;
+  sel->mpp[sel->load].bi  = gen;
+  sel->mpp[sel->load].si  = 0;
   sel->load++;
 }

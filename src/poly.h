@@ -270,7 +270,8 @@ static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
     const spd_t *spd, const ri_t ri)
 {
   // get index of basis element
-  const nelts_t bi  = spd->selu->mpp[ri].idx;
+  const nelts_t bi  = spd->selu->mpp[ri].bi;
+  const nelts_t si  = spd->selu->mpp[ri].si;
 
   // enlarge array if needed
   if (basis->sf[bi].load  ==  basis->sf[bi].size) {
@@ -281,7 +282,10 @@ static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
     basis->sf[bi].size  *=  2;
   }
   // insert link to simplifier list
+  if (si != 0)
+    printf("SI NICHT NULL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   basis->sf[bi].mul[basis->sf[bi].load] = spd->selu->mpp[ri].mul;
+    
   basis->sf[bi].idx[basis->sf[bi].load] = sf->load-1;
   basis->sf[bi].load++;
 }

@@ -34,7 +34,6 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
   nsel  = get_pairs_by_minimal_degree(ps);
 
-  printf("# S-pairs in upcoming matrix: %u\n", nsel);
   // list of monomials that appear in the matrix
   pre_t *mon      = init_preprocessing_hash_list(2*nsel);
   // the lower part of the gbla matrix resp. the selection is fixed:
@@ -84,13 +83,14 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
           adjust_size_of_selection(sel_upp, 2*sel_upp->size);
         sel_upp->mpp[sel_upp->load].mlm = hash_pos;
         sel_upp->mpp[sel_upp->load].mul = hash_div;
-        sel_upp->mpp[sel_upp->load].idx = i;
+        sel_upp->mpp[sel_upp->load].bi = i;
+        sel_upp->mpp[sel_upp->load].si = 0;
         sel_upp->load++;
 
         // now add new monomials to preprocessing hash list
         for (k=1; k<basis->nt[i]; ++k) {
           enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1].mul,
-              basis->eh[sel_upp->mpp[sel_upp->load-1].idx][k], mon);
+            basis->eh[sel_upp->mpp[sel_upp->load-1].bi][k], mon);
         }
       }
     }
@@ -115,12 +115,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_t h1,
     pre_t *mon)
 {
-  hash_t pos  = h1;;
+  hash_t pos  = h1;
   // only in this case we have this monomial hash for the first time,
   // otherwise it has already been taken care of
-  if (ht->idx[pos] == 0) {
-    ht->idx[pos]++;
-    mon->hpos[mon->load]  = pos;
 #if SYMBOL_DEBUG
     for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[h1][i]);
@@ -128,11 +125,16 @@ inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_
     for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
-    printf("new mon %u == %u\n", h1,mon->hpos[mon->load]);
 #endif
+  if (ht->idx[pos] == 0) {
+    ht->idx[pos]++;
+    mon->hpos[mon->load]  = pos;
     mon->load++;
     if (mon->load == mon->size)
       adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+#if SYMBOL_DEBUG
+    printf("new mon %u == %u\n", h1,mon->hpos[mon->load]);
+#endif
   }
 }
 
@@ -142,9 +144,6 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
   hash_t pos = check_in_hash_table_product(h1, h2, ht);
   // only in this case we have this monomial hash for the first time,
   // otherwise it has already been taken care of
-  if (ht->idx[pos] == 0) {
-    ht->idx[pos]++;
-    mon->hpos[mon->load]  = pos;
 #if SYMBOL_DEBUG
     for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[h1][i]);
@@ -155,6 +154,12 @@ inline void enter_monomial_to_preprocessing_hash_list(const hash_t h1,
     for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
+#endif
+  if (ht->idx[pos] == 0) {
+    ht->idx[pos]++;
+    mon->hpos[mon->load]  = pos;
+#if SYMBOL_DEBUG
+    printf("hash %lu at position %u\n", h1+h2,pos);
     printf("2 new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
 #endif
     mon->load++;

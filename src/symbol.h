@@ -362,49 +362,45 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     if (basis->sf != NULL) {
       nelts_t l     = 0;
       hash_t sf_mul = 0;
-      //printf("sf idx %u / %u (%p)\n",sell->mpp[j].idx, basis->load, &basis->sf[sell->mpp[j].idx]);
-      const nelts_t load  = basis->sf[sell->mpp[j].idx].load;
+      const nelts_t load  = basis->sf[sell->mpp[j].bi].load;
       for (l=0; l<load; ++l) {
         // we start searching from the end of the list since those elements
         // might be best reduced
-        //sf_mul = monomial_division(sell->mpp[j].mul, basis->sf[sell->mpp[j].idx].mul[load-1-l], ht);
-        sf_mul = monomial_division(sell->mpp[j].mlm, sf->eh[basis->sf[sell->mpp[j].idx].idx[load-1-l]][0], ht);
+        //sf_mul = monomial_division(sell->mpp[j].mul, basis->sf[sell->mpp[j].bi].mul[load-1-l], ht);
+        sf_mul = monomial_division(sell->mpp[j].mlm, sf->eh[basis->sf[sell->mpp[j].bi].idx[load-1-l]][0], ht);
         if (sf_mul != 0) {
+#if SYMBOL_DEBUG
           printf("-- SIMPLIFY --\n");
           for (int ii=0; ii<basis->nv; ++ii)
             printf("%u ",ht->exp[sell->mpp[j].mul][ii]);
           printf("\n");
           for (int ii=0; ii<basis->nv; ++ii)
-            printf("%u ",ht->exp[basis->eh[sell->mpp[j].idx][0]][ii]);
+            printf("%u ",ht->exp[basis->eh[sell->mpp[j].bi][0]][ii]);
           printf("\n - - -\n");
           for (int ii=0; ii<basis->nv; ++ii)
             printf("%u ",ht->exp[sf_mul][ii]);
           printf("\n");
           for (int ii=0; ii<basis->nv; ++ii)
-            printf("%u ",ht->exp[sf->eh[basis->sf[sell->mpp[j].idx].idx[load-1-l]][0]][ii]);
+            printf("%u ",ht->exp[sf->eh[basis->sf[sell->mpp[j].bi].idx[load-1-l]][0]][ii]);
           printf("\n");
+#endif
           have_sf = 1;
-          mul = sf_mul;
-          nt  = sf->nt[basis->sf[sell->mpp[j].idx].idx[load-1-l]];
-          pol = sf->eh[basis->sf[sell->mpp[j].idx].idx[load-1-l]];
-          printf("nt: %u\n", nt);
+          sell->mpp[j].mul  = mul = sf_mul;
+          nt                = sf->nt[basis->sf[sell->mpp[j].bi].idx[load-1-l]];
+          pol               = sf->eh[basis->sf[sell->mpp[j].bi].idx[load-1-l]];
+          sell->mpp[j].si   = basis->sf[sell->mpp[j].bi].idx[load-1-l];
           break; 
         }
       }
     }
     if (have_sf == 0) {
       mul = sell->mpp[j].mul;
-      nt  = basis->nt[sell->mpp[j].idx];
-      pol = basis->eh[sell->mpp[j].idx];
+      nt  = basis->nt[sell->mpp[j].bi];
+      pol = basis->eh[sell->mpp[j].bi];
     }
-    for (k=1; k<nt; ++k) {
+    for (k=1; k<nt; ++k)
       enter_monomial_to_preprocessing_hash_list(mul, pol[k], mon);
-    }
-    /*
-    for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
-      enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
-          basis->eh[sell->mpp[j].idx][k], mon);
-    */
+
     // now we distinguish cases for gen1
     if (sp->gen1 == 0) {
       if (ht->idx[sp->lcm] == 0) {
@@ -432,15 +428,15 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
         add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
         j = selu->load-1;
-        for (k=1; k<basis->nt[selu->mpp[j].idx]; ++k)
+        for (k=1; k<basis->nt[selu->mpp[j].bi]; ++k)
           enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
-              basis->eh[selu->mpp[j].idx][k], mon);
+              basis->eh[selu->mpp[j].bi][k], mon);
       } else {
         add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
         j = sell->load-1;
-        for (k=1; k<basis->nt[sell->mpp[j].idx]; ++k)
+        for (k=1; k<basis->nt[sell->mpp[j].bi]; ++k)
           enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
-              basis->eh[sell->mpp[j].idx][k], mon);
+              basis->eh[sell->mpp[j].bi][k], mon);
       }
     }
     // remove the selected pair from the pair set

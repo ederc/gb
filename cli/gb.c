@@ -202,11 +202,13 @@ int main(int argc, char *argv[])
     printf("%-38s","Loading input data ...");
     fflush(stdout);
   }
-  if (verbose > 0) {
+  if (verbose > 0)
     printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
-  }  
-  if (verbose > 0) {
+
+  if (verbose > 1)
     print_mem_usage();
+
+  if (verbose > 0) {
     printf("---------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------\n");
@@ -305,6 +307,7 @@ int main(int argc, char *argv[])
       t_sorting_columns +=  walltime(t_load_start);
 
 #if GB_DEBUG
+    printf("# lead terms: %u\n", spd->col->nlm);
     for (int ii=0; ii<spd->col->load; ++ii) {
       for (int jj=0; jj<ht->nv; ++jj) {
         printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
@@ -316,7 +319,7 @@ int main(int argc, char *argv[])
     // generate gbla matrix out of data from symbolic preprocessing
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
-    mat_t *mat  = generate_gbla_matrix(basis, spd, nthreads);
+    mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
     if (verbose > 0)
       t_generating_gbla_matrix  +=  walltime(t_load_start);
     // generate pbm files of gbla matrix
@@ -457,7 +460,7 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
   if (spd->col->nlm != 0) {
     ri_t i;
     // store B in dense non-block matrix
-    dm_t *BR  = copy_block_to_dense_matrix(&(mat->B), 1);
+    dm_t *BR  = copy_block_to_dense_matrix(&(mat->B), 1, 0);
     // we add the polys to sf, we know that there is one coefficient at col pos i
     // for row i.
     for (i=0; i<BR->nrows; ++i)

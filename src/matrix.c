@@ -71,7 +71,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     print_mem_usage();
   }
   // copy block D to dense wide (re_l_t) representation
-  mat->DR = copy_block_to_dense_matrix(&(mat->D), nthreads);
+  mat->DR = copy_block_to_dense_matrix(&(mat->D), nthreads, 1);
   mat->DR->mod  = mat->mod;
 
   // eliminate mat->DR using a structured Gaussian Elimination process on the rows

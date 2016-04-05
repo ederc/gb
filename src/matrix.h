@@ -330,7 +330,6 @@ static inline void write_to_sparse_row(sb_fl_t *A, const coeff_t *cf, const nelt
       A->blocks[rbi][bir].val[rib][sz - A->blocks[rbi][bir].sz[rib]]  =
         (re_t)((re_m_t)mod - cf[i-1]);
       A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib]]  = i-1;
-      //printf("i %u | A->blocks[%u][%u].pos[%u][%u - %u] = %u\n",i, rbi,bir,rib, sz,A->blocks[rbi][bir].sz[rib],A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib]]);
     }
   }
 }
@@ -379,9 +378,11 @@ static inline void write_to_dense_row(dbm_fl_t *A, const coeff_t *cf, const nelt
 static inline void allocate_sparse_row_in_block(sb_fl_t *A, const nelts_t rbi,
     const nelts_t bir, const bi_t rib, const nelts_t sz, const bi_t bs)
 {
-  //printf("rbi %u | bir %u | rib %u | sz %u\n",rbi, bir, rib, sz);
   A->blocks[rbi][bir].val[rib]  = (re_t *)malloc(sz * sizeof(re_t));
   A->blocks[rbi][bir].pos[rib]  = (bi_t *)malloc(sz * sizeof(bi_t));
+#if MARTIX_DEBUG
+  printf("rbi %u | bir %u | rib %u | sz %u || %p | %p\n",rbi, bir, rib, sz, A->blocks[rbi][bir].val[rib],A->blocks[rbi][bir].pos[rib]);
+#endif
 }
 
 /**
@@ -470,7 +471,9 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
  *
  * \param dense block row dbr
  *
- * \param polynomial index in basis pi
+ * \param polynomial index in basis bi
+ *
+ * \param polynomial index in simplifier list si
  *
  * \param hash position of multiplier mul
  *
@@ -480,10 +483,15 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
  *
  * \param intermediate groebner basis basis
  *
+ * \param simplifier list sf
+ *
  * \param hash table ht
  */
-static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
-    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
+static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t si,
+    const hash_t mul, const nelts_t fr, const bi_t bs, const gb_t *basis,
+    const gb_t *sf, const mp_cf4_ht_t *ht)
+//static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
+//    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
   nelts_t j, tmp;
   // hash position and column position
@@ -496,6 +504,7 @@ static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mu
 
   // do some loop unrollinga
   j = 0;
+  /*
   if (basis->nt[pi]>3) {
     for (j=0; j<basis->nt[pi]-3; j=j+4) {
       hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
@@ -552,19 +561,43 @@ static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mu
       }
     }
   }
+  */
+  // if we use a simplifier
+  coeff_t *cf;
+  hash_t *eh;
+  nelts_t nt;
+  if (si != 0) {
+    nt  = sf->nt[si];
+    cf  = sf->cf[si];
+    eh  = sf->eh[si];
+  } else {
+    nt  = basis->nt[bi];
+    cf  = basis->cf[bi];
+    eh  = basis->eh[bi];
+  }
   tmp = j;
-  for (j=tmp; j<basis->nt[pi]; ++j) {
-    hp  = find_in_hash_table_product(mul, basis->eh[pi][j], ht);
-    cp  = ht->idx[hp];
+  for (j=tmp; j<nt; ++j) {
+    hp  = find_in_hash_table_product(mul, eh[j], ht);
+    //hp  = find_in_hash_table_product(mul, basis->eh[pi][j], ht);
 #if MATRIX_DEBUG
-    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j, basis->eh[pi][j], cp, basis->cf[pi][j]);
+    for (int ii=0; ii<basis->nv; ++ii)
+      printf("%u ",ht->exp[mul][ii]);
+    printf(" ||| ");
+    for (int ii=0; ii<basis->nv; ++ii)
+      printf("%u ",ht->exp[eh[j]][ii]);
+    printf(" ||| ");
+    for (int ii=0; ii<basis->nv; ++ii)
+      printf("%u ",ht->exp[mul][ii] + ht->exp[eh[j]][ii]);
+    printf(" ------------> %lu\n", hp);
+    printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, bi, j, eh[j], cp, cf[j]);
 #endif
+    cp  = ht->idx[hp];
     if (cp<fr) {
-      dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
+      dbr->cf[cp/bs][cp%bs]  = cf[j];
       dbr->ctr[cp/bs]++;
     } else {
       cp = cp - fr;
-      dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j];
+      dbr->cf[fbr+cp/bs][cp%bs]  = cf[j];
       dbr->ctr[fbr+cp/bs]++;
     }
   }
@@ -594,19 +627,23 @@ static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mu
  *
  * \param intermediate groebner basis gb
  *
+ * \param simplifier list sf
+ *
  * \param symbolic preprocessing selection sel
  *
  * \param symbolic preprocessing monomials col
  */
 static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
     const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
-    const gb_t *basis, const sel_t *sel, const pre_t *col)
+    const gb_t *basis, const gb_t *sf, const sel_t *sel, const pre_t *col)
 {
   nelts_t i;
   // get new row index in block rib
   bi_t rib;
   // polynomial index in basis
-  nelts_t pi;
+  nelts_t bi;
+  // polynomial index in simplifier list
+  nelts_t si;
   // multiplier
   hash_t mul;
 
@@ -621,10 +658,12 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
     reset_buffer(dbr, ncb, bs);
 
     rib = i % bs;
-    pi  = sel->mpp[i].idx;
+    bi  = sel->mpp[i].bi;
+    si  = sel->mpp[i].si;
     mul = sel->mpp[i].mul;
 
-    store_in_buffer(dbr, pi, mul, fr, bs, basis, ht);
+    //store_in_buffer(dbr, pi, mul, fr, bs, basis, ht);
+    store_in_buffer(dbr, bi, si, mul, fr, bs, basis, sf, ht);
 #if MATRIX_DEBUG
     printf("ROW %u\n",i);
     for (int ii=0; ii<ncb; ++ii)
@@ -648,13 +687,16 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
  *
  * \param intermediate groebner basis basis
  *
+ * \param simplifier list sf
+ *
  * \param symbplic preprocessing data spd
  *
  * \param number of threads nthreads
  *
  * \return gbla matrix mat
  */
-static inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, const int nthreads)
+static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
+    const spd_t *spd, const int nthreads)
 {
   mat_t *mat  = initialize_gbla_matrix(spd, basis);
   #pragma omp parallel num_threads(nthreads)
@@ -666,7 +708,7 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, c
       #pragma omp task
       {
         generate_row_blocks(mat->A, mat->B, i, spd->selu->load, spd->col->nlm,
-            mat->bs, mat->cbl+mat->cbr, basis, spd->selu, spd->col);
+            mat->bs, mat->cbl+mat->cbr, basis, sf, spd->selu, spd->col);
       }
     }
     // fill the lower part CD
@@ -674,7 +716,7 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const spd_t *spd, c
       #pragma omp task
       {
         generate_row_blocks(mat->C, mat->D, i, spd->sell->load, spd->col->nlm,
-            mat->bs, mat->cbl+mat->cbr, basis, spd->sell, spd->col);
+            mat->bs, mat->cbl+mat->cbr, basis, sf, spd->sell, spd->col);
       }
     }
     }

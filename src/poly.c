@@ -140,31 +140,41 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   ctr++;
 
 #if POLY_DEBUG
-  printf("new simplifier lm: ");
+  printf("row %u -- new simplifier lm: ", ri);
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u ",ht->exp[sf->eh[sf->load][0]][ii]);
 #endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[ri]], spd->col->hpos[ri]);
-#endif
-  // now we do B
-  for (i=0; i<B->ncols; ++i) {
-    if (B->row[ri]->init_val[i] != 0) {
-      sf->cf[sf->load][ctr] = B->row[ri]->init_val[i];
-      // note that we have to adjust the position via shifting it by
-      // spd->col->nlm since DR is on the righthand side of the matrix
-      sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
-#if POLY_DEBUG
-    printf("%u|",sf->cf[sf->load][ctr]);
+  printf("for the basis lm:  ");
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
-  printf("  ");
+    printf("%u ",ht->exp[basis->eh[spd->selu->mpp[ri].bi][0]][ii]);
+#endif
+  printf("\n");
+#endif
+  // now we do B
+  //
+  if (B->row[ri]->init_val != NULL) {
+    for (i=0; i<B->ncols; ++i) {
+      if (B->row[ri]->init_val[i] != 0) {
+        sf->cf[sf->load][ctr] = B->row[ri]->init_val[i];
+        // note that we have to adjust the position via shifting it by
+        // spd->col->nlm since DR is on the righthand side of the matrix
+        sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+#if POLY_DEBUG
+        printf("%u|",sf->cf[sf->load][ctr]);
+#if !__GB_HAVE_SSE2
+        for (int ii=0; ii<ht->nv; ++ii)
+          printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
+        printf("  ");
 #endif
 #endif
-      deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-        ht->deg[sf->eh[sf->load][ctr]] : deg;
-      ctr++;
+        deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
+          ht->deg[sf->eh[sf->load][ctr]] : deg;
+        ctr++;
+      }
     }
   }
 #if POLY_DEBUG
@@ -210,9 +220,9 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   
   nelts_t ctr = 0;
   deg_t deg   = 0;
-  nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
+  const nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
 #if POLY_DEBUG
-  printf("new lm: ");
+  printf("new lm from row %u: ", ri);
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);

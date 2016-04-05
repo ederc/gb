@@ -493,76 +493,6 @@ static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t s
 //static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
 //    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
-  nelts_t j, tmp;
-  // hash position and column position
-  hash_t hp, cp;
-
-  // calculate index of last block on left side
-  // if there is nothing on the lefthand side what can happen when interreducing
-  // the initial input elements then we have to adjust fbr to 0
-  const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
-
-  // do some loop unrollinga
-  j = 0;
-  /*
-  if (basis->nt[pi]>3) {
-    for (j=0; j<basis->nt[pi]-3; j=j+4) {
-      hp  = find_in_hash_table_product(mul,basis->eh[pi][j], ht);
-      cp  = ht->idx[hp];
-#if MATRIX_DEBUG
-      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j, basis->eh[pi][j], cp, basis->cf[pi][j]);
-#endif
-      if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j];
-        dbr->ctr[cp/bs]++;
-      } else {
-        cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j];
-        dbr->ctr[fbr+cp/bs]++;
-      }
-      hp  = find_in_hash_table_product(mul, basis->eh[pi][j+1], ht);
-      cp  = ht->idx[hp];
-#if MATRIX_DEBUG
-      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+1, basis->eh[pi][j+1], cp, basis->cf[pi][j+1]);
-#endif
-      if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+1];
-        dbr->ctr[cp/bs]++;
-      } else {
-        cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+1];
-        dbr->ctr[fbr+cp/bs]++;
-      }
-      hp  = find_in_hash_table_product(mul, basis->eh[pi][j+2], ht);
-      cp  = ht->idx[hp];
-#if MATRIX_DEBUG
-      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+2, basis->eh[pi][j+2], cp, basis->cf[pi][j+2]);
-#endif
-      if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+2];
-        dbr->ctr[cp/bs]++;
-      } else {
-        cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+2];
-        dbr->ctr[fbr+cp/bs]++;
-      }
-      hp  = find_in_hash_table_product(mul, basis->eh[pi][j+3], ht);
-      cp  = ht->idx[hp];
-#if MATRIX_DEBUG
-      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+3, basis->eh[pi][j+3], cp, basis->cf[pi][j+3]);
-#endif
-      if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = basis->cf[pi][j+3];
-        dbr->ctr[cp/bs]++;
-      } else {
-        cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = basis->cf[pi][j+3];
-        dbr->ctr[fbr+cp/bs]++;
-      }
-    }
-  }
-  */
-  // if we use a simplifier
   coeff_t *cf;
   hash_t *eh;
   nelts_t nt;
@@ -574,6 +504,76 @@ static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t s
     nt  = basis->nt[bi];
     cf  = basis->cf[bi];
     eh  = basis->eh[bi];
+  }
+  nelts_t j, tmp;
+  // hash position and column position
+  hash_t hp, cp;
+
+  // calculate index of last block on left side
+  // if there is nothing on the lefthand side what can happen when interreducing
+  // the initial input elements then we have to adjust fbr to 0
+  const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
+
+  // do some loop unrollinga
+  j = 0;
+  if (nt > 3) {
+    for (j=0; j<nt-3; j=j+4) {
+      hp  = find_in_hash_table_product(mul, eh[j], ht);
+      cp  = ht->idx[hp];
+#if MATRIX_DEBUG
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j, basis->eh[pi][j], cp, basis->cf[pi][j]);
+#endif
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = cf[j];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j];
+        dbr->ctr[fbr+cp/bs]++;
+      }
+
+      hp  = find_in_hash_table_product(mul, eh[j+1], ht);
+      cp  = ht->idx[hp];
+#if MATRIX_DEBUG
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+1, basis->eh[pi][j+1], cp, basis->cf[pi][j+1]);
+#endif
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = cf[j+1];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j+1];
+        dbr->ctr[fbr+cp/bs]++;
+      }
+
+      hp  = find_in_hash_table_product(mul, eh[j+2], ht);
+      cp  = ht->idx[hp];
+#if MATRIX_DEBUG
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+2, basis->eh[pi][j+2], cp, basis->cf[pi][j+2]);
+#endif
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = cf[j+2];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j+2];
+        dbr->ctr[fbr+cp/bs]++;
+      }
+
+      hp  = find_in_hash_table_product(mul, eh[j+3], ht);
+      cp  = ht->idx[hp];
+#if MATRIX_DEBUG
+      printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+3, basis->eh[pi][j+3], cp, basis->cf[pi][j+3]);
+#endif
+      if (cp<fr) {
+        dbr->cf[cp/bs][cp%bs]  = cf[j+3];
+        dbr->ctr[cp/bs]++;
+      } else {
+        cp = cp - fr;
+        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j+3];
+        dbr->ctr[fbr+cp/bs]++;
+      }
+    }
   }
   tmp = j;
   for (j=tmp; j<nt; ++j) {

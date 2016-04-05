@@ -167,7 +167,6 @@ static inline void free_basis(gb_t **basis_in)
 
     if (basis->sf != NULL) {
       for (i=basis->st; i<basis->load; ++i) {
-        free(basis->sf[i].mul);
         free(basis->sf[i].idx);
       }
       free(basis->sf);
@@ -226,7 +225,6 @@ static inline void initialize_simplifier_link(gb_t *basis)
   for (i=0; i<basis->size; ++i) {
     basis->sf[i].size = 3;
     basis->sf[i].load = 0;
-    basis->sf[i].mul  = (hash_t *)malloc(basis->sf[i].size * sizeof(hash_t));
     basis->sf[i].idx  = (nelts_t *)malloc(basis->sf[i].size * sizeof(nelts_t));
   }
 }
@@ -271,21 +269,14 @@ static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
 {
   // get index of basis element
   const nelts_t bi  = spd->selu->mpp[ri].bi;
-  const nelts_t si  = spd->selu->mpp[ri].si;
 
   // enlarge array if needed
   if (basis->sf[bi].load  ==  basis->sf[bi].size) {
-    basis->sf[bi].mul   =   realloc(basis->sf[bi].mul,
-                              2 * basis->sf[bi].size * sizeof(hash_t));
     basis->sf[bi].idx   =   realloc(basis->sf[bi].idx,
                               2 * basis->sf[bi].size * sizeof(nelts_t));
     basis->sf[bi].size  *=  2;
   }
   // insert link to simplifier list
-  if (si != 0)
-    printf("SI NICHT NULL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-  basis->sf[bi].mul[basis->sf[bi].load] = spd->selu->mpp[ri].mul;
-    
   basis->sf[bi].idx[basis->sf[bi].load] = sf->load-1;
   basis->sf[bi].load++;
 }

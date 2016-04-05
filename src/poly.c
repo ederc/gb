@@ -54,7 +54,6 @@ inline gb_t *initialize_basis(const int ordering, const int nlines,
     // initialize dummy values for input polynomials
     for (i=0; i<basis->st; ++i) {
       basis->sf[i].load = basis->sf[i].size = 0;
-      basis->sf[i].mul  = NULL;
       basis->sf[i].idx  = NULL;
     }
   } else {
@@ -268,7 +267,6 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   if (basis->sf != NULL) {
     basis->sf[basis->load].size = 3;
     basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].mul  = (hash_t *)malloc(basis->sf[basis->load].size * sizeof(hash_t));
     basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
   }
   basis->load++;

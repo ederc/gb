@@ -131,6 +131,8 @@ int main(int argc, char *argv[])
         break;
       case 't':
         nthreads  = (int)strtol(optarg, NULL, 10);
+        if (nthreads == 0)
+          nthreads  = 1;
         break;
       case 'v':
         verbose = (int)strtol(optarg, NULL, 10);

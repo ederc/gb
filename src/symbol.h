@@ -457,25 +457,22 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         mon->load++;
         if (mon->load == mon->size)
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+
         add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
         j = selu->load-1;
+        // check for simplification
+        if (basis->sf != NULL)
+          try_to_simplify(selu->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(selu->mpp[j],
             mon, ht);
-        /*
-        for (k=1; k<basis->nt[selu->mpp[j].bi]; ++k)
-          enter_monomial_to_preprocessing_hash_list(selu->mpp[j].mul,
-              basis->eh[selu->mpp[j].bi][k], mon);
-              */
       } else {
         add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
         j = sell->load-1;
+        // check for simplification
+        if (basis->sf != NULL)
+          try_to_simplify(sell->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(sell->mpp[j],
             mon, ht);
-        /*
-        for (k=1; k<basis->nt[sell->mpp[j].bi]; ++k)
-          enter_monomial_to_preprocessing_hash_list(sell->mpp[j].mul,
-              basis->eh[sell->mpp[j].bi][k], mon);
-              */
       }
     }
     // remove the selected pair from the pair set

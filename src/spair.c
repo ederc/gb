@@ -111,18 +111,22 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts
     if (ps->pairs[i]->crit != NO_CRIT)
       continue;
     for (j=ps->load; j<i; ++j) {
-      if (i==j || ps->pairs[j] != NO_CRIT) // smaller lcm eliminated j
+      if (i==j || ps->pairs[j]->crit == CHAIN_CRIT) // smaller lcm eliminated j
         continue;
-      if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
-        ps->pairs[j]->crit  = CHAIN_CRIT;
+      //if (ps->pairs[i]->lcm == ps->pairs[j]->lcm) {
+      if (ps->pairs[i]->lcm != ps->pairs[j]->lcm && monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht)) {
+        ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
         printf("2CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
 #endif
+        break;
       }
     }
   }
   // third step: remove new pairs via product criterion
   for (i=ps->load; i<cur_len; ++i) {
+    if (ps->pairs[i]->crit == CHAIN_CRIT)
+      continue;
     if (ps->pairs[i]->crit == PROD_CRIT) {
       // eliminate all new pairs with this lcm
       for (j=ps->load; j<cur_len; ++j) {
@@ -134,7 +138,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts
         }
       }
     } else { // earlier pairs may eliminate this pair
-      if (i > ps->load) {
+      //if (i > ps->load) {
         for (j=i-1; j>=(int)ps->load; --j) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
             ps->pairs[i]->crit  = CHAIN_CRIT;
@@ -144,7 +148,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts
             break;
           }
         }
-      }
+      //}
     }
   }
 }
@@ -212,12 +216,10 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   
   // if one of the generators is redundant we can stop already here and mark it
   // with the CHAIN_CRIT in order to remove it later on
-  /*
   if (basis->red[gen1] | basis->red[gen2]) {
     sp->crit  = CHAIN_CRIT;
     return sp;
   }
-  */
   sp->crit  = NO_CRIT;
   // check for product criterion and mark correspondingly, i.e. we set sp->deg=0
   if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]])

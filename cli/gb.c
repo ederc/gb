@@ -426,9 +426,6 @@ int main(int argc, char *argv[])
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
     printf("---------------------------------------------------------------------------\n");
-    printf("size of basis                     %9u\n",basis->load - basis->st - basis->nred);
-    printf("number of zero reductions         %9lu\n", n_zero_reductions);
-    printf("---------------------------------------------------------------------------\n");
     if (verbose > 1)
       print_mem_usage();
   }

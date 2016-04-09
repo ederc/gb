@@ -402,18 +402,27 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     const gb_t *basis, const gb_t *sf, const nelts_t nsel)
 {
   nelts_t i, j, k;
-  spair_t *sp;
+  spair_t *sp = NULL, *sp_last  = NULL;
 
   // wVe do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
 #if SYMBOL_DEBUG
-  printf("selected pairs in this step of the algorithm:\n");
+  printf(" %u selected pairs in this step of the algorithm:\n", nsel);
 #endif
   for (i=0; i<nsel; ++i) {
+    // remove duplicates if lcms and the first generators are the same
+    sp_last  = sp;
     sp  = ps->pairs[i];
+    if (sp_last != NULL && sp_last->lcm == sp->lcm && sp_last->gen1 == sp->gen1)
+      continue;
 #if SYMBOL_DEBUG
-    printf("gen1 %u -- gen2 %u -- lcm %u\n", sp->gen1, sp->gen2, sp->lcm);
+    if (sp_last != NULL)
+      printf("lgen1 %u -- lgen2 %u -- llcm %lu | ", sp_last->gen1, sp_last->gen2, sp_last->lcm);
+    printf("gen1  %u -- gen2  %u -- lcm  %lu | ", sp->gen1, sp->gen2, sp->lcm);
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u ",ht->exp[sp->lcm][ii]);
+    printf("\n");
 #endif
     // We have to distinguish between usual spairs and spairs consisting of one
     // initial input element: The latter ones have only 1 generator (gen2 has
@@ -433,6 +442,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 
     enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
     // now we distinguish cases for gen1
+    /*
     if (sp->gen1 == 0) {
       if (ht->idx[sp->lcm] == 0) {
         mon->hpos[mon->load]  = sp->lcm;
@@ -442,10 +452,12 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
       }
     } else {
+    */
+    if (sp->gen1 != 0) {
       // first generator for upper part of gbla matrix if there is no other pair
       // with the same lcm
-      if (ht->idx[sp->lcm] == 0) {
-        mon->hpos[mon->load]  = sp->lcm;
+      if (ht->idx[sp->lcm] == 1) {
+        //mon->hpos[mon->load]  = sp->lcm;
         ht->idx[sp->lcm]      = 2;
 #if SYMBOL_DEBUG
       printf("hpos[%u] = %u\n", mon->load, mon->hpos[mon->load]);
@@ -454,7 +466,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       printf("\n");
 #endif
         mon->nlm++;
-        mon->load++;
+        //mon->load++;
         if (mon->load == mon->size)
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
 
@@ -476,11 +488,13 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       }
     }
     // remove the selected pair from the pair set
-    free(sp);
+    //free(sp);
   }
 
   // adjust pair set after removing the bunch of selected pairs
   k = 0;
+  for (i=0; i<nsel; ++i)
+    free(ps->pairs[i]);
   for (i=nsel; i<ps->load; ++i) {
     ps->pairs[k] = ps->pairs[i];
     k++;

@@ -639,11 +639,8 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
   // polynomial coefficient array
   coeff_t *cf;
   // polynomial number of terms
-  nelts_t nt;
-
-  // preallocate buffer to store row in dense format
+  nelts_t nt; // preallocate buffer to store row in dense format
   dbr_t *dbr  = initialize_dense_block_row(ncb, bs);
-
   nelts_t min = (rbi+1)*bs > nr ? nr : (rbi+1)*bs;
   // for each row we allocate memory in the sparse, left side and go through the
   // polynomials and add corresponding entries in the matrix

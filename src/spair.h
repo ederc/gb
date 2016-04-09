@@ -159,11 +159,9 @@ void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx);
  *
  * \param intermediate groebner basis basis
  *
- * \param number of new spairs ctr
- *
  * \param index in basis of newly added basis element idx
  */
-void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t ctr,  const nelts_t idx);
+void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
 
 /**
  * \brief Remove spairs detected by either product or chain criterion

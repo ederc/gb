@@ -27,13 +27,13 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   /*  timing structs */
   struct timeval t_load_start;
   struct timeval t_complete;
-  if (verbose > 1)
+  if (verbose > 2)
     gettimeofday(&t_complete, NULL);
   // A^-1 * B
-  if (verbose > 1) {
-    printf("---------------------------------------------------------------------\n");
+  if (verbose > 2) {
+    printf("---------------------------------------------------------------------------\n");
     printf("GBLA Matrix Reduction\n");
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Reducing A ...");
     fflush(stdout);
@@ -44,15 +44,15 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
       return -1;
     }
   }
-  if (verbose > 1) {
+  if (verbose > 2) {
     printf("%9.3f sec\n",
         walltime(t_load_start) / (1000000));
   }
-  if (verbose > 2) {
+  if (verbose > 3) {
     print_mem_usage();
   }
   // reducing submatrix C to zero using methods of Faugère & Lachartre
-  if (verbose > 1) {
+  if (verbose > 2) {
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Reducing C ...");
     fflush(stdout);
@@ -63,11 +63,11 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
       return -1;
     }
   }
-  if (verbose > 1) {
+  if (verbose > 2) {
     printf("%9.3f sec\n",
         walltime(t_load_start) / (1000000));
   }
-  if (verbose > 2) {
+  if (verbose > 3) {
     print_mem_usage();
   }
   // copy block D to dense wide (re_l_t) representation
@@ -77,7 +77,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   // eliminate mat->DR using a structured Gaussian Elimination process on the rows
   ri_t rank_D = 0;
   // echelonizing D to zero using methods of Faugère & Lachartre
-  if (verbose > 1) {
+  if (verbose > 2) {
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Reducing D ...");
     fflush(stdout);
@@ -85,20 +85,20 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   if (mat->DR->nrows > 0)
     //rank_D = elim_fl_dense_D(mat->DR, nthreads);
     rank_D = elim_fl_dense_D_completely(mat->DR, nthreads);
-  if (verbose > 1) {
-    printf("%9.3f sec (rank D: %u)\n",
-        walltime(t_load_start) / (1000000), rank_D);
-  }
   if (verbose > 2) {
+    printf("%9.3f sec %5d %5d %5d\n",
+        walltime(t_load_start) / (1000000), rank_D, mat->DR->nrows - rank_D, mat->DR->nrows);
+  }
+  if (verbose > 3) {
     print_mem_usage();
   }
-  if (verbose > 1) {
-    printf("---------------------------------------------------------------------\n");
+  if (verbose > 2) {
+    printf("---------------------------------------------------------------------------\n");
     printf("%-38s","Reduction completed ...");
     fflush(stdout);
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
-    if (verbose > 1) 
+    if (verbose > 3)
       print_mem_usage();
   }
 

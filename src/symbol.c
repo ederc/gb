@@ -24,7 +24,7 @@
 
 spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 {
-  nelts_t i, k, idx, last_div, nsel;
+  nelts_t i, idx, last_div, nsel;
   hash_t hash_pos, hash_div = 0;
 
   // clears hash table index: there we store during symbolic preprocessing a 2
@@ -94,12 +94,6 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         // now add new monomials to preprocessing hash list
         enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
           mon, ht);
-        /*
-        for (k=1; k<basis->nt[i]; ++k) {
-          enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1].mul,
-            basis->eh[sel_upp->mpp[sel_upp->load-1].bi][k], mon);
-        }
-        */
       }
     }
     idx++;
@@ -112,7 +106,22 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   // adjust memory
   adjust_size_of_selection(sel_upp, sel_upp->load);
   adjust_size_of_preprocessing_hash_list(mon, mon->load);
-
+#if SYMBOL_DEBUG
+  for (int ii=0; ii<sel_low->load; ++ii) {
+    for (int jj=0; jj<ht->nv; ++jj) {
+      printf("%u ",ht->exp[sel_low->mpp[ii].mul][jj]);
+    }
+    printf(" || ");
+    for (int jj=0; jj<ht->nv; ++jj) {
+      printf("%u ",ht->exp[basis->eh[sel_low->mpp[ii].bi][0]][jj]);
+    }
+    printf(" ||| ");
+    for (int jj=0; jj<ht->nv; ++jj) {
+      printf("%u ",ht->exp[sel_low->mpp[ii].mul][jj] + ht->exp[basis->eh[sel_low->mpp[ii].bi][0]][jj]);
+    }
+    printf("\n");
+  }
+#endif
   mat->selu = sel_upp;
   mat->sell = sel_low;
   mat->col  = mon;

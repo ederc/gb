@@ -47,7 +47,6 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
   nelts_t i;
 
-  nelts_t ctr = 0;
   // we get maximal idx-1 new pairs
   if (ps->size <= ps->load + (idx-1))
     enlarge_pair_set(ps, 2*ps->size);
@@ -55,7 +54,6 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // See note on gb_t in src/types.h why we start at position 1 here.
   for (i=basis->st; i<idx; ++i) {
     ps->pairs[ps->load+i-basis->st] = generate_spair(idx, i, basis, ht);
-    ctr++;
 #if SPAIR_DEBUG
     printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-basis->st]->deg);
 #endif
@@ -66,19 +64,20 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // check product and chain criterion in gebauer moeller style
   // note that we have already marked the pairs for which the product criterion
   // applies in generate_spair()
-  gebauer_moeller(ps, basis, idx, ctr);
+  gebauer_moeller(ps, basis, idx);
 
   // fix pair set and remove detected pairs
-  meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, ctr);
+  meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, idx-basis->st);
   meta_data->ncrit_total  +=  meta_data->ncrit_last;
 }
 
-void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts_t ctr)
+void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
   nelts_t pos1, pos2;
   // current length can be computed already, need to adjust by the starting
   // position in basis
-  const nelts_t cur_len = ps->load + ctr;
+  const nelts_t cur_len = ps->load + idx - basis->st;
+  //printf("curlen %u for idx %u | %u\n",cur_len,idx, idx-basis->st);
   const hash_t hash     = basis->eh[idx][0];
   int i, j; // we need ints to cover cases where i=0 and j=i-1
 
@@ -91,10 +90,9 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts
       // See note on gb_t in src/types.h why we adjust position by -basis->st.
       pos1  = ps->pairs[i]->gen1 - basis->st;
       pos2  = ps->pairs[i]->gen2 - basis->st;
-      //printf("gen1 %u | gen2 %u | pos1 %u | pos2 %u\n", ps->pairs[i]->gen1, ps->pairs[i]->gen2, pos1, pos2);
       if (ps->pairs[i]->lcm != ps->pairs[ps->load+pos1]->lcm &&
           ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
-          monomial_division(ps->pairs[i]->lcm, hash, ht)) {
+          check_monomial_division(ps->pairs[i]->lcm, hash, ht) != 0) {
         ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
         printf("CC for (%u,%u)\n",pos1+1, pos2+1);
@@ -104,7 +102,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts
   }
 
   // next: sort new pairs
-  qsort(ps->pairs+ps->load, ctr, sizeof(spair_t **), cmp_spairs_grevlex);
+  qsort(ps->pairs+ps->load, idx-basis->st, sizeof(spair_t **), cmp_spairs_grevlex);
   
   // second step: remove new pairs by themselves w.r.t the chain criterion
   for (i=ps->load; i<cur_len; ++i) {
@@ -114,7 +112,8 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts
       if (i==j || ps->pairs[j]->crit == CHAIN_CRIT) // smaller lcm eliminated j
         continue;
       //if (ps->pairs[i]->lcm == ps->pairs[j]->lcm) {
-      if (ps->pairs[i]->lcm != ps->pairs[j]->lcm && monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht)) {
+      if (ps->pairs[i]->lcm != ps->pairs[j]->lcm &&
+          check_monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht) != 0) {
         ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
         printf("2CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
@@ -138,17 +137,17 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx, const nelts
         }
       }
     } else { // earlier pairs may eliminate this pair
-      //if (i > ps->load) {
-        for (j=i-1; j>=(int)ps->load; --j) {
-          if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
-            ps->pairs[i]->crit  = CHAIN_CRIT;
+      for (j=ps->load; j<i; ++j) {
+      //for (j=i-1; j>=(int)ps->load; --j) {
+       // printf("j %u || %d\n", j, j);
+        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+          ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
-            printf("4CC for (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
+          printf("4CC for (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
 #endif
-            break;
-          }
+          break;
         }
-      //}
+      }
     }
   }
 }
@@ -216,7 +215,7 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   
   // if one of the generators is redundant we can stop already here and mark it
   // with the CHAIN_CRIT in order to remove it later on
-  if (basis->red[gen1] | basis->red[gen2]) {
+  if (basis->red[gen2] == REDUNDANT) {
     sp->crit  = CHAIN_CRIT;
     return sp;
   }

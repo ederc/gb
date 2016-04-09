@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
   double t_sorting_columns        = 0;
   double t_generating_gbla_matrix = 0;
   double t_update_pairs           = 0;
+  unsigned long n_zero_reductions = 0;
 
   // keep track of meta data, meta_data is global to be used wherever we need it
   // to keep track of data
@@ -136,8 +137,8 @@ int main(int argc, char *argv[])
         break;
       case 'v':
         verbose = (int)strtol(optarg, NULL, 10);
-        if (verbose > 3)
-          verbose = 2;
+        if (verbose > 4)
+          verbose = 4;
         break;
       case '?':
         if (optopt == 'f')
@@ -177,17 +178,17 @@ int main(int argc, char *argv[])
   ht = init_hash_table(htc, nvars);
 
   if (verbose > 0) {
-    printf("---------------------------------------------------------------------\n");
-    printf("-------------------------- Computing Groebner -----------------------\n");
-    printf("------------------ with the following options set -------------------\n");
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
+    printf("----------------------------- Computing Groebner --------------------------\n");
+    printf("--------------------- with the following options set ----------------------\n");
+    printf("---------------------------------------------------------------------------\n");
     printf("number of threads           %12d\n", nthreads);
     printf("hash table size             %12u (non-Mersenne prime < 2^%d)\n", ht->primes[ht->si], ht->si+18);
     printf("compute reduced basis?      %12d\n", reduce_gb);
     printf("use simplify?               %12d\n", simplify);
     printf("generate pbm files?         %12d\n", generate_pbm);
     printf("print resulting basis?      %12d\n", print_gb);
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
   }
   // input stores input data
   gb_t *basis = load_input(fn, nvars, ordering, ht, simplify, verbose, nthreads);
@@ -199,7 +200,6 @@ int main(int argc, char *argv[])
     sf = initialize_simplifier_list(basis);
 
   if (verbose > 0) {
-    printf("---------------------------------------------------------------------\n");
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Loading input data ...");
     fflush(stdout);
@@ -211,9 +211,9 @@ int main(int argc, char *argv[])
     print_mem_usage();
 
   if (verbose > 0) {
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
     printf("Data for %s\n", fn);
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
     printf("field characteristic        %15d\n", basis->mod);
     printf("monomial ordering           %15d\n", basis->ord);
     printf("number of variables         %15d\n", basis->nv);
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
     printf("number of generators        %15d\n", basis->load-1);
     printf("homogeneous input?          %15d\n", basis->hom);
     printf("input file size             %18.2f %s\n", basis->fs, basis->fsu);
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
   }
 
   /*  track time for the complete reduction process (excluding load) */
@@ -235,14 +235,14 @@ int main(int argc, char *argv[])
   if (verbose > 0)
     t_update_pairs  +=  walltime(t_load_start);
 
-  if (verbose > 1) {
-    printf("---------------------------------------------------------------------\n");
+  if (verbose > 2) {
+    printf("---------------------------------------------------------------------------\n");
     printf("ps->size                          %9u\n",ps->size);
     printf("ps->load                          %9u\n",ps->load);
     printf("basis->size                       %9u\n",basis->size);
     // See note on gb_t in src/types.h why we decrement basis->load here.
     printf("basis->load                       %9u\n",basis->load-1); 
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
     printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
     printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
   }
@@ -252,8 +252,6 @@ int main(int argc, char *argv[])
   while (ps->load > 0)
   {
     steps++;
-    if (verbose > 1)
-      printf(">>> step %u\n", steps);
     
     // select next bunch of spairs
     if (verbose > 0)
@@ -262,8 +260,8 @@ int main(int argc, char *argv[])
     if (verbose > 0)
       t_symbolic_preprocessing +=  walltime(t_load_start);
 
-    if (verbose > 1) {
-      printf("---------------------------------------------------------------------\n");
+    if (verbose > 2) {
+      printf("---------------------------------------------------------------------------\n");
       printf("sel->deg                          %9u\n",spd->selu->deg);
       printf("selu->load                        %9u\n",spd->selu->load);
       printf("sell->load                        %9u\n",spd->sell->load);
@@ -333,16 +331,16 @@ int main(int argc, char *argv[])
       write_matrix_to_pbm(mat, pbm_fn);
     }
     // reduce matrix using gbla
-    if (verbose == 1) {
+    if (verbose == 2) {
       gettimeofday(&t_load_start, NULL);
       printf("[%2u] ", steps);
       printf("%-33s","GBLA matrix reduction ...");
       fflush(stdout);
     }
     int rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
-    if (verbose == 1) {
-      printf("%9.3f sec (rank DR: %d)\n",
-          walltime(t_load_start) / (1000000), rankDR);
+    if (verbose == 2) {
+      printf("%9.3f sec %5d %5d %5d\n",
+          walltime(t_load_start) / (1000000), rankDR, mat->DR->nrows - rankDR, mat->DR->nrows);
       t_linear_algebra  +=  walltime(t_load_start);
     }
 
@@ -364,8 +362,16 @@ int main(int argc, char *argv[])
     else
       done  = update_basis_and_add_simplifier(basis, sf, ps,
           spd, mat, ht, rankDR, nthreads);
-    if (verbose > 1)
-      printf("basis->load %u | sf->load %u (%u)\n",basis->load, sf->load, spd->col->nlm);
+    if (verbose > 2) {
+      if (basis->sf != NULL)
+        printf("basis->load %u | sf->load %u (%u)\n",basis->load, sf->load, spd->col->nlm);
+      else
+        printf("basis->load %u (%u)\n",basis->load, spd->col->nlm);
+    }
+
+    if (verbose > 0) {
+      n_zero_reductions +=  (mat->DR->nrows - mat->DR->rank);
+    }
     free_gbla_matrix(&mat);
     free_symbolic_preprocessing_data(&spd);
     clear_hash_table_idx(ht);
@@ -373,15 +379,27 @@ int main(int argc, char *argv[])
     if (verbose > 0)
       t_update_pairs  +=  walltime(t_load_start);
 
-    if (verbose > 1)
-      printf("<<< step %u\n", steps);
+    if (verbose > 2) {
+      printf("---------------------------------------------------------------------------\n");
+      printf("ps->size                          %9u\n",ps->size);
+      printf("ps->load                          %9u\n",ps->load);
+      printf("basis->size                       %9u\n",basis->size);
+      // See note on gb_t in src/types.h why we decrement basis->load here.
+      printf("basis->load                       %9u\n",basis->load-1); 
+      printf("---------------------------------------------------------------------------\n");
+      printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
+      printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
+    }
 
     // if we are done then we have found the constant 1 as element in the basis
     if (done)
       break;
   }
   if (verbose > 0) {
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
+    printf("Size of basis                     %9u\n",basis->load - basis->st - basis->nred);
+    printf("Number of zero reductions         %9lu\n", n_zero_reductions);
+    printf("---------------------------------------------------------------------------\n");
     printf("%-38s","Time for updating pairs ...");
     fflush(stdout);
     printf("%9.3f sec\n",
@@ -402,13 +420,15 @@ int main(int argc, char *argv[])
     fflush(stdout);
     printf("%9.3f sec\n",
         t_linear_algebra / (1000000));
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
     printf("%-38s","Computation completed ...");
     fflush(stdout);
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
-    printf("---------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------\n");
     printf("size of basis                     %9u\n",basis->load - basis->st - basis->nred);
+    printf("number of zero reductions         %9lu\n", n_zero_reductions);
+    printf("---------------------------------------------------------------------------\n");
     if (verbose > 1)
       print_mem_usage();
   }

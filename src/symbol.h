@@ -414,16 +414,19 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     // remove duplicates if lcms and the first generators are the same
     sp_last  = sp;
     sp  = ps->pairs[i];
-    if (sp_last != NULL && sp_last->lcm == sp->lcm && sp_last->gen1 == sp->gen1)
-      continue;
 #if SYMBOL_DEBUG
     if (sp_last != NULL)
       printf("lgen1 %u -- lgen2 %u -- llcm %lu | ", sp_last->gen1, sp_last->gen2, sp_last->lcm);
     printf("gen1  %u -- gen2  %u -- lcm  %lu | ", sp->gen1, sp->gen2, sp->lcm);
     for (int ii=0; ii<ht->nv; ++ii)
       printf("%u ",ht->exp[sp->lcm][ii]);
-    printf("\n");
+    printf("\n --- \n");
 #endif
+    if ((sp_last != NULL && sp_last->lcm == sp->lcm) &&
+        ((sp_last->gen1 == sp->gen1) || (sp_last->gen1 == sp->gen2) || (sp_last->gen2 == sp->gen1) || (sp_last->gen2 == sp->gen2))) {
+      //printf("DUPLICATE REMOVED!\n");
+      continue;
+    }
     // We have to distinguish between usual spairs and spairs consisting of one
     // initial input element: The latter ones have only 1 generator (gen2 has
     // the generator, gen1 is zero) and the

@@ -397,9 +397,6 @@ int main(int argc, char *argv[])
   }
   if (verbose > 0) {
     printf("---------------------------------------------------------------------------\n");
-    printf("Size of basis                     %9u\n",basis->load - basis->st - basis->nred);
-    printf("Number of zero reductions         %9lu\n", n_zero_reductions);
-    printf("---------------------------------------------------------------------------\n");
     printf("%-38s","Time for updating pairs ...");
     fflush(stdout);
     printf("%9.3f sec\n",
@@ -426,7 +423,10 @@ int main(int argc, char *argv[])
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
     printf("---------------------------------------------------------------------------\n");
-    if (verbose > 1)
+    printf("Size of basis                     %9u\n",basis->load - basis->st - basis->nred);
+    printf("Number of zero reductions         %9lu\n", n_zero_reductions);
+    printf("---------------------------------------------------------------------------\n");
+    if (verbose > 2)
       print_mem_usage();
   }
 

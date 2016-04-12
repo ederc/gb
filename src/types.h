@@ -344,9 +344,11 @@ typedef struct spd_t
  */
 typedef struct mat_t
 {
-  sb_fl_t *A;   /*!<  upper left sparse matrix part */
+  sb_fl_t *A;   /*!<  upper left sparse block matrix part */
+  sm_fl_t *AR;  /*!<  upper left sparse row matrix part */
   dbm_fl_t *B;  /*!<  upper right dense block matrix part */
-  sb_fl_t *C;   /*!<  lower right sparse matrix part */
+  sb_fl_t *C;   /*!<  lower right sparse block matrix part */
+  sm_fl_t *CR;  /*!<  lower right sparse row matrix part */
   dbm_fl_t *D;  /*!<  lower right dense block matrix part */
   dm_t *DR;     /*!<  reduced D in dense row matrix format */
   coeff_t mod;  /*!<  modulo/field characteristic */

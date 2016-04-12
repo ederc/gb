@@ -106,6 +106,8 @@ static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
   mat->B  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
   mat->C  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
   mat->D  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
+  mat->AR = NULL;
+  mat->CR = NULL;
   mat->DR = NULL;
 
   mat->mod  = basis->mod;
@@ -164,6 +166,9 @@ static inline void free_gbla_matrix(mat_t **mat_in)
   mat_t *mat  = *mat_in;
 
   // A, C and D are already freed, just check again
+  if (mat->AR != NULL) {
+    free_sparse_matrix(&(mat->AR), 1);
+  }
   if (mat->A != NULL) {
     if (mat->A->blocks != NULL) {
       free_sparse_submatrix(&(mat->A), 1);
@@ -171,6 +176,9 @@ static inline void free_gbla_matrix(mat_t **mat_in)
       free(mat->A);
       mat->A  = NULL;
     }
+  }
+  if (mat->CR != NULL) {
+    free_sparse_matrix(&(mat->CR), 1);
   }
   if (mat->C != NULL) {
     if (mat->C->blocks != NULL) {

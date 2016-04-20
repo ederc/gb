@@ -91,8 +91,31 @@ void enter_spairs_to_preprocessing_hash_list(const gb_t *basis, sel_t *sel, pre_
  *
  * \param preprocessing hash list mon
  */
-void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_t h1,
-    pre_t *mon);
+static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(const hash_t h1,
+    pre_t *mon)
+{
+  hash_t pos  = h1;
+  // only in this case we have this monomial hash for the first time,
+  // otherwise it has already been taken care of
+#if SYMBOL_DEBUG
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[h1][i]);
+    printf("\n");
+    for (int i=0; i<ht->nv; ++i)
+      printf("%u ",ht->exp[pos][i]);
+    printf("\n");
+#endif
+  if (ht->idx[pos] == 0) {
+    ht->idx[pos]++;
+    mon->hpos[mon->load]  = pos;
+    mon->load++;
+    if (mon->load == mon->size)
+      adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
+#if SYMBOL_DEBUG
+    printf("new mon %u == %u\n", h1,mon->hpos[mon->load]);
+#endif
+  }
+}
 
 /**
  * \brief Enters one monomial (h1*h2) to preprocessing hash list.
@@ -147,7 +170,18 @@ static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pr
  *
  * \return hash list
  */
-pre_t *init_preprocessing_hash_list(const nelts_t size);
+static inline pre_t *init_preprocessing_hash_list(const nelts_t size)
+{
+  // allocate a list for hashes of monomials to be checked in the symbolic
+  // preprocessing
+  pre_t *mon  = (pre_t *)malloc(sizeof(pre_t));
+  mon->hpos   = (hash_t *)malloc(size * sizeof(hash_t));
+  mon->size   = size;
+  mon->load   = 0;
+  mon->nlm    = 0;
+  
+  return mon;
+}
 
 
 /**
@@ -193,7 +227,14 @@ static inline void free_symbolic_preprocessing_data(spd_t **spd_in)
  * \returns negative value if a is non lead and b is lead; 0 if both are lead or
  * both are non lead; a positive value if a is lead and b is non lead
  */
-int cmp_symbolic_preprocessing_monomials_by_lead(const void *a, const void *b);
+static inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,
+    const void *b)
+{
+  hash_t h1 = *((hash_t *)a);
+  hash_t h2 = *((hash_t *)b);
+
+  return (ht->idx[h2] - ht->idx[h1]);
+}
 
 /**
  * \brief Comparison function of monomials for quicksort. Compares w.r.t. the
@@ -209,7 +250,36 @@ int cmp_symbolic_preprocessing_monomials_by_lead(const void *a, const void *b);
  * \returns negative value if a is non lead and b is lead; 0 if both are lead or
  * both are non lead; a positive value if a is lead and b is non lead
  */
-int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a, const void *b);
+static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
+    const void *b)
+{
+  hash_t ha = *((hash_t *)a);
+  hash_t hb = *((hash_t *)b);
+
+  // compare degree first
+  if (ht->deg[hb] > ht->deg[ha]) {
+    return 1;
+  } else {
+    if (ht->deg[ha] > ht->deg[hb])
+      return -1;
+  }
+
+  // else we have to check reverse lexicographical
+  // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
+  // => we can use memcmp() here and still get reverse lexicographical ordering
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl];
+  exp_t expb[ht->nev * ht->vl];
+  for (i=0; i<ht->nev; ++i) {
+    _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[ha][i]);
+    _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[hb][i]);
+  }
+  return memcmp(expa, expb, ht->nv);
+#else
+  return memcmp(ht->exp[ha], ht->exp[hb], ht->nv);
+#endif
+}
 
 /**
  * \brief Comparison function of monomials for quicksort. Compares w.r.t. the
@@ -228,7 +298,34 @@ int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a, const void *b
  * \returns negative value if a is non lead and b is lead; 0 if both are lead or
  * both are non lead; a positive value if a is lead and b is non lead
  */
-int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a, const void *b);
+static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a,
+    const void *b)
+{
+  hash_t ha = *((hash_t *)a);
+  hash_t hb = *((hash_t *)b);
+
+  // compare degree first
+  if (ht->deg[hb] > ht->deg[ha]) {
+    return -1;
+  } else {
+    if (ht->deg[ha] > ht->deg[hb])
+      return 1;
+  }
+
+  // else we have to check reverse lexicographical
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl];
+  exp_t expb[ht->nev * ht->vl];
+  for (i=0; i<ht->nev; ++i) {
+    _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[ha][i]);
+    _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[hb][i]);
+  }
+  return memcmp(expb, expa, ht->nv);
+#else
+  return memcmp(ht->exp[hb], ht->exp[ha], ht->nv);
+#endif
+}
 
 /**
  * \brief Sorts columns resp. monomials found by symbolic preprocessing to get
@@ -237,7 +334,11 @@ int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a, const
  *
  * \param symbolic preprocessing data spd
  */
-void sort_columns_by_lead(spd_t *spd);
+static inline void sort_columns_by_lead(spd_t *spd)
+{
+  qsort(spd->col->hpos, spd->col->load, sizeof(hash_t),
+      cmp_symbolic_preprocessing_monomials_by_lead);
+}
 
 /**
  * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
@@ -249,7 +350,14 @@ void sort_columns_by_lead(spd_t *spd);
  *
  * \param symbolic preprocessing data spd
  */
-void sort_lead_columns_by_grevlex(spd_t *spd);
+static inline void sort_lead_columns_by_grevlex(spd_t *spd)
+{
+  if (spd->col->nlm != 0) {
+    // sort the start of spd->col, i.e. the lead monomial list
+    qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
+        cmp_symbolic_preprocessing_monomials_by_grevlex);
+  }
+}
 
 /**
  * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
@@ -264,7 +372,14 @@ void sort_lead_columns_by_grevlex(spd_t *spd);
  *
  * \param symbolic preprocessing data spd
  */
-void sort_lead_columns_by_inverse_grevlex(spd_t *spd);
+static inline void sort_lead_columns_by_inverse_grevlex(spd_t *spd)
+{
+  if (spd->col->nlm != 0) {
+    // sort the start of spd->col, i.e. the lead monomial list
+    qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
+        cmp_symbolic_preprocessing_monomials_by_inverse_grevlex);
+  }
+}
 
 /**
  * \brief Sorts non lead monomials found by symbolic preprocessing w.r.t. the
@@ -276,19 +391,67 @@ void sort_lead_columns_by_inverse_grevlex(spd_t *spd);
  *
  * \param symbolic preprocessing data spd
  */
-void sort_non_lead_columns_by_grevlex(spd_t *spd);
+static inline void sort_non_lead_columns_by_grevlex(spd_t *spd)
+{
+  // sort the end of spd->col, i.e. the non lead monomial list
+  qsort(spd->col->hpos+spd->col->nlm, (spd->col->load - spd->col->nlm),
+      sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
+}
 
 /**
  * \brief Sorts already presorted list of monomials resp. columns w.r.t. the
  * given monomial order grevlex. The list is already presorted by lead and non
  * lead monomials. Those monomials correspond then to the columns of the gbla
- * matrix generated later on
+ * matrix generated later on.
  *
  * \param symbolic preprocessing data spd
  *
  * \param number of threads to use in parallel nthreads
  */
-void sort_presorted_columns_by_grevlex(spd_t *spd, const int nthreads);
+static inline void sort_presorted_columns_by_grevlex(spd_t *spd,
+    const int nthreads)
+{
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single
+    {
+      #pragma omp task
+      sort_lead_columns_by_grevlex(spd);
+      #pragma omp task
+      sort_non_lead_columns_by_grevlex(spd);
+      #pragma omp taskwait
+    }
+  }
+}
+
+/**
+ * \brief Sorts already presorted list of monomials resp. columns w.r.t. the
+ * given monomial order grevlex. The list is already presorted by lead and non
+ * lead monomials. Those monomials correspond then to the columns of the gbla
+ * matrix generated later on.
+ *
+ * \note On the lefthand side of the gbla matrix we invert the sorting of the
+ * columns due to gbla's internal ordering for reducing A later on.
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \param number of threads to use in parallel nthreads
+ */
+static inline void sort_presorted_columns_by_grevlex_invert_left_side(spd_t *spd,
+    const int nthreads)
+{
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single
+    {
+      #pragma omp task
+      sort_lead_columns_by_inverse_grevlex(spd);
+      #pragma omp task
+      sort_non_lead_columns_by_grevlex(spd);
+      #pragma omp taskwait
+    }
+  }
+}
 
 /**
  * \brief Sets the index entry of the hash values to the corresponding columns
@@ -299,7 +462,13 @@ void sort_presorted_columns_by_grevlex(spd_t *spd, const int nthreads);
  *
  * \param symbolic preprocessing data spd
  */
-void set_column_index_in_hash_table(mp_cf4_ht_t *ht, const spd_t *spd);
+static inline void set_column_index_in_hash_table(mp_cf4_ht_t *ht, const spd_t *spd)
+{
+  nelts_t i;
+
+  for (i=0; i<spd->col->load; ++i)
+    ht->idx[spd->col->hpos[i]]  = i;
+}
 
 /**
  * \brief Implements the comparison function for quicksort used in the function
@@ -313,7 +482,70 @@ void set_column_index_in_hash_table(mp_cf4_ht_t *ht, const spd_t *spd);
  *
  * \returns ht->idx[a.mlm] - ht->idx[b.mlm]
  */
-int cmp_monomial_polynomial_pair(const void *a, const void *b);
+static inline int cmp_monomial_polynomial_pair(const void *a, const void *b)
+{
+  hash_t h1 = ((mpp_t *)a)->mlm;
+  hash_t h2 = ((mpp_t *)b)->mlm;
+
+  return (ht->idx[h1] - ht->idx[h2]);
+}
+
+/**
+ * \brief Implements the comparison function for quicksort used in the function
+ * sort_selection_by_inverted_column_index(). Takes multiplied lead monomials and
+ * inverts sorting corresponding to the predefined column index that is stored in
+ * the idx entry of the hash table.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns ht->idx[a.mlm] - ht->idx[b.mlm]
+ */
+static inline int cmp_monomial_polynomial_pair_inverted(const void *a, const void *b)
+{
+  hash_t h1 = ((mpp_t *)a)->mlm;
+  hash_t h2 = ((mpp_t *)b)->mlm;
+
+  return (ht->idx[h2] - ht->idx[h1]);
+}
+
+/**
+ * \brief Sorts upper and lower selection of polynomials from preprocessing to
+ * by the position of the corresponding multiplied lead monomial w.r.t. to the
+ * predefined column order of the gbla matrix to be generated next.
+ *
+ * \note The sorting is inverted since, if we keep A, gbla assumes such an
+ * inverted ordering on the rows of the matrix.
+ *
+ * \note Both lists, upper and lower, can be sorted in parallel, thus the
+ * implementation is done using open mp tasks.
+ *
+ * \param symbolic data structure spd
+ *
+ * \param hash table ht
+ *
+ * \param number of threads nthreads
+ */
+static inline void sort_selection_by_inverted_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
+  const int nthreads)
+{
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single
+    {
+      // upper selection
+      #pragma omp task
+      qsort(spd->selu->mpp, spd->selu->load, sizeof(mpp_t),
+          cmp_monomial_polynomial_pair_inverted);
+      // lower selection
+      #pragma omp task
+      qsort(spd->sell->mpp, spd->sell->load, sizeof(mpp_t),
+          cmp_monomial_polynomial_pair_inverted);
+      #pragma omp taskwait
+    }
+  }
+}
 
 /**
  * \brief Sorts upper and lower selection of polynomials from preprocessing to
@@ -329,9 +561,35 @@ int cmp_monomial_polynomial_pair(const void *a, const void *b);
  *
  * \param number of threads nthreads
  */
-void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
-  const int nthreads);
+static inline void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
+  const int nthreads)
+{
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single
+    {
+      // upper selection
+      #pragma omp task
+      qsort(spd->selu->mpp, spd->selu->load, sizeof(mpp_t),
+          cmp_monomial_polynomial_pair);
+      // lower selection
+      #pragma omp task
+      qsort(spd->sell->mpp, spd->sell->load, sizeof(mpp_t),
+          cmp_monomial_polynomial_pair);
+      #pragma omp taskwait
+    }
+  }
+}
 
+/**
+ * \brief Tries to find a simplifier for the given polynomial multiple.
+ *
+ * \param multiplier polynomial pair mpp
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param simplifier list sf
+ */
 static inline void try_to_simplify(mpp_t mpp, const gb_t *basis, const gb_t *sf)
 {
   nelts_t l     = 0;

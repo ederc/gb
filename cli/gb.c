@@ -41,6 +41,10 @@ void print_help()
   printf("                Graded reverse lexicographical: 0\n");
   printf("                Default: 0.\n");
   printf("    -h HELP     Print help.\n");
+  printf("    -n NREDMAT  If option is set the gbla matrices are not fully reduced.\n");
+  printf("                Otherwise the A and thus B part of the gbla matrices are\n");
+  printf("                reduced and can thus be used for simplification of further\n");
+  printf("                used polynomials.\n");
   printf("    -o OUTPUT   Prints resulting groebner basis.\n");
   printf("                0 -> no printing (default if option is not set at all).\n");
   printf("                1 -> default print out of basis.\n");
@@ -75,6 +79,7 @@ int main(int argc, char *argv[])
   int generate_pbm  = 0;
   int print_gb      = 0;
   int ordering      = 0;
+  int keep_A        = 0;
   int htc           = 18;
   // generate file name holder if pbms are generated
   char *pbm_dir = NULL;
@@ -102,7 +107,7 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:d:ho:p:r:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:d:hno:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
         htc = (int)strtol(optarg, NULL, 10);
@@ -113,6 +118,9 @@ int main(int argc, char *argv[])
       case 'h':
         print_help();
         return 0;
+      case 'n':
+        keep_A  = 1;
+        break;
       case 'o':
         print_gb = (int)strtol(optarg, NULL, 10);
         if (print_gb > 2)
@@ -185,6 +193,7 @@ int main(int argc, char *argv[])
     printf("number of threads           %12d\n", nthreads);
     printf("hash table size             %12u (non-Mersenne prime < 2^%d)\n", ht->primes[ht->si], ht->si+18);
     printf("compute reduced basis?      %12d\n", reduce_gb);
+    printf("do not reduce A|B in gbla   %12d\n", keep_A);
     printf("use simplify?               %12d\n", simplify);
     printf("generate pbm files?         %12d\n", generate_pbm);
     printf("print resulting basis?      %12d\n", print_gb);
@@ -282,18 +291,17 @@ int main(int argc, char *argv[])
     // next we can sort both parts (we know the number of lead monomials =
     // spd->sel->load - spd->sel->nsp, i.e. all polynomials considered in
     // symbolic preprocessing minus the number of spairs)
-    sort_presorted_columns_by_grevlex(spd, nthreads);
-
-#if GB_DEBUG
-    /*
-    for (int ii=0; ii<spd->col->load; ++ii) {
-      for (int jj=0; jj<ht->nv; ++jj) {
-        printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
-      }
-      printf("|| %lu | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
-    }
-    */
-#endif
+    
+    // if we do not keep A we use for A and C a row structure and thus do
+    // not invert the ordering of the left side columns.
+    // if we keep A we use for A and C a block structure and we invert
+    // the ordering of the left side columns since gbla expects blocks be
+    // inverted for a faster reduction of A in the first step of the matrix
+    // reduction..
+    if (keep_A == 1)
+      sort_presorted_columns_by_grevlex(spd, nthreads);
+    else
+      sort_presorted_columns_by_grevlex_invert_left_side(spd, nthreads);
 
     // connect monomial hash positions with columns in to be constructed gbla
     // matrix
@@ -302,7 +310,16 @@ int main(int argc, char *argv[])
     // now sort upper and lower polynomial selections by lead monomials. this
     // corresponds to sorting by columns (=rows as this is one-to-one for lead
     // monomials).
-    sort_selection_by_column_index(spd, ht, nthreads);
+    // if we do not keep A we use for A and C a row structure and thus do not
+    // invert the ordering of the left side columns.
+    // if we keep A we use for A and C a block structure and we invert
+    // the ordering of the left side columns since gbla expects blocks be
+    // inverted for a faster reduction of A in the first step of the matrix
+    // reduction..
+    if (keep_A == 1)
+      sort_selection_by_inverted_column_index(spd, ht, nthreads);
+    else
+      sort_selection_by_column_index(spd, ht, nthreads);
     if (verbose > 0)
       t_sorting_columns +=  walltime(t_load_start);
 
@@ -319,7 +336,12 @@ int main(int argc, char *argv[])
     // generate gbla matrix out of data from symbolic preprocessing
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
-    mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
+    mat_t *mat  = NULL;
+    if (keep_A == 1)
+      mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
+    else
+      mat = generate_gbla_matrix(basis, sf, spd, nthreads);
+    //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
     if (verbose > 0)
       t_generating_gbla_matrix  +=  walltime(t_load_start);
     // generate pbm files of gbla matrix
@@ -337,12 +359,17 @@ int main(int argc, char *argv[])
       printf("%-33s","GBLA matrix reduction ...");
       fflush(stdout);
     }
-    int rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
+    int rankDR  = 0;
+    if (keep_A == 1)
+      rankDR  = reduce_gbla_matrix_keep_A(mat, verbose, nthreads);
+    else
+      rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
     if (verbose == 2) {
       printf("%9.3f sec %5d %5d %5d\n",
           walltime(t_load_start) / (1000000), rankDR, mat->DR->nrows - rankDR, mat->DR->nrows);
-      t_linear_algebra  +=  walltime(t_load_start);
     }
+    if (verbose > 0)
+      t_linear_algebra  +=  walltime(t_load_start);
 
     // generate pbm files of gbla matrix
     if (generate_pbm) {

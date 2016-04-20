@@ -110,6 +110,7 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
   /*  timing structs */
   struct timeval t_load_start;
   struct timeval t_complete;
+
   if (verbose > 2)
     gettimeofday(&t_complete, NULL);
   // A^-1 * B
@@ -121,7 +122,8 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
     printf("%-38s","Storing A in C ...");
     fflush(stdout);
   }
-  if (mat->AR != NULL) {
+
+  if (mat->AR->row != NULL) {
     if (elim_fl_C_sparse_dense_keep_A(mat->CR, &(mat->AR), mat->mod, nthreads)) {
       printf("Error while reducing A.\n");
       return -1;
@@ -140,7 +142,7 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
     printf("%-38s","Copying C to sparse block representation ...");
     fflush(stdout);
   }
-  if (mat->CR != NULL) {
+  if (mat->CR->row != NULL) {
     mat->C  = copy_sparse_to_block_matrix(mat->CR, nthreads);
     free_sparse_matrix(&(mat->CR), nthreads);
   }
@@ -155,7 +157,7 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
     printf("%-38s","Reducing C to zero ...");
     fflush(stdout);
   }
-  if (mat->AR != NULL) {
+  if (mat->C != NULL) {
     if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 0, mat->mod, nthreads)) {
       printf("Error while reducing A.\n");
       return -1;

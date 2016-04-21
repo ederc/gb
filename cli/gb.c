@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
     else
       rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
     if (verbose == 2) {
-      printf("%9.3f sec %5d %5d %5d\n",
+      printf("%9.3f sec %7d %7d %7d\n",
           walltime(t_load_start) / (1000000), rankDR, mat->DR->nrows - rankDR, mat->DR->nrows);
     }
     if (verbose > 0)

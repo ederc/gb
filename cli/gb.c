@@ -331,16 +331,28 @@ int main(int argc, char *argv[])
       }
       printf("|| %lu | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
     }
+    for (int ii=0; ii<spd->col->load; ++ii) {
+      for (int jj=ii+1; jj<spd->col->load; ++jj) {
+        if (spd->col->hpos[ii] == spd->col->hpos[jj]) {
+          printf("DOUBLE: %u <--> %u\n",ii,jj);
+        }
+      }
+    }
 #endif
 
     // generate gbla matrix out of data from symbolic preprocessing
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
     mat_t *mat  = NULL;
-    if (keep_A == 1)
+    if (keep_A == 1) {
       mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
-    else
+      printf("matrix rows %u + %u = %u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
+      printf("matrix cols %u + %u = %u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
+    } else {
       mat = generate_gbla_matrix(basis, sf, spd, nthreads);
+      printf("matrix rows %u + %u = %u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
+      printf("matrix cols %u + %u = %u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
+    }
     //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
     if (verbose > 0)
       t_generating_gbla_matrix  +=  walltime(t_load_start);

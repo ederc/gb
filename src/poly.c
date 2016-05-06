@@ -252,6 +252,7 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
 #if POLY_DEBUG
   printf("\n");
   printf("deg: %u\n", deg);
+  printf("# terms = 1 + %u\n",ctr-1);
 #endif
   basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;

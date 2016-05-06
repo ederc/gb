@@ -22,6 +22,8 @@
 
 #include "symbol.h"
 
+#define SPARSE_REDUCERS 1
+
 spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 {
   nelts_t i, idx, last_div, nsel;
@@ -49,6 +51,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   // we use mon as LIFO: last in, first out. thus we can easily remove and add
   // new elements to mon
   idx = 0;
+  nelts_t hi, hio;
+  hash_t h, ho, ntmin;
   while (idx < mon->load) {
     hash_pos  = mon->hpos[idx];
     // only if not already a lead monomial, e.g. if coming from spair
@@ -57,6 +61,47 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
       // takes last element in basis and test for division, goes down until we
       // reach the last known divisor last_div
+      hio   = 0;
+      ho    = 0;
+      ntmin = 0;
+      i   = last_div == 0 ? basis->st : last_div;
+#if SPARSE_REDUCERS
+      for (; i<basis->load; ++i) {
+        h = monomial_division(hash_pos, basis->eh[i][0], ht);
+        if ((h != 0)) {
+          hi  = i;
+          if (ho != 0) {
+            if (basis->nt[hi] < ntmin + ntmin/4) {
+              hio   = hi;
+              ho    = h;
+              ntmin = basis->nt[hi] < ntmin ? basis->nt[hi] : ntmin;
+            }
+          } else {
+            hio   = hi;
+            ho    = h;
+            ntmin = basis->nt[hio];
+          }
+        }
+      }
+#else
+      for (; i<basis->load; ++i) {
+        h = monomial_division(hash_pos, basis->eh[i][0], ht);
+        if ((h != 0)) {
+          hi  = i;
+          if (ho != 0) {
+            //if (basis->nt[hi] < basis->nt[hio] + basis->nt[hio]/2) {
+            if (basis->nt[hi] < basis->nt[hio]) {
+              hio = hi;
+              ho  = h;
+            }
+          } else {
+            hio = hi;
+            ho  = h;
+          }
+        }
+      }
+#endif
+      /*
       i = basis->load-1;
       while (i != last_div) {
         hash_div  = monomial_division(hash_pos, basis->eh[i][0], ht);
@@ -64,12 +109,15 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
           break;
         i--;
       }
-      // only if i > 0 we have found a reducer.
+      */
+      // only if i >= basis->st we have found a reducer.
       // note: all reducers are added to the upper selection list!
+      /*
       if (i >= basis->st) {
         if (i == last_div)
           hash_div  = monomial_division(hash_pos, basis->eh[i][0], ht);
         mon->nlm++;
+        printf("this is the reducer finally taken %3u\n",i);
         ht->div[hash_pos]  = i;
         // if multiple is not already in the selected list
         // we have found another element with such a monomial, since we do not
@@ -81,7 +129,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         ht->idx[hash_pos] = 2;
         if (sel_upp->load == sel_upp->size)
           adjust_size_of_selection(sel_upp, 2*sel_upp->size);
-        sel_upp->mpp[sel_upp->load].bi = i;
+        sel_upp->mpp[sel_upp->load].bi  = i;
         sel_upp->mpp[sel_upp->load].mlm = hash_pos;
         sel_upp->mpp[sel_upp->load].mul = hash_div;
         sel_upp->mpp[sel_upp->load].nt  = basis->nt[i];
@@ -91,6 +139,39 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
         if (basis->sf != NULL)
           try_to_simplify(sel_upp->mpp[sel_upp->load-1], basis, sf);
+        printf("this is the simplified reducer finally taken with %3u terms\n", sel_upp->mpp[sel_upp->load-1].nt);
+
+        // now add new monomials to preprocessing hash list
+        enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
+          mon, ht);
+      }
+      */
+      if (hio > 0) {
+        mon->nlm++;
+        //printf("this is the reducer finally taken %3u\n",hio);
+        ht->div[hash_pos]  = hio;
+        // if multiple is not already in the selected list
+        // we have found another element with such a monomial, since we do not
+        // take care of the lead monomial below when entering the other lower
+        // order monomials, we have to adjust the idx for this given monomial
+        // here.
+        // we have reducer, i.e. the monomial is a leading monomial (important for
+        // splicing matrix later on
+        ht->idx[hash_pos] = 2;
+        if (sel_upp->load == sel_upp->size)
+          adjust_size_of_selection(sel_upp, 2*sel_upp->size);
+        sel_upp->mpp[sel_upp->load].bi  = hio;
+        sel_upp->mpp[sel_upp->load].mlm = hash_pos;
+        sel_upp->mpp[sel_upp->load].mul = ho;
+        sel_upp->mpp[sel_upp->load].nt  = basis->nt[hio];
+        sel_upp->mpp[sel_upp->load].eh  = basis->eh[hio];
+        sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
+        sel_upp->load++;
+
+        if (basis->sf != NULL)
+          try_to_simplify(sel_upp->mpp[sel_upp->load-1], basis, sf);
+        //printf("this is the simplified reducer finally taken with %3u terms\n", sel_upp->mpp[sel_upp->load-1].nt);
+
         // now add new monomials to preprocessing hash list
         enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
           mon, ht);

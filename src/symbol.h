@@ -665,9 +665,9 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   // wVe do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
-#if SYMBOL_DEBUG
+//#if SYMBOL_DEBUG
   printf(" %u selected pairs in this step of the algorithm:\n", nsel);
-#endif
+//#endif
   for (i=0; i<nsel; ++i) {
     // remove duplicates if lcms and the first generators are the same
     sp_last  = sp;
@@ -680,9 +680,12 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       printf("%u ",ht->exp[sp->lcm][ii]);
     printf("\n --- \n");
 #endif
-    if ((sp_last != NULL && sp_last->lcm == sp->lcm) &&
-        ((sp_last->gen1 == sp->gen1) || (sp_last->gen1 == sp->gen2) || (sp_last->gen2 == sp->gen1) || (sp_last->gen2 == sp->gen2))) {
+    if ((sp_last != NULL && sp_last->lcm == sp->lcm)) {
+        //&&
+        //((sp_last->gen1 == sp->gen1) || (sp_last->gen1 == sp->gen2) || (sp_last->gen2 == sp->gen1) || (sp_last->gen2 == sp->gen2))) {
       //printf("DUPLICATE REMOVED!\n");
+      //printf("#TERMS KEPT    %5u + %5u = %5u\n", basis->nt[sp_last->gen1], basis->nt[sp_last->gen2], basis->nt[sp_last->gen1]+basis->nt[sp_last->gen2]);
+      //printf("#TERMS REMOVED %5u + %5u = %5u\n", basis->nt[sp->gen1], basis->nt[sp->gen2], basis->nt[sp->gen1]+basis->nt[sp->gen2]);
       continue;
     }
     // We have to distinguish between usual spairs and spairs consisting of one
@@ -703,17 +706,6 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 
     enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
     // now we distinguish cases for gen1
-    /*
-    if (sp->gen1 == 0) {
-      if (ht->idx[sp->lcm] == 0) {
-        mon->hpos[mon->load]  = sp->lcm;
-        ht->idx[sp->lcm]      = 1;
-        mon->load++;
-        if (mon->load == mon->size)
-          adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
-      }
-    } else {
-    */
     if (sp->gen1 != 0) {
       // first generator for upper part of gbla matrix if there is no other pair
       // with the same lcm

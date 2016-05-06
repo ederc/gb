@@ -192,6 +192,7 @@ inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *bas
   sp->gen1  = 0;
   sp->gen2  = gen2;
   sp->lcm   = basis->eh[gen2][0];
+  sp->nt    = basis->nt[gen2];
   sp->deg   = ht->deg[sp->lcm];
   sp->crit  = NO_CRIT;
 
@@ -211,6 +212,7 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
     sp->gen2  = gen1;
   }
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
+  sp->nt    = basis->nt[gen1] + basis->nt[gen2];
   sp->deg   = ht->deg[sp->lcm];
   
   // if one of the generators is redundant we can stop already here and mark it
@@ -263,21 +265,22 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
 #endif
     return memcmp(expb,expa, ht->nv);
   } else {
-    // we check for spairs labeled by the product criterion, those are moved to
-    // the end in order to have an efficient Gebauer-Moeller implementation: If
-    // an spair was labeled for product criterion we set the corresponding crit
-    // enum to one, otherwise it is zero
-    if (spa->deg != spb->deg) {
-      return (spa->crit > spb->crit) ? -1 : 1;
-    } else {
-      // both have the same lcms and are not detected by the product criterion,
-      // then we break ties by the first generator
-      if (spa->gen1 != spb->gen1) {
-        return (spa->gen1 < spb->gen1) ? -1 : 1;
+    // both have the same lcms and are not detected by the product criterion,
+    // then we break ties by the overall number of terms
+    if (spa->nt != spb->nt) {
+      if (spa->nt < spb->nt) {
+        return -1;
       } else {
-        return 0;
+        if (spa->nt != spb->nt) {
+          return 1;
+        } else {
+          if (spa->gen1 < spb->gen1 || spa->gen2 < spb->gen2) {
+            return -1;
+          }
+        }
       }
     }
+          return 0;
   }
 }
 

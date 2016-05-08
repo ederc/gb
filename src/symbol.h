@@ -590,35 +590,36 @@ static inline void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t 
  *
  * \param simplifier list sf
  */
-static inline void try_to_simplify(mpp_t mpp, const gb_t *basis, const gb_t *sf)
+static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf)
 {
   nelts_t l     = 0;
   hash_t sf_mul = 0;
-  const nelts_t load  = basis->sf[mpp.bi].load;
+  const nelts_t load  = basis->sf[mpp->bi].load;
   for (l=0; l<load; ++l) {
     // we start searching from the end of the list since those elements
     // might be best reduced
-    sf_mul = monomial_division(mpp.mlm, sf->eh[basis->sf[mpp.bi].idx[load-1-l]][0], ht);
-    if (sf_mul != 0) {
+    sf_mul = monomial_division(mpp->mlm, sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0], ht);
+    //if (sf_mul != 0) {
+    if (sf_mul != 0 && (sf->nt[basis->sf[mpp->bi].idx[load-1-l]] < mpp->nt + mpp->nt)) {
 #if SYMBOL_DEBUG
       printf("-- SIMPLIFY --\n");
       for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[mpp.mul][ii]);
+        printf("%u ",ht->exp[mpp->mul][ii]);
       printf("\n");
       for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[basis->eh[mpp.bi][0]][ii]);
+        printf("%u ",ht->exp[basis->eh[mpp->bi][0]][ii]);
       printf("\n - - -\n");
       for (int ii=0; ii<basis->nv; ++ii)
         printf("%u ",ht->exp[sf_mul][ii]);
       printf("\n");
       for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[sf->eh[basis->sf[mpp.bi].idx[load-1-l]][0]][ii]);
+        printf("%u ",ht->exp[sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0]][ii]);
       printf("\n");
 #endif
-      mpp.mul = sf_mul;
-      mpp.nt  = sf->nt[basis->sf[mpp.bi].idx[load-1-l]];
-      mpp.eh  = sf->eh[basis->sf[mpp.bi].idx[load-1-l]];
-      mpp.cf  = sf->cf[basis->sf[mpp.bi].idx[load-1-l]];
+      mpp->mul  = sf_mul;
+      mpp->nt   = sf->nt[basis->sf[mpp->bi].idx[load-1-l]];
+      mpp->eh   = sf->eh[basis->sf[mpp->bi].idx[load-1-l]];
+      mpp->cf   = sf->cf[basis->sf[mpp->bi].idx[load-1-l]];
       return;
     }
   }
@@ -702,7 +703,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 
     // check for simplification
     if (basis->sf != NULL)
-      try_to_simplify(sell->mpp[j], basis, sf);
+      try_to_simplify(&sell->mpp[j], basis, sf);
 
     enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
     // now we distinguish cases for gen1
@@ -727,7 +728,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         j = selu->load-1;
         // check for simplification
         if (basis->sf != NULL)
-          try_to_simplify(selu->mpp[j], basis, sf);
+          try_to_simplify(&selu->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(selu->mpp[j],
             mon, ht);
       } else {
@@ -735,7 +736,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         j = sell->load-1;
         // check for simplification
         if (basis->sf != NULL)
-          try_to_simplify(sell->mpp[j], basis, sf);
+          try_to_simplify(&sell->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(sell->mpp[j],
             mon, ht);
       }

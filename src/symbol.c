@@ -168,10 +168,14 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
         sel_upp->load++;
 
-        if (basis->sf != NULL)
-          try_to_simplify(sel_upp->mpp[sel_upp->load-1], basis, sf);
-        //printf("this is the simplified reducer finally taken with %3u terms\n", sel_upp->mpp[sel_upp->load-1].nt);
-
+        if (basis->sf != NULL) {
+          try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
+          /*
+          if (ho != sel_upp->mpp[sel_upp->load-1].mul) {
+            printf("simplify changes %3u with %3u terms to  %3u terms || mul %7lu to %7lu\n", hio, basis->nt[hio], sel_upp->mpp[sel_upp->load-1].nt, ho, sel_upp->mpp[sel_upp->load-1].mul);
+          }
+          */
+        }
         // now add new monomials to preprocessing hash list
         enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
           mon, ht);

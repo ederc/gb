@@ -55,6 +55,8 @@ void print_help()
   printf("                Default: 0 (not reduced).\n");
   printf("    -s SIMP     Use simplify in F4 algorithm.\n");
   printf("                Default: 0 (not simplified).\n");
+  printf("                         1 (simplified but B not fully reduced).\n");
+  printf("                         2 (simplified and B fully reduced).\n");
   printf("    -t THRDS    Number of threads used.\n");
   printf("                Default: 1.\n");
   printf("    -v LEVEL    Level of verbosity:\n");
@@ -135,7 +137,7 @@ int main(int argc, char *argv[])
         break;
       case 's':
         simplify = (int)strtol(optarg, NULL, 10);
-        if (simplify > 0)
+        if (simplify > 2)
           simplify = 1;
         break;
       case 't':
@@ -205,7 +207,7 @@ int main(int argc, char *argv[])
   // global simplifier list
   // generate simplifier list if simplification is enabled
   gb_t *sf  = NULL;
-  if (simplify == 1)
+  if (basis->sl > 0)
     sf = initialize_simplifier_list(basis);
 
   if (verbose > 0) {
@@ -331,13 +333,6 @@ int main(int argc, char *argv[])
       }
       printf("|| %lu | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
     }
-    for (int ii=0; ii<spd->col->load; ++ii) {
-      for (int jj=ii+1; jj<spd->col->load; ++jj) {
-        if (spd->col->hpos[ii] == spd->col->hpos[jj]) {
-          printf("DOUBLE: %u <--> %u\n",ii,jj);
-        }
-      }
-    }
 #endif
 
     // generate gbla matrix out of data from symbolic preprocessing
@@ -346,12 +341,12 @@ int main(int argc, char *argv[])
     mat_t *mat  = NULL;
     if (keep_A == 1) {
       mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
-      printf("matrix rows %u + %u = %u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
-      printf("matrix cols %u + %u = %u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
+      printf("matrix rows %6u + %6u = %6u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
+      printf("matrix cols %6u + %6u = %6u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
     } else {
       mat = generate_gbla_matrix(basis, sf, spd, nthreads);
-      printf("matrix rows %u + %u = %u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
-      printf("matrix cols %u + %u = %u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
+      printf("matrix rows %6u + %6u = %6u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
+      printf("matrix cols %6u + %6u = %6u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
     }
     //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
     if (verbose > 0)
@@ -396,7 +391,7 @@ int main(int argc, char *argv[])
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
     
-    if (simplify == 0)
+    if (basis->sl == 0)
       done  = update_basis(basis, ps, spd, mat, ht, rankDR);
     else
       done  = update_basis_and_add_simplifier(basis, sf, ps,
@@ -486,9 +481,9 @@ int main(int argc, char *argv[])
   // free allocated memory
   free(meta_data);
   free_pair_set(&ps);
-  free_basis(&basis);
-  if (simplify == 1)
+  if (basis->sl > 0)
     free_simplifier_list(&sf);
+  free_basis(&basis);
   free_hash_table(&ht);
 
   return 0;
@@ -518,12 +513,13 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
   if (spd->col->nlm != 0) {
     ri_t i;
     // store B in dense non-block matrix
-    dm_t *BR  = copy_block_to_dense_matrix(&(mat->B), 1, 0);
+    if (mat->sl == 1)
+      mat->BR  = copy_block_to_dense_matrix(&(mat->B), 1, 0);
     // we add the polys to sf, we know that there is one coefficient at col pos i
     // for row i.
-    for (i=0; i<BR->nrows; ++i)
-      add_new_element_to_simplifier_list_grevlex(basis, sf, BR, i, spd, ht);
-    free_dense_row_submatrix(&BR, 1);
+    for (i=0; i<mat->BR->nrows; ++i)
+      add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+    free_dense_row_submatrix(&(mat->BR), 1);
   }
 }
 

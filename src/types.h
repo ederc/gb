@@ -232,6 +232,7 @@ typedef struct gb_t
   hash_t **eh;      /*!<  monomial exponent hash*/
   sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if
                           simplification is not used */
+  int sl;           /*!<  global simplify level */
   // meta data
   char **vnames;    /*!<  variable names */
   uint16_t mtl;     /*!<  maximal length of term (needed for
@@ -348,6 +349,7 @@ typedef struct mat_t
   sb_fl_t *A;   /*!<  upper left sparse block matrix part */
   sm_fl_t *AR;  /*!<  upper left sparse row matrix part */
   dbm_fl_t *B;  /*!<  upper right dense block matrix part */
+  dm_t *BR;     /*!<  reduced B in dense row matrix format */
   sb_fl_t *C;   /*!<  lower right sparse block matrix part */
   sm_fl_t *CR;  /*!<  lower right sparse row matrix part */
   dbm_fl_t *D;  /*!<  lower right dense block matrix part */
@@ -362,6 +364,7 @@ typedef struct mat_t
   ri_t rbl;     /*!<  number of row blocks for lower part of gbla matrix */
   ci_t cbl;     /*!<  number of column blocks for left part of gbla matrix */
   ci_t cbr;     /*!<  number of column blocks for right part of gbla matrix */
+  int sl;       /*!<  level of simplify, might be different in different steps of the algorithm */
 } mat_t;
 
 /**

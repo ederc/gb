@@ -48,8 +48,9 @@ inline gb_t *initialize_basis(const int ordering, const int nlines,
   basis->red    = (red_t *)malloc(basis->size * sizeof(red_t));
   basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
+  basis->sl     = simplify;
 
-  if (simplify == 1) {
+  if (basis->sl > 0) {
     basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
     // initialize dummy values for input polynomials
     for (i=0; i<basis->st; ++i) {
@@ -155,10 +156,18 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
 #endif
   // now we do B
   //
-  if (B->row[ri]->init_val != NULL) {
-    for (i=0; i<B->ncols; ++i) {
-      if (B->row[ri]->init_val[i] != 0) {
-        sf->cf[sf->load][ctr] = B->row[ri]->init_val[i];
+  re_t *values;
+  nelts_t si  = 0;
+  if (basis->sl == 1) {
+    values  = B->row[ri]->init_val;
+  } else {
+    values  = B->row[ri]->piv_val;
+    si      = B->row[ri]->piv_lead;
+  }
+  if (values != NULL) {
+    for (i=si; i<B->ncols; ++i) {
+      if (values[i] != 0) {
+        sf->cf[sf->load][ctr] = values[i];
         // note that we have to adjust the position via shifting it by
         // spd->col->nlm since DR is on the righthand side of the matrix
         sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];

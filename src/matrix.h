@@ -109,6 +109,7 @@ static inline mat_t *initialize_gbla_matrix_keep_A(const spd_t *spd, const gb_t 
   mat->D  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
   mat->A  = NULL;
   mat->C  = NULL;
+  mat->BR = NULL;
   mat->DR = NULL;
 
   mat->mod  = basis->mod;
@@ -177,9 +178,11 @@ static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
   mat->C  = (sb_fl_t *)malloc(sizeof(sb_fl_t));
   mat->D  = (dbm_fl_t *)malloc(sizeof(dbm_fl_t));
   mat->AR = NULL;
+  mat->BR = NULL;
   mat->CR = NULL;
   mat->DR = NULL;
 
+  mat->sl   = basis->sl;
   mat->mod  = basis->mod;
   mat->bs   = __GBLA_SIMD_BLOCK_SIZE;
   mat->ncl  = spd->col->nlm;
@@ -279,6 +282,10 @@ static inline void free_gbla_matrix(mat_t **mat_in)
       free(mat->B);
       mat->B  = NULL;
     }
+  }
+  if (mat->BR != NULL) {
+    // DR is a dense row matrix
+    free_dense_row_submatrix(&(mat->BR), 1);
   }
 
   if (mat->DR != NULL) {

@@ -89,17 +89,11 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     printf("%9.3f sec %5d %5d %5d\n",
         walltime(t_load_start) / (1000000), rank_D, mat->DR->nrows - rank_D, mat->DR->nrows);
   }
-  // try to further reduce B with DR
-  if (mat->sl > 1 && mat->B->blocks != NULL) {
+  // if we simplify, then copy B to dense row representation
+  if (mat->sl > 0 && mat->B->blocks != NULL) {
     // first copy B to BR (dense row format)
     mat->BR = copy_block_to_dense_matrix(&(mat->B), nthreads, 0);
     mat->BR->mod  = mat->mod;
-    for (int l=0; l<mat->BR->rank; ++l) {
-      if (mat->BR->row[l]->init_val != NULL) {
-        copy_to_val(mat->BR, l);
-        reduce_B_by_D(mat->BR, mat->DR, l);
-      }
-    }
   }
   if (verbose > 3) {
     print_mem_usage();

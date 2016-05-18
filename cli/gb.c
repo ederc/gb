@@ -341,12 +341,16 @@ int main(int argc, char *argv[])
     mat_t *mat  = NULL;
     if (keep_A == 1) {
       mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
-      printf("matrix rows %6u + %6u = %6u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
-      printf("matrix cols %6u + %6u = %6u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
+      if (verbose > 1) {
+        printf("matrix rows %6u + %6u = %6u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
+        printf("matrix cols %6u + %6u = %6u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
+      }
     } else {
       mat = generate_gbla_matrix(basis, sf, spd, nthreads);
-      printf("matrix rows %6u + %6u = %6u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
-      printf("matrix cols %6u + %6u = %6u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
+      if (verbose > 1) {
+        printf("matrix rows %6u + %6u = %6u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
+        printf("matrix cols %6u + %6u = %6u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
+      }
     }
     //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
     if (verbose > 0)
@@ -512,13 +516,30 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
 {
   if (spd->col->nlm != 0) {
     ri_t i;
-    // store B in dense non-block matrix
-    if (mat->sl == 1)
-      mat->BR  = copy_block_to_dense_matrix(&(mat->B), 1, 0);
     // we add the polys to sf, we know that there is one coefficient at col pos i
     // for row i.
-    for (i=0; i<mat->BR->nrows; ++i)
-      add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+    // note: we only add these simplifiers if they are not too dense, i.e. at
+    // most twice the size of the original polynomial in the basis. this is a
+    // heuristic and might be bad in some examples, but in most of our tests it
+    // is the fastest choice.
+    if (mat->sl == 1) {
+      for (i=0; i<mat->BR->nrows; ++i) {
+        if (1+mat->DR->ncols < 2 * basis->nt[spd->selu->mpp[i].bi]) {
+          add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+        }
+      }
+    }
+    if (mat->sl > 1) {
+      for (i=0; i<mat->BR->nrows; ++i) {
+        if (1+mat->DR->ncols-mat->DR->rank < 2*basis->nt[spd->selu->mpp[i].bi]) {
+          if (mat->BR->row[i]->init_val != NULL) {
+            copy_to_val(mat->BR, i);
+            reduce_B_by_D(mat->BR, mat->DR, i);
+            add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+          }
+        }
+      }
+    }
     free_dense_row_submatrix(&(mat->BR), 1);
   }
 }

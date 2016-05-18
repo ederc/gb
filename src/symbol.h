@@ -616,11 +616,14 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
         printf("%u ",ht->exp[sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0]][ii]);
       printf("\n");
 #endif
-      mpp->mul  = sf_mul;
-      mpp->nt   = sf->nt[basis->sf[mpp->bi].idx[load-1-l]];
-      mpp->eh   = sf->eh[basis->sf[mpp->bi].idx[load-1-l]];
-      mpp->cf   = sf->cf[basis->sf[mpp->bi].idx[load-1-l]];
-      return;
+
+      if (sf->nt[basis->sf[mpp->bi].idx[load-1-l]] < 2*mpp->nt) {
+        mpp->mul  = sf_mul;
+        mpp->nt   = sf->nt[basis->sf[mpp->bi].idx[load-1-l]];
+        mpp->eh   = sf->eh[basis->sf[mpp->bi].idx[load-1-l]];
+        mpp->cf   = sf->cf[basis->sf[mpp->bi].idx[load-1-l]];
+        return;
+      }
     }
   }
 }

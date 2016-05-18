@@ -444,16 +444,99 @@ static inline void write_to_sparse_row_in_block(sb_fl_t *A, const coeff_t *cf, c
     const nelts_t bir, const nelts_t rib, const nelts_t sz,
     const bi_t bs, const coeff_t mod)
 {
+#if 1
   bi_t i;
-  for (i=bs; i>0; --i) {
-  //for (i=0; i<bs; ++i) {
-    if (cf[i-1] != 0) {
-      A->blocks[rbi][bir].sz[rib]++;
-      A->blocks[rbi][bir].val[rib][sz - A->blocks[rbi][bir].sz[rib]]  =
-        (re_t)((re_m_t)mod - cf[i-1]);
-      A->blocks[rbi][bir].pos[rib][sz - A->blocks[rbi][bir].sz[rib]]  = i-1;
+  int ctr  = -1;
+  for (i=0; i<bs; i=i+8) {
+    if (cf[i] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i;
+    }
+    if (cf[i+1] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i+1]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i+1;
+    }
+    if (cf[i+2] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i+2]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i+2;
+    }
+    if (cf[i+3] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i+3]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i+3;
+    }
+    if (cf[i+4] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i+4]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i+4;
+    }
+    if (cf[i+5] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i+5]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i+5;
+    }
+    if (cf[i+6] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i+6]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i+6;
+    }
+    if (cf[i+7] != 0) {
+      A->blocks[rbi][bir].val[rib][++ctr]  =
+        (re_t)((re_m_t)mod - cf[i+7]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i+7;
     }
   }
+  A->blocks[rbi][bir].sz[rib] = sz;
+#else
+  bi_t i;
+  bi_t ctr  = sz;
+  for (i=bs; i>0; i=i-8) {
+    if (cf[i-1] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-1]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-1;
+    }
+    if (cf[i-2] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-2]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-2;
+    }
+    if (cf[i-3] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-3]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-3;
+    }
+    if (cf[i-4] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-4]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-4;
+    }
+    if (cf[i-5] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-5]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-5;
+    }
+    if (cf[i-6] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-6]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-6;
+    }
+    if (cf[i-7] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-7]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-7;
+    }
+    if (cf[i-8] != 0) {
+      A->blocks[rbi][bir].val[rib][--ctr]  =
+        (re_t)((re_m_t)mod - cf[i-8]);
+      A->blocks[rbi][bir].pos[rib][ctr]  = i-8;
+    }
+  }
+  A->blocks[rbi][bir].sz[rib] = sz;
+#endif
 }
 
 /**

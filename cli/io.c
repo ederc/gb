@@ -169,11 +169,8 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   nvars_t k;
   exp_t *expv = (exp_t *)calloc(ht->nev * ht->vl, sizeof(exp_t));
-  const char add_splicer = '+';
-  const char min_splicer = '-';
   const char mult_splicer = '*';
   const char exp_splicer  = '^';
-  const char *end_splicer  = "\0";
   exp_t exp = 0;
   deg_t deg = 0;
 
@@ -581,7 +578,6 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
           basis->hom  = 0;
       }
       basis->deg[i] = max_deg;
-      printf("deg of poly[%u] = %u || %u\n", i, basis->deg[i], ht->deg[basis->eh[i][basis->nt[i]-1]]);
     }
   }
 #if __GB_HAVE_SSE2

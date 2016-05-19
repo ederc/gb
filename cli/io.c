@@ -169,14 +169,19 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   nvars_t k;
   exp_t *expv = (exp_t *)calloc(ht->nev * ht->vl, sizeof(exp_t));
+  const char add_splicer = '+';
+  const char min_splicer = '-';
   const char mult_splicer = '*';
   const char exp_splicer  = '^';
+  const char *end_splicer  = "\0";
   exp_t exp = 0;
   deg_t deg = 0;
 
   for (k=0; k<basis->nv; ++k) {
     exp = 0;
     char *var = strstr(term, basis->vnames[k]);
+    var   = strtok(var, "\n");
+    var   = strtok(var, ",");
     if (var != NULL) {
       // if the next variable follows directly => exp = 1
       if (strncmp(&mult_splicer, var+strlen(basis->vnames[k]), 1) == 0) {
@@ -199,7 +204,10 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
             exp_str[exp_len] = '\0';
           }
         } else { // we are at the last variable with exp = 1
-          exp = 1;
+          if (strcmp(basis->vnames[k], var) == 0)
+            exp = 1;
+          else
+            continue;
         }
       }
     }
@@ -224,6 +232,8 @@ inline exp_t get_exponent(const char *term, const char *var_name)
   exp_t exp = 0;
 
   char *var = strstr(term, var_name);
+  var   = strtok(var, "\n");
+  var   = strtok(var, ",");
   if (var != NULL) {
     // if the next variable follows directly => exp = 1
     if (strncmp(&mult_splicer, var+strlen(var_name), 1) == 0) {
@@ -246,7 +256,8 @@ inline exp_t get_exponent(const char *term, const char *var_name)
           exp_str[exp_len] = '\0';
         }
       } else { // we are at the last variable with exp = 1
-        exp = 1;
+        if (strcmp(var_name, var) == 0)
+          exp = 1;
       }
     }
   }
@@ -561,11 +572,16 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
         printf("cf[%lu] = %u | eh[%lu][%lu] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
 #endif
       }
-      if (ht->deg[basis->eh[i][0]] == ht->deg[basis->eh[i][basis->nt[i]-1]])
-        basis->hom  = 1;
-      else
-        basis->hom  = 0;
+      // if basis->hom is 0 then we have already found an inhomogeneous
+      // polynomial and the system of polynomials is not homogeneous
+      if (basis->hom == 1) {
+        if (ht->deg[basis->eh[i][0]] == ht->deg[basis->eh[i][basis->nt[i]-1]])
+          basis->hom  = 1;
+        else
+          basis->hom  = 0;
+      }
       basis->deg[i] = max_deg;
+      printf("deg of poly[%u] = %u || %u\n", i, basis->deg[i], ht->deg[basis->eh[i][basis->nt[i]-1]]);
     }
   }
 #if __GB_HAVE_SSE2

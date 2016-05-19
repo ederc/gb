@@ -29,7 +29,8 @@ inline gb_t *initialize_basis(const int ordering, const int nlines,
 
   basis->ord  = (ord_t)ordering;
   basis->nred = 0;
-  basis->hom  = 0;
+  // per default homogeneous, easier to check inhomogeneity when reading input data
+  basis->hom  = 1;
   basis->mtl  = 0;
   // #generators of the input system = nlines - 2 since the first line has the
   // variable names and second line is the field modulus. Then we add 1 since we

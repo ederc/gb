@@ -117,9 +117,11 @@ static inline void set_random_seed(mp_cf4_ht_t *ht)
   hash_t i;
 
 #if __GB_WORDSIZE==64
-uint64_t random_seed  = 0xFFFFFFFFFFFFFFFF;
+uint64_t random_seed  = 88172645463325252LL;
+//uint64_t random_seed  = 0xFFFFFFFFFFFFFFFF;
 #elif __GB_WORDSIZE==32
-uint32_t random_seed  = 0xFFFFFFFF;
+uint32_t random_seed  = 2463534242;
+//uint32_t random_seed  = 0xFFFFFFFF;
 #endif
   // use random_seed, no zero values are allowed
   for (i=0; i<ht->nv; ++i) {

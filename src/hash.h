@@ -78,11 +78,15 @@ extern mp_cf4_ht_t *ht;
  */
 static inline uint64_t pseudo_random_generator(uint64_t random_seed)
 {
-  random_seed ^=  (random_seed << 6);
-  random_seed ^=  (random_seed << 15);
   random_seed ^=  (random_seed << 3);
-
+  random_seed ^=  (random_seed << 11);
+  random_seed ^=  (random_seed << 7);
   return random_seed;
+  /*
+  random_seed = 36969*(random_seed & 65535) + (random_seed >> 16);
+  random_seed = 18000*(random_seed & 65535) + (random_seed >> 16);
+  return (random_seed << 16) + random_seed;
+  */
 }
 
 #elif __GB_WORDSIZE==32
@@ -94,11 +98,16 @@ static inline uint64_t pseudo_random_generator(uint64_t random_seed)
  */
 static inline uint32_t pseudo_random_generator(uint32_t random_seed)
 {
+  /*
   random_seed ^=  (random_seed << 11);
   random_seed ^=  (random_seed << 13);
   random_seed ^=  (random_seed << 18);
 
   return random_seed;
+  */
+  random_seed = 36969*(random_seed & 65535) + (random_seed >> 16);
+  random_seed = 18000*(random_seed & 65535) + (random_seed >> 16);
+  return (random_seed << 16) + random_seed;
 }
 
 #endif
@@ -117,8 +126,9 @@ static inline void set_random_seed(mp_cf4_ht_t *ht)
   hash_t i;
 
 #if __GB_WORDSIZE==64
-uint64_t random_seed  = 88172645463325252LL;
-//uint64_t random_seed  = 0xFFFFFFFFFFFFFFFF;
+//uint64_t random_seed  = 88172645463325252LL;
+//uint64_t random_seed  = 2463534242;
+uint64_t random_seed  = 0xF1FF3FAFFFCFF6F7;
 #elif __GB_WORDSIZE==32
 uint32_t random_seed  = 2463534242;
 //uint32_t random_seed  = 0xFFFFFFFF;

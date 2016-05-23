@@ -78,9 +78,9 @@ extern mp_cf4_ht_t *ht;
  */
 static inline uint64_t pseudo_random_generator(uint64_t random_seed)
 {
-  random_seed ^=  (random_seed << 13);
-  random_seed ^=  (random_seed << 7);
-  random_seed ^=  (random_seed << 17);
+  random_seed ^=  (random_seed << 11);
+  random_seed ^=  (random_seed << 12);
+  random_seed ^=  (random_seed << 5);
 
   return random_seed;
 }
@@ -94,9 +94,9 @@ static inline uint64_t pseudo_random_generator(uint64_t random_seed)
  */
 static inline uint32_t pseudo_random_generator(uint32_t random_seed)
 {
+  random_seed ^=  (random_seed << 11);
   random_seed ^=  (random_seed << 13);
-  random_seed ^=  (random_seed << 17);
-  random_seed ^=  (random_seed << 5);
+  random_seed ^=  (random_seed << 18);
 
   return random_seed;
 }

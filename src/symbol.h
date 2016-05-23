@@ -670,7 +670,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
 //#if SYMBOL_DEBUG
-  printf(" %u selected pairs in this step of the algorithm:\n", nsel);
+  printf("%5u selected pairs in this step of the algorithm:\n", nsel);
 //#endif
   for (i=0; i<nsel; ++i) {
     // remove duplicates if lcms and the first generators are the same

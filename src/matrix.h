@@ -557,11 +557,18 @@ static inline void write_to_sparse_row_in_block(sb_fl_t *A, const coeff_t *cf, c
 static inline void write_to_dense_row(dbm_fl_t *A, const coeff_t *cf, const nelts_t rbi,
     const nelts_t bir, const nelts_t rib, const bi_t bs)
 {
+#if 1
+    memcpy(A->blocks[rbi][bir].val+(rib*bs), cf, bs*sizeof(coeff_t));
+#else
   bi_t i;
 
-  for (i=0; i<bs; ++i) {
-    A->blocks[rbi][bir].val[(rib*bs)+i] = cf[i];
+  for (i=0; i<bs; i=i+4) {
+    A->blocks[rbi][bir].val[(rib*bs)+i]   = cf[i];
+    A->blocks[rbi][bir].val[(rib*bs)+i+1] = cf[i+1];
+    A->blocks[rbi][bir].val[(rib*bs)+i+2] = cf[i+2];
+    A->blocks[rbi][bir].val[(rib*bs)+i+3] = cf[i+3];
   }
+#endif
 }
 
 

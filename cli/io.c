@@ -177,16 +177,22 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
   for (k=0; k<basis->nv; ++k) {
     exp = 0;
     char *var = strstr(term, basis->vnames[k]);
-    var   = strtok(var, "\n");
-    var   = strtok(var, ",");
     if (var != NULL) {
+#if IO_DEBUG
+      printf("var1 %s\n", var);
+#endif
+      var   = strtok(var, "\n");
+      var   = strtok(var, ",");
+#if IO_DEBUG
+      printf("var2 %s\n", var);
+#endif
       // if the next variable follows directly => exp = 1
       if (strncmp(&mult_splicer, var+strlen(basis->vnames[k]), 1) == 0) {
         exp = 1;
       } else {
         // if there follows an exp symbol "^"
         if (strncmp(&exp_splicer, var+strlen(basis->vnames[k]), 1) == 0) {
-          char exp_str[100];
+          char exp_str[1000];
           char *mult_pos;
           mult_pos  = strchr(var, mult_splicer);
           if (mult_pos != NULL) {
@@ -383,7 +389,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
   // get number of lines in file:
   // number of lines - 2 is number of generators in input system
   int nlines  = 0;
-  char buf[1000];
+  char buf[10000];
   fh  = fopen(fn,"r");
   while(fgets(buf, sizeof(buf), fh) != NULL)
     nlines++;
@@ -391,7 +397,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
 
   fh  = fopen(fn,"r");
   // load lines and store data
-  const size_t max_line_size  = 1000;
+  const size_t max_line_size  = 100000;
   char *line  = (char *)malloc(max_line_size * sizeof(char));
 
   // we already know the number of variables

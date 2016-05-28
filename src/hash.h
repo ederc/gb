@@ -329,6 +329,7 @@ static inline hash_t get_hash(const exp_v *ev, const mp_cf4_ht_t *ht)
 #else
 static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
 {
+  nvars_t i;
   hash_t hash  = 0;
   for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];

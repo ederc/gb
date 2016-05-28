@@ -62,6 +62,7 @@
 #define HASH_QUADRATIC_PROBING  0
 #endif
 
+
 /***************************
  * OUR HASH TABLE IS GLOBAL
  **************************/
@@ -76,15 +77,18 @@ extern mp_cf4_ht_t *ht;
  *
  * \return some pseudo random number
  */
-static inline uint64_t pseudo_random_generator(uint64_t random_seed)
+static inline uint32_t pseudo_random_generator(uint32_t random_seed)
 {
+  /*
   random_seed ^=  (random_seed << 3);
   random_seed ^=  (random_seed << 11);
   random_seed ^=  (random_seed << 7);
+  */
+  random_seed = (uint32_t) ((1103515245 * ((unsigned int)random_seed) + 12345) & 0x7fffffffUL);
   return random_seed;
   /*
   random_seed = 36969*(random_seed & 65535) + (random_seed >> 16);
-  random_seed = 18000*(random_seed & 65535) + (random_seed >> 16);
+  random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
   return (random_seed << 16) + random_seed;
   */
 }
@@ -105,9 +109,9 @@ static inline uint32_t pseudo_random_generator(uint32_t random_seed)
 
   return random_seed;
   */
-  random_seed = 36969*(random_seed & 65535) + (random_seed >> 16);
-  random_seed = 18000*(random_seed & 65535) + (random_seed >> 16);
-  return (random_seed << 16) + random_seed;
+  random_seed = 36969*(random_seed & 65535) * (random_seed >> 16);
+  random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
+  return (random_seed << 16) * random_seed;
 }
 
 #endif
@@ -128,7 +132,8 @@ static inline void set_random_seed(mp_cf4_ht_t *ht)
 #if __GB_WORDSIZE==64
 //uint64_t random_seed  = 88172645463325252LL;
 //uint64_t random_seed  = 2463534242;
-uint64_t random_seed  = 0xF1FF3FAFFFCFF6F7;
+//uint64_t random_seed  = 0xF1FF3FAFFFCFF6F7;
+uint32_t random_seed  = 2463534243;
 #elif __GB_WORDSIZE==32
 uint32_t random_seed  = 2463534242;
 //uint32_t random_seed  = 0xFFFFFFFF;
@@ -158,50 +163,29 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
   mp_cf4_ht_t *ht = (mp_cf4_ht_t *)malloc(sizeof(mp_cf4_ht_t));
 
   // global table data
-
-  // sets possible non-Mersenne primes for hash table size
-  // we assume minimal <2^18 and a maximal of <2^32 as feasible range
-  ht->primes  = (ht_size_t *)malloc(15 * sizeof(ht_size_t));
-  ht->primes[0]   = 262139;     // < 2^18
-  ht->primes[1]   = 524269;     // < 2^19
-  ht->primes[2]   = 1048573;    // < 2^20
-  ht->primes[3]   = 2097143;    // < 2^21
-  ht->primes[4]   = 4194301;    // < 2^22
-  ht->primes[5]   = 8388593;    // < 2^23
-  ht->primes[6]   = 16777213;   // < 2^24
-  ht->primes[7]   = 33554393;   // < 2^25
-  ht->primes[8]   = 67108859;   // < 2^26
-  ht->primes[9]   = 134217689;  // < 2^27
-  ht->primes[10]  = 268435399;  // < 2^28
-  ht->primes[11]  = 536870909;  // < 2^29
-  ht->primes[12]  = 1073741789; // < 2^30
-  ht->primes[13]  = 2147483629; // < 2^31
-  ht->primes[14]  = 4294967295; // < 2^32
-
+  ht->sz    = pow(2,ht_si);
   ht->nv    = nv;
-  // sets size index in primes array for hash table size
-  ht->si    = ht_si;
   // for easier divisibility checks we start at index 1. If the divisibility
   // check routines return 0, there is no division.
   ht->load  = 1;
-  ht->lut   = (ht_size_t *)calloc(ht->primes[ht->si], sizeof(ht_size_t));
-  ht->val   = (hash_t *)calloc(ht->primes[ht->si], sizeof(hash_t));
-  ht->deg   = (deg_t *)calloc(ht->primes[ht->si], sizeof(deg_t));
-  ht->div   = (nelts_t *)calloc(ht->primes[ht->si], sizeof(nelts_t));
-  ht->idx   = (ht_size_t *)calloc(ht->primes[ht->si], sizeof(ht_size_t));
+  ht->lut   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
+  ht->val   = (hash_t *)calloc(ht->sz, sizeof(hash_t));
+  ht->deg   = (deg_t *)calloc(ht->sz, sizeof(deg_t));
+  ht->div   = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
+  ht->idx   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
   ht->rand  = (hash_t *)malloc(ht->nv * sizeof(hash_t));
 #if __GB_HAVE_SSE2
   ht->nev   = (ht->nv * sizeof(exp_t) / sizeof(exp_v)) + 1;
   ht->vl    = sizeof(exp_v) / sizeof(exp_t);
-  ht->ev    = (exp_v **)malloc(ht->primes[ht->si] * sizeof(exp_v *));
+  ht->ev    = (exp_v **)malloc(ht->sz * sizeof(exp_v *));
   // get memory for each exponent vector
-  for (i=0; i<ht->primes[ht->si]; ++i) {
+  for (i=0; i<ht->sz; ++i) {
     ht->ev[i]  = (exp_v *)calloc(ht->nev, sizeof(exp_v));
   }
 #else
-  ht->exp   = (exp_t **)malloc(ht->primes[ht->si] * sizeof(exp_t *));
+  ht->exp   = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
   // get memory for each exponent
-  for (i=0; i<ht->primes[ht->si]; ++i) {
+  for (i=0; i<ht->sz; ++i) {
     ht->exp[i]  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
   }
 #endif
@@ -221,18 +205,17 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
 static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos, mp_cf4_ht_t *ht)
 {
   ht_size_t i;
-  ht_size_t tmp = (ht_size_t)MODP(hash,ht->primes[ht->si]);
+  ht_size_t tmp_h;
+  tmp_h = hash & (ht->sz-1);
+  //printf("hash %u --> %u\n", hash, tmp_h);
 
-  for (i=0; i<ht->primes[ht->si]; ++i) {
-#if HASH_QUADRATIC_PROBING
-    tmp = MODP(tmp+(i*i),ht->primes[ht->si]);
-#else
-    tmp = MODP(tmp+(i),ht->primes[ht->si]);
-#endif
-    if (ht->lut[tmp] != 0) {
+  for (i=0; i<ht->sz; ++i) {
+    tmp_h = (tmp_h+i) & (ht->sz-1);
+    if (ht->lut[tmp_h] != 0) {
       continue;
     } else {
-      ht->lut[tmp]  = pos;
+      ht->lut[tmp_h]  = pos;
+      printf("tmp_h %u from hash %u with i %u\n",tmp_h,hash,i);
     }
     return;
   }
@@ -247,34 +230,36 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
 {
   ht_size_t i;
   hash_t hash;
-  const ht_size_t old_si  = ht->si;
-  ht->si++;
 
+  const ht_size_t old_sz  = ht->sz;
+  printf("enlarge %u --> %u\n", ht->sz, 2*ht->sz);
+  ht->sz  = 2*ht->sz;
 #if HASH_DEBUG
-  printf("enlarging hash table: load = %u || primes[ %u] = %u --> primes[%u] = %u\n",ht->load,old_si,ht->primes[old_si], ht->si,ht->primes[ht->si]);
+  printf("enlarging hash table: load = %u || primes[ %u] = %u --> primes[%u] = %u\n",ht->load,old_si,old_sz, ht->si,ht->sz);
 #endif
-  ht->lut   = realloc(ht->lut, ht->primes[ht->si] * sizeof(ht_size_t));
-  ht->val   = realloc(ht->val, ht->primes[ht->si] * sizeof(hash_t));
-  ht->deg   = realloc(ht->deg, ht->primes[ht->si] * sizeof(deg_t));
-  ht->idx   = realloc(ht->idx, ht->primes[ht->si] * sizeof(ht_size_t));
-  ht->div   = realloc(ht->div, ht->primes[ht->si] * sizeof(nelts_t));
+  ht->lut   = realloc(ht->lut, ht->sz * sizeof(ht_size_t));
+  ht->val   = realloc(ht->val, ht->sz * sizeof(hash_t));
+  ht->deg   = realloc(ht->deg, ht->sz * sizeof(deg_t));
+  ht->idx   = realloc(ht->idx, ht->sz * sizeof(ht_size_t));
+  ht->div   = realloc(ht->div, ht->sz * sizeof(nelts_t));
 #if __GB_HAVE_SSE2
-  ht->ev    = realloc(ht->ev, ht->primes[ht->si] * sizeof(exp_v *));
-  for (i=ht->primes[old_si]; i<ht->primes[ht->si]; ++i) {
+  ht->ev    = realloc(ht->ev, ht->sz * sizeof(exp_v *));
+  for (i=old_sz; i<ht->sz; ++i) {
     ht->ev[i] = (exp_v *)calloc(ht->nev, sizeof(exp_v));
   }
 #else
-  ht->exp   = realloc(ht->exp, ht->primes[ht->si] * sizeof(exp_t *));
-  for (i=ht->primes[old_si]; i<ht->primes[ht->si]; ++i) {
+  ht->exp   = realloc(ht->exp, ht->sz * sizeof(exp_t *));
+  for (i=old_sz; i<ht->sz; ++i) {
     ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
   }
 #endif
   // re-insert all elements in block
-  memset(ht->lut, 0, ht->primes[ht->si] * sizeof(ht_size_t));
+  memset(ht->lut, 0, ht->sz * sizeof(ht_size_t));
   for (i=0; i<ht->load; ++i) {
     hash  = ht->val[i];
     insert_while_enlarging(hash, i, ht);
   }
+  printf("done %u\n",ht->sz);
 }
 
 /**
@@ -296,15 +281,14 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
     free(ht->div);
     free(ht->idx);
 #if __GB_HAVE_SSE2
-    for (i=0; i<ht->primes[ht->si]; ++i)
+    for (i=0; i<ht->sz; ++i)
       free(ht->ev[i]);
     free(ht->ev);
 #else
-    for (i=0; i<ht->primes[ht->si]; ++i)
+    for (i=0; i<ht->sz; ++i)
       free(ht->exp[i]);
     free(ht->exp);
 #endif
-    free(ht->primes);
   }
 
   free(ht);
@@ -322,31 +306,37 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
  * \return hash value
  */
 #if __GB_HAVE_SSE2
-static inline hash_t get_hash(const exp_v *ev, mp_cf4_ht_t *ht)
+static inline hash_t get_hash(const exp_v *ev, const mp_cf4_ht_t *ht)
 {
+
   nvars_t i;
-  hash_t hash = 0;
 
   exp_t *exp  = (exp_t *)calloc(ht->nev + ht->vl, sizeof(exp_t));
 
   for (i=0; i<ht->nev; ++i)
     _mm_storeu_si128((exp_v *)exp+(i*ht->vl), ev[i]);
-
+  hash_t hash  = 0;
   for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
-
+  /*
+  for (i=0; i<ht->nv; ++i)
+    printf("%u ", exp[i]);
+  printf(" --> %lu\n", hash);
+  */
   free(exp);
   return hash;
 }
 #else
-static inline hash_t get_hash(const exp_t *exp, mp_cf4_ht_t *ht)
+static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
 {
-  hash_t i;
-  hash_t hash = 0;
-
+  hash_t hash  = 0;
   for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
-
+  /*
+  for (nelts_t i=0; i<ht->nv; ++i)
+    printf("%u ", exp[i]);
+  printf(" --> %lu || %u\n", h, h & (ht->primes[ht->si]-1));
+  */
   return hash;
 }
 #endif
@@ -380,11 +370,7 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
 
   // we need to keep one place open in ht->exp since the next element to be
   // checked against the hash table will be intermediately stored there
-#if HASH_QUADRATIC_PROBING
-  if (ht->load >= ht->primes[ht->si]/2-1)
-#else
-  if (ht->load >= ht->primes[ht->si]-1)
-#endif
+  if (ht->load >= ht->sz-1)
     enlarge_hash_table(ht);
 
   return (ht->load-1);
@@ -420,11 +406,13 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
 
   ht_size_t last_pos = ht->load;
 
+  /*
 #if !__GB_HAVE_SSE2
   nvars_t i;
   for (i=0; i<ht->nv; ++i)
     ht->exp[last_pos][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
 #endif
+*/
   // ht->div and ht->idx are already initialized with 0, so nothing to do there
   ht->deg[last_pos] = ht->deg[mon_1] + ht->deg[mon_2];
   ht->val[last_pos] = hash;
@@ -439,11 +427,7 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
   */
   ht->load++;
 
-#if HASH_QUADRATIC_PROBING
-  if (ht->load >= ht->primes[ht->si]/2-1)
-#else
-  if (ht->load >= ht->primes[ht->si]-1)
-#endif
+  if (ht->load >= ht->sz-1)
     enlarge_hash_table(ht);
 
   return last_pos;
@@ -474,8 +458,9 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   exp_t *exp  = ht->exp[ht->load];
   hash_t hash = get_hash(exp, ht);
 #endif
-  ht_size_t tmp_h = (ht_size_t)MODP(hash, ht->primes[ht->si]); // temporary hash values for linear probing
+  ht_size_t tmp_h;
   ht_size_t tmp_l;         // temporary lookup table value
+  tmp_h = hash & (ht->sz-1);
 
   // first check directly
   tmp_l = ht->lut[tmp_h];
@@ -506,12 +491,8 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 #endif
 
   // remaining checks with probing
-  for (i=1; i<ht->primes[ht->si]; ++i) {
-#if HASH_QUADRATIC_PROBING
-    tmp_h = MODP(tmp_h+(i*i),ht->primes[ht->si]);
-#else
-    tmp_h = MODP(tmp_h+(i),ht->primes[ht->si]);
-#endif
+  for (i=1; i<ht->sz; ++i) {
+    tmp_h = (tmp_h+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
@@ -559,32 +540,38 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     const mp_cf4_ht_t *ht)
 {
   ht_size_t i, j;
-
-  // hash value of the product is the sum of the hash values in our setting
-  hash_t hash     = ht->val[mon_1] + ht->val[mon_2];
-  ht_size_t tmp_h = (ht_size_t)MODP(hash, ht->primes[ht->si]); // temporary hash values for linear probing
-  ht_size_t tmp_l;         // temporary lookup table value
-  
-  // first check directly
-  tmp_l = ht->lut[tmp_h];
+  hash_t hash;
 #if __GB_HAVE_SSE2
   for (i=0; i<ht->nev; ++i)
     ht->ev[ht->load][i] = _mm_adds_epu8(ht->ev[mon_1][i], ht->ev[mon_2][i]);
+  //hash = get_hash(ht->ev[ht->load], ht);
+#else
+  for (i=0; i<ht->nv; ++i)
+    ht->exp[ht->load][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
+  //hash = get_hash(ht->exp[ht->load], ht);
 #endif
+  // hash value of the product is the sum of the hash values in our setting
+  hash   = ht->val[mon_1] + ht->val[mon_2];
+  ht_size_t tmp_h;
+  ht_size_t tmp_l;         // temporary lookup table value
+  tmp_h = hash & (ht->sz-1);
+  
+  // first check directly
+  tmp_l = ht->lut[tmp_h];
   if (tmp_l == 0)
     return 0;
   if (ht->val[tmp_l] == hash) {
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
+      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
       if (_mm_movemask_epi8(cmpv) == 0)
         break;
     }
     return tmp_l;
 #else
     for (j=0; j<ht->nv; ++j)
-      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
@@ -592,12 +579,8 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   }
 
   // remaining checks with probing
-  for (i=1; i<ht->primes[ht->si]; ++i) {
-#if HASH_QUADRATIC_PROBING
-    tmp_h = MODP(tmp_h+(i*i),ht->primes[ht->si]);
-#else
-    tmp_h = MODP(tmp_h+(i),ht->primes[ht->si]);
-#endif
+  for (i=1; i<ht->sz; ++i) {
+    tmp_h = (tmp_h+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
@@ -606,14 +589,14 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
+      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
       if (_mm_movemask_epi8(cmpv) == 0)
         break;
     }
     return tmp_l;
 #else
     for (j=0; j<ht->nv; ++j)
-      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
@@ -646,18 +629,24 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     mp_cf4_ht_t *ht)
 {
   ht_size_t i, j;
-
-  // hash value of the product is the sum of the hash values in our setting
-  hash_t hash   = ht->val[mon_1] + ht->val[mon_2];
-  ht_size_t tmp_h = (ht_size_t)MODP(hash, ht->primes[ht->si]); // temporary hash values for linear probing
-  ht_size_t tmp_l;         // temporary lookup table value
-
-  // first check directly
-  tmp_l = ht->lut[tmp_h];
+  hash_t hash;
 #if __GB_HAVE_SSE2
   for (i=0; i<ht->nev; ++i)
     ht->ev[ht->load][i] = _mm_adds_epu8(ht->ev[mon_1][i], ht->ev[mon_2][i]);
+  //hash = get_hash(ht->ev[ht->load], ht);
+#else
+  for (i=0; i<ht->nv; ++i)
+    ht->exp[ht->load][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
+  //hash = get_hash(ht->exp[ht->load], ht);
 #endif
+  // hash value of the product is the sum of the hash values in our setting
+  hash   = ht->val[mon_1] + ht->val[mon_2];
+  ht_size_t tmp_h;
+  ht_size_t tmp_l;         // temporary lookup table value
+  tmp_h = hash & (ht->sz-1);
+
+  // first check directly
+  tmp_l = ht->lut[tmp_h];
   if (tmp_l == 0)
     return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
   if (ht->val[tmp_l] == hash) {
@@ -671,7 +660,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     return tmp_l;
 #else
     for (j=0; j<ht->nv; ++j)
-      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
@@ -679,12 +668,8 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   }
 
   // remaining checks with probing
-  for (i=1; i<ht->primes[ht->si]; ++i) {
-#if HASH_QUADRATIC_PROBING
-    tmp_h = MODP(tmp_h+(i*i),ht->primes[ht->si]);
-#else
-    tmp_h = MODP(tmp_h+(i),ht->primes[ht->si]);
-#endif
+  for (i=1; i<ht->sz; ++i) {
+    tmp_h = (tmp_h+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
@@ -701,7 +686,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
 #else
     nvars_t j;
     for (j=0; j<ht->nv; ++j)
-      if (ht->exp[tmp_l][j] != ht->exp[mon_1][j] + ht->exp[mon_2][j])
+      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
@@ -879,6 +864,6 @@ static inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline void clear_hash_table_idx(mp_cf4_ht_t *ht)
 {
-  memset(ht->idx, 0, ht->primes[ht->si] * sizeof(ht_size_t));
+  memset(ht->idx, 0, ht->sz * sizeof(ht_size_t));
 }
 #endif /* GB_HASH_TABLE_H */

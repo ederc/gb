@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
   int print_gb      = 0;
   int ordering      = 0;
   int keep_A        = 0;
-  int htc           = 18;
+  int htc           = 15;
   // generate file name holder if pbms are generated
   char *pbm_dir = NULL;
   char pbm_fn[400];
@@ -177,10 +177,8 @@ int main(int argc, char *argv[])
   }
   // we start with hash table sizes being non-Mersenne primes < 2^18, nothing
   // smaller. So we shift htc to the corresponding index of ht->primes.
-  if (htc < 18)
-    htc =   0;
-  else
-    htc -=  18;
+  if (htc < 15)
+    htc =   15;
 
   // first get number of variables in order to initialize hash table
   nvars_t nvars = get_nvars(fn);
@@ -192,13 +190,13 @@ int main(int argc, char *argv[])
     printf("----------------------------- Computing Groebner --------------------------\n");
     printf("--------------------- with the following options set ----------------------\n");
     printf("---------------------------------------------------------------------------\n");
-    printf("number of threads           %12d\n", nthreads);
-    printf("hash table size             %12u (non-Mersenne prime < 2^%d)\n", ht->primes[ht->si], ht->si+18);
-    printf("compute reduced basis?      %12d\n", reduce_gb);
-    printf("do not reduce A|B in gbla   %12d\n", keep_A);
-    printf("use simplify?               %12d\n", simplify);
-    printf("generate pbm files?         %12d\n", generate_pbm);
-    printf("print resulting basis?      %12d\n", print_gb);
+    printf("number of threads           %15d\n", nthreads);
+    printf("hash table size             %15u (2^%u)\n", ht->sz, htc);
+    printf("compute reduced basis?      %15d\n", reduce_gb);
+    printf("do not reduce A|B in gbla   %15d\n", keep_A);
+    printf("use simplify?               %15d\n", simplify);
+    printf("generate pbm files?         %15d\n", generate_pbm);
+    printf("print resulting basis?      %15d\n", print_gb);
     printf("---------------------------------------------------------------------------\n");
   }
   // input stores input data

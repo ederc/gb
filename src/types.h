@@ -65,7 +65,7 @@ typedef uint32_t nelts_t;
 typedef uint32_t ht_size_t;
 
 /* hash table entry size */
-typedef uint64_t hash_t;
+typedef uint32_t hash_t;
 
 /* degree size */
 typedef uint16_t deg_t;
@@ -379,9 +379,8 @@ typedef struct mp_cf4_ht_t
 {
   // size and load counters
   nvars_t nv;         /*!<  number of variables*/
-  ht_size_t *primes;  /*!<  possible non-Mersenne primes for hash table size */
-  ht_size_t si;       /*!<  current index in size primes list*/
   ht_size_t load;     /*!<  load of hash table*/
+  ht_size_t sz;       /*!<  hash table size*/
   // data and arrays for storage
   ht_size_t *lut;     /*!<  lookup table between hash value and position in
                             exponent array*/

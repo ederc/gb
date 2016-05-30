@@ -22,12 +22,12 @@
 
 #include "symbol.h"
 
-#define SPARSE_REDUCERS 1
+#define SPARSE_REDUCERS 0
 
 spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 {
   nelts_t i, idx, last_div, nsel;
-  ht_size_t hash_pos;
+  hash_t hash_pos;
 
   // clears hash table index: there we store during symbolic preprocessing a 2
   // if it is a lead monomial and 1 if it is not a lead monomial. all other
@@ -52,7 +52,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   // new elements to mon
   idx = 0;
   nelts_t hi, hio;
-  hash_t h, ho, ntmin;
+  hash_t h, ho;
   while (idx < mon->load) {
     hash_pos  = mon->hpos[idx];
     // only if not already a lead monomial, e.g. if coming from spair
@@ -63,9 +63,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       // reach the last known divisor last_div
       hio   = 0;
       ho    = 0;
-      ntmin = 0;
       i   = last_div == 0 ? basis->st : last_div;
 #if SPARSE_REDUCERS
+      hash_t ntmin  = 0;
       for (; i<basis->load; ++i) {
         h = monomial_division(hash_pos, basis->eh[i][0], ht);
         if ((h != 0)) {

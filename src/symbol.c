@@ -27,7 +27,7 @@
 spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 {
   nelts_t i, idx, last_div, nsel;
-  hash_t hash_pos;
+  ht_size_t hash_pos;
 
   // clears hash table index: there we store during symbolic preprocessing a 2
   // if it is a lead monomial and 1 if it is not a lead monomial. all other
@@ -69,6 +69,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       for (; i<basis->load; ++i) {
         h = monomial_division(hash_pos, basis->eh[i][0], ht);
         if ((h != 0)) {
+        //printf("h %u\n",h);
           hi  = i;
           if (ho != 0) {
             if (basis->nt[hi] < ntmin + ntmin/4) {

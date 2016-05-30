@@ -215,7 +215,12 @@ static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos
       continue;
     } else {
       ht->lut[tmp_h]  = pos;
-      printf("tmp_h %u from hash %u with i %u\n",tmp_h,hash,i);
+#if HASH_DEBUG
+      for (int i=0; i<ht->nv; ++i)
+        printf("%u ",ht->exp[pos][i]);
+      printf(" ||| ");
+      printf("%11u | %11u | %5u\n",hash, pos, ht->deg[pos]);
+#endif
     }
     return;
   }
@@ -232,7 +237,6 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   hash_t hash;
 
   const ht_size_t old_sz  = ht->sz;
-  printf("enlarge %u --> %u\n", ht->sz, 2*ht->sz);
   ht->sz  = 2*ht->sz;
 #if HASH_DEBUG
   printf("enlarging hash table: load = %u || primes[ %u] = %u --> primes[%u] = %u\n",ht->load,old_si,old_sz, ht->si,ht->sz);
@@ -242,6 +246,9 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   ht->deg   = realloc(ht->deg, ht->sz * sizeof(deg_t));
   ht->idx   = realloc(ht->idx, ht->sz * sizeof(ht_size_t));
   ht->div   = realloc(ht->div, ht->sz * sizeof(nelts_t));
+  // set mew values for divisors and index to zero
+  memset(ht->idx+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
+  memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
 #if __GB_HAVE_SSE2
   ht->ev    = realloc(ht->ev, ht->sz * sizeof(exp_v *));
   for (i=old_sz; i<ht->sz; ++i) {
@@ -254,12 +261,12 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   }
 #endif
   // re-insert all elements in block
-  memset(ht->lut, 0, ht->sz * sizeof(ht_size_t));
-  for (i=0; i<ht->load; ++i) {
+  memset(ht->lut+1, 0, (ht->sz-1) * sizeof(ht_size_t));
+  for (i=1; i<ht->load; ++i) {
     hash  = ht->val[i];
+    //printf("coming from position %u ---> ",i);
     insert_while_enlarging(hash, i, ht);
   }
-  printf("done %u\n",ht->sz);
 }
 
 /**
@@ -321,7 +328,7 @@ static inline hash_t get_hash(const exp_v *ev, const mp_cf4_ht_t *ht)
   /*
   for (i=0; i<ht->nv; ++i)
     printf("%u ", exp[i]);
-  printf(" --> %lu\n", hash);
+  printf(" --> %u\n", hash);
   */
   free(exp);
   return hash;
@@ -336,7 +343,7 @@ static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
   /*
   for (nelts_t i=0; i<ht->nv; ++i)
     printf("%u ", exp[i]);
-  printf(" --> %lu || %u\n", h, h & (ht->primes[ht->si]-1));
+  printf(" --> %u || %u\n", h, h & (ht->primes[ht->si]-1));
   */
   return hash;
 }
@@ -367,11 +374,17 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
   // ht->div and ht->idx are already initialized with 0, so nothing to do there
   ht->val[ht->load] = hash;
   ht->lut[pos]      = ht->load;
+#if HASH_DEBUG
+  for (int i=0; i<ht->nv; ++i)
+    printf("%u ",ht->exp[ht->load][i]);
+  printf(" ||| ");
+  printf("%11u | %11u | %5u\n",hash, ht->load, ht->deg[ht->load]);
+#endif
   ht->load++;
 
   // we need to keep one place open in ht->exp since the next element to be
   // checked against the hash table will be intermediately stored there
-  if (ht->load >= ht->sz-1)
+  if (ht->load >= ht->sz)
     enlarge_hash_table(ht);
 
   return (ht->load-1);
@@ -418,7 +431,12 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
   ht->deg[last_pos] = ht->deg[mon_1] + ht->deg[mon_2];
   ht->val[last_pos] = hash;
   ht->lut[pos]      = last_pos;
-
+#if HASH_DEBUG
+  for (int i=0; i<ht->nv; ++i)
+    printf("%u ",ht->exp[ht->load][i]);
+  printf(" ||| ");
+  printf("%11u | %11u\n",hash, last_pos);
+#endif
   // we do not need this anymore since it is already computed and stored in
   // check_in_hash_table_product()
   /*
@@ -428,7 +446,7 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
   */
   ht->load++;
 
-  if (ht->load >= ht->sz-1)
+  if (ht->load >= ht->sz)
     enlarge_hash_table(ht);
 
   return last_pos;

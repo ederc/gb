@@ -275,9 +275,9 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
     _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[ha][i]);
     _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[hb][i]);
   }
-  return memcmp(expa, expb, ht->nv);
+  return memcmp(expa, expb, sizeof(expa));
 #else
-  return memcmp(ht->exp[ha], ht->exp[hb], ht->nv);
+  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(ht->exp[ha]));
 #endif
 }
 
@@ -321,9 +321,9 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
     _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[ha][i]);
     _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[hb][i]);
   }
-  return memcmp(expb, expa, ht->nv);
+  return memcmp(expb, expa, sizeof(expa));
 #else
-  return memcmp(ht->exp[hb], ht->exp[ha], ht->nv);
+  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(ht->exp[ha]));
 #endif
 }
 

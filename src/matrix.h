@@ -362,9 +362,11 @@ static inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
   dbr_t *dbr  = (dbr_t *)malloc(sizeof(dbr_t));
   dbr->ctr    = (nelts_t *)malloc(nb * sizeof(nelts_t));
   dbr->cf     = (coeff_t **)malloc(nb * sizeof(coeff_t *));
-  for (i=0; i<nb; ++i)
-    dbr->cf[i]  = (coeff_t *)malloc(bs * sizeof(coeff_t));
-
+  memset(dbr->ctr, 0, nb*sizeof(nelts_t));
+  for (i=0; i<nb; ++i) {
+    dbr->cf[i]  = (coeff_t *)malloc(bs*bs * sizeof(coeff_t));
+    memset(dbr->cf[i], 0, bs*bs*sizeof(coeff_t));
+  }
   return dbr;
 }
 
@@ -377,12 +379,9 @@ static inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
  */
 static inline void free_dense_block_row(dbr_t *dbr, const nelts_t nb)
 {
-  nelts_t i;
-
   free(dbr->ctr);
-  for (i=0; i<nb; ++i)
-    free(dbr->cf[i]);
-  free(dbr->cf);
+  free(dbr->cf); // but do not free the blocks! they are either already freed
+                 // or used as dense blocks in the gbla matrix!
   free(dbr);
   dbr = NULL;
 }
@@ -489,7 +488,7 @@ static inline void write_to_sparse_row_in_block(sb_fl_t *A, const coeff_t *cf, c
       A->blocks[rbi][bir].pos[rib][ctr]  = i+7;
     }
   }
-  A->blocks[rbi][bir].sz[rib] = sz;
+  A->blocks[rbi][bir].sz[rib] = ctr+1;
 #else
   bi_t i;
   bi_t ctr  = sz;
@@ -571,6 +570,24 @@ static inline void write_to_dense_row(dbm_fl_t *A, const coeff_t *cf, const nelt
 #endif
 }
 
+
+/**
+ * \brief Reallocates memory for sparse row in gbla matrix block.
+ *
+ * \param sparse block matrix A
+ *
+ * \param row block index rbi
+ *
+ * \param block index in row bir
+ *
+ * \param row in block rib
+ */ 
+static inline void realloc_sparse_row_in_block(sb_fl_t *A, const nelts_t rbi,
+    const nelts_t bir, const bi_t rib)
+{
+  A->blocks[rbi][bir].val[rib]  = realloc(A->blocks[rbi][bir].val[rib], A->blocks[rbi][bir].sz[rib] * sizeof(re_t));
+  A->blocks[rbi][bir].pos[rib]  = realloc(A->blocks[rbi][bir].pos[rib], A->blocks[rbi][bir].sz[rib] * sizeof(bi_t));
+}
 
 /**
  * \brief Allocates memory for sparse row in gbla matrix block.
@@ -689,6 +706,8 @@ static inline void store_in_matrix_keep_A(sm_fl_t *A, dbm_fl_t *B, const dbr_t *
  *
  * \param number of column blocks ncb
  *
+ * \param number of rows in this block min
+ *
  * \param first column on the righthand side in matrix fr
  *
  * \param block size bs
@@ -696,33 +715,48 @@ static inline void store_in_matrix_keep_A(sm_fl_t *A, dbm_fl_t *B, const dbr_t *
  * \param field characteristic mod
  */
 static inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
-    const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t fr,
-    const bi_t bs, const coeff_t mod)
+    const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t min,
+    const nelts_t fr, const bi_t bs, const coeff_t mod)
 {
-  nelts_t i;
+  nelts_t i, j;
 
   // calculate index of last block on left side
   // if there is nothing on the lefthand side what can happen when interreducing
   // the initial input elements then we have to adjust fbr to 0
   const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
 
+  // allocate zero array for testing with memcmp
+  coeff_t *zeroes = (coeff_t *)malloc(bs * sizeof(coeff_t));
+  memset(zeroes, 0, bs * sizeof(coeff_t));
   // do sparse left side A
-  for (i=0; i<fbr; ++i) {
-    //printf("dbr->ctr[%u] = %u\n",i,dbr->ctr[i]);
-    if (dbr->ctr[i] > 0) {
-      if (A->blocks[rbi][i].val == NULL)
-        allocate_sparse_block(A, rbi, i, bs);
-      allocate_sparse_row_in_block(A, rbi, i, rib, dbr->ctr[i], bs);
-      write_to_sparse_row_in_block(A, dbr->cf[i], rbi, i, rib, dbr->ctr[i], bs, mod);
+  for (j=0; j<fbr; ++j) {
+    for (i=0; i<min; ++i) {
+      //printf("dbr->ctr[%u] = %u\n",i,dbr->ctr[i]);
+      if (memcmp(zeroes, dbr->cf[j]+i*bs, bs*sizeof(coeff_t)) != 0) {
+        if (A->blocks[rbi][j].val == NULL)
+          allocate_sparse_block(A, rbi, j, bs);
+        allocate_sparse_row_in_block(A, rbi, j, i, bs, bs);
+        write_to_sparse_row_in_block(A, dbr->cf[j]+i*bs, rbi, j, i, bs, bs, mod);
+        realloc_sparse_row_in_block(A, rbi, j, i);
+      }
     }
+    free(dbr->cf[j]);
   }
+  free(zeroes);
 
-  // do dense right side B
+  // do dense right side B, we are just linking the dense blocks we have filled
+  // already
   for (i=0; i<ncb-fbr; ++i) {
     if (dbr->ctr[fbr+i] > 0) {
+      B->blocks[rbi][i].val = dbr->cf[fbr+i];
+      /*
       if (B->blocks[rbi][i].val == NULL)
         allocate_dense_block(B, rbi, i, bs);
       write_to_dense_row(B, dbr->cf[fbr+i], rbi, i, rib, bs);
+      */
+    } else {
+      // we can free the memory, nothing stored in this block
+      free(dbr->cf[fbr+i]);
     }
   }
 }
@@ -765,6 +799,8 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
  *
  * \param hash position of multiplier mul
  *
+ * \param row in block rib
+ *
  * \param first column on the righthand side in matrix fr
  *
  * \param block size bs
@@ -776,7 +812,7 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
  * \param hash table ht
  */
 static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t nt,
-    const hash_t *eh, const coeff_t *cf, const nelts_t fr, const bi_t bs,
+    const hash_t *eh, const coeff_t *cf, const bi_t rib, const nelts_t fr, const bi_t bs,
     const gb_t *basis, const gb_t *sf, const mp_cf4_ht_t *ht)
 //static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t si,
 //    const hash_t mul, const nelts_t fr, const bi_t bs, const gb_t *basis,
@@ -794,7 +830,7 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
   // the initial input elements then we have to adjust fbr to 0
   const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
 
-  // do some loop unrollinga
+  // do some loop unrolling
   j = 0;
   if (nt > 3) {
     for (j=0; j<nt-3; j=j+4) {
@@ -804,11 +840,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
       printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j, basis->eh[pi][j], cp, basis->cf[pi][j]);
 #endif
       if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = cf[j];
+        dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j];
         dbr->ctr[cp/bs]++;
       } else {
         cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j];
+        dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j];
         dbr->ctr[fbr+cp/bs]++;
       }
 
@@ -818,11 +854,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
       printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+1, basis->eh[pi][j+1], cp, basis->cf[pi][j+1]);
 #endif
       if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = cf[j+1];
+        dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j+1];
         dbr->ctr[cp/bs]++;
       } else {
         cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j+1];
+        dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j+1];
         dbr->ctr[fbr+cp/bs]++;
       }
 
@@ -832,11 +868,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
       printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+2, basis->eh[pi][j+2], cp, basis->cf[pi][j+2]);
 #endif
       if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = cf[j+2];
+        dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j+2];
         dbr->ctr[cp/bs]++;
       } else {
         cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j+2];
+        dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j+2];
         dbr->ctr[fbr+cp/bs]++;
       }
 
@@ -846,11 +882,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
       printf("fr %u | hp %u | eh[%u][%u] %u | cp %u | cf %u\n", fr, hp, pi, j+3, basis->eh[pi][j+3], cp, basis->cf[pi][j+3]);
 #endif
       if (cp<fr) {
-        dbr->cf[cp/bs][cp%bs]  = cf[j+3];
+        dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j+3];
         dbr->ctr[cp/bs]++;
       } else {
         cp = cp - fr;
-        dbr->cf[fbr+cp/bs][cp%bs]  = cf[j+3];
+        dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j+3];
         dbr->ctr[fbr+cp/bs]++;
       }
     }
@@ -873,11 +909,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
 #endif
     cp  = ht->idx[hp];
     if (cp<fr) {
-      dbr->cf[cp/bs][cp%bs]  = cf[j];
+      dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j];
       dbr->ctr[cp/bs]++;
     } else {
       cp = cp - fr;
-      dbr->cf[fbr+cp/bs][cp%bs]  = cf[j];
+      dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j];
       dbr->ctr[fbr+cp/bs]++;
     }
   }
@@ -934,7 +970,7 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
   // polynomials and add corresponding entries in the matrix
   for (i=rbi*bs; i<min; ++i) {
     // zero out buffer data
-    reset_buffer(dbr, ncb, bs);
+    //reset_buffer(dbr, ncb, bs);
 
     rib = i % bs;
     mul = sel->mpp[i].mul;
@@ -942,7 +978,7 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
     cf  = sel->mpp[i].cf;
     nt  = sel->mpp[i].nt;
 
-    store_in_buffer(dbr, mul, nt, eh, cf, fr, bs, basis, sf, ht);
+    store_in_buffer(dbr, mul, nt, eh, cf, rib, fr, bs, basis, sf, ht);
 #if MATRIX_DEBUG
     printf("ROW %u\n",i);
     for (int ii=0; ii<ncb; ++ii)
@@ -951,8 +987,10 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
     printf("\n");
 #endif
 
-    store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->mod);
+    //store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->mod);
   }
+  min = min%bs == 0 ? bs : min%bs;
+  store_in_matrix(A, B, dbr, rbi, rib, ncb, min, fr, bs, basis->mod);
   free_dense_block_row(dbr, ncb);
 }
 
@@ -1021,7 +1059,7 @@ static inline void generate_row_blocks_keep_A(sm_fl_t *A, dbm_fl_t *B, const nel
     cf  = sel->mpp[i].cf;
     nt  = sel->mpp[i].nt;
 
-    store_in_buffer(dbr, mul, nt, eh, cf, fr, bs, basis, sf, ht);
+    store_in_buffer(dbr, mul, nt, eh, cf, rib, fr, bs, basis, sf, ht);
 #if MATRIX_DEBUG
     printf("ROW %u\n",i);
     for (int ii=0; ii<ncb; ++ii)

@@ -360,12 +360,13 @@ static inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
   nelts_t i;
 
   dbr_t *dbr  = (dbr_t *)malloc(sizeof(dbr_t));
-  dbr->ctr    = (nelts_t *)malloc(nb * sizeof(nelts_t));
+  dbr->ctr    = (nelts_t **)malloc(nb * sizeof(nelts_t *));
   dbr->cf     = (coeff_t **)malloc(nb * sizeof(coeff_t *));
-  memset(dbr->ctr, 0, nb*sizeof(nelts_t));
   for (i=0; i<nb; ++i) {
     dbr->cf[i]  = (coeff_t *)malloc(bs*bs * sizeof(coeff_t));
     memset(dbr->cf[i], 0, bs*bs*sizeof(coeff_t));
+    dbr->ctr[i]  = (nelts_t *)malloc(bs * sizeof(nelts_t));
+    memset(dbr->ctr[i], 0, bs*sizeof(nelts_t));
   }
   return dbr;
 }
@@ -379,6 +380,9 @@ static inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
  */
 static inline void free_dense_block_row(dbr_t *dbr, const nelts_t nb)
 {
+  nelts_t i;
+  for (i=0; i<nb; ++i)
+    free(dbr->ctr[i]);
   free(dbr->ctr);
   free(dbr->cf); // but do not free the blocks! they are either already freed
                  // or used as dense blocks in the gbla matrix!
@@ -666,7 +670,7 @@ static inline void store_in_matrix_keep_A(sm_fl_t *A, dbm_fl_t *B, const dbr_t *
   nelts_t nl  = 0;
   // get number of elements in sparse row in A
   for (i=0; i<fbr; ++i)
-    nl  +=  dbr->ctr[i];
+    nl  +=  dbr->ctr[i][0];
 
   if (nl > 0) {
     // allocate memory for rows in A
@@ -726,28 +730,29 @@ static inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
   const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
 
   // allocate zero array for testing with memcmp
-  coeff_t *zeroes = (coeff_t *)malloc(bs * sizeof(coeff_t));
-  memset(zeroes, 0, bs * sizeof(coeff_t));
+  nelts_t *zeroes = (nelts_t *)malloc(bs * sizeof(nelts_t));
+  memset(zeroes, 0, bs * sizeof(nelts_t));
   // do sparse left side A
   for (j=0; j<fbr; ++j) {
     for (i=0; i<min; ++i) {
-      //printf("dbr->ctr[%u] = %u\n",i,dbr->ctr[i]);
-      if (memcmp(zeroes, dbr->cf[j]+i*bs, bs*sizeof(coeff_t)) != 0) {
+      //printf("dbr->ctr[%u][%u] = %u\n",j,i,dbr->ctr[j][i]);
+      if (dbr->ctr[j][i]  != 0) {
+      //if (memcmp(zeroes, dbr->cf[j]+i*bs, bs*sizeof(coeff_t)) != 0) {
         if (A->blocks[rbi][j].val == NULL)
           allocate_sparse_block(A, rbi, j, bs);
-        allocate_sparse_row_in_block(A, rbi, j, i, bs, bs);
-        write_to_sparse_row_in_block(A, dbr->cf[j]+i*bs, rbi, j, i, bs, bs, mod);
-        realloc_sparse_row_in_block(A, rbi, j, i);
+        allocate_sparse_row_in_block(A, rbi, j, i, dbr->ctr[j][i], bs);
+        write_to_sparse_row_in_block(A, dbr->cf[j]+i*bs, rbi, j, i, dbr->ctr[j][i], bs, mod);
+        //realloc_sparse_row_in_block(A, rbi, j, i);
       }
     }
     free(dbr->cf[j]);
   }
-  free(zeroes);
 
   // do dense right side B, we are just linking the dense blocks we have filled
   // already
   for (i=0; i<ncb-fbr; ++i) {
-    if (dbr->ctr[fbr+i] > 0) {
+    if (memcmp(zeroes, dbr->ctr[fbr+i], bs*sizeof(nelts_t)) != 0) {
+    //if (dbr->ctr[fbr+i][0] > 0) {
       B->blocks[rbi][i].val = dbr->cf[fbr+i];
       /*
       if (B->blocks[rbi][i].val == NULL)
@@ -759,6 +764,7 @@ static inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
       free(dbr->cf[fbr+i]);
     }
   }
+  free(zeroes);
 }
 
 /**
@@ -774,9 +780,10 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
 {
   nelts_t i;
 
-  memset(dbr->ctr, 0, ncb * sizeof(nelts_t));
-  for (i=0; i<ncb; ++i)
+  for (i=0; i<ncb; ++i) {
+    memset(dbr->ctr[i], 0, bs * sizeof(nelts_t));
     memset(dbr->cf[i], 0, bs * sizeof(coeff_t));
+  }
 }
 
 /**
@@ -841,11 +848,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
 #endif
       if (cp<fr) {
         dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j];
-        dbr->ctr[cp/bs]++;
+        dbr->ctr[cp/bs][rib]++;
       } else {
         cp = cp - fr;
         dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j];
-        dbr->ctr[fbr+cp/bs]++;
+        dbr->ctr[fbr+cp/bs][rib]++;
       }
 
       hp  = find_in_hash_table_product(mul, eh[j+1], ht);
@@ -855,11 +862,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
 #endif
       if (cp<fr) {
         dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j+1];
-        dbr->ctr[cp/bs]++;
+        dbr->ctr[cp/bs][rib]++;
       } else {
         cp = cp - fr;
         dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j+1];
-        dbr->ctr[fbr+cp/bs]++;
+        dbr->ctr[fbr+cp/bs][rib]++;
       }
 
       hp  = find_in_hash_table_product(mul, eh[j+2], ht);
@@ -869,11 +876,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
 #endif
       if (cp<fr) {
         dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j+2];
-        dbr->ctr[cp/bs]++;
+        dbr->ctr[cp/bs][rib]++;
       } else {
         cp = cp - fr;
         dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j+2];
-        dbr->ctr[fbr+cp/bs]++;
+        dbr->ctr[fbr+cp/bs][rib]++;
       }
 
       hp  = find_in_hash_table_product(mul, eh[j+3], ht);
@@ -883,11 +890,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
 #endif
       if (cp<fr) {
         dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j+3];
-        dbr->ctr[cp/bs]++;
+        dbr->ctr[cp/bs][rib]++;
       } else {
         cp = cp - fr;
         dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j+3];
-        dbr->ctr[fbr+cp/bs]++;
+        dbr->ctr[fbr+cp/bs][rib]++;
       }
     }
   }
@@ -910,11 +917,11 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
     cp  = ht->idx[hp];
     if (cp<fr) {
       dbr->cf[cp/bs][rib*bs+cp%bs]  = cf[j];
-      dbr->ctr[cp/bs]++;
+      dbr->ctr[cp/bs][rib]++;
     } else {
       cp = cp - fr;
       dbr->cf[fbr+cp/bs][rib*bs+cp%bs]  = cf[j];
-      dbr->ctr[fbr+cp/bs]++;
+      dbr->ctr[fbr+cp/bs][rib]++;
     }
   }
 }

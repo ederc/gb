@@ -412,7 +412,7 @@ typedef struct mp_cf4_ht_t
  */
 typedef struct dbr_t
 {
-  nelts_t *ctr; /*!< array of counts how many nonzero elements are stored */
+  nelts_t **ctr; /*!< array of counts how many nonzero elements are stored */
   coeff_t **cf; /*!< array of coefficients in the given row and block */
 } dbr_t;
 

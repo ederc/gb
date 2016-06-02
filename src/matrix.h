@@ -1103,7 +1103,7 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
 static inline mat_t *generate_gbla_matrix_keep_A(const gb_t *basis, const gb_t *sf,
     const spd_t *spd, const int nthreads)
 {
-  const int t = 4<nthreads ? 4 : nthreads;
+  const int t = nthreads;
   mat_t *mat  = initialize_gbla_matrix_keep_A(spd, basis);
   #pragma omp parallel num_threads(t)
   {

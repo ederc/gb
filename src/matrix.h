@@ -1056,7 +1056,7 @@ static inline void generate_row_blocks_keep_A(sm_fl_t *A, dbm_fl_t *B, const nel
 static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
     const spd_t *spd, const int nthreads)
 {
-  const int t = 4<nthreads ? 4 : nthreads;
+  const int t = nthreads;
   mat_t *mat  = initialize_gbla_matrix(spd, basis);
   #pragma omp parallel num_threads(t)
   {

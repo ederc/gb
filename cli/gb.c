@@ -547,7 +547,8 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
     const int nthreads)
 {
   int done;
-#pragma omp parallel num_threads(nthreads)
+  const int t = 2<nthreads ? 2 : nthreads;
+#pragma omp parallel num_threads(t)
   {
     // update basis and pair set, mark redundant elements in basis
 #pragma omp single nowait

@@ -411,7 +411,8 @@ static inline void sort_non_lead_columns_by_grevlex(spd_t *spd)
 static inline void sort_presorted_columns_by_grevlex(spd_t *spd,
     const int nthreads)
 {
-  #pragma omp parallel num_threads(nthreads)
+  const int t = 2<nthreads ? 2 : nthreads;
+  #pragma omp parallel num_threads(t)
   {
     #pragma omp single
     {
@@ -440,7 +441,8 @@ static inline void sort_presorted_columns_by_grevlex(spd_t *spd,
 static inline void sort_presorted_columns_by_grevlex_invert_left_side(spd_t *spd,
     const int nthreads)
 {
-  #pragma omp parallel num_threads(nthreads)
+  const int t = 2<nthreads ? 2 : nthreads;
+  #pragma omp parallel num_threads(t)
   {
     #pragma omp single
     {
@@ -530,7 +532,8 @@ static inline int cmp_monomial_polynomial_pair_inverted(const void *a, const voi
 static inline void sort_selection_by_inverted_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
   const int nthreads)
 {
-  #pragma omp parallel num_threads(nthreads)
+  const int t = 2<nthreads ? 2 : nthreads;
+  #pragma omp parallel num_threads(t)
   {
     #pragma omp single
     {
@@ -564,7 +567,8 @@ static inline void sort_selection_by_inverted_column_index(spd_t *spd, const mp_
 static inline void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
   const int nthreads)
 {
-  #pragma omp parallel num_threads(nthreads)
+  const int t = 2<nthreads ? 2 : nthreads;
+  #pragma omp parallel num_threads(t)
   {
     #pragma omp single
     {

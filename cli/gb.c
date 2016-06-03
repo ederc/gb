@@ -523,13 +523,21 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
     if (mat->sl == 1) {
       for (i=0; i<mat->BR->nrows; ++i) {
         if (1+mat->DR->ncols < 2 * basis->nt[spd->selu->mpp[i].bi]) {
+#if 0
+          if (mat->BR->row[i]->init_val != NULL) {
+            copy_to_val(mat->BR, i);
+            reduce_B_by_D(mat->BR, mat->DR, i);
+            add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+          }
+#else
           add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+#endif
         }
       }
     }
     if (mat->sl > 1) {
       for (i=0; i<mat->BR->nrows; ++i) {
-        if (1+mat->DR->ncols-mat->DR->rank < 2*basis->nt[spd->selu->mpp[i].bi]) {
+        if (1+mat->DR->ncols < 2*basis->nt[spd->selu->mpp[i].bi]) {
           if (mat->BR->row[i]->init_val != NULL) {
             copy_to_val(mat->BR, i);
             reduce_B_by_D(mat->BR, mat->DR, i);
@@ -553,15 +561,15 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
     // update basis and pair set, mark redundant elements in basis
 #pragma omp single nowait
     {
-#pragma omp task
-      {
-        done  = update_basis(basis, ps, spd, mat, ht, rankDR);
-      }
       // add simplifier, i.e. polynomials corresponding to the rows in AB,
       // for further computation
 #pragma omp task
       {
         add_simplifier_grevlex(basis, sf, mat, spd, ht);
+      }
+#pragma omp task
+      {
+        done  = update_basis(basis, ps, spd, mat, ht, rankDR);
       }
     }
     #pragma omp taskwait

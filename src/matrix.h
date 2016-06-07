@@ -370,6 +370,20 @@ static inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
   return dbr;
 }
 
+/**
+ * \brief Initializes a dense block row for buffering values when converting a
+ * polynomial to a row in the gbla matrix. The sparse part (lefthand side) is
+ * stored row-wise, the righthand side (dense part) is stored already as dense
+ * block and thus these blocks are just linked into the matrix at the very end.
+ *
+ * \param number of blocks nb
+ *
+ * \param number of the first block on the righthandside of the gbla matrix fbr
+ *
+ * \param block size bs
+ *
+ * \return dense block row
+ */
 static inline dbr_t *initialize_dense_block_row_new(const nelts_t nb, const nelts_t fbr, const bi_t bs)
 {
   nelts_t i;
@@ -412,6 +426,14 @@ static inline void free_dense_block_row(dbr_t *dbr, const nelts_t nb)
   dbr = NULL;
 }
 
+
+/**
+ * \brief Frees dense block row.
+ *
+ * \param dense block row dbr
+ *
+ * \param index of first block on the righthand side of the gbla matrix fbr
+ */
 static inline void free_dense_block_row_new(dbr_t *dbr, const nelts_t fbr)
 {
   nelts_t i;
@@ -422,10 +444,6 @@ static inline void free_dense_block_row_new(dbr_t *dbr, const nelts_t fbr)
       free(dbr->cf[i]);
     free(dbr->cf);
   }
-}
-
-static inline void free_dense_block_buffer(dbr_t *dbr)
-{
   free(dbr->bl);
   free(dbr);
   dbr = NULL;
@@ -771,7 +789,29 @@ static inline void store_in_matrix(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
   }
 }
 
-static inline void store_in_matrix_new_sparse(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
+/**
+ * \brief After we have stored the data from one polynomial in the dense buffer,
+ * we now write from the buffer to the sparse part of the matrix.
+ *
+ * \param sparse block matrix A
+ *
+ * \param dense block row buffer dbr
+ *
+ * \param row block index rbi
+ *
+ * \param row index n block rib
+ *
+ * \param number of column blocks ncb
+ *
+ * \param index of first block on the righthand side in matrix fbr
+ *
+ * \param first column on the righthand side in matrix fr
+ *
+ * \param block size bs
+ *
+ * \param field characteristic mod
+ */
+static inline void store_in_matrix_new_sparse(sb_fl_t *A, const dbr_t *dbr,
     const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t fbr,
     const bi_t bs, const coeff_t mod)
 {
@@ -789,9 +829,21 @@ static inline void store_in_matrix_new_sparse(sb_fl_t *A, dbm_fl_t *B, const dbr
   }
 }
 
-static inline void store_in_matrix_new_dense(sb_fl_t *A, dbm_fl_t *B, const dbr_t *dbr,
-    const nelts_t rbi, const nelts_t rib, const nelts_t ncb, const nelts_t fbr,
-    const bi_t bs, const coeff_t mod)
+/**
+ * \brief After we have stored the data from one polynomial in the dense buffer,
+ * we now write from the buffer to the sparse part of the matrix.
+ *
+ * \param dense block matrix B
+ *
+ * \param dense block row buffer dbr
+ *
+ * \param number of column blocks ncb
+ *
+ * \param index of first block on the righthand side in matrix fbr
+ *
+ */
+static inline void store_in_matrix_new_dense(dbm_fl_t *B, const dbr_t *dbr,
+    const nelts_t rbi, const nelts_t ncb, const nelts_t fbr)
 {
   nelts_t i;
   // do dense right side B
@@ -820,15 +872,6 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
 
   memset(dbr->ctr, 0, ncb * sizeof(nelts_t));
   for (i=0; i<ncb; ++i)
-    memset(dbr->cf[i], 0, bs * sizeof(coeff_t));
-}
-
-static inline void reset_buffer_new(dbr_t *dbr, const nelts_t fbr, const bi_t bs)
-{
-  nelts_t i;
-
-  memset(dbr->ctr, 0, fbr * sizeof(nelts_t));
-  for (i=0; i<fbr; ++i)
     memset(dbr->cf[i], 0, bs * sizeof(coeff_t));
 }
 
@@ -969,15 +1012,42 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
     }
   }
 }
+
+/**
+ * \brief Stores polynomial data in dense block row which is a buffer for the
+ * gbla matrix.
+ *
+ * \note Buffering is used in order to not allocate too much memory at the same
+ * time for the gbla matrix. Also it improves the writing to the matrix since we
+ * can write a full buffer at once which increases locality of data.
+ *
+ * \note In order to find the right blocks when buffering the coefficients we
+ * have to use fr as marking point where the righthand side of the gbla matrix
+ * blocks start.
+ *
+ * \param dense block row dbr
+ *
+ * \param polynomial index in basis bi
+ *
+ * \param polynomial index in simplifier list si
+ *
+ * \param hash position of multiplier mul
+ *
+ * \param index of first block on the righthand side in matrix fbr
+ *
+ * \param first column on the righthand side in matrix fr
+ *
+ * \param block size bs
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param simplifier list sf
+ *
+ * \param hash table ht
+ */
 static inline void store_in_buffer_new(dbr_t *dbr, const bi_t rib,  const hash_t mul, const nelts_t nt,
     const hash_t *eh, const coeff_t *cf, const nelts_t fbr, const nelts_t fr, const bi_t bs,
     const gb_t *basis, const gb_t *sf, const mp_cf4_ht_t *ht)
-//static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t si,
-//    const hash_t mul, const nelts_t fr, const bi_t bs, const gb_t *basis,
-//    const gb_t *sf, const mp_cf4_ht_t *ht)
-//
-//static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
-//    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
   nelts_t j, tmp;
   // hash position and column position
@@ -1118,10 +1188,6 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
   // polynomial number of terms
   nelts_t nt; // preallocate buffer to store row in dense format
   const nelts_t min = (rbi+1)*bs > nr ? nr : (rbi+1)*bs;
-  // calculate index of last block on left side
-  // if there is nothing on the lefthand side what can happen when interreducing
-  // the initial input elements then we have to adjust fbr to 0
-  const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
   // for each row we allocate memory in the sparse, left side and go through the
   // polynomials and add corresponding entries in the matrix
 
@@ -1151,6 +1217,36 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
   free_dense_block_row(dbr, ncb);
 }
 
+/**
+ * \brief Generates one row block of gbla matrix.
+ *
+ * \note In order to find the right blocks when buffering the coefficients we
+ * have to use fr as marking point where the righthand side of the gbla matrix
+ * blocks start.
+ *
+ * \param sparse block matrix A
+ *
+ * \param dense block matrix B
+ *
+ * \param row block index rbi
+ *
+ * \param number of rows nr
+ *
+ * \param first column on the righthand side in matrix fr
+ *
+ * \param block size bs
+ *
+ * \param number of column blocks (i.e. how many blocks are needed over the full
+ * column range) ncb
+ *
+ * \param intermediate groebner basis gb
+ *
+ * \param simplifier list sf
+ *
+ * \param symbolic preprocessing selection sel
+ *
+ * \param symbolic preprocessing monomials col
+ */
 static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
     const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
     const gb_t *basis, const gb_t *sf, const sel_t *sel, const pre_t *col)
@@ -1178,7 +1274,7 @@ static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts
 
   for (i=rbi*bs; i<min; ++i) {
     // zero out buffer data
-    reset_buffer_new(dbr, fbr, bs);
+    reset_buffer(dbr, fbr, bs);
 
     rib = i % bs;
     mul = sel->mpp[i].mul;
@@ -1194,12 +1290,14 @@ static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts
         printf("%u ",dbr->cf[ii][jj]);
     printf("\n");
 #endif
-
-    store_in_matrix_new_sparse(A, B, dbr, rbi, rib, ncb, fbr, bs, basis->mod);
+    // we store the sparse part (lefthand side of the matrix per row and write
+    // them row-wise
+    store_in_matrix_new_sparse(A, dbr, rbi, rib, ncb, fbr, bs, basis->mod);
   }
-  store_in_matrix_new_dense(A, B, dbr, rbi, rib, ncb, fbr, bs, basis->mod);
+  // for the dense matrix part we have allocated full dense blocks already, thus
+  // we only link the nonzero blocks into B
+  store_in_matrix_new_dense(B, dbr, rbi, ncb, fbr);
   free_dense_block_row_new(dbr, fbr);
-  free_dense_block_buffer(dbr);
 }
 
 /**

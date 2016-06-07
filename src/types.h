@@ -414,6 +414,8 @@ typedef struct dbr_t
 {
   nelts_t *ctr; /*!< array of counts how many nonzero elements are stored */
   coeff_t **cf; /*!< array of coefficients in the given row and block */
+  coeff_t **bl; /*!< array of blocks of coefficients for the dense part of
+                     the gbla matrix*/
 } dbr_t;
 
 

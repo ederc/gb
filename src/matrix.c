@@ -91,7 +91,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
       completely_reduce_D(mat->DR, l-1);
     }
 #else
-  rank_D = elim_fl_dense_D_completely(mat->DR, nthreads);
+    rank_D = elim_fl_dense_D_completely(mat->DR, nthreads);
 #endif
   }
   if (verbose > 2) {

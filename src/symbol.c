@@ -22,8 +22,6 @@
 
 #include "symbol.h"
 
-#define SPARSE_REDUCERS 0
-
 spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 {
   nelts_t i, idx, last_div, nsel;
@@ -51,7 +49,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   // we use mon as LIFO: last in, first out. thus we can easily remove and add
   // new elements to mon
   idx = 0;
-  nelts_t hi, hio;
+  nelts_t hio;
   hash_t h, ho;
   while (idx < mon->load) {
     hash_pos  = mon->hpos[idx];
@@ -61,44 +59,38 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
       // takes last element in basis and test for division, goes down until we
       // reach the last known divisor last_div
-      hio   = 0;
-      ho    = 0;
+      hio = 0;
+      ho  = 0;
       i   = last_div == 0 ? basis->st : last_div;
-#if SPARSE_REDUCERS
-      hash_t ntmin  = 0;
-      for (; i<basis->load; ++i) {
+#if 1
+      // max value for an unsigned data type in order to ensure that the first
+      // polynomial is taken
+      nelts_t nto = -1;
+      bi_t ctr = 0;
+      nelts_t b = i;
+      while (ctr<1 && i<basis->load) {
+      //for (; i<basis->load; ++i) {
         h = monomial_division(hash_pos, basis->eh[i][0], ht);
         if ((h != 0)) {
-        //printf("h %u\n",h);
-          hi  = i;
-          if (ho != 0) {
-            if (basis->nt[hi] < ntmin + ntmin/4) {
-              hio   = hi;
-              ho    = h;
-              ntmin = basis->nt[hi] < ntmin ? basis->nt[hi] : ntmin;
-            }
-          } else {
-            hio   = hi;
-            ho    = h;
-            ntmin = basis->nt[hio];
+          //if (basis->nt[hi] < basis->nt[hio] + basis->nt[hio]/2) {
+          if (basis->nt[i] < nto) {
+            hio = i;
+            nto = basis->nt[i];
+            ho  = h;
+            ctr++;
           }
         }
+        ++i;
       }
 #else
-      for (; i<basis->load; ++i) {
-        h = monomial_division(hash_pos, basis->eh[i][0], ht);
+      nelts_t b = i;
+      // max value for an unsigned data type in order to ensure that the first
+      // polynomial is taken
+      for (i=basis->load; i>b; --i) {
+        h = monomial_division(hash_pos, basis->eh[i-1][0], ht);
         if ((h != 0)) {
-          hi  = i;
-          if (ho != 0) {
-            //if (basis->nt[hi] < basis->nt[hio] + basis->nt[hio]/2) {
-            if (basis->nt[hi] < basis->nt[hio]) {
-              hio = hi;
-              ho  = h;
-            }
-          } else {
-            hio = hi;
-            ho  = h;
-          }
+          hio = i-1;
+          ho  = h;
         }
       }
 #endif

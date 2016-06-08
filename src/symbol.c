@@ -66,9 +66,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       // max value for an unsigned data type in order to ensure that the first
       // polynomial is taken
       nelts_t nto = -1;
-      bi_t ctr = 0;
-      nelts_t b = i;
-      while (ctr<1 && i<basis->load) {
+      while (i<basis->load) {
       //for (; i<basis->load; ++i) {
         h = monomial_division(hash_pos, basis->eh[i][0], ht);
         if ((h != 0)) {
@@ -77,10 +75,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
             hio = i;
             nto = basis->nt[i];
             ho  = h;
-            ctr++;
           }
         }
-        ++i;
+        i++;
       }
 #else
       nelts_t b = i;

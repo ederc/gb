@@ -83,16 +83,16 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     fflush(stdout);
   }
   if (mat->DR->nrows > 0) {
-#if 1
-    rank_D = elim_fl_dense_D(mat->DR, nthreads);
-    int l;
-    for (l=mat->DR->rank-1; l>0; --l) {
-      copy_piv_to_val(mat->DR, l-1);
-      completely_reduce_D(mat->DR, l-1);
+    if (nthreads == 1) {
+      rank_D = elim_fl_dense_D_completely(mat->DR, nthreads);
+    } else {
+      rank_D = elim_fl_dense_D(mat->DR, nthreads);
+      int l;
+      for (l=mat->DR->rank-1; l>0; --l) {
+        copy_piv_to_val(mat->DR, l-1);
+        completely_reduce_D(mat->DR, l-1);
+      }
     }
-#else
-    rank_D = elim_fl_dense_D_completely(mat->DR, nthreads);
-#endif
   }
   if (verbose > 2) {
     printf("%9.3f sec %5d %5d %5d\n",

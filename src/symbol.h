@@ -277,7 +277,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   }
   return memcmp(expa, expb, sizeof(expa));
 #else
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(ht->exp[ha]));
+  return memcmp(ht->exp[ha], ht->exp[hb], ht->nv);
 #endif
 }
 
@@ -323,7 +323,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
   }
   return memcmp(expb, expa, sizeof(expa));
 #else
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(ht->exp[ha]));
+  return memcmp(ht->exp[hb], ht->exp[ha], ht->nv);
 #endif
 }
 

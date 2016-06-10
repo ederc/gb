@@ -247,7 +247,7 @@ if test "x$enable_debug" = x"yes"; then
   CFLAGS="-O0"
   AC_SUBST(DEBUG_FLAGS)
 else
-  CFLAGS="$CFLAGS -DNDEBUG"
+  CFLAGS="$CFLAGS -g -O2 -DNDEBUG"
 fi
 
 # For the testsuite. Detect if PAPI is installed. See http://icl.cs.utk.edu/papi/ .

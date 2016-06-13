@@ -819,7 +819,6 @@ static inline void store_in_matrix_new_sparse(sb_fl_t *A, const dbr_t *dbr,
 
   // do sparse left side A
   for (i=0; i<fbr; ++i) {
-    //printf("dbr->ctr[%u] = %u\n",i,dbr->ctr[i]);
     if (dbr->ctr[i] > 0) {
       if (A->blocks[rbi][i].val == NULL)
         allocate_sparse_block(A, rbi, i, bs);
@@ -1053,7 +1052,7 @@ static inline void store_in_buffer_new(dbr_t *dbr, const bi_t rib,  const hash_t
   // hash position and column position
   hash_t hp, cp;
 
-  // do some loop unrollinga
+  // do some loop unrolling
   j = 0;
   if (nt > 3) {
     for (j=0; j<nt-3; j=j+4) {
@@ -1425,7 +1424,6 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
     }
     #pragma omp taskwait
   }
-
   return mat;
 }
 

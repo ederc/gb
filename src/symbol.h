@@ -139,6 +139,7 @@ static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pr
     // only in this case we have this monomial hash for the first time,
     // otherwise it has already been taken care of
 #if SYMBOL_DEBUG
+    printf("h1 %lu -- h2 %lu -- pos %lu\n", h1, h2, pos);
     for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[h1][i]);
     printf("\n");
@@ -277,7 +278,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   }
   return memcmp(expa, expb, sizeof(expa));
 #else
-  return memcmp(ht->exp[ha], ht->exp[hb], ht->nv);
+  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
 #endif
 }
 
@@ -323,7 +324,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
   }
   return memcmp(expb, expa, sizeof(expa));
 #else
-  return memcmp(ht->exp[hb], ht->exp[ha], ht->nv);
+  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
 #endif
 }
 

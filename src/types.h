@@ -56,7 +56,8 @@
 /* #define GB_USE_AVX */
 
 /* number of variables */
-typedef uint16_t nvars_t;
+//typedef uint16_t nvars_t;
+typedef uint32_t nvars_t;
 
 /* number of elements */
 typedef uint32_t nelts_t;
@@ -66,18 +67,26 @@ typedef uint32_t ht_size_t;
 
 /* hash table entry size */
 typedef uint64_t hash_t;
+//typedef unsigned long hash_t;
 
 /* degree size */
-typedef uint16_t deg_t;
+//typedef uint16_t deg_t;
+//typedef unsigned int deg_t;
+typedef uint32_t deg_t;
 
 /* homogeneity */
-typedef uint8_t hom_t;
+typedef int hom_t;
 
 /* monomial ordering */
-typedef uint8_t ord_t;
+typedef int ord_t;
 
 /* exponent size */
-typedef uint8_t exp_s;
+#if __GB_USE_64_EXP_VEC
+typedef uint64_t exp_s;
+#else
+//typedef uint8_t exp_s;
+typedef uint32_t exp_s;
+#endif
 typedef exp_s exp_t;
 #if __GB_HAVE_SSE2
 typedef __m128i exp_v;

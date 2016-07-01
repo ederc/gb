@@ -263,7 +263,7 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
 #endif
-    return memcmp(expb,expa, ht->nv);
+    return memcmp(expb,expa, sizeof(exp_t) * ht->nv);
   } else {
     // both have the same lcms and are not detected by the product criterion,
     // then we break ties by the overall number of terms

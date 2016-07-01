@@ -184,9 +184,13 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
   }
 #else
   ht->exp   = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
+#if __GB_USE_64_EXP_VEC
+  int parts = ht->nv % 8 == 0 ? ht->nv/8 : ht->nv/8+1;
+  ht->nv    = parts;
+#endif
   // get memory for each exponent
   for (i=0; i<ht->sz; ++i) {
-    ht->exp[i]  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
   }
 #endif
   // use random_seed, no zero values are allowed
@@ -292,8 +296,9 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
       free(ht->ev[i]);
     free(ht->ev);
 #else
-    for (i=0; i<ht->sz; ++i)
+    for (i=0; i<ht->sz; ++i) {
       free(ht->exp[i]);
+    }
     free(ht->exp);
 #endif
   }
@@ -343,7 +348,7 @@ static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
   /*
   for (nelts_t i=0; i<ht->nv; ++i)
     printf("%u ", exp[i]);
-  printf(" --> %u || %u\n", h, h & (ht->primes[ht->si]-1));
+  printf(" --> %lu\n", hash);
   */
   return hash;
 }
@@ -495,12 +500,17 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
     }
     return tmp_l;
 #else
+#if __GB_USE_64_EXP_VEC
+    if (exp[0] == ht->exp[tmp_l][0])
+      return tmp_l;
+#else
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
         break;
     if (j == ht->nv) {
       return tmp_l;
     }
+#endif
 #endif
   }
 #if HASH_DEBUG
@@ -526,6 +536,10 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
     }
     return tmp_l;
 #else
+#if __GB_USE_64_EXP_VEC
+    if (exp[0] == ht->exp[tmp_l][0])
+      return tmp_l;
+#else
     nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
@@ -533,6 +547,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
     if (j == ht->nv) {
       return tmp_l;
     }
+#endif
 #endif
   }
   // at this point we know that we do not have the hash value of exp in the
@@ -589,11 +604,16 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     }
     return tmp_l;
 #else
+#if __GB_USE_64_EXP_VEC
+    if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
+      return tmp_l;
+#else
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+#endif
 #endif
   }
 
@@ -614,11 +634,16 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     }
     return tmp_l;
 #else
+#if __GB_USE_64_EXP_VEC
+    if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
+      return tmp_l;
+#else
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+#endif
 #endif
   }
   return 0;
@@ -678,11 +703,16 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     }
     return tmp_l;
 #else
+#if __GB_USE_64_EXP_VEC
+    if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
+      return tmp_l;
+#else
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+#endif
 #endif
   }
 
@@ -703,12 +733,17 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     }
     return tmp_l;
 #else
+#if __GB_USE_64_EXP_VEC
+    if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
+      return tmp_l;
+#else
     nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+#endif
 #endif
   }
   // at this point we know that we do not have the hash value of exp in the

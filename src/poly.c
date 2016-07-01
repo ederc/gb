@@ -150,6 +150,7 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[ri]], spd->col->hpos[ri]);
   printf("for the basis lm:  ");
 #if !__GB_HAVE_SSE2
+  printf("ri %u -- bi %u\n", ri, spd->selu->mpp[ri].bi);
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[basis->eh[spd->selu->mpp[ri].bi][0]][ii]);
 #endif

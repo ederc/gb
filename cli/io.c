@@ -506,6 +506,18 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
       store_exponent(term, basis, ht);
 #else
       deg = 0;
+#if __GB_USE_64_EXP_VEC
+      // now loop over variables of term
+      int parts = ht->nv % 8 == 0 ? ht->nv/8 : ht->nv/8+1;
+      uint64_t tmp;
+      for (k=0; k<parts; ++k) {
+        // if we use graded reverse lexicographical order (basis->ord=0) then we
+        // store the exponent's entries in reverse order => we can use memcmp
+        // when sorting the columns of the gbla matrix
+        deg += tmp =  get_exponent(term, basis->vnames[k]);
+        ht->exp[ht->load][0] |= (tmp >> (k*8));
+      }
+#else
       // now loop over variables of term
       for (k=0; k<basis->nv; ++k) {
         // if we use graded reverse lexicographical order (basis->ord=0) then we
@@ -516,6 +528,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
         else
           deg += ht->exp[ht->load][k]  = get_exponent(term, basis->vnames[k]);
       }
+#endif
       // store degree already in hash table
       ht->deg[ht->load] = deg; 
 #endif

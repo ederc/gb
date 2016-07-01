@@ -164,11 +164,12 @@ inline int get_number_of_terms(const char *line)
 
   return nterms;
 }
-#if __GB_HAVE_SSE2
 inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   nvars_t k;
+#if __GB_HAVE_SSE2
   exp_t *expv = (exp_t *)calloc(ht->nev * ht->vl, sizeof(exp_t));
+#endif
   const char mult_splicer = '*';
   const char exp_splicer  = '^';
   exp_t exp = 0;
@@ -217,54 +218,24 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
     // if we use graded reverse lexicographical ordering (basis->ord = 0) we store
     // the exponents in reverse order so that we can use memcmp to sort the terms
     // efficiently later on
+#if __GB_HAVE_SS2
     if (basis->ord == 0)
       deg +=  expv[ht->nv-1-k] = exp;
     else
       deg +=  expv[k] = exp;
+#else
+    if (basis->ord == 0)
+      deg +=  ht->exp[ht->load][ht->nv-1-k] = exp;
+    else
+      deg +=  ht->exp[ht->load][k] = exp;
+#endif
   }
+#if __GB_HAVE_SSE2
   for (k=0; k<ht->nev; ++k)
     ht->ev[ht->load][k]  = _mm_load_si128((__m128i *)expv+(k*ht->vl));
-  ht->deg[ht->load] = deg;
   free(expv);
-}
 #endif
-inline exp_t get_exponent(const char *term, const char *var_name)
-{
-  const char mult_splicer = '*';
-  const char exp_splicer  = '^';
-  exp_t exp = 0;
-
-  char *var = strstr(term, var_name);
-  var   = strtok(var, "\n");
-  var   = strtok(var, ",");
-  if (var != NULL) {
-    // if the next variable follows directly => exp = 1
-    if (strncmp(&mult_splicer, var+strlen(var_name), 1) == 0) {
-      exp = 1;
-    } else {
-      // if there follows an exp symbol "^"
-      if (strncmp(&exp_splicer, var+strlen(var_name), 1) == 0) {
-        char exp_str[100];
-        char *mult_pos;
-        mult_pos  = strchr(var, mult_splicer); 
-        if (mult_pos != NULL) {
-          int exp_len = (int)(mult_pos - (var+strlen(var_name)) - 1);
-          memcpy(exp_str, var+strlen(var_name)+1, exp_len);
-          exp_str[exp_len] = '\0';
-          exp = (exp_t)strtol(exp_str, NULL, 10);
-        } else { // no further variables in this term
-          int exp_len = (int)((var+strlen(var)) + 1 - (var+strlen(var_name)) - 1);
-          memcpy(exp_str, var+strlen(var_name)+1, exp_len);
-          exp = (exp_t)strtol(exp_str, NULL, 10);
-          exp_str[exp_len] = '\0';
-        }
-      } else { // we are at the last variable with exp = 1
-        if (strcmp(var_name, var) == 0)
-          exp = 1;
-      }
-    }
-  }
-  return exp;
+  ht->deg[ht->load] = deg;
 }
 
 inline void get_term(const char *line, char **prev_pos,
@@ -366,9 +337,6 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
 
   hash_t i, j;
 
-#if !__GB_HAVE_SSE2
-  hash_t k;
-#endif
   struct timeval t_load_start;
   if (vb > 1) {
     gettimeofday(&t_load_start, NULL);
@@ -441,8 +409,6 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
   // for intermediate storage of exp vector, needs to have 128bit size in order
   // to hinder memory corruption when loading in sse vector
   exp_t *exp = (exp_t *)calloc(16, sizeof(exp_t));
-#else
-  deg_t deg;
 #endif
   deg_t max_deg;
 
@@ -495,43 +461,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
         inverse_coefficient(&iv, basis->mod);
         basis->cf[i][0] = 1;
       }
-#if __GB_HAVE_SSE2
-      /*
-      memset(exp, 0, 16 * sizeof(exp_t));
-      for (k=0; k<basis->nv; ++k) {
-        exp[k]  = ht->exp[ht->load][k];
-      }
-      ht->ev[ht->load]  = _mm_loadu_si128((exp_v *)exp);
-      */
       store_exponent(term, basis, ht);
-#else
-      deg = 0;
-#if __GB_USE_64_EXP_VEC
-      // now loop over variables of term
-      int parts = ht->nv % 8 == 0 ? ht->nv/8 : ht->nv/8+1;
-      uint64_t tmp;
-      for (k=0; k<parts; ++k) {
-        // if we use graded reverse lexicographical order (basis->ord=0) then we
-        // store the exponent's entries in reverse order => we can use memcmp
-        // when sorting the columns of the gbla matrix
-        deg += tmp =  get_exponent(term, basis->vnames[k]);
-        ht->exp[ht->load][0] |= (tmp >> (k*8));
-      }
-#else
-      // now loop over variables of term
-      for (k=0; k<basis->nv; ++k) {
-        // if we use graded reverse lexicographical order (basis->ord=0) then we
-        // store the exponent's entries in reverse order => we can use memcmp
-        // when sorting the columns of the gbla matrix
-        if (basis->ord == 0)
-          deg += ht->exp[ht->load][basis->nv-1-k]  = get_exponent(term, basis->vnames[k]);
-        else
-          deg += ht->exp[ht->load][k]  = get_exponent(term, basis->vnames[k]);
-      }
-#endif
-      // store degree already in hash table
-      ht->deg[ht->load] = deg; 
-#endif
       // hash exponent and store degree
       max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
       basis->eh[i][0] = check_in_hash_table(ht);
@@ -556,31 +486,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
           basis->cf[i][j] = cf_tmp;
           basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
         }
-#if __GB_HAVE_SSE2
-      /*
-      memset(exp, 0, 16 * sizeof(exp_t));
-      for (k=0; k<basis->nv; ++k) {
-        exp[k]  = ht->exp[ht->load][k];
-      }
-      ht->ev[ht->load]  = _mm_loadu_si128((exp_v *)exp);
-      */
-      store_exponent(term, basis, ht);
-#else
-        deg = 0;
-        // now loop over variables of term
-        for (k=0; k<basis->nv; ++k) {
-          // if we use graded reverse lexicographical order (basis->ord=0) then we
-          // store the exponent's entries in reverse order => we can use memcmp
-          // when sorting the columns of the gbla matrix
-          //ht->exp[ht->load][k]  = get_exponent(term, basis->vnames[k]);
-          if (basis->ord == 0)
-            deg += ht->exp[ht->load][basis->nv-1-k]  = get_exponent(term, basis->vnames[k]);
-          else
-            deg += ht->exp[ht->load][k]  = get_exponent(term, basis->vnames[k]);
-        }
-        // store degree already in hash table
-        ht->deg[ht->load] = deg; 
-#endif
+        store_exponent(term, basis, ht);
         // hash exponent and store degree
         max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
         basis->eh[i][j] = check_in_hash_table(ht);

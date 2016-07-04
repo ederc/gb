@@ -92,31 +92,7 @@ typedef exp_s exp_t;
 typedef __m128i exp_v;
 #endif
 
-#ifdef GB_USE_FLOAT
-/** coefficient storage type */
-typedef float coeff_t;
-#endif
-
-#ifdef GB_USE_DOUBLE
-/** coefficient storage type */
-typedef double coeff_t;
-#endif
-#ifdef GB_USE_UINT16
-/** coefficient storage type */
-typedef uint16_t coeff_t;
-#endif
-#ifdef GB_USE_INT16
-/** coefficient storage type */
-typedef int16_t coeff_t;
-#endif
-#ifdef GB_USE_UINT32
-/** coefficient storage type */
-typedef uint32_t coeff_t;
-#endif
-#ifdef GB_USE_INT32
-/** coefficient storage type */
-typedef int32_t coeff_t;
-#endif
+typedef re_t coeff_t;
 
 
 #define ALIGNT 32

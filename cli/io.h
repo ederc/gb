@@ -135,7 +135,6 @@ char *get_variable_name(const char *line, char **prev_pos);
 void get_term(const char *line, char **prev_pos,
     char **term);
 
-#if __GB_HAVE_SSE2
 /**
  * \brief Stores exponent vector of term in last entry of exp in hash table
  *
@@ -146,17 +145,6 @@ void get_term(const char *line, char **prev_pos,
  * \param hash table ht
  */
 void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht);
-#endif
-/**
- * \brief Returns exponent for variable var_name of term term
- *
- * \param term term
- *
- * \param name of corresponding variable var_name
- *
- * \return exponent of variable
- */
-exp_s get_exponent(const char *term, const char *var_name);
 
 /**
  * \brief Returns number of terms in polynomial represented by a line in a text

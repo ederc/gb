@@ -81,16 +81,18 @@ typedef int hom_t;
 typedef int ord_t;
 
 /* exponent size */
+#if __GB_HAVE_SSE2
+typedef __m128i exp_v;
+typedef uint8_t exp_s;
+#else
 #if __GB_USE_64_EXP_VEC
 typedef uint64_t exp_s;
 #else
 //typedef uint8_t exp_s;
 typedef uint32_t exp_s;
 #endif
-typedef exp_s exp_t;
-#if __GB_HAVE_SSE2
-typedef __m128i exp_v;
 #endif
+typedef exp_s exp_t;
 
 typedef re_t coeff_t;
 

@@ -405,11 +405,6 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));
   int nterms;
-#if __GB_HAVE_SSE2
-  // for intermediate storage of exp vector, needs to have 128bit size in order
-  // to hinder memory corruption when loading in sse vector
-  exp_t *exp = (exp_t *)calloc(16, sizeof(exp_t));
-#endif
   deg_t max_deg;
 
   // NOTE: For easier divisibility checks in symbolic preprocessing we put at
@@ -505,9 +500,6 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
       basis->deg[i] = max_deg;
     }
   }
-#if __GB_HAVE_SSE2
-  free(exp);
-#endif
   free(term);
   free(line);
   fclose(fh);

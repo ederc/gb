@@ -218,7 +218,7 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
     // if we use graded reverse lexicographical ordering (basis->ord = 0) we store
     // the exponents in reverse order so that we can use memcmp to sort the terms
     // efficiently later on
-#if __GB_HAVE_SS2
+#if __GB_HAVE_SSE2
     if (basis->ord == 0)
       deg +=  expv[ht->nv-1-k] = exp;
     else

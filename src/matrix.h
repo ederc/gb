@@ -366,7 +366,7 @@ static inline dbr_t *initialize_dense_block_row(const nelts_t nb, const bi_t bs)
   dbr->cf     = (coeff_t **)malloc(nb * sizeof(coeff_t *));
   // allocate buffer for sparse rows
   for (i=0; i<nb; ++i)
-    dbr->cf[i]  = (coeff_t *)malloc(bs * sizeof(coeff_t));
+    dbr->cf[i]  = (coeff_t *)calloc(bs, sizeof(coeff_t));
   return dbr;
 }
 
@@ -394,7 +394,7 @@ static inline dbr_t *initialize_dense_block_row_new(const nelts_t nb, const nelt
     dbr->cf     = (coeff_t **)malloc(fbr * sizeof(coeff_t *));
     // allocate buffer for sparse rows
     for (i=0; i<fbr; ++i)
-      dbr->cf[i]  = (coeff_t *)malloc(bs * sizeof(coeff_t));
+      dbr->cf[i]  = (coeff_t *)calloc(bs, sizeof(coeff_t));
   } else {
     dbr->cf = NULL;
   }

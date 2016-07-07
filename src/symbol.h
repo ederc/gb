@@ -270,11 +270,14 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   // => we can use memcmp() here and still get reverse lexicographical ordering
 #if __GB_HAVE_SSE2
   nvars_t i;
-  exp_t expa[ht->nev * ht->vl];
-  exp_t expb[ht->nev * ht->vl];
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
   for (i=0; i<ht->nev; ++i) {
-    _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[ha][i]);
-    _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[hb][i]);
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
   return memcmp(expa, expb, sizeof(expa));
 #else
@@ -316,11 +319,14 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
   // else we have to check reverse lexicographical
 #if __GB_HAVE_SSE2
   nvars_t i;
-  exp_t expa[ht->nev * ht->vl];
-  exp_t expb[ht->nev * ht->vl];
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
   for (i=0; i<ht->nev; ++i) {
-    _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[ha][i]);
-    _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[hb][i]);
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
   return memcmp(expb, expa, sizeof(expa));
 #else

@@ -233,12 +233,15 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
 {
   spair_t *spa  = *((spair_t **)a);
   spair_t *spb  = *((spair_t **)b);
-#if SPAIR_DEBUG
-  printf("%p | %p\n", spa, spb);
-  printf("nvars %u\n",ht->nv);
-  printf("%u | %u\n",spa->lcm, spb->lcm);
-  printf("%u | %u\n",spa->deg, spb->deg);
-#endif
+//#if SPAIR_DEBUG
+  //printf("%p | %p\n", spa, spb);
+  //printf("nvars %u\n",ht->nv);
+  /*
+  printf("GEN %u | %u || %u | %u\n",spa->gen1, spa->gen2, spb->gen1, spb->gen2);
+  printf("LCM %lu | %lu\n",spa->lcm, spb->lcm);
+  printf("DEG %u | %u\n",spa->deg, spb->deg);
+  */
+//#endif
   if (spa->lcm != spb->lcm) {
     // compare degree
     if (spa->deg > spb->deg) {
@@ -253,16 +256,28 @@ inline int cmp_spairs_grevlex(const void *a, const void *b)
     // lex comparison
 #if __GB_HAVE_SSE2
     nvars_t i;
-    exp_t expa[ht->nev * ht->vl];
-    exp_t expb[ht->nev * ht->vl];
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
     for (i=0; i<ht->nev; ++i) {
-      _mm_storeu_si128((exp_v *)expa + i*ht->vl, ht->ev[spa->lcm][i]);
-      _mm_storeu_si128((exp_v *)expb + i*ht->vl, ht->ev[spb->lcm][i]);
+      _mm_store_si128((exp_v *)tmp, ht->ev[spa->lcm][i]);
+      memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+      _mm_store_si128((exp_v *)tmp, ht->ev[spb->lcm][i]);
+      memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
     }
 #else
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
 #endif
+    /*
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u | ",expa[ii]);
+    printf("\n");
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u | ",expb[ii]);
+    printf("\n");
+    printf("%d\n", memcmp(expb,expa, sizeof(exp_t) * ht->nv));
+    */
     return memcmp(expb,expa, sizeof(exp_t) * ht->nv);
   } else {
     // both have the same lcms and are not detected by the product criterion,

@@ -231,8 +231,11 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
 #endif
   }
 #if __GB_HAVE_SSE2
-  for (k=0; k<ht->nev; ++k)
-    ht->ev[ht->load][k]  = _mm_load_si128((__m128i *)expv+(k*ht->vl));
+  exp_t tmpv[ht->vl] __attribute__ ((aligned (16)));
+  for (k=0; k<ht->nev; ++k) {
+    memcpy(tmpv, expv+(k*ht->vl), ht->vl*sizeof(exp_t));
+    ht->ev[ht->load][k]  = _mm_load_si128((__m128i *)tmpv);
+  }
   free(expv);
 #endif
   ht->deg[ht->load] = deg;

@@ -175,7 +175,7 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
   ht->idx   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
   ht->rand  = (hash_t *)malloc(ht->nv * sizeof(hash_t));
 #if __GB_HAVE_SSE2
-  ht->nev   = (ht->nv * sizeof(exp_t) / sizeof(exp_v)) + 1;
+  ht->nev   = (ht->nv * sizeof(exp_t) / sizeof(exp_v)) + ((ht->nv * sizeof(exp_t)) % sizeof(exp_v) > 0);
   ht->vl    = sizeof(exp_v) / sizeof(exp_t);
   ht->ev    = (exp_v **)malloc(ht->sz * sizeof(exp_v *));
   // get memory for each exponent vector
@@ -323,19 +323,20 @@ static inline hash_t get_hash(const exp_v *ev, const mp_cf4_ht_t *ht)
 
   nvars_t i;
 
-  exp_t *exp  = (exp_t *)calloc(ht->nev + ht->vl, sizeof(exp_t));
-
-  for (i=0; i<ht->nev; ++i)
-    _mm_storeu_si128((exp_v *)exp+(i*ht->vl), ev[i]);
+  exp_t exp[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ev[i]);
+    memcpy(exp+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
   hash_t hash  = 0;
   for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
   /*
   for (i=0; i<ht->nv; ++i)
     printf("%u ", exp[i]);
-  printf(" --> %u\n", hash);
+  printf(" --> %lu\n", hash);
   */
-  free(exp);
   return hash;
 }
 #else
@@ -494,11 +495,10 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0)
-        break;
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
+      if (_mm_movemask_epi8(cmpv) != 0)
+        return tmp_l;
     }
-    return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (exp[0] == ht->exp[tmp_l][0])
@@ -530,11 +530,10 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0)
-        break;
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
+      if (_mm_movemask_epi8(cmpv) != 0)
+        return tmp_l;
     }
-    return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (exp[0] == ht->exp[tmp_l][0])
@@ -598,11 +597,10 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0)
-        break;
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
+      if (_mm_movemask_epi8(cmpv) != 0)
+        return tmp_l;
     }
-    return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
@@ -628,11 +626,10 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0)
-        break;
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
+      if (_mm_movemask_epi8(cmpv) != 0)
+        return tmp_l;
     }
-    return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
@@ -697,11 +694,10 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0)
-        break;
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
+      if (_mm_movemask_epi8(cmpv) != 0)
+        return tmp_l;
     }
-    return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
@@ -727,11 +723,10 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi8(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0)
-        break;
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
+      if (_mm_movemask_epi8(cmpv) != 0)
+        return tmp_l;
     }
-    return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
@@ -767,14 +762,22 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
 {
   nvars_t i;
 #if __GB_HAVE_SSE2
-  exp_t exp[ht->nev*ht->vl];
+  exp_t exp[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
   for (i=0; i<ht->nev; ++i) {
     ht->ev[ht->load][i] = _mm_max_epu8(ht->ev[h1][i], ht->ev[h2][i]);
-    _mm_storeu_si128((exp_v *)exp + i*ht->vl, ht->ev[ht->load][i]);
+    _mm_store_si128((exp_v *)tmp, ht->ev[ht->load][i]);
+    memcpy(exp+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
   ht->deg[ht->load] = 0;
   for (i=0; i<ht->nv; ++i)
     ht->deg[ht->load] += exp[i];
+  /*
+  printf("LCM ");
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u ", exp[ii]);
+  printf("\n");
+  */
 #else
   exp_t *lcm, *e1, *e2;
   deg_t deg = 0;
@@ -787,6 +790,12 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   for (i=0; i<ht->nv; ++i) {
     deg +=  lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
   }
+  /*
+  printf("LCM ");
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u ", lcm[ii]);
+  printf("\n");
+  */
   ht->deg[ht->load] = deg;
 #endif
   return check_in_hash_table(ht);

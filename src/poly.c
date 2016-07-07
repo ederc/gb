@@ -146,6 +146,16 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   for (int ii=0; ii<ht->nv; ++ii)
    // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
     printf("%u ",ht->exp[sf->eh[sf->load][0]][ii]);
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[sf->eh[sf->load][0]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u ",expa[ii]);
 #endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[ri]], spd->col->hpos[ri]);
   printf("for the basis lm:  ");
@@ -153,6 +163,16 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   printf("ri %u -- bi %u\n", ri, spd->selu->mpp[ri].bi);
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[basis->eh[spd->selu->mpp[ri].bi][0]][ii]);
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[spd->selu->mpp[ri].bi][0]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u ",expa[ii]);
 #endif
   printf("\n");
 #endif
@@ -236,6 +256,16 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[spd->col->hpos[fc]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u ",expa[ii]);
 #endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
@@ -252,6 +282,17 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
+  printf("  ");
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[basis->load][ctr]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u",expa[ii]);
   printf("  ");
 #endif
 #endif

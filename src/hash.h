@@ -321,22 +321,16 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
 static inline hash_t get_hash(const exp_v *ev, const mp_cf4_ht_t *ht)
 {
 
-  nvars_t i;
-
   exp_t exp[ht->nev * ht->vl] __attribute__ ((aligned (16)));
   exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
+  for (int i=0; i<ht->nev; ++i) {
     _mm_store_si128((exp_v *)tmp, ev[i]);
     memcpy(exp+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
   hash_t hash  = 0;
-  for (i=0; i<ht->nv; ++i)
+  for (int i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
-  /*
-  for (i=0; i<ht->nv; ++i)
-    printf("%u ", exp[i]);
-  printf(" --> %lu\n", hash);
-  */
+
   return hash;
 }
 #else

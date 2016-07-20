@@ -1133,10 +1133,12 @@ static inline void store_in_buffer_new(dbr_t *dbr, const bi_t rib,  const hash_t
     if (cp<fr) {
       dbr->cf[cp/bs][cp%bs]  = cf[j];
       dbr->ctr[cp/bs]++;
+      //printf("%7u in %p at %5u %5u by thread %d\n", cf[j], dbr->cf[cp/bs], cp/bs, cp%bs, omp_get_thread_num());
     } else {
       cp = cp - fr;
       dbr->bl[cp/bs][rib*bs+cp%bs]  = cf[j];
       dbr->ctr[fbr+cp/bs] = 1;
+      //printf("%7u in %p at %5u %5u by thread %d\n", cf[j], dbr->bl[cp/bs], cp/bs, rib*bs+cp%bs, omp_get_thread_num());
     }
   }
 }
@@ -1399,14 +1401,15 @@ static inline void generate_row_blocks_keep_A(sm_fl_t *A, dbm_fl_t *B, const nel
 static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
     const spd_t *spd, const int nthreads)
 {
-  const int t = nthreads;
+  // constructing gbla matrices is not threadsafe at the moment
+  const int t = 1;
   mat_t *mat  = initialize_gbla_matrix(spd, basis);
   #pragma omp parallel num_threads(t)
   {
     #pragma omp single nowait
     {
     // fill the upper part AB
-    for (ri_t i=0; i<mat->rbu; ++i) {
+    for (int i=0; i<mat->rbu; ++i) {
       #pragma omp task
       {
         generate_row_blocks_new(mat->A, mat->B, i, spd->selu->load, spd->col->nlm,
@@ -1414,15 +1417,15 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
       }
     }
     // fill the lower part CD
-    for (ri_t i=0; i<mat->rbl; ++i) {
+    for (int i=0; i<mat->rbl; ++i) {
       #pragma omp task
       {
         generate_row_blocks_new(mat->C, mat->D, i, spd->sell->load, spd->col->nlm,
             mat->bs, mat->cbl+mat->cbr, basis, sf, spd->sell, spd->col);
       }
     }
-    }
     #pragma omp taskwait
+    }
   }
   return mat;
 }
@@ -1445,14 +1448,15 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
 static inline mat_t *generate_gbla_matrix_keep_A(const gb_t *basis, const gb_t *sf,
     const spd_t *spd, const int nthreads)
 {
-  const int t = nthreads;
+  // constructing gbla matrices is not threadsafe at the moment
+  const int t = 1;
   mat_t *mat  = initialize_gbla_matrix_keep_A(spd, basis);
   #pragma omp parallel num_threads(t)
   {
     #pragma omp single nowait
     {
     // fill the upper part AB
-    for (ri_t i=0; i<mat->rbu; ++i) {
+    for (int i=0; i<mat->rbu; ++i) {
       #pragma omp task
       {
         generate_row_blocks_keep_A(mat->AR, mat->B, i, spd->selu->load, spd->col->nlm,
@@ -1460,7 +1464,7 @@ static inline mat_t *generate_gbla_matrix_keep_A(const gb_t *basis, const gb_t *
       }
     }
     // fill the lower part CD
-    for (ri_t i=0; i<mat->rbl; ++i) {
+    for (int i=0; i<mat->rbl; ++i) {
       #pragma omp task
       {
         generate_row_blocks_keep_A(mat->CR, mat->D, i, spd->sell->load, spd->col->nlm,

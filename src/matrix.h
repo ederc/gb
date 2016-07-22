@@ -1012,6 +1012,48 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
   }
 }
 
+static inline void store_in_matrix_direct(sb_fl_t *A, dbm_fl_t *B, const hash_t mul, const nelts_t nt,
+    const hash_t *eh, const coeff_t *cf, const nelts_t fbr, const nelts_t fr, const nelts_t rbi,  const bi_t rib, const bi_t bs,
+    const coeff_t mod, const gb_t *basis, const gb_t *sf, const mp_cf4_ht_t *ht)
+//static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t si,
+//    const hash_t mul, const nelts_t fr, const bi_t bs, const gb_t *basis,
+//    const gb_t *sf, const mp_cf4_ht_t *ht)
+//
+//static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
+//    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
+{
+  int j, tmp;
+  // hash position and column position
+  hash_t hp, cp;
+
+  for (j=nt-1; j>-1; --j) {
+    hp  = find_in_hash_table_product(mul, eh[j], ht);
+    //hp  = find_in_hash_table_product(mul, basis->eh[pi][j], ht);
+#if MATRIX_DEBUG
+    for (int ii=0; ii<basis->nv; ++ii)
+      printf("%u ",ht->exp[mul][ii]);
+    printf(" ||| ");
+    for (int ii=0; ii<basis->nv; ++ii)
+      printf("%u ",ht->exp[eh[j]][ii]);
+    printf(" ||| ");
+    for (int ii=0; ii<basis->nv; ++ii)
+      printf("%u ",ht->exp[mul][ii] + ht->exp[eh[j]][ii]);
+    printf(" ------------> %lu\n", hp);
+    printf("fr %u | hp %u | eh[%u] = %u | cp %u | cf %u\n", fr, hp, j, eh[j], cp, cf[j]);
+#endif
+    cp  = ht->idx[hp];
+    if (cp<fr) {
+      //printf("cp %u | rib %u | sz %u\n", cp, rib, A->blocks[rbi][cp/bs].sz[rib]);
+      A->blocks[rbi][cp/bs].val[rib][A->blocks[rbi][cp/bs].sz[rib]] = (re_t)((re_m_t)mod - cf[j]);
+      A->blocks[rbi][cp/bs].pos[rib][A->blocks[rbi][cp/bs].sz[rib]] = cp%bs;
+      A->blocks[rbi][cp/bs].sz[rib]++;
+    } else {
+      cp = cp - fr;
+      B->blocks[rbi][cp/bs].val[rib*bs+cp%bs] = cf[j];
+    }
+  }
+}
+
 /**
  * \brief Stores polynomial data in dense block row which is a buffer for the
  * gbla matrix.
@@ -1301,6 +1343,90 @@ static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts
   free_dense_block_row_new(dbr, fbr);
 }
 
+static inline void generate_row_blocks_no_buffer(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
+    const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
+    const gb_t *basis, const gb_t *sf, const sel_t *sel, const pre_t *col)
+{
+  nelts_t i;
+  // get new row index in block rib
+  bi_t rib;
+  // multiplier
+  hash_t mul;
+  // polynomial exponent array
+  hash_t *eh;
+  // polynomial coefficient array
+  coeff_t *cf;
+  // polynomial number of terms
+  nelts_t nt; // preallocate buffer to store row in dense format
+  const nelts_t min = (rbi+1)*bs > nr ? nr : (rbi+1)*bs;
+  // calculate index of last block on left side
+  // if there is nothing on the lefthand side what can happen when interreducing
+  // the initial input elements then we have to adjust fbr to 0
+  const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
+  // for each row we allocate memory in the sparse, left side and go through the
+  // polynomials and add corresponding entries in the matrix
+
+  // allocate all possible memory in matrix for this block row
+  /*
+  for (int k=0; k<fbr; ++k) {
+    A->blocks[rbi][k].val = (re_t **)malloc(bs * sizeof(re_t *));
+    A->blocks[rbi][k].pos = (bi_t **)malloc(bs * sizeof(bi_t *));
+    A->blocks[rbi][k].sz  = (bi_t *)malloc(bs * sizeof(bi_t));
+    for (int l=0; l<bs; ++l) {
+      A->blocks[rbi][k].val[l]  = (re_t *)malloc(bs * sizeof(re_t));
+      A->blocks[rbi][k].pos[l]  = (bi_t *)malloc(bs * sizeof(bi_t));
+      A->blocks[rbi][k].sz[l]   = 0;
+    }
+  }
+  for (int k=0; k<(ncb-fbr); ++k) {
+    B->blocks[rbi][k].val = (re_t *)calloc(bs * bs, sizeof(re_t));
+  }
+  */
+  for (i=rbi*bs; i<min; ++i) {
+
+    rib = i % bs;
+    mul = sel->mpp[i].mul;
+    eh  = sel->mpp[i].eh;
+    cf  = sel->mpp[i].cf;
+    nt  = sel->mpp[i].nt;
+
+    store_in_matrix_direct(A, B, mul, nt, eh, cf, fbr, fr, rbi, rib, bs, basis->mod, basis, sf, ht);
+  }
+
+  // free useless allocated memory in A and B
+  /*
+  int cz  = 0;
+  for (int l=0; l<fbr; ++l) {
+    cz  = 0;
+    for (int k=0; k<bs; ++k) {
+      if (A->blocks[rbi][l].sz[k] == 0) {
+        cz++;
+        free(A->blocks[rbi][l].val[k]);
+        free(A->blocks[rbi][l].pos[k]);
+        A->blocks[rbi][l].val[k]  = NULL;
+        A->blocks[rbi][l].pos[k]  = NULL;
+      }
+    }
+    if (cz == bs) {
+      free(A->blocks[rbi][l].val);
+      free(A->blocks[rbi][l].pos);
+      free(A->blocks[rbi][l].sz);
+      A->blocks[rbi][l].val = NULL;
+      A->blocks[rbi][l].pos = NULL;
+      A->blocks[rbi][l].sz  = NULL;
+    }
+  }
+  coeff_t zb[bs*bs];
+  memset(zb, 0, bs*bs*sizeof(coeff_t));
+  for (int l=0; l<(ncb-fbr); ++l) {
+    if (memcmp(B->blocks[rbi][l].val, zb, bs*bs*sizeof(coeff_t)) == 0) {
+      free(B->blocks[rbi][l].val);
+      B->blocks[rbi][l].val = NULL;
+    }
+  }
+  */
+}
+
 /**
  * \brief Generates one row of gbla matrix.
  *
@@ -1402,7 +1528,7 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
     const spd_t *spd, const int nthreads)
 {
   // constructing gbla matrices is not threadsafe at the moment
-  const int t = 1;
+  const int t = nthreads;
   mat_t *mat  = initialize_gbla_matrix(spd, basis);
   #pragma omp parallel num_threads(t)
   {
@@ -1427,6 +1553,169 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
     #pragma omp taskwait
     }
   }
+  /*
+  if (mat->A != NULL && mat->A->blocks != NULL) {
+    for (int ii=0; ii<mat->rbu; ++ii) {
+      for (int jj=0; jj<mat->cbl; ++jj) {
+        if (mat->A->blocks[ii][jj].val != NULL) {
+          printf("%d .. %d\n", ii, jj);
+          for (int kk=0; kk<mat->bs; ++kk) {
+            for (int ll=0; ll<mat->A->blocks[ii][jj].sz[kk]; ++ll) {
+              printf("%d | %d || ", mat->A->blocks[ii][jj].val[kk][ll], mat->A->blocks[ii][jj].pos[kk][ll]);
+            }
+            printf("\n");
+          }
+        }
+      }
+    }
+  }
+  */
+  return mat;
+}
+
+static inline mat_t *generate_gbla_matrix_test(const gb_t *basis, const gb_t *sf,
+    const spd_t *spd, const int nthreads)
+{
+  // constructing gbla matrices is not threadsafe at the moment
+  const int t = nthreads;
+  mat_t *mat  = initialize_gbla_matrix(spd, basis);
+  const nelts_t fbr = spd->col->nlm == 0 ? 0 : (spd->col->nlm-1)/mat->bs + 1;
+  const bi_t bs = mat->bs;
+  const nelts_t ncb = mat->cbl + mat->cbr;
+  // allocate all possible memory in matrix for this block row
+  for (int j=0; j<mat->rbu; ++j) {
+    for (int k=0; k<fbr; ++k) {
+      mat->A->blocks[j][k].val = (re_t **)malloc(bs * sizeof(re_t *));
+      mat->A->blocks[j][k].pos = (bi_t **)malloc(bs * sizeof(bi_t *));
+      mat->A->blocks[j][k].sz  = (bi_t *)malloc(bs * sizeof(bi_t));
+      for (int l=0; l<bs; ++l) {
+        mat->A->blocks[j][k].val[l]  = (re_t *)malloc(bs * sizeof(re_t));
+        mat->A->blocks[j][k].pos[l]  = (bi_t *)malloc(bs * sizeof(bi_t));
+        mat->A->blocks[j][k].sz[l]   = 0;
+      }
+    }
+    for (int k=0; k<(ncb-fbr); ++k) {
+      mat->B->blocks[j][k].val = (re_t *)calloc(bs * bs, sizeof(re_t));
+    }
+  }
+  for (int j=0; j<mat->rbl; ++j) {
+    for (int k=0; k<fbr; ++k) {
+      mat->C->blocks[j][k].val = (re_t **)malloc(bs * sizeof(re_t *));
+      mat->C->blocks[j][k].pos = (bi_t **)malloc(bs * sizeof(bi_t *));
+      mat->C->blocks[j][k].sz  = (bi_t *)malloc(bs * sizeof(bi_t));
+      for (int l=0; l<bs; ++l) {
+        mat->C->blocks[j][k].val[l]  = (re_t *)malloc(bs * sizeof(re_t));
+        mat->C->blocks[j][k].pos[l]  = (bi_t *)malloc(bs * sizeof(bi_t));
+        mat->C->blocks[j][k].sz[l]   = 0;
+      }
+    }
+    for (int k=0; k<(ncb-fbr); ++k) {
+      mat->D->blocks[j][k].val = (re_t *)calloc(bs * bs, sizeof(re_t));
+    }
+  }
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+    // fill the upper part AB
+    for (int i=0; i<mat->rbu; ++i) {
+      #pragma omp task
+      {
+        generate_row_blocks_no_buffer(mat->A, mat->B, i, spd->selu->load, spd->col->nlm,
+            mat->bs, mat->cbl+mat->cbr, basis, sf, spd->selu, spd->col);
+      }
+    }
+    // fill the lower part CD
+    for (int i=0; i<mat->rbl; ++i) {
+      #pragma omp task
+      {
+        generate_row_blocks_no_buffer(mat->C, mat->D, i, spd->sell->load, spd->col->nlm,
+            mat->bs, mat->cbl+mat->cbr, basis, sf, spd->sell, spd->col);
+      }
+    }
+    #pragma omp taskwait
+    }
+  }
+  // free useless allocated memory in A and B
+  for (int j=0; j<mat->rbu; ++j) {
+    int cz  = 0;
+    for (int l=0; l<fbr; ++l) {
+      cz  = 0;
+      for (int k=0; k<bs; ++k) {
+        if (mat->A->blocks[j][l].sz[k] == 0) {
+          cz++;
+          free(mat->A->blocks[j][l].val[k]);
+          free(mat->A->blocks[j][l].pos[k]);
+          mat->A->blocks[j][l].val[k]  = NULL;
+          mat->A->blocks[j][l].pos[k]  = NULL;
+        }
+      }
+      if (cz == bs) {
+        free(mat->A->blocks[j][l].val);
+        free(mat->A->blocks[j][l].pos);
+        free(mat->A->blocks[j][l].sz);
+        mat->A->blocks[j][l].val = NULL;
+        mat->A->blocks[j][l].pos = NULL;
+        mat->A->blocks[j][l].sz  = NULL;
+      }
+    }
+    coeff_t zb[bs*bs];
+    memset(zb, 0, bs*bs*sizeof(coeff_t));
+    for (int l=0; l<(ncb-fbr); ++l) {
+      if (memcmp(mat->B->blocks[j][l].val, zb, bs*bs*sizeof(coeff_t)) == 0) {
+        free(mat->B->blocks[j][l].val);
+        mat->B->blocks[j][l].val = NULL;
+      }
+    }
+  }
+  for (int j=0; j<mat->rbl; ++j) {
+    int cz  = 0;
+    for (int l=0; l<fbr; ++l) {
+      cz  = 0;
+      for (int k=0; k<bs; ++k) {
+        if (mat->C->blocks[j][l].sz[k] == 0) {
+          cz++;
+          free(mat->C->blocks[j][l].val[k]);
+          free(mat->C->blocks[j][l].pos[k]);
+          mat->C->blocks[j][l].val[k]  = NULL;
+          mat->C->blocks[j][l].pos[k]  = NULL;
+        }
+      }
+      if (cz == bs) {
+        free(mat->C->blocks[j][l].val);
+        free(mat->C->blocks[j][l].pos);
+        free(mat->C->blocks[j][l].sz);
+        mat->C->blocks[j][l].val = NULL;
+        mat->C->blocks[j][l].pos = NULL;
+        mat->C->blocks[j][l].sz  = NULL;
+      }
+    }
+    coeff_t zb[bs*bs];
+    memset(zb, 0, bs*bs*sizeof(coeff_t));
+    for (int l=0; l<(ncb-fbr); ++l) {
+      if (memcmp(mat->D->blocks[j][l].val, zb, bs*bs*sizeof(coeff_t)) == 0) {
+        free(mat->D->blocks[j][l].val);
+        mat->D->blocks[j][l].val = NULL;
+      }
+    }
+  }
+  /*
+  if (mat->A != NULL && mat->A->blocks != NULL) {
+    for (int ii=0; ii<mat->rbu; ++ii) {
+      for (int jj=0; jj<mat->cbl; ++jj) {
+        if (mat->A->blocks[ii][jj].val != NULL) {
+          printf("%d .. %d\n", ii, jj);
+          for (int kk=0; kk<mat->bs; ++kk) {
+            for (int ll=0; ll<mat->A->blocks[ii][jj].sz[kk]; ++ll) {
+              printf("%d | %d || ", mat->A->blocks[ii][jj].val[kk][ll], mat->A->blocks[ii][jj].pos[kk][ll]);
+            }
+            printf("\n");
+          }
+        }
+      }
+    }
+  }
+  */
   return mat;
 }
 

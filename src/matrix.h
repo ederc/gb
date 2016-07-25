@@ -1022,7 +1022,7 @@ static inline void store_in_matrix_direct(sb_fl_t *A, dbm_fl_t *B, const hash_t 
 //static inline void store_in_buffer(dbr_t *dbr, const nelts_t pi, const hash_t mul,
 //    const nelts_t fr, const bi_t bs, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
-  int j, tmp;
+  int j;
   // hash position and column position
   hash_t hp, cp;
 
@@ -1293,7 +1293,7 @@ static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t r
  * \param symbolic preprocessing monomials col
  */
 static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
-    const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
+    const nelts_t nr, const nelts_t fbr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
     const gb_t *basis, const gb_t *sf, const sel_t *sel, const pre_t *col)
 {
   nelts_t i;
@@ -1308,10 +1308,6 @@ static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts
   // polynomial number of terms
   nelts_t nt; // preallocate buffer to store row in dense format
   const nelts_t min = (rbi+1)*bs > nr ? nr : (rbi+1)*bs;
-  // calculate index of last block on left side
-  // if there is nothing on the lefthand side what can happen when interreducing
-  // the initial input elements then we have to adjust fbr to 0
-  const nelts_t fbr = fr == 0 ? 0 : (fr-1)/bs + 1;
   // for each row we allocate memory in the sparse, left side and go through the
   // polynomials and add corresponding entries in the matrix
 
@@ -1532,6 +1528,10 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
   // constructing gbla matrices is not threadsafe at the moment
   const int t = nthreads;
   mat_t *mat  = initialize_gbla_matrix(spd, basis);
+  // calculate index of last block on left side
+  // if there is nothing on the lefthand side what can happen when interreducing
+  // the initial input elements then we have to adjust fbr to 0
+  const nelts_t fbr = spd->col->nlm == 0 ? 0 : (spd->col->nlm-1)/mat->bs + 1;
   #pragma omp parallel num_threads(t)
   {
     #pragma omp single nowait
@@ -1540,7 +1540,7 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
     for (int i=0; i<mat->rbu; ++i) {
       #pragma omp task
       {
-        generate_row_blocks_new(mat->A, mat->B, i, spd->selu->load, spd->col->nlm,
+        generate_row_blocks_new(mat->A, mat->B, i, spd->selu->load, fbr, spd->col->nlm,
             mat->bs, mat->cbl+mat->cbr, basis, sf, spd->selu, spd->col);
       }
     }
@@ -1548,7 +1548,7 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis, const gb_t *sf,
     for (int i=0; i<mat->rbl; ++i) {
       #pragma omp task
       {
-        generate_row_blocks_new(mat->C, mat->D, i, spd->sell->load, spd->col->nlm,
+        generate_row_blocks_new(mat->C, mat->D, i, spd->sell->load, fbr, spd->col->nlm,
             mat->bs, mat->cbl+mat->cbr, basis, sf, spd->sell, spd->col);
       }
     }

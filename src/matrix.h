@@ -1014,7 +1014,7 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
 
 static inline void store_in_matrix_direct(sb_fl_t *A, dbm_fl_t *B, const hash_t mul, const nelts_t nt,
     const hash_t *eh, const coeff_t *cf, const nelts_t fbr, const nelts_t fr, const nelts_t rbi,  const bi_t rib, const bi_t bs,
-    const coeff_t mod, const gb_t *basis, const gb_t *sf, const mp_cf4_ht_t *ht)
+    const coeff_t mod, const gb_t *basis, const gb_t *sf, const mp_cf4_ht_t *ht, const nelts_t i)
 //static inline void store_in_buffer(dbr_t *dbr, const nelts_t bi, const nelts_t si,
 //    const hash_t mul, const nelts_t fr, const bi_t bs, const gb_t *basis,
 //    const gb_t *sf, const mp_cf4_ht_t *ht)
@@ -1043,11 +1043,13 @@ static inline void store_in_matrix_direct(sb_fl_t *A, dbm_fl_t *B, const hash_t 
 #endif
     cp  = ht->idx[hp];
     if (cp<fr) {
+      //printf("A thd %d writes to UPPER %p ||| %u | %u || %u %u value %6u from term %5u of poly %3u | co %u --> %lu * %lu = %lu\n", omp_get_thread_num(), A->blocks[rbi][cp/bs].val[rib], rbi, cp/bs, rib, A->blocks[rbi][cp/bs].sz[rib],cf[j],j,i, cp, mul, eh[j], hp);
       //printf("cp %u | rib %u | sz %u\n", cp, rib, A->blocks[rbi][cp/bs].sz[rib]);
       A->blocks[rbi][cp/bs].val[rib][A->blocks[rbi][cp/bs].sz[rib]] = (re_t)((re_m_t)mod - cf[j]);
       A->blocks[rbi][cp/bs].pos[rib][A->blocks[rbi][cp/bs].sz[rib]] = cp%bs;
       A->blocks[rbi][cp/bs].sz[rib]++;
     } else {
+      //printf("B thd %d writes to LOWER %p ||| %u | %u || %u %u value %6u from term %5u of poly %3u | co %u --> %lu * %lu = %lu\n", omp_get_thread_num(), B->blocks[rbi][cp/bs].val+rib*bs, rbi, cp/bs, rib, rib*bs+cp%bs,cf[j],j,i, cp, mul, eh[j], hp);
       cp = cp - fr;
       B->blocks[rbi][cp/bs].val[rib*bs+cp%bs] = cf[j];
     }
@@ -1390,7 +1392,7 @@ static inline void generate_row_blocks_no_buffer(sb_fl_t * A, dbm_fl_t *B, const
     cf  = sel->mpp[i].cf;
     nt  = sel->mpp[i].nt;
 
-    store_in_matrix_direct(A, B, mul, nt, eh, cf, fbr, fr, rbi, rib, bs, basis->mod, basis, sf, ht);
+    store_in_matrix_direct(A, B, mul, nt, eh, cf, fbr, fr, rbi, rib, bs, basis->mod, basis, sf, ht, i);
   }
 
   // free useless allocated memory in A and B

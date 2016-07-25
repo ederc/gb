@@ -559,6 +559,11 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
  * \note This function is used when constructing the gbla matrix, it is assumed
  * that the product is in the hash table, thus the hash table is used const.
  *
+ * \note We use this also in the parallel construction of gbla matrices, thus we
+ * have to make this procedure threadsafe, i.e. we are NOT allowed to store the
+ * product of the hashes intermediately in ht->exp[ht->load] resp.
+ * ht->ev[ht->load]. Otherwise, other threads will overwrite this value!
+ *
  * \param monomial 1 mon_1
  *
  * \param monomial 2 mon_2
@@ -573,12 +578,14 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   ht_size_t i, j;
   hash_t hash;
 #if __GB_HAVE_SSE2
+  exp_v ev[ht->nev];
   for (i=0; i<ht->nev; ++i)
-    ht->ev[ht->load][i] = _mm_adds_epu8(ht->ev[mon_1][i], ht->ev[mon_2][i]);
+    ev[i] = _mm_adds_epu8(ht->ev[mon_1][i], ht->ev[mon_2][i]);
   //hash = get_hash(ht->ev[ht->load], ht);
 #else
+  exp_t exp[ht->nv];
   for (i=0; i<ht->nv; ++i)
-    ht->exp[ht->load][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
+    exp[i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
   //hash = get_hash(ht->exp[ht->load], ht);
 #endif
   // hash value of the product is the sum of the hash values in our setting
@@ -595,7 +602,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ev[j]);
       if (_mm_movemask_epi8(cmpv) == 0)
         break;
     }
@@ -603,11 +610,11 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
       return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
-    if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
+    if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
     for (j=0; j<ht->nv; ++j)
-      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
+      if (exp[j] != ht->exp[tmp_l][j])
         break;
     if (j == ht->nv)
       return tmp_l;
@@ -626,7 +633,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 #if __GB_HAVE_SSE2
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
-      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j],ht->ev[ht->load][j]);
+      cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ev[j]);
       if (_mm_movemask_epi8(cmpv) == 0)
         break;
     }
@@ -634,11 +641,11 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
       return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
-    if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
+    if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
     for (j=0; j<ht->nv; ++j)
-      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
+      if (exp[j] != ht->exp[tmp_l][j])
         break;
     if (j == ht->nv)
       return tmp_l;

@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------------\n");
     printf("field characteristic        %15d\n", basis->mod);
-    printf("monomial order           %15d\n", basis->ord);
+    printf("monomial order              %15d\n", basis->ord);
     printf("number of variables         %15d\n", basis->nv);
     // See note on gb_t in src/types.h why we decrement basis->load here.
     printf("number of generators        %15d\n", basis->load-1);

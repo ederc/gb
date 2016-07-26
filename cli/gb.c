@@ -37,8 +37,9 @@ void print_help()
   printf("    -c HTC      Hash table cache resp. size in log_2: The size is then set\n");
   printf("                to the biggest non-Mersenne prime smaller then 2^(given value).\n");
   printf("                Default: 18.\n");
-  printf("    -d ORDER    Ordering w.r.t. which the Groebner basis is computed.\n");
-  printf("                Graded reverse lexicographical: 0\n");
+  printf("    -d ORDER    Order w.r.t. which the Groebner basis is computed.\n");
+  printf("                Graded reverse lexicographical order: 0\n");
+  printf("                Lexicographical order: 1\n");
   printf("                Default: 0.\n");
   printf("    -h HELP     Print help.\n");
   printf("    -n NREDMAT  If option is set the gbla matrices are not fully reduced.\n");
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
   int simplify      = 0;
   int generate_pbm  = 0;
   int print_gb      = 0;
-  int ordering      = 0;
+  int order      = 0;
   int keep_A        = 0;
   int htc           = 15;
   // generate file name holder if pbms are generated
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
         htc = (int)strtol(optarg, NULL, 10);
         break;
       case 'd':
-        ordering  = (int)strtol(optarg, NULL, 10);
+        order  = (int)strtol(optarg, NULL, 10);
         break;
       case 'h':
         print_help();
@@ -172,8 +173,8 @@ int main(int argc, char *argv[])
     return 1;
   }
   /*
-  if (ordering != 0) {
-    fprintf(stderr, "At the moment only computations w.r.t. the degree reverse lexicographical\nordering are possible.\nSee help using '-h' option.\n");
+  if (order != 0) {
+    fprintf(stderr, "At the moment only computations w.r.t. the degree reverse lexicographical\norder are possible.\nSee help using '-h' option.\n");
     return 1;
   }
   */
@@ -186,7 +187,7 @@ int main(int argc, char *argv[])
   nvars_t nvars = get_nvars(fn);
   // initialize hash table
   ht = init_hash_table(htc, nvars);
-  set_sort_functions_depending_on_monomial_order(ht, ordering);
+  set_sort_functions_depending_on_monomial_order(ht, order);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------------\n");
@@ -203,7 +204,7 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------------\n");
   }
   // input stores input data
-  gb_t *basis = load_input(fn, nvars, ordering, ht, simplify, verbose, nthreads);
+  gb_t *basis = load_input(fn, nvars, order, ht, simplify, verbose, nthreads);
 
   // global simplifier list
   // generate simplifier list if simplification is enabled
@@ -227,7 +228,7 @@ int main(int argc, char *argv[])
     printf("Data for %s\n", fn);
     printf("---------------------------------------------------------------------------\n");
     printf("field characteristic        %15d\n", basis->mod);
-    printf("monomial ordering           %15d\n", basis->ord);
+    printf("monomial order           %15d\n", basis->ord);
     printf("number of variables         %15d\n", basis->nv);
     // See note on gb_t in src/types.h why we decrement basis->load here.
     printf("number of generators        %15d\n", basis->load-1);
@@ -300,9 +301,9 @@ int main(int argc, char *argv[])
     // symbolic preprocessing minus the number of spairs)
     
     // if we do not keep A we use for A and C a row structure and thus do
-    // not invert the ordering of the left side columns.
+    // not invert the order of the left side columns.
     // if we keep A we use for A and C a block structure and we invert
-    // the ordering of the left side columns since gbla expects blocks be
+    // the order of the left side columns since gbla expects blocks be
     // inverted for a faster reduction of A in the first step of the matrix
     // reduction..
     if (keep_A == 1)
@@ -318,9 +319,9 @@ int main(int argc, char *argv[])
     // corresponds to sorting by columns (=rows as this is one-to-one for lead
     // monomials).
     // if we do not keep A we use for A and C a row structure and thus do not
-    // invert the ordering of the left side columns.
+    // invert the order of the left side columns.
     // if we keep A we use for A and C a block structure and we invert
-    // the ordering of the left side columns since gbla expects blocks be
+    // the order of the left side columns since gbla expects blocks be
     // inverted for a faster reduction of A in the first step of the matrix
     // reduction..
     if (keep_A == 1)

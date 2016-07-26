@@ -121,6 +121,31 @@ spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basi
     mp_cf4_ht_t *ht);
 
 /**
+ * \brief Comparison implementation for qsort. Sorts pair set w.r.t. the
+ * lexicographical order lex.
+ *
+ * \note We first sort by degree, then by lex.
+ *
+ * \param element to be compared a
+ *
+ * \param element to be compared b
+ *
+ * \returns corresponding integer for qsort
+ */
+int cmp_spairs_deg_lex(const void *a, const void *b);
+
+/**
+ * \brief Sorts pair set w.r.t. the lexicographical order
+ * lex using qsort.
+ *
+ * \note We first sort by degree, then by lex.
+ *
+ * \param pair set to be sorted ps
+ *
+ */
+void sort_pair_set_by_lcm_deg_lex(ps_t *ps);
+
+/**
  * \brief Comparison implementation for qsort. Sorts pair set w.r.t. graded
  * reverse lexicographical order grevlex.
  *
@@ -178,7 +203,8 @@ nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t idx);
 
 /**
  * \brief Selects pairs by lowest degree (normal selection strategy) and returns
- * the index of the last pair in the pair list
+ * the index of the last pair in the pair list. Ties are broken using the
+ * lexicographical order lex.
  *
  * \note This function also sorts the pair set correspondingly.
  *
@@ -186,7 +212,49 @@ nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t idx);
  *
  * \return last index of pair selection in pair list
  */
-nelts_t get_pairs_by_minimal_degree(ps_t *ps);
+static inline nelts_t get_pairs_by_minimal_degree_lex(ps_t *ps)
+{
+  // sort pair set by lcms
+  sort_pair_set_by_lcm_deg_lex(ps);
+
+  deg_t dmin  = ps->pairs[0]->deg;
+  nelts_t i   = 0;
+
+  // we assume here that the pair set is already sorted by degree of the lcms
+  // (in particular, we assume grevlex ordering)
+  while (i < ps->load && ps->pairs[i]->deg == dmin)
+    i++;
+
+  return i;
+}
+
+
+/**
+ * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * the index of the last pair in the pair list. Ties are broken using the graded
+ * reverse lexicographical order grevlex.
+ *
+ * \note This function also sorts the pair set correspondingly.
+ *
+ * \param pair set ps
+ *
+ * \return last index of pair selection in pair list
+ */
+static inline nelts_t get_pairs_by_minimal_degree_grevlex(ps_t *ps)
+{
+  // sort pair set by lcms
+  sort_pair_set_by_lcm_grevlex(ps);
+
+  deg_t dmin  = ps->pairs[0]->deg;
+  nelts_t i   = 0;
+
+  // we assume here that the pair set is already sorted by degree of the lcms
+  // (in particular, we assume grevlex ordering)
+  while (i < ps->load && ps->pairs[i]->deg == dmin)
+    i++;
+
+  return i;
+}
 
 /**
  * \brief Adds generator gen of the corresponding spair with least common

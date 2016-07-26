@@ -355,6 +355,17 @@ typedef struct mat_t
 } mat_t;
 
 /**
+ * \brief Struct keeping all function pointers of functions depending on the
+ * chosen monomial order.
+ */
+typedef struct sort_t
+{
+  nelts_t (*get_pairs_by_minimal_degree)(ps_t *ps);
+  void (*sort_presorted_columns_invert_left_side)(spd_t *spd, const int nthreads);
+  void (*sort_presorted_columns)(spd_t *spd, const int nthreads);
+} sort_t;
+
+/**
  * \brief Hash table as defined by Monagan and Pearce in compact F4
  * implementation (see PASCO 2015)
  *
@@ -388,6 +399,7 @@ typedef struct mp_cf4_ht_t
   ht_size_t *idx;     /*!<  index used for matrix generation and marking
                             monomials already taken care of in symbolic
                             preprocessing*/
+  sort_t sort;        /*!<  structure of sort functions */
 } mp_cf4_ht_t;
 
 /**

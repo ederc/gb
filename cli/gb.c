@@ -171,10 +171,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "File name is required.\nSee help using '-h' option.\n");
     return 1;
   }
+  /*
   if (ordering != 0) {
     fprintf(stderr, "At the moment only computations w.r.t. the degree reverse lexicographical\nordering are possible.\nSee help using '-h' option.\n");
     return 1;
   }
+  */
   // we start with hash table sizes being non-Mersenne primes < 2^18, nothing
   // smaller. So we shift htc to the corresponding index of ht->primes.
   if (htc < 15)
@@ -184,6 +186,7 @@ int main(int argc, char *argv[])
   nvars_t nvars = get_nvars(fn);
   // initialize hash table
   ht = init_hash_table(htc, nvars);
+  set_sort_functions_depending_on_monomial_order(ht, ordering);
 
   if (verbose > 0) {
     printf("---------------------------------------------------------------------------\n");
@@ -303,9 +306,9 @@ int main(int argc, char *argv[])
     // inverted for a faster reduction of A in the first step of the matrix
     // reduction..
     if (keep_A == 1)
-      sort_presorted_columns_by_grevlex(spd, nthreads);
+      ht->sort.sort_presorted_columns(spd, nthreads);
     else
-      sort_presorted_columns_by_grevlex_invert_left_side(spd, nthreads);
+      ht->sort.sort_presorted_columns_invert_left_side(spd, nthreads);
 
     // connect monomial hash positions with columns in to be constructed gbla
     // matrix
@@ -492,24 +495,6 @@ int main(int argc, char *argv[])
   free_basis(&basis);
   free_hash_table(&ht);
 
-  return 0;
-}
-
-int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
-    const mp_cf4_ht_t *ht,  const ri_t rankDR)
-{
-  ri_t i;
-  hash_t hash;
-  for (i=0; i<rankDR; ++i) {
-    // add lowest row first, it has the smallest new lead monomial
-    hash = add_new_element_to_basis_grevlex(basis, mat, rankDR-1-i, spd, ht);
-    // if hash value 0 is new lead monomial we are done, since we have found a
-    // unit in the basis, i.e. basis = { 1 }
-    if (hash == 0)
-      return 1;
-    update_pair_set(ps, basis, basis->load-1);
-    track_redundant_elements_in_basis(basis);
-  }
   return 0;
 }
 

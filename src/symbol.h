@@ -239,6 +239,85 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,
 
 /**
  * \brief Comparison function of monomials for quicksort. Compares w.r.t. the
+ * given monomial order lex.
+ *
+ * \note This is used in symbolic preprocessing, thus we know already that a =/=
+ * b and we do not have to check this again.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+static inline int cmp_symbolic_preprocessing_monomials_by_lex(const void *a,
+    const void *b)
+{
+  hash_t ha = *((hash_t *)a);
+  hash_t hb = *((hash_t *)b);
+
+  // else we have to check lexicographical
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
+  return memcmp(expa, expb, sizeof(expa));
+#else
+  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+#endif
+}
+
+/**
+ * \brief Comparison function of monomials for quicksort. Compares w.r.t. the
+ * given monomial order lex and inverts the order.
+ *
+ * \note This is used in symbolic preprocessing, thus we know already that a =/=
+ * b and we do not have to check this again.
+ *
+ * \note We invert lex since we have to align the A and C parts of the gbla
+ * matrix in order to efficiently compute.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+static inline int cmp_symbolic_preprocessing_monomials_by_inverse_lex(const void *a,
+    const void *b)
+{
+  hash_t ha = *((hash_t *)a);
+  hash_t hb = *((hash_t *)b);
+
+  // else we have to check lexicographical
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
+  return memcmp(expb, expa, sizeof(expa));
+#else
+  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+#endif
+}
+
+/**
+ * \brief Comparison function of monomials for quicksort. Compares w.r.t. the
  * given monomial order grevlex.
  *
  * \note This is used in symbolic preprocessing, thus we know already that a =/=
@@ -349,6 +428,25 @@ static inline void sort_columns_by_lead(spd_t *spd)
 
 /**
  * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
+ * given monomial order lex
+ *
+ * \note The list of columns resp. monomials was already presorted to
+ * distinguish lead ones (at the beginning of the list) from non lead ones (at
+ * the end of the list).
+ *
+ * \param symbolic preprocessing data spd
+ */
+static inline void sort_lead_columns_by_lex(spd_t *spd)
+{
+  if (spd->col->nlm != 0) {
+    // sort the start of spd->col, i.e. the lead monomial list
+    qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
+        cmp_symbolic_preprocessing_monomials_by_lex);
+  }
+}
+
+/**
+ * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
  * given monomial order grevlex
  *
  * \note The list of columns resp. monomials was already presorted to
@@ -363,6 +461,28 @@ static inline void sort_lead_columns_by_grevlex(spd_t *spd)
     // sort the start of spd->col, i.e. the lead monomial list
     qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
         cmp_symbolic_preprocessing_monomials_by_grevlex);
+  }
+}
+
+/**
+ * \brief Sorts lead monomials found by symbolic preprocessing w.r.t. the
+ * given monomial order lex and inverts the order
+ *
+ * \note The list of columns resp. monomials was already presorted to
+ * distinguish lead ones (at the beginning of the list) from non lead ones (at
+ * the end of the list).
+ *
+ * \note We invert lex since we have to align the A and C parts of the gbla
+ * matrix in order to efficiently compute.
+ *
+ * \param symbolic preprocessing data spd
+ */
+static inline void sort_lead_columns_by_inverse_lex(spd_t *spd)
+{
+  if (spd->col->nlm != 0) {
+    // sort the start of spd->col, i.e. the lead monomial list
+    qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
+        cmp_symbolic_preprocessing_monomials_by_inverse_lex);
   }
 }
 
@@ -390,6 +510,23 @@ static inline void sort_lead_columns_by_inverse_grevlex(spd_t *spd)
 
 /**
  * \brief Sorts non lead monomials found by symbolic preprocessing w.r.t. the
+ * given monomial order lex
+ *
+ * \note The list of columns resp. monomials was already presorted to
+ * distinguish lead ones (at the beginning of the list) from non lead ones (at
+ * the end of the list).
+ *
+ * \param symbolic preprocessing data spd
+ */
+static inline void sort_non_lead_columns_by_lex(spd_t *spd)
+{
+  // sort the end of spd->col, i.e. the non lead monomial list
+  qsort(spd->col->hpos+spd->col->nlm, (spd->col->load - spd->col->nlm),
+      sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_lex);
+}
+
+/**
+ * \brief Sorts non lead monomials found by symbolic preprocessing w.r.t. the
  * given monomial order grevlex
  *
  * \note The list of columns resp. monomials was already presorted to
@@ -403,6 +540,33 @@ static inline void sort_non_lead_columns_by_grevlex(spd_t *spd)
   // sort the end of spd->col, i.e. the non lead monomial list
   qsort(spd->col->hpos+spd->col->nlm, (spd->col->load - spd->col->nlm),
       sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
+}
+
+/**
+ * \brief Sorts already presorted list of monomials resp. columns w.r.t. the
+ * given monomial order lex. The list is already presorted by lead and non
+ * lead monomials. Those monomials correspond then to the columns of the gbla
+ * matrix generated later on.
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \param number of threads to use in parallel nthreads
+ */
+static inline void sort_presorted_columns_by_lex(spd_t *spd,
+    const int nthreads)
+{
+  const int t = 2<nthreads ? 2 : nthreads;
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single
+    {
+      #pragma omp task
+      sort_lead_columns_by_lex(spd);
+      #pragma omp task
+      sort_non_lead_columns_by_lex(spd);
+      #pragma omp taskwait
+    }
+  }
 }
 
 /**
@@ -427,6 +591,36 @@ static inline void sort_presorted_columns_by_grevlex(spd_t *spd,
       sort_lead_columns_by_grevlex(spd);
       #pragma omp task
       sort_non_lead_columns_by_grevlex(spd);
+      #pragma omp taskwait
+    }
+  }
+}
+
+/**
+ * \brief Sorts already presorted list of monomials resp. columns w.r.t. the
+ * given monomial order lex. The list is already presorted by lead and non
+ * lead monomials. Those monomials correspond then to the columns of the gbla
+ * matrix generated later on.
+ *
+ * \note On the lefthand side of the gbla matrix we invert the sorting of the
+ * columns due to gbla's internal ordering for reducing A later on.
+ *
+ * \param symbolic preprocessing data spd
+ *
+ * \param number of threads to use in parallel nthreads
+ */
+static inline void sort_presorted_columns_by_lex_invert_left_side(spd_t *spd,
+    const int nthreads)
+{
+  const int t = 2<nthreads ? 2 : nthreads;
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single
+    {
+      #pragma omp task
+      sort_lead_columns_by_inverse_lex(spd);
+      #pragma omp task
+      sort_non_lead_columns_by_lex(spd);
       #pragma omp taskwait
     }
   }

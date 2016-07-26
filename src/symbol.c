@@ -32,7 +32,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   // entries keep 0, thus they are not part of this reduction step
   clear_hash_table_idx(ht);
 
-  nsel  = get_pairs_by_minimal_degree(ps);
+  nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
 
   // list of monomials that appear in the matrix
   pre_t *mon      = init_preprocessing_hash_list(2*nsel);

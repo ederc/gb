@@ -50,6 +50,32 @@
 void print_help();
 
 /**
+ * \brief Sort functions are stored a structure of function pointers in the hash
+ * table. Depening on the chosen monomial order the functions pointers are set.
+ *
+ * \param hash table ht
+ */
+static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *ht, ord_t ord)
+{
+  switch (ord) {
+    // graded reverse lexicographical order
+    case 0:
+      ht->sort.get_pairs_by_minimal_degree             = get_pairs_by_minimal_degree_grevlex;
+      ht->sort.sort_presorted_columns                  = sort_presorted_columns_by_grevlex;
+      ht->sort.sort_presorted_columns_invert_left_side = sort_presorted_columns_by_grevlex_invert_left_side;
+      break;
+    // lexicographical order
+    case 1:
+      ht->sort.get_pairs_by_minimal_degree             = get_pairs_by_minimal_degree_lex;
+      ht->sort.sort_presorted_columns                  = sort_presorted_columns_by_lex;
+      ht->sort.sort_presorted_columns_invert_left_side = sort_presorted_columns_by_lex_invert_left_side;
+      break;
+    default:
+      abort ();
+  }
+}
+
+/**
  * \brief Updates basis and pair set after reducing current gbla matrix.
  *
  * \param intermediate groebner basis basis
@@ -67,8 +93,24 @@ void print_help();
  * \return returns 1 if we have added the constant 1 to the groebner basis, i.e.
  * then the computation is done; else it returns 0.
  */
-int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
-    const mp_cf4_ht_t *ht,  const ri_t rankDR);
+static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
+    const mp_cf4_ht_t *ht,  const ri_t rankDR)
+{
+  ri_t i;
+  hash_t hash;
+  for (i=0; i<rankDR; ++i) {
+    // add lowest row first, it has the smallest new lead monomial
+    hash = add_new_element_to_basis_grevlex(basis, mat, rankDR-1-i, spd, ht);
+    // if hash value 0 is new lead monomial we are done, since we have found a
+    // unit in the basis, i.e. basis = { 1 }
+    if (hash == 0)
+      return 1;
+    update_pair_set(ps, basis, basis->load-1);
+    track_redundant_elements_in_basis(basis);
+  }
+  return 0;
+}
+
 
 /**
  * \brief Updates basis and pair set after reducing current gbla matrix.

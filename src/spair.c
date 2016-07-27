@@ -345,7 +345,7 @@ inline int cmp_spairs_deg_lex(const void *a, const void *b)
     printf("\n");
     printf("%d\n", memcmp(expb,expa, sizeof(exp_t) * ht->nv));
     */
-    return memcmp(expb,expa, sizeof(exp_t) * ht->nv);
+    return memcmp(expa,expb, sizeof(exp_t) * ht->nv);
   } else {
     // both have the same lcms and are not detected by the product criterion,
     // then we break ties by the overall number of terms

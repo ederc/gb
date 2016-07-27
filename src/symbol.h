@@ -269,9 +269,9 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lex(const void *a,
     _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
     memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
-  return memcmp(expa, expb, sizeof(expa));
+  return memcmp(expb, expa, sizeof(expa));
 #else
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
 #endif
 }
 
@@ -310,9 +310,9 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_lex(const void
     _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
     memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
-  return memcmp(expb, expa, sizeof(expa));
+  return memcmp(expa, expb, sizeof(expa));
 #else
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
 #endif
 }
 

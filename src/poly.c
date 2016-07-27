@@ -20,14 +20,14 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 #include "poly.h"
-inline gb_t *initialize_basis(const int ordering, const int nlines,
+inline gb_t *initialize_basis(const int order, const int nlines,
     const nvars_t nvars, char **vnames, const mod_t mod,
     const int simplify, const uint64_t fl)
 {
   nvars_t i;
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
 
-  basis->ord  = (ord_t)ordering;
+  basis->ord  = (ord_t)order;
   basis->nred = 0;
   // per default homogeneous, easier to check inhomogeneity when reading input data
   basis->hom  = 1;

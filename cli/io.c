@@ -215,7 +215,8 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
         }
       }
     }
-    // if we use graded reverse lexicographical ordering (basis->ord = 0) we store
+    // if we use graded reverse lexicographical order (basis->ord = 0) or
+    // lexicographic order (basis->ord = 1)  we store
     // the exponents in reverse order so that we can use memcmp to sort the terms
     // efficiently later on
 #if __GB_HAVE_SSE2
@@ -333,7 +334,7 @@ nvars_t get_nvars(const char *fn)
   return nvars;
 }
 
-gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
+gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
     mp_cf4_ht_t *ht, const int simplify, const int vb, const int nthrds)
 {
   uint64_t fl;
@@ -403,7 +404,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
   }
 
   // initialize basis with information from above
-  gb_t *basis = initialize_basis(ordering, nlines, nvars, vnames, mod, simplify, fl);
+  gb_t *basis = initialize_basis(order, nlines, nvars, vnames, mod, simplify, fl);
 
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));
@@ -755,7 +756,16 @@ void print_basis_in_singular_format(const gb_t *basis)
   printf("ring r = %u, (%s", basis->mod, basis->vnames[0]);
   for (k=1; k<basis->nv; ++k)
     printf(",%s", basis->vnames[k]);
-  printf("), dp;\r\n");
+  switch (basis->ord) {
+    case 0:
+      printf("), dp;\r\n");
+      break;
+    case 1:
+      printf("), lp;\r\n");
+      break;
+    default:
+      abort();
+  }
 
   // prints input ideal
   printf("ideal i;\r\n");

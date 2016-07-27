@@ -48,7 +48,7 @@
  * \note Input elements are not directly added to the basis, they are added as
  * spairs to the pair set and enter basis afterwards.
  *
- * \param given monomial ordering ordering
+ * \param given monomial order order
  *
  * \param number of lines of input files nlines
  *
@@ -64,7 +64,7 @@
  *
  * \return intermediate groebner basis basis
  */
-gb_t *initialize_basis(const int ordering, const int nlines,
+gb_t *initialize_basis(const int order, const int nlines,
     const nvars_t nvars, char **vnames, const mod_t mod,
     const int simplify, const uint64_t fl);
 

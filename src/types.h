@@ -214,7 +214,7 @@ typedef struct gb_t
   // element data
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
-  red_t *red;       /*!<  stores if the the element is redundant or not*/
+  red_t *red;       /*!<  stores if the element is redundant or not*/
   coeff_t **cf;     /*!<  coefficients of input elements*/
   hash_t **eh;      /*!<  monomial exponent hash*/
   sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if

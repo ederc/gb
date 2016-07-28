@@ -363,6 +363,8 @@ typedef struct sort_t
   nelts_t (*get_pairs_by_minimal_degree)(ps_t *ps);
   void (*sort_presorted_columns_invert_left_side)(spd_t *spd, const int nthreads);
   void (*sort_presorted_columns)(spd_t *spd, const int nthreads);
+  int (*compare_monomials)(const void *a, const void *b);
+  int (*compare_monomials_inverse)(const void *a, const void *b);
 } sort_t;
 
 /**

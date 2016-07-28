@@ -83,7 +83,7 @@ typedef int ord_t;
 /* exponent size */
 #if __GB_HAVE_SSE2
 typedef __m128i exp_v;
-typedef uint8_t exp_s;
+typedef uint16_t exp_s;
 #else
 #if __GB_USE_64_EXP_VEC
 typedef uint64_t exp_s;

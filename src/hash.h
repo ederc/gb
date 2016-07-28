@@ -682,7 +682,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   hash_t hash;
 #if __GB_HAVE_SSE2
   for (i=0; i<ht->nev; ++i)
-    ht->ev[ht->load][i] = _mm_adds_epu8(ht->ev[mon_1][i], ht->ev[mon_2][i]);
+    ht->ev[ht->load][i] = _mm_adds_epu16(ht->ev[mon_1][i], ht->ev[mon_2][i]);
   //hash = get_hash(ht->ev[ht->load], ht);
 #else
   for (i=0; i<ht->nv; ++i)
@@ -778,7 +778,7 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   exp_t exp[ht->nev * ht->vl] __attribute__ ((aligned (16)));
   exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
   for (i=0; i<ht->nev; ++i) {
-    ht->ev[ht->load][i] = _mm_max_epu8(ht->ev[h1][i], ht->ev[h2][i]);
+    ht->ev[ht->load][i] = _mm_max_epi16(ht->ev[h1][i], ht->ev[h2][i]);
     _mm_store_si128((exp_v *)tmp, ht->ev[ht->load][i]);
     memcpy(exp+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
@@ -833,7 +833,7 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
 #if __GB_HAVE_SSE2
   exp_v cmpv;
   for (i=0; i<ht->nev; ++i) {
-    cmpv  = _mm_cmplt_epi8(ht->ev[h1][i], ht->ev[h2][i]);
+    cmpv  = _mm_cmplt_epi16(ht->ev[h1][i], ht->ev[h2][i]);
     if (_mm_movemask_epi8(cmpv) != 0)
       return 0;
   }
@@ -878,7 +878,7 @@ static inline int check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_
 #if __GB_HAVE_SSE2
   exp_v cmpv;
   for (i=0; i<ht->nev; ++i) {
-    cmpv  = _mm_cmplt_epi8(ht->ev[h1][i], ht->ev[h2][i]);
+    cmpv  = _mm_cmplt_epi16(ht->ev[h1][i], ht->ev[h2][i]);
     if (_mm_movemask_epi8(cmpv) != 0)
       return 0;
   }

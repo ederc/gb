@@ -37,21 +37,21 @@ void print_help()
   printf("    -c HTC      Hash table cache resp. size in log_2: The size is then set\n");
   printf("                to the biggest non-Mersenne prime smaller then 2^(given value).\n");
   printf("                Default: 18.\n");
-  printf("    -d ORDER    Order w.r.t. which the Groebner basis is computed.\n");
-  printf("                Graded reverse lexicographical order: 0\n");
-  printf("                Lexicographical order: 1\n");
-  printf("                Default: 0.\n");
   printf("    -h HELP     Print help.\n");
+  printf("    -m MAT      Generates .pbm files of gbla matrices.\n");
+  printf("                Considers as argument a folder to write into.\n");
   printf("    -n NREDMAT  If option is set the gbla matrices are not fully reduced.\n");
   printf("                Otherwise the A and thus B part of the gbla matrices are\n");
   printf("                reduced and can thus be used for simplification of further\n");
   printf("                used polynomials.\n");
-  printf("    -o OUTPUT   Prints resulting groebner basis.\n");
+  printf("    -o ORDER    Order w.r.t. which the Groebner basis is computed.\n");
+  printf("                0: Graded/Degree reverse lexicographical order (DRL)\n");
+  printf("                1: Lexicographical order (LEX)\n");
+  printf("                Default: 0.\n");
+  printf("    -p PRINT    Prints resulting groebner basis.\n");
   printf("                0 -> no printing (default if option is not set at all).\n");
   printf("                1 -> default print out of basis.\n");
   printf("                2 -> Singular format print out of basis.\n");
-  printf("    -p PBM      Generates .pbm files of gbla matrices.\n");
-  printf("                Considers as argument a folder to write into.\n");
   printf("    -r REDGB    Compute the reduced Groebner basis.\n");
   printf("                Default: 0 (not reduced).\n");
   printf("    -s SIMP     Use simplify in F4 algorithm.\n");
@@ -110,28 +110,28 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:d:hno:p:r:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:hm:no:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
         htc = (int)strtol(optarg, NULL, 10);
         break;
-      case 'd':
-        order  = (int)strtol(optarg, NULL, 10);
-        break;
       case 'h':
         print_help();
         return 0;
+      case 'm':
+        pbm_dir       = optarg;
+        generate_pbm  = 1;
+        break;
       case 'n':
         keep_A  = 1;
         break;
       case 'o':
+        order  = (int)strtol(optarg, NULL, 10);
+        break;
+      case 'p':
         print_gb = (int)strtol(optarg, NULL, 10);
         if (print_gb > 2)
           print_gb = 0;
-        break;
-      case 'p':
-        pbm_dir       = optarg;
-        generate_pbm  = 1;
         break;
       case 'r':
         reduce_gb = (int)strtol(optarg, NULL, 10);

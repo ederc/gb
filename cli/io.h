@@ -59,6 +59,17 @@
 nvars_t get_nvars(const char *fn);
 
 /**
+ * \brief Sorts input polynomials w.r.t. the given monomial order (stored in the
+ * hash table ht). All terms of all polynomials are sorted. Afterwards the
+ * polynomials themselves are sorted by increasing lead term.
+ *
+ * \param input elements resp. intermediate basis basis
+ *
+ * \param hash table ht
+ */
+void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht);
+
+/**
  * \brief Loads input file and intializes input data structure
  *
  * \note The input files need to have the following format at the moment:

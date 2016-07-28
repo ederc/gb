@@ -334,6 +334,40 @@ nvars_t get_nvars(const char *fn)
   return nvars;
 }
 
+void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
+{
+  coeff_t *tmp_cf;
+  hash_t *tmp_eh;
+  coeff_t *sort_cf  = (coeff_t *)malloc(sizeof(coeff_t));
+  hash_t *sort_eh   = (hash_t *)malloc(sizeof(hash_t));
+  int i, j, k, l;
+  // first we sort the terms of each input polynomial w.r.t. the monomial order
+  for (i=1; i<basis->load; ++i) {
+    // sort exponent hashes
+    sort_eh  = realloc(sort_eh, basis->nt[i] * sizeof(hash_t));
+    sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(coeff_t));
+    memcpy(sort_eh, basis->eh[i], basis->nt[i] * sizeof(hash_t));
+    qsort(sort_eh, basis->nt[i], sizeof(hash_t), ht->sort.compare_monomials);
+    // sort coefficients like the exponent hashes
+    for (j=0; j<basis->nt[i]; ++j) {
+      for (k=0; k<basis->nt[i]; ++k) {
+        if (basis->eh[i][k] == sort_eh[j]) {
+          sort_cf[j]  = basis->cf[i][k];
+        }
+      }
+    }
+    // swap arrays
+    tmp_cf  = basis->cf[i];
+    tmp_eh  = basis->eh[i];
+
+    basis->cf[i]  = sort_cf;
+    basis->eh[i]  = sort_eh;
+    
+    sort_cf = tmp_cf;
+    sort_eh = tmp_eh;
+  }
+}
+
 gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
     mp_cf4_ht_t *ht, const int simplify, const int vb, const int nthrds)
 {
@@ -502,8 +536,11 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
           basis->hom  = 0;
       }
       basis->deg[i] = max_deg;
+
     }
   }
+  // sort polynomial w.r.t. the chosen monomial order
+  sort_input_polynomials(basis, ht);
   free(term);
   free(line);
   fclose(fh);

@@ -63,6 +63,7 @@ static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *h
       ht->sort.get_pairs_by_minimal_degree              = get_pairs_by_minimal_degree_grevlex;
       ht->sort.sort_presorted_columns                   = sort_presorted_columns_by_grevlex;
       ht->sort.sort_presorted_columns_invert_left_side  = sort_presorted_columns_by_grevlex_invert_left_side;
+      ht->sort.compare_spairs                           = cmp_spairs_by_grevlex;
       ht->sort.compare_monomials                        = cmp_symbolic_preprocessing_monomials_by_grevlex;
       ht->sort.compare_monomials_inverse                = cmp_symbolic_preprocessing_monomials_by_inverse_grevlex;
       break;
@@ -71,6 +72,7 @@ static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *h
       ht->sort.get_pairs_by_minimal_degree              = get_pairs_by_minimal_degree_lex;
       ht->sort.sort_presorted_columns                   = sort_presorted_columns_by_lex;
       ht->sort.sort_presorted_columns_invert_left_side  = sort_presorted_columns_by_lex_invert_left_side;
+      ht->sort.compare_spairs                           = cmp_spairs_by_deg_lex;
       ht->sort.compare_monomials                        = cmp_symbolic_preprocessing_monomials_by_lex;
       ht->sort.compare_monomials_inverse                = cmp_symbolic_preprocessing_monomials_by_inverse_lex;
       break;

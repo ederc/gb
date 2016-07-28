@@ -121,52 +121,6 @@ spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basi
     mp_cf4_ht_t *ht);
 
 /**
- * \brief Comparison implementation for qsort. Sorts pair set w.r.t. the
- * lexicographical order lex.
- *
- * \note We first sort by degree, then by lex.
- *
- * \param element to be compared a
- *
- * \param element to be compared b
- *
- * \returns corresponding integer for qsort
- */
-int cmp_spairs_deg_lex(const void *a, const void *b);
-
-/**
- * \brief Sorts pair set w.r.t. the lexicographical order
- * lex using qsort.
- *
- * \note We first sort by degree, then by lex.
- *
- * \param pair set to be sorted ps
- *
- */
-void sort_pair_set_by_lcm_deg_lex(ps_t *ps);
-
-/**
- * \brief Comparison implementation for qsort. Sorts pair set w.r.t. graded
- * reverse lexicographical order grevlex.
- *
- * \param element to be compared a
- *
- * \param element to be compared b
- *
- * \returns corresponding integer for qsort
- */
-int cmp_spairs_grevlex(const void *a, const void *b);
-
-/**
- * \brief Sorts pair set w.r.t. graded reverse lexicographical order
- * grevlex using qsort.
- *
- * \param pair set to be sorted ps
- *
- */
-void sort_pair_set_by_lcm_grevlex(ps_t *ps);
-
-/**
  * \brief Updates pair set including Gebauer-Moeller criteria checks
  *
  * \param pair set ps
@@ -200,61 +154,6 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
  * \return number of removed pairs
  */
 nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t idx);
-
-/**
- * \brief Selects pairs by lowest degree (normal selection strategy) and returns
- * the index of the last pair in the pair list. Ties are broken using the
- * lexicographical order lex.
- *
- * \note This function also sorts the pair set correspondingly.
- *
- * \param pair set ps
- *
- * \return last index of pair selection in pair list
- */
-static inline nelts_t get_pairs_by_minimal_degree_lex(ps_t *ps)
-{
-  // sort pair set by lcms
-  sort_pair_set_by_lcm_deg_lex(ps);
-
-  deg_t dmin  = ps->pairs[0]->deg;
-  nelts_t i   = 0;
-
-  // we assume here that the pair set is already sorted by degree of the lcms
-  // (in particular, we assume grevlex ordering)
-  while (i < ps->load && ps->pairs[i]->deg == dmin)
-    i++;
-
-  return i;
-}
-
-
-/**
- * \brief Selects pairs by lowest degree (normal selection strategy) and returns
- * the index of the last pair in the pair list. Ties are broken using the graded
- * reverse lexicographical order grevlex.
- *
- * \note This function also sorts the pair set correspondingly.
- *
- * \param pair set ps
- *
- * \return last index of pair selection in pair list
- */
-static inline nelts_t get_pairs_by_minimal_degree_grevlex(ps_t *ps)
-{
-  // sort pair set by lcms
-  sort_pair_set_by_lcm_grevlex(ps);
-
-  deg_t dmin  = ps->pairs[0]->deg;
-  nelts_t i   = 0;
-
-  // we assume here that the pair set is already sorted by degree of the lcms
-  // (in particular, we assume grevlex ordering)
-  while (i < ps->load && ps->pairs[i]->deg == dmin)
-    i++;
-
-  return i;
-}
 
 /**
  * \brief Adds generator gen of the corresponding spair with least common
@@ -317,5 +216,245 @@ static inline void free_selection(sel_t **sel_in)
   free(sel);
   sel     = NULL;
   *sel_in = sel;
+}
+
+/**
+ * \brief Comparison implementation for qsort. Sorts pair set w.r.t. graded
+ * reverse lexicographical order grevlex.
+ *
+ * \param element to be compared a
+ *
+ * \param element to be compared b
+ *
+ * \returns corresponding integer for qsort
+ */
+static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
+{
+  spair_t *spa  = *((spair_t **)a);
+  spair_t *spb  = *((spair_t **)b);
+//#if SPAIR_DEBUG
+  //printf("%p | %p\n", spa, spb);
+  //printf("nvars %u\n",ht->nv);
+  /*
+  printf("GEN %u | %u || %u | %u\n",spa->gen1, spa->gen2, spb->gen1, spb->gen2);
+  printf("LCM %lu | %lu\n",spa->lcm, spb->lcm);
+  printf("DEG %u | %u\n",spa->deg, spb->deg);
+  */
+//#endif
+  if (spa->lcm != spb->lcm) {
+    // compare degree
+    if (spa->deg > spb->deg) {
+      return 1;
+    } else {
+      if (spa->deg != spb->deg)
+        return -1;
+    }
+    // compare reverse lexicographical
+    // NOTE: for graded reverse lexicographical ordering we store the exponents
+    // ht->exp and ht->ev in reverse order => we can use memcmp() for reverse
+    // lex comparison
+#if __GB_HAVE_SSE2
+    nvars_t i;
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (i=0; i<ht->nev; ++i) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[spa->lcm][i]);
+      memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+      _mm_store_si128((exp_v *)tmp, ht->ev[spb->lcm][i]);
+      memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+#else
+    exp_t *expa = ht->exp[spa->lcm];
+    exp_t *expb = ht->exp[spb->lcm];
+#endif
+    /*
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u | ",expa[ii]);
+    printf("\n");
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u | ",expb[ii]);
+    printf("\n");
+    printf("%d\n", memcmp(expb,expa, sizeof(exp_t) * ht->nv));
+    */
+    return memcmp(expb,expa, sizeof(exp_t) * ht->nv);
+  } else {
+    // both have the same lcms and are not detected by the product criterion,
+    // then we break ties by the overall number of terms
+    if (spa->nt != spb->nt) {
+      if (spa->nt < spb->nt) {
+        return -1;
+      } else {
+        if (spa->nt != spb->nt) {
+          return 1;
+        } else {
+          if (spa->gen1 < spb->gen1 || spa->gen2 < spb->gen2) {
+            return -1;
+          }
+        }
+      }
+    }
+          return 0;
+  }
+}
+
+/**
+ * \brief Comparison implementation for qsort. Sorts pair set w.r.t. the
+ * lexicographical order lex.
+ *
+ * \note We first sort by degree, then by lex.
+ *
+ * \param element to be compared a
+ *
+ * \param element to be compared b
+ *
+ * \returns corresponding integer for qsort
+ */
+static inline int cmp_spairs_by_deg_lex(const void *a, const void *b)
+{
+  spair_t *spa  = *((spair_t **)a);
+  spair_t *spb  = *((spair_t **)b);
+//#if SPAIR_DEBUG
+  //printf("%p | %p\n", spa, spb);
+  //printf("nvars %u\n",ht->nv);
+  /*
+  printf("GEN %u | %u || %u | %u\n",spa->gen1, spa->gen2, spb->gen1, spb->gen2);
+  printf("LCM %lu | %lu\n",spa->lcm, spb->lcm);
+  printf("DEG %u | %u\n",spa->deg, spb->deg);
+  */
+//#endif
+  if (spa->lcm != spb->lcm) {
+    // compare degree
+    if (spa->deg > spb->deg) {
+      return 1;
+    } else {
+      if (spa->deg != spb->deg)
+        return -1;
+    }
+    // compare lexicographical
+#if __GB_HAVE_SSE2
+    nvars_t i;
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (i=0; i<ht->nev; ++i) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[spa->lcm][i]);
+      memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+      _mm_store_si128((exp_v *)tmp, ht->ev[spb->lcm][i]);
+      memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+#else
+    exp_t *expa = ht->exp[spa->lcm];
+    exp_t *expb = ht->exp[spb->lcm];
+#endif
+    /*
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u | ",expa[ii]);
+    printf("\n");
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u | ",expb[ii]);
+    printf("\n");
+    printf("%d\n", memcmp(expb,expa, sizeof(exp_t) * ht->nv));
+    */
+    return memcmp(expa,expb, sizeof(exp_t) * ht->nv);
+  } else {
+    // both have the same lcms and are not detected by the product criterion,
+    // then we break ties by the overall number of terms
+    if (spa->nt != spb->nt) {
+      if (spa->nt < spb->nt) {
+        return -1;
+      } else {
+        if (spa->nt != spb->nt) {
+          return 1;
+        } else {
+          if (spa->gen1 < spb->gen1 || spa->gen2 < spb->gen2) {
+            return -1;
+          }
+        }
+      }
+    }
+          return 0;
+  }
+}
+
+/**
+ * \brief Sorts pair set w.r.t. the lexicographical order
+ * lex using qsort.
+ *
+ * \note We first sort by degree, then by lex.
+ *
+ * \param pair set to be sorted ps
+ *
+ */
+static inline void sort_pair_set_by_lcm_deg_lex(ps_t *ps)
+{
+  qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_by_deg_lex);
+}
+
+/**
+ * \brief Sorts pair set w.r.t. graded reverse lexicographical order
+ * grevlex using qsort.
+ *
+ * \param pair set to be sorted ps
+ *
+ */
+static inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
+{
+  qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_by_grevlex);
+}
+
+/**
+ * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * the index of the last pair in the pair list. Ties are broken using the
+ * lexicographical order lex.
+ *
+ * \note This function also sorts the pair set correspondingly.
+ *
+ * \param pair set ps
+ *
+ * \return last index of pair selection in pair list
+ */
+static inline nelts_t get_pairs_by_minimal_degree_lex(ps_t *ps)
+{
+  // sort pair set by lcms
+  sort_pair_set_by_lcm_deg_lex(ps);
+
+  deg_t dmin  = ps->pairs[0]->deg;
+  nelts_t i   = 0;
+
+  // we assume here that the pair set is already sorted by degree of the lcms
+  // (in particular, we assume grevlex ordering)
+  while (i < ps->load && ps->pairs[i]->deg == dmin)
+    i++;
+
+  return i;
+}
+
+
+/**
+ * \brief Selects pairs by lowest degree (normal selection strategy) and returns
+ * the index of the last pair in the pair list. Ties are broken using the graded
+ * reverse lexicographical order grevlex.
+ *
+ * \note This function also sorts the pair set correspondingly.
+ *
+ * \param pair set ps
+ *
+ * \return last index of pair selection in pair list
+ */
+static inline nelts_t get_pairs_by_minimal_degree_grevlex(ps_t *ps)
+{
+  // sort pair set by lcms
+  sort_pair_set_by_lcm_grevlex(ps);
+
+  deg_t dmin  = ps->pairs[0]->deg;
+  nelts_t i   = 0;
+
+  // we assume here that the pair set is already sorted by degree of the lcms
+  // (in particular, we assume grevlex ordering)
+  while (i < ps->load && ps->pairs[i]->deg == dmin)
+    i++;
+
+  return i;
 }
 #endif

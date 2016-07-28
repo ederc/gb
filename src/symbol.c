@@ -33,6 +33,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   clear_hash_table_idx(ht);
 
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
+  
+  meta_data->sel_pairs = nsel;
 
   // list of monomials that appear in the matrix
   pre_t *mon      = init_preprocessing_hash_list(2*nsel);

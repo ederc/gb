@@ -352,16 +352,24 @@ int main(int argc, char *argv[])
     mat_t *mat  = NULL;
     if (keep_A == 1) {
       mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
+      meta_data->mat_rows = mat->AR->nrows+mat->CR->nrows;
+      meta_data->mat_cols = mat->AR->ncols+mat->B->ncols;
       if (verbose > 1) {
         printf("matrix rows %6u + %6u = %6u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
         printf("matrix cols %6u + %6u = %6u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
       }
     } else {
       mat = generate_gbla_matrix(basis, sf, spd, nthreads);
+      meta_data->mat_rows = mat->A->nrows+mat->C->nrows;
+      meta_data->mat_cols = mat->A->ncols+mat->B->ncols;
       if (verbose > 1) {
         printf("matrix rows %6u + %6u = %6u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
         printf("matrix cols %6u + %6u = %6u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
       }
+    }
+    if (verbose == 1) {
+      printf("step %3d : %5u spairs  --->  %7u x %7u matrix\n", steps, meta_data->sel_pairs, meta_data->mat_rows, meta_data->mat_cols);
+      //printf("%d:%u|%u,%u\n", steps, meta_data->sel_pairs, meta_data->mat_rows, meta_data->mat_cols);
     }
     //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
     if (verbose > 0)

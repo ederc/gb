@@ -69,14 +69,14 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       // polynomial is taken
       nelts_t nto = -1;
       while (i<basis->load) {
-      //for (; i<basis->load; ++i) {
-        h = monomial_division(hash_pos, basis->eh[i][0], ht);
-        if ((h != 0)) {
-          //if (basis->nt[hi] < basis->nt[hio] + basis->nt[hio]/2) {
-          if (basis->nt[i] < nto) {
-            hio = i;
-            nto = basis->nt[i];
-            ho  = h;
+        if (basis->red[i] == NOT_REDUNDANT) {
+          h = monomial_division(hash_pos, basis->eh[i][0], ht);
+          if ((h != 0)) {
+            if (basis->nt[i] < nto) {
+              hio = i;
+              nto = basis->nt[i];
+              ho  = h;
+            }
           }
         }
         i++;
@@ -119,7 +119,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
           try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
         // now add new monomials to preprocessing hash list
         enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
-          mon, ht);
+            mon, ht);
       }
     }
     idx++;

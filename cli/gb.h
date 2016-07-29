@@ -119,6 +119,8 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
     if (basis->hom == 0)
       track_redundant_elements_in_basis(basis);
   }
+  // track load of basis at the end of this step
+  basis->load_ls  = basis->load;
   return 0;
 }
 

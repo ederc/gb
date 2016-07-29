@@ -208,6 +208,7 @@ typedef struct gb_t
   // global data
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in basis*/
+  nelts_t load_ls;  /*!<  number of elements in basis at the end of the last step*/
   nelts_t st;       /*!<  start of the real basis, everything before is input data */
   nvars_t nv;       /*!<  number of variables */
   hom_t hom;        /*!<  homogeneous input? 1=yes, 0=no */

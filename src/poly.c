@@ -35,8 +35,9 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   // #generators of the input system = nlines - 2 since the first line has the
   // variable names and second line is the field modulus. Then we add 1 since we
   // keep the element at position 0 NULL for faster divisibility checks
-  basis->load = nlines -2 +1;
-  basis->st   = basis->load;
+  basis->load     = nlines -2 +1;
+  basis->load_ls  = basis->load;
+  basis->st       = basis->load;
 
   basis->size   = 3 * basis->load;
   basis->nv     = nvars;

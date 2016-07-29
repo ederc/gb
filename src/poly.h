@@ -260,6 +260,10 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
  * reduction step and one of these elements has a lead term dividing the lead
  * term of this new, higher-degree element.
  *
+ * \note We only have to check with the elements already added in this step of
+ * the algorithm. Elements that have been in the basis earlier must have reduced
+ * this lead term.
+ *
  * \param hash of new lead term hash
  *
  * \param intermediate groebner basis basis
@@ -269,7 +273,7 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
 static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basis)
 {
   // check for redundancy of other elements in basis
-  for (int i=basis->st; i<basis->load; ++i) {
+  for (int i=basis->load_ls; i<basis->load; ++i) {
     if (check_monomial_division(hash, basis->eh[i][0], ht) == 1)
       return 1;
   }

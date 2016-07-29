@@ -274,7 +274,7 @@ static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basi
 {
   // check for redundancy of other elements in basis
   for (int i=basis->load_ls; i<basis->load; ++i) {
-    if (check_monomial_division(hash, basis->eh[i][0], ht) == 1)
+    if (basis->red[i] == NOT_REDUNDANT && check_monomial_division(hash, basis->eh[i][0], ht) == 1)
       return 1;
   }
   return 0;

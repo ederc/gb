@@ -66,6 +66,8 @@ static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *h
       ht->sort.compare_spairs                           = cmp_spairs_by_grevlex;
       ht->sort.compare_monomials                        = cmp_symbolic_preprocessing_monomials_by_grevlex;
       ht->sort.compare_monomials_inverse                = cmp_symbolic_preprocessing_monomials_by_inverse_grevlex;
+      ht->sort.compare_polynomials                      = cmp_polynomials_by_grevlex;
+      ht->sort.compare_polynomials_inverse              = cmp_polynomials_by_inverse_grevlex;
       break;
     // lexicographical order
     case 1:
@@ -75,6 +77,8 @@ static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *h
       ht->sort.compare_spairs                           = cmp_spairs_by_deg_lex;
       ht->sort.compare_monomials                        = cmp_symbolic_preprocessing_monomials_by_lex;
       ht->sort.compare_monomials_inverse                = cmp_symbolic_preprocessing_monomials_by_inverse_lex;
+      ht->sort.compare_polynomials                      = cmp_polynomials_by_lex;
+      ht->sort.compare_polynomials_inverse              = cmp_polynomials_by_inverse_lex;
       break;
     default:
       abort ();

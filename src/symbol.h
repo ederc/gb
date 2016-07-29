@@ -414,6 +414,178 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
 }
 
 /**
+ * \brief Comparison function of polynomials for quicksort. Compares w.r.t. the
+ * given monomial order lex.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+static inline int cmp_polynomials_by_lex(const void *a,
+    const void *b)
+{
+  poly_t pa = *((poly_t *)a);
+  poly_t pb = *((poly_t *)b);
+
+  hash_t ha = pa.eh[0];
+  hash_t hb = pb.eh[0];
+
+  // else we have to check lexicographical
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
+  return memcmp(expb, expa, sizeof(expa));
+#else
+  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+#endif
+}
+
+/**
+ * \brief Comparison function of polynomials for quicksort. Compares w.r.t. the
+ * given monomial order grevlex.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+static inline int cmp_polynomials_by_grevlex(const void *a,
+    const void *b)
+{
+  poly_t pa = *((poly_t *)a);
+  poly_t pb = *((poly_t *)b);
+
+  hash_t ha = pa.eh[0];
+  hash_t hb = pb.eh[0];
+
+  // compare degree first
+  if (ht->deg[hb] > ht->deg[ha]) {
+    return 1;
+  } else {
+    if (ht->deg[ha] > ht->deg[hb])
+      return -1;
+  }
+
+  // else we have to check reverse lexicographical
+  // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
+  // => we can use memcmp() here and still get reverse lexicographical ordering
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
+  return memcmp(expa, expb, sizeof(expa));
+#else
+  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+#endif
+}
+
+/**
+ * \brief Comparison function of polynomials for quicksort. Compares inverted 
+ * w.r.t. the given monomial order lex.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+static inline int cmp_polynomials_by_inverse_lex(const void *a,
+    const void *b)
+{
+  poly_t pa = *((poly_t *)a);
+  poly_t pb = *((poly_t *)b);
+
+  hash_t ha = pa.eh[0];
+  hash_t hb = pb.eh[0];
+
+  // else we have to check lexicographical
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
+  return memcmp(expa, expb, sizeof(expa));
+#else
+  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+#endif
+}
+
+/**
+ * \brief Comparison function of polynomials for quicksort. Compares inverted
+ * w.r.t. the given monomial order grevlex.
+ *
+ * \param value a
+ *
+ * \param value b
+ *
+ * \returns negative value if a is non lead and b is lead; 0 if both are lead or
+ * both are non lead; a positive value if a is lead and b is non lead
+ */
+static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
+    const void *b)
+{
+  poly_t pa = *((poly_t *)a);
+  poly_t pb = *((poly_t *)b);
+
+  hash_t ha = pa.eh[0];
+  hash_t hb = pb.eh[0];
+
+  // compare degree first
+  if (ht->deg[ha] > ht->deg[hb]) {
+    return 1;
+  } else {
+    if (ht->deg[hb] > ht->deg[ha])
+      return -1;
+  }
+
+  // else we have to check reverse lexicographical
+  // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
+  // => we can use memcmp() here and still get reverse lexicographical ordering
+#if __GB_HAVE_SSE2
+  nvars_t i;
+  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
+    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
+    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
+  return memcmp(expb, expa, sizeof(expa));
+#else
+  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+#endif
+}
+
+/**
  * \brief Sorts columns resp. monomials found by symbolic preprocessing to get
  * two different parts: Monomials which are lead monomials and monomials which
  * are non lead monomials.

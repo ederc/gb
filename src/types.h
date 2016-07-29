@@ -370,6 +370,8 @@ typedef struct sort_t
   int (*compare_spairs)(const void *a, const void *b);
   int (*compare_monomials)(const void *a, const void *b);
   int (*compare_monomials_inverse)(const void *a, const void *b);
+  int (*compare_polynomials)(const void *a, const void *b);
+  int (*compare_polynomials_inverse)(const void *a, const void *b);
 } sort_t;
 
 /**
@@ -423,6 +425,13 @@ typedef struct dbr_t
   coeff_t **bl; /*!< array of blocks of coefficients for the dense part of
                      the gbla matrix*/
 } dbr_t;
+
+typedef struct poly_t {
+  coeff_t *cf;
+  hash_t *eh;
+  nelts_t nt;
+} poly_t;
+
 
 
 // global meta_data

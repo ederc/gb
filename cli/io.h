@@ -280,14 +280,16 @@ static inline info_t *init_meta_data()
 void inverse_coefficient(coeff_t *x, const coeff_t modulus);
 
 /**
- * \brief Prints resulting groebner basis to stdout.
+ * \brief Prints resulting groebner basis to stdout, sorted w.r.t. the given
+ * monomial order.
  *
  * \param groebner basis basis
  */
 void print_basis(const gb_t *basis);
 
 /**
- * \brief Prints resulting groebner basis in Singular style.
+ * \brief Prints resulting groebner basis in Singular style, sorted w.r.t. the
+ * given monomial order.
  *
  * \param groebner basis basis
  */

@@ -419,8 +419,8 @@ static inline nelts_t get_pairs_by_minimal_degree_lex(ps_t *ps)
   // sort pair set by lcms
   sort_pair_set_by_lcm_deg_lex(ps);
 
-  deg_t dmin  = ps->pairs[0]->deg;
   nelts_t i   = 0;
+  deg_t dmin  = ps->pairs[0]->deg;
 
   // we assume here that the pair set is already sorted by degree of the lcms
   // (in particular, we assume grevlex ordering)

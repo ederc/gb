@@ -103,16 +103,21 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
     const mp_cf4_ht_t *ht,  const ri_t rankDR)
 {
   ri_t i;
-  hash_t hash;
+  int res;
   for (i=0; i<rankDR; ++i) {
     // add lowest row first, it has the smallest new lead monomial
-    hash = add_new_element_to_basis_grevlex(basis, mat, rankDR-1-i, spd, ht);
+    res = add_new_element_to_basis(basis, mat, rankDR-1-i, spd, ht);
     // if hash value 0 is new lead monomial we are done, since we have found a
     // unit in the basis, i.e. basis = { 1 }
-    if (hash == 0)
+    if (res == -1)
+      continue;
+    if (res == 0)
       return 1;
     update_pair_set(ps, basis, basis->load-1);
-    track_redundant_elements_in_basis(basis);
+    // if elements are homogeneous we compute by degree, thus no redundancy can
+    // appear
+    if (basis->hom == 0)
+      track_redundant_elements_in_basis(basis);
   }
   return 0;
 }
@@ -159,6 +164,6 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
  *
  * \param hash table ht
  */
-void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
+void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
     const mp_cf4_ht_t *ht);
 #endif

@@ -96,9 +96,12 @@ gb_t *initialize_simplifier_list(const gb_t *basis);
  *
  * \param hash table ht
  *
- * \return hash value of new lead monomial
+ * \return integer that indicates the following situation:
+ * 0:   the new element would be a constant
+ * 1:   the new element is a added to the basis
+ * -1:  the new element is not added to the basis since it is redundant
  */
-hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
+int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
     const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
 
 /**
@@ -121,7 +124,7 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
  *
  * \param hash table ht
  */
-void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
+void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
     const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
 
 /**
@@ -241,7 +244,7 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
 {
   nelts_t i;
   // check for redundancy of other elements in basis
-  for (i=basis->st; i<basis->load-2; ++i) {
+  for (i=basis->st; i<basis->load-1; ++i) {
     if (basis->red[i] == NOT_REDUNDANT) {
       if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
         basis->red[i] = REDUNDANT;
@@ -249,7 +252,28 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
       }
     }
   }
+}
 
+/**
+ * \brief Checks if the new element is probably already redundant. This is
+ * possible if elements of lower degree were added to basis in the same
+ * reduction step and one of these elements has a lead term dividing the lead
+ * term of this new, higher-degree element.
+ *
+ * \param hash of new lead term hash
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \return 0 if not redundant, =/= 0 else
+ */
+static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basis)
+{
+  // check for redundancy of other elements in basis
+  for (int i=basis->st; i<basis->load; ++i) {
+    if (check_monomial_division(hash, basis->eh[i][0], ht) == 1)
+      return 1;
+  }
+  return 0;
 }
 
 /**

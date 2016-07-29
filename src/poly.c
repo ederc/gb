@@ -116,7 +116,7 @@ inline gb_t *initialize_simplifier_list(const gb_t *basis)
   return sf;
 }
 
-void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
+void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
     const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
 {
   nelts_t i;
@@ -234,9 +234,24 @@ void add_new_element_to_simplifier_list_grevlex(gb_t *basis, gb_t *sf,
   link_simplifier_to_basis(basis, sf, spd, ri);
 }
 
-hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
+int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
     const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
 {
+  // get position of lead term in this row
+  const nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
+
+  // check first if this element might be redundant: this is only possible if
+  // the input elements are not homogeneous. in this situation we might have
+  // several new elements from D which have lead terms that divide each other.
+  // if all polynomials are homogeneous this cannot happen since then such a
+  // lead term divisibility must have been found already in the linear algebra
+  // reduction process.
+  if (basis->hom == 0 &&
+      check_new_element_for_redundancy(spd->col->hpos[fc], basis) != 0) {
+    return -1;
+  }
+
+  // if not redundandant
   nelts_t i;
 
   if (basis->load == basis->size)
@@ -250,7 +265,6 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   
   nelts_t ctr = 0;
   deg_t deg   = 0;
-  const nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
 #if POLY_DEBUG
   printf("new lm from row %u: ", ri);
 #if !__GB_HAVE_SSE2
@@ -270,6 +284,8 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
   hash_t hv  = ht->val[spd->col->hpos[fc]];
+  if (hv == 0)
+    return 0;
 
   for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
     if (mat->DR->row[ri]->piv_val[i] != 0) {
@@ -324,5 +340,5 @@ hash_t add_new_element_to_basis_grevlex(gb_t *basis, const mat_t *mat,
   }
   basis->load++;
 
-  return hv;
+  return 1;
 }

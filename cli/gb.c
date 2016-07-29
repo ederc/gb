@@ -512,7 +512,7 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
+void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
     const mp_cf4_ht_t *ht)
 {
   if (spd->col->nlm != 0) {
@@ -530,10 +530,10 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
           if (mat->BR->row[i]->init_val != NULL) {
             copy_to_val(mat->BR, i);
             reduce_B_by_D(mat->BR, mat->DR, i);
-            add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+            add_new_element_to_simplifier_list(basis, sf, mat->BR, i, spd, ht);
           }
 #else
-          add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+          add_new_element_to_simplifier_list(basis, sf, mat->BR, i, spd, ht);
 #endif
         }
       }
@@ -544,7 +544,7 @@ void add_simplifier_grevlex(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
           if (mat->BR->row[i]->init_val != NULL) {
             copy_to_val(mat->BR, i);
             reduce_B_by_D(mat->BR, mat->DR, i);
-            add_new_element_to_simplifier_list_grevlex(basis, sf, mat->BR, i, spd, ht);
+            add_new_element_to_simplifier_list(basis, sf, mat->BR, i, spd, ht);
           }
         }
       }
@@ -568,7 +568,7 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
       // for further computation
 #pragma omp task
       {
-        add_simplifier_grevlex(basis, sf, mat, spd, ht);
+        add_simplifier(basis, sf, mat, spd, ht);
       }
 #pragma omp task
       {

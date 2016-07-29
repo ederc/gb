@@ -829,6 +829,8 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
 {
+  if (ht->deg[h1] < ht->deg[h2])
+    return 0;
   nvars_t i;
 #if __GB_HAVE_SSE2
   exp_v cmpv;
@@ -874,6 +876,8 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline int check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_t *ht)
 {
+  if (ht->deg[h1] < ht->deg[h2])
+    return 0;
   nvars_t i;
 #if __GB_HAVE_SSE2
   exp_v cmpv;

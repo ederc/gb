@@ -234,10 +234,11 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------------\n");
     printf("field characteristic        %15d\n", basis->mod);
     printf("monomial order              %15s\n", orders[basis->ord]);
-    printf("number of variables         %15d\n", basis->nv);
+    printf("number of variables         %15d\n", basis->rnv);
     // See note on gb_t in src/types.h why we decrement basis->load here.
     printf("number of generators        %15d\n", basis->load-1);
-    printf("homogeneous input?          %15d\n", basis->hom);
+    printf("homogeneous input?          %15d\n", basis->init_hom);
+    printf("homogeneous computation?    %15d\n", basis->hom);
     printf("input file size             %18.2f %s\n", basis->fs, basis->fsu);
     printf("---------------------------------------------------------------------------\n");
   }

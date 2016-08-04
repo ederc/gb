@@ -116,7 +116,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
           check_monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht) != 0) {
         ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
-        printf("2CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+        printf("2CC for (%u,%u) by (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2,ps->pairs[j]->gen1, ps->pairs[j]->gen2);
 #endif
         break;
       }

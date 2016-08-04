@@ -210,8 +210,10 @@ typedef struct gb_t
   nelts_t load;     /*!<  number of elements in basis*/
   nelts_t load_ls;  /*!<  number of elements in basis at the end of the last step*/
   nelts_t st;       /*!<  start of the real basis, everything before is input data */
-  nvars_t nv;       /*!<  number of variables */
-  hom_t hom;        /*!<  homogeneous input? 1=yes, 0=no */
+  nvars_t rnv;      /*!<  real number of variables from input */
+  nvars_t nv;       /*!<  number of variables, possibly including homogenization variable */
+  hom_t init_hom;   /*!<  homogeneous input? 1=yes, 0=no */
+  hom_t hom;        /*!<  homogeneous computation? 1=yes, 0=no (we might homogenize) */
   ord_t ord;        /*!<  monomial ordering */
   nelts_t nred;     /*!<  number of redundant elements in basis */
   coeff_t mod;      /*!<  modulo/field characteristic */

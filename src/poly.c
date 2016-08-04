@@ -30,8 +30,9 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->ord  = (ord_t)order;
   basis->nred = 0;
   // per default homogeneous, easier to check inhomogeneity when reading input data
-  basis->hom  = 1;
-  basis->mtl  = 0;
+  basis->init_hom = 1;
+  basis->hom      = 1;
+  basis->mtl      = 0;
   // #generators of the input system = nlines - 2 since the first line has the
   // variable names and second line is the field modulus. Then we add 1 since we
   // keep the element at position 0 NULL for faster divisibility checks
@@ -40,7 +41,10 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->st       = basis->load;
 
   basis->size   = 3 * basis->load;
-  basis->nv     = nvars;
+  // we add one extra variable space for possible homogenizations during the
+  // computation
+  basis->rnv    = nvars;
+  basis->nv     = nvars+1;
   basis->vnames = vnames;
   basis->mod    = mod;
   
@@ -74,7 +78,7 @@ inline gb_t *initialize_basis(const int order, const int nlines,
     basis->fs   = basis->fs / 1024;
     basis->fsu  = "GB";
   }
-  for (i=0; i<basis->nv; ++i) {
+  for (i=0; i<basis->rnv; ++i) {
     // calculates the maximal term length: here we take the longes variable
     // name, later we add 10 for coefficient and "+")
     if (basis->mtl < strlen(basis->vnames[i]))
@@ -83,7 +87,7 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   // add to max. term length 5 for "^{exp}"
   basis->mtl  +=  5;
   // multiply max. term length by number of variables
-  basis->mtl  *=  basis->nv;
+  basis->mtl  *=  basis->rnv;
   // now add maximal coefficient length to mtl (max. term length)
   basis->mtl  +=  COEFFICIENT_CHAR_LENGTH;
   return basis;

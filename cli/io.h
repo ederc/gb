@@ -70,6 +70,21 @@ nvars_t get_nvars(const char *fn);
 void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht);
 
 /**
+ * \brief Homogenizes input polynomials with an extra variable.
+ *
+ * \note When initializing the hash table we always create a "+1" offset for
+ * such a homogenizing variable, thus we do not have to recreate the hash table.
+ *
+ * \note This function is mostly used when we have a monomial order that is not
+ * degree compatible and the input system is not homogeneous
+ *
+ * \param input elements resp. intermediate basis basis
+ *
+ * \param hash table ht
+ */
+void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht);
+
+/**
  * \brief Loads input file and intializes input data structure
  *
  * \note The input files need to have the following format at the moment:

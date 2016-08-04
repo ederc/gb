@@ -176,7 +176,7 @@ static inline void free_basis(gb_t **basis_in)
       basis->sf = NULL;
     }
 
-    for (i=0; i<basis->nv; ++i) {
+    for (i=0; i<basis->rnv; ++i) {
       free(basis->vnames[i]);
     }
     free(basis->vnames);

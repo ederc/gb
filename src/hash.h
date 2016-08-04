@@ -164,7 +164,8 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
 
   // global table data
   ht->sz    = pow(2,ht_si);
-  ht->nv    = nv;
+  // we add one extra variable in case we have to homogenize the system
+  ht->nv    = nv+1;
   // for easier divisibility checks we start at index 1. If the divisibility
   // check routines return 0, there is no division.
   ht->load  = 1;
@@ -184,10 +185,6 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
   }
 #else
   ht->exp   = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
-#if __GB_USE_64_EXP_VEC
-  int parts = ht->nv % 8 == 0 ? ht->nv/8 : ht->nv/8+1;
-  ht->nv    = parts;
-#endif
   // get memory for each exponent
   for (i=0; i<ht->sz; ++i) {
     ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
@@ -790,6 +787,7 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ", exp[ii]);
   printf("\n");
+  printf("deg %u\n", deg);
   */
 #else
   exp_t *lcm, *e1, *e2;
@@ -803,13 +801,14 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   for (i=0; i<ht->nv; ++i) {
     deg +=  lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
   }
+  ht->deg[ht->load] = deg;
   /*
   printf("LCM ");
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ", lcm[ii]);
   printf("\n");
+  printf("deg %u\n", deg);
   */
-  ht->deg[ht->load] = deg;
 #endif
   return check_in_hash_table(ht);
 }

@@ -49,6 +49,56 @@
 #endif
 
 /**
+ * Returns a sorted and possibly saturated (i.e. elements in
+ * the basis that are redundant after saturation are marked) groebner basis.
+ *
+ * \param resulting groebner basis basis
+ *
+ * \return final groebner basis, sorted and possibly saturated
+ */
+static inline poly_t *final_basis_for_output(gb_t *basis)
+{
+  nelts_t bs  = basis->load - basis->st - basis->nred;
+  poly_t *fb  = (poly_t *)malloc(bs * sizeof(poly_t));
+  nelts_t np = 0;
+  for (int i=basis->st; i<basis->load; ++i) {
+    if (basis->red[i] == NOT_REDUNDANT) {
+      fb[np].cf   = basis->cf[i];
+      fb[np].eh   = basis->eh[i];
+      fb[np].nt   = basis->nt[i];
+      fb[np].red  = NOT_REDUNDANT;
+      np++;
+    }
+  }
+  // sort final basis
+  qsort(fb, np, sizeof(poly_t), ht->sort.compare_polynomials_inverse);
+
+  fb  = realloc(fb, np*sizeof(poly_t));
+
+  // if the given monomial order is not degree compatible and the input system
+  // is not homogeneous the computation was homogenized, thus we have to
+  // saturate, i.e. recheck for redundancy when setting the homogenization
+  // variable to 1.
+  // note that we have already removed redundant elements, but when saturating
+  // more redundancy might appear.
+  if (basis->init_hom == 0 && basis->hom == 1) {
+    for (int i=0; i<bs; ++i) {
+      for (int j=0; j<i; ++j) {
+        if (check_monomial_division_saturated(fb[i].eh[0], fb[j].eh[0], ht) == 1) {
+          fb[i].red  = REDUNDANT;
+          np--;
+          break;
+        }
+      }
+    }
+  }
+  // final size of basis
+  basis->fl = np;
+
+  return fb;
+}
+
+/**
  * \brief Gets number of variables, needs to be done before reading file
  * completely as we need to initialize the hash table beforehand
  *
@@ -299,14 +349,18 @@ void inverse_coefficient(coeff_t *x, const coeff_t modulus);
  * monomial order.
  *
  * \param groebner basis basis
+ *
+ * \param already sorted and possibly saturated final basis fb
  */
-void print_basis(const gb_t *basis);
+void print_basis(const gb_t *basis, const poly_t *fb);
 
 /**
  * \brief Prints resulting groebner basis in Singular style, sorted w.r.t. the
  * given monomial order.
  *
  * \param groebner basis basis
+ *
+ * \param already sorted and possibly saturated final basis fb
  */
-void print_basis_in_singular_format(const gb_t *basis);
+void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb);
 #endif

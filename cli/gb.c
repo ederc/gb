@@ -453,6 +453,13 @@ int main(int argc, char *argv[])
     if (done)
       break;
   }
+
+  // final basis for possible output data
+  poly_t *fb  = NULL;
+  // generate final basis for output data
+  if (verbose > 0 || print_gb > 0) {
+    fb  = final_basis_for_output(basis);
+  }
   if (verbose > 0) {
     printf("---------------------------------------------------------------------------\n");
     printf("%-38s","Time for updating pairs ...");
@@ -481,7 +488,7 @@ int main(int argc, char *argv[])
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
     printf("---------------------------------------------------------------------------\n");
-    printf("Size of basis                     %9u\n",basis->load - basis->st - basis->nred);
+    printf("Size of basis                     %9u\n", basis->fl);
     printf("Number of zero reductions         %9lu\n", n_zero_reductions);
     printf("---------------------------------------------------------------------------\n");
     if (verbose > 2)
@@ -493,10 +500,10 @@ int main(int argc, char *argv[])
     case 0:
       break;
     case 1:
-      print_basis(basis);
+      print_basis(basis, fb);
       break;
     case 2:
-      print_basis_in_singular_format(basis);
+      print_basis_in_singular_format(basis, fb);
       break;
     default:
       break;
@@ -509,6 +516,7 @@ int main(int argc, char *argv[])
     free_simplifier_list(&sf);
   free_basis(&basis);
   free_hash_table(&ht);
+  free(fb);
 
   return 0;
 }

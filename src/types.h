@@ -208,7 +208,8 @@ typedef struct gb_t
   // global data
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in basis*/
-  nelts_t load_ls;  /*!<  number of elements in basis at the end of the last step*/
+  nelts_t load_ls;  /*!<  number of elements in basis after last step*/
+  nelts_t fl;       /*!<  final length of basis without redundant elements*/
   nelts_t st;       /*!<  start of the real basis, everything before is input data */
   nvars_t rnv;      /*!<  real number of variables from input */
   nvars_t nv;       /*!<  number of variables, possibly including homogenization variable */
@@ -429,9 +430,10 @@ typedef struct dbr_t
 } dbr_t;
 
 typedef struct poly_t {
-  coeff_t *cf;
-  hash_t *eh;
-  nelts_t nt;
+  coeff_t *cf;  /*!<  stores coefficients of polynomial*/
+  hash_t *eh;   /*!<  stores exponent hashes of polynomial*/
+  nelts_t nt;   /*!<  stores number of terms of polynomial*/
+  red_t red;    /*!<  stores if the element is redundant or not*/
 } poly_t;
 
 

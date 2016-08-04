@@ -433,7 +433,6 @@ static inline int cmp_polynomials_by_lex(const void *a,
   hash_t ha = pa.eh[0];
   hash_t hb = pb.eh[0];
 
-  // else we have to check lexicographical
 #if __GB_HAVE_SSE2
   nvars_t i;
   exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
@@ -519,7 +518,6 @@ static inline int cmp_polynomials_by_inverse_lex(const void *a,
   hash_t ha = pa.eh[0];
   hash_t hb = pb.eh[0];
 
-  // else we have to check lexicographical
 #if __GB_HAVE_SSE2
   nvars_t i;
   exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
@@ -581,6 +579,15 @@ static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
   }
   return memcmp(expb, expa, sizeof(expa));
 #else
+  printf("b: ");
+  for (int j=0; j<ht->nv; ++j)
+    printf("%u ", ht->exp[hb][j]);
+  printf("\n");
+  printf("a: ");
+  for (int j=0; j<ht->nv; ++j)
+    printf("%u ", ht->exp[ha][j]);
+  printf("\n");
+  printf("memcmp(b,a) = %d\n", memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv));
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
 #endif
 }

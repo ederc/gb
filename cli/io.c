@@ -807,7 +807,7 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   }
 }
 
-void print_basis(const gb_t *basis)
+void print_basis(const gb_t *basis, const poly_t *fb)
 {
   nelts_t i, j;
   nvars_t k;
@@ -823,47 +823,18 @@ void print_basis(const gb_t *basis)
   printf("%s\n", basis->vnames[k]);
   printf("%u\n", basis->mod);
   // prints groebner basis
-  nelts_t bs    = basis->load - basis->st - basis->nred;
-  poly_t *polys = (poly_t *)malloc(bs * sizeof(poly_t));
-  int np = 0;
-  for (i=basis->st; i<basis->load; ++i) {
-    if (basis->red[i] == NOT_REDUNDANT) {
-      polys[np].cf  = basis->cf[i];
-      polys[np].eh  = basis->eh[i];
-      polys[np].nt  = basis->nt[i];
-      np++;
-    }
-  }
-  qsort(polys, np, sizeof(poly_t), ht->sort.compare_polynomials_inverse);
+  nelts_t bs  = basis->load - basis->st - basis->nred;
 
   for (i=0; i<bs; ++i) {
-    // we do the first term differently, since we do not have a "+" in front of
-    // it
-    printf("%u", polys[i].cf[0]);
-#if __GB_HAVE_SSE2
-    for (k=0; k<ht->nev; ++k)
-      _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[polys[i].eh[0]][k]);
-#else
-    exp = ht->exp[polys[i].eh[0]];
-#endif
-    for (k=0; k<basis->rnv; ++k) {
-      if (basis->ord == 0) {
-        if (exp[basis->rnv-1-k] != 0) {
-          printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
-        }
-      } else {
-        if (exp[k] != 0) {
-          printf("*%s^%u", basis->vnames[k], exp[k]);
-        }
-      }
-    }
-    for (j=1; j<polys[i].nt; ++j) {
-      printf("+%u", polys[i].cf[j]);
+    if (fb[i].red == NOT_REDUNDANT) {
+      // we do the first term differently, since we do not have a "+" in front of
+      // it
+      printf("%u", fb[i].cf[0]);
 #if __GB_HAVE_SSE2
       for (k=0; k<ht->nev; ++k)
-        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[polys[i].eh[j]][k]);
+        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[0]][k]);
 #else
-      exp = ht->exp[basis->eh[i][j]];
+      exp = ht->exp[fb[i].eh[0]];
 #endif
       for (k=0; k<basis->rnv; ++k) {
         if (basis->ord == 0) {
@@ -876,12 +847,32 @@ void print_basis(const gb_t *basis)
           }
         }
       }
+      for (j=1; j<fb[i].nt; ++j) {
+        printf("+%u", fb[i].cf[j]);
+#if __GB_HAVE_SSE2
+        for (k=0; k<ht->nev; ++k)
+          _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[j]][k]);
+#else
+        exp = ht->exp[fb[i].eh[j]];
+#endif
+        for (k=0; k<basis->rnv; ++k) {
+          if (basis->ord == 0) {
+            if (exp[basis->rnv-1-k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
+            }
+          } else {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[k]);
+            }
+          }
+        }
+      }
+      printf("\n");
     }
-    printf("\n");
   }
 }
 
-void print_basis_in_singular_format(const gb_t *basis)
+void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
 {
   nelts_t i, j;
   nvars_t k;
@@ -953,50 +944,24 @@ void print_basis_in_singular_format(const gb_t *basis)
     printf(";\n");
   }
 
-  // prints groebner basis
+  // prints groebner basis sorted w.r.t. the given monomial order
   printf("ideal g;\n");
-  nelts_t bs    = basis->load - basis->st - basis->nred;
-  poly_t *polys = (poly_t *)malloc(bs * sizeof(poly_t));
-  int np = 0;
-  for (i=basis->st; i<basis->load; ++i) {
-    if (basis->red[i] == NOT_REDUNDANT) {
-      polys[np].cf  = basis->cf[i];
-      polys[np].eh  = basis->eh[i];
-      polys[np].nt  = basis->nt[i];
-      np++;
-    }
-  }
-  qsort(polys, np, sizeof(poly_t), ht->sort.compare_polynomials_inverse);
-
+  // we need to get the basis size without the probably removed elements due to
+  // saturation
+  nelts_t bs  = basis->load - basis->st - basis->nred;
+  int ctr = 0;
   for (i=0; i<bs; ++i) {
-    printf("g[%u]=", i+1);
-    // we do the first term differently, since we do not have a "+" in front of
-    // it
-    printf("%u", polys[i].cf[0]);
-#if __GB_HAVE_SSE2
-    for (k=0; k<ht->nev; ++k)
-      _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[polys[i].eh[0]][k]);
-#else
-    exp = ht->exp[polys[i].eh[0]];
-#endif
-    for (k=0; k<basis->rnv; ++k) {
-      if (basis->ord == 0) {
-        if (exp[basis->rnv-1-k] != 0) {
-          printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
-        }
-      } else {
-        if (exp[k] != 0) {
-          printf("*%s^%u", basis->vnames[k], exp[k]);
-        }
-      }
-    }
-    for (j=1; j<polys[i].nt; ++j) {
-      printf("+%u", polys[i].cf[j]);
+    if (fb[i].red == NOT_REDUNDANT) {
+      printf("g[%u]=", ctr+1);
+      ctr++;
+      // we do the first term differently, since we do not have a "+" in front of
+      // it
+      printf("%u", fb[i].cf[0]);
 #if __GB_HAVE_SSE2
       for (k=0; k<ht->nev; ++k)
-        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[polys[i].eh[j]][k]);
+        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[0]][k]);
 #else
-      exp = ht->exp[basis->eh[i][j]];
+      exp = ht->exp[fb[i].eh[0]];
 #endif
       for (k=0; k<basis->rnv; ++k) {
         if (basis->ord == 0) {
@@ -1009,10 +974,31 @@ void print_basis_in_singular_format(const gb_t *basis)
           }
         }
       }
+      for (j=1; j<fb[i].nt; ++j) {
+        printf("+%u", fb[i].cf[j]);
+#if __GB_HAVE_SSE2
+        for (k=0; k<ht->nev; ++k)
+          _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[j]][k]);
+#else
+        exp = ht->exp[fb[i].eh[j]];
+#endif
+        for (k=0; k<basis->rnv; ++k) {
+          if (basis->ord == 0) {
+            if (exp[basis->rnv-1-k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
+            }
+          } else {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[k]);
+            }
+          }
+        }
+      }
+      printf(";\n");
     }
-    printf(";\n");
   }
 }
+
 void inverse_coefficient(coeff_t *x, const coeff_t modulus)
 {
   assert(*x);

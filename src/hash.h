@@ -871,9 +871,9 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  *
  * \param hash table ht
  *
- * \return 0 if not divisible, 1 is divisible
+ * \return 0 if not divisible, 1 if divisible
  */
-static inline int check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_t *ht)
+static inline int check_monomial_division(const hash_t h1, const hash_t h2, const mp_cf4_ht_t *ht)
 {
   if (ht->deg[h1] < ht->deg[h2])
     return 0;
@@ -898,6 +898,61 @@ static inline int check_monomial_division(hash_t h1, hash_t h2, const mp_cf4_ht_
   }
   return 1;
 #endif
+}
+
+/**
+ * \brief Tests if exp of h1 is divisible by exp of h2. If divisibility is
+ * fulfilled only 1 is returned, else 0. This is a special version where the
+ * homogenization variable (last variable) is not taking care of. It is needed
+ * for redundancy checks when saturating polynomials in homogenized
+ * computations.
+ *
+ * \note This procedure only tests "if" divisible, but not "by which" it is
+ * divisible. This is enough for detecting redundant elements when new elements
+ * are added to the intermediate groebner basis.
+ *
+ * \param hash position h1
+ *
+ * \param hash position h2
+ *
+ * \param hash table ht
+ *
+ * \return 0 if not divisible, 1 if divisible (w.r.t to all variables besides
+ * the last one)
+ */
+static inline int check_monomial_division_saturated(const hash_t h1, const hash_t h2, const mp_cf4_ht_t *ht)
+{
+  // do not do the degree check: for saturated polynomials we have not computed
+  // the correct degree!
+  /*
+  if (ht->deg[h1] < ht->deg[h2])
+    return 0;
+  */
+  nvars_t i;
+  exp_t *e1, *e2;
+#if __GB_HAVE_SSE2
+  exp_t exp1[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t exp2[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+  for (i=0; i<ht->nev; ++i) {
+    _mm_store_si128((exp_v *)tmp, ht->ev[h1][i]);
+    memcpy(exp1+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    _mm_store_si128((exp_v *)tmp, ht->ev[h2][i]);
+    memcpy(exp2+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
+  }
+  e1  = exp1;
+  e2  = exp2;
+#else
+  e1  = ht->exp[h1];
+  e2  = ht->exp[h2];
+#endif
+
+  // note that we explicitly do not check w.r.t. the last variable!
+  for (i=0; i<ht->nv-1; ++i) {
+    if (e1[i] < e2[i])
+      return 0;
+  }
+  return 1;
 }
 
 /**

@@ -167,8 +167,11 @@ inline int get_number_of_terms(const char *line)
 inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   nvars_t k;
+  // first we have to fill the buffers with zeroes
 #if __GB_HAVE_SSE2
   exp_t *expv = (exp_t *)calloc(ht->nev * ht->vl, sizeof(exp_t));
+#else
+  memset(ht->exp[ht->load], 0, ht->nv * sizeof(exp_t));
 #endif
   const char mult_splicer = '*';
   const char exp_splicer  = '^';

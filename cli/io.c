@@ -381,37 +381,11 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
   uint8_t *pos_set = (uint8_t *)calloc(basis->load, sizeof(uint8_t));
 
   for (i=1; i<basis->load; ++i) {
-    // if position is already set we do not have to reconsider this element
-    // again
-    if (pos_set[i] == 0) {
-      for (j=1; j<basis->load; ++j) {
-        if (basis->eh[i][0] == sort_eh[j]) {
-          // swap basis elements
-          if (i != j) {
-            tmp_deg = basis->deg[j];
-            tmp_nt  = basis->nt[j];
-            tmp_eh  = basis->eh[j];
-            tmp_cf  = basis->cf[j];
-
-            basis->deg[j] = basis->deg[i];
-            basis->nt[j]  = basis->nt[i];
-            basis->eh[j]  = basis->eh[i];
-            basis->cf[j]  = basis->cf[i];
-
-            basis->deg[i] = tmp_deg;
-            basis->nt[i]  = tmp_nt;
-            basis->eh[i]  = tmp_eh;
-            basis->cf[i]  = tmp_cf;
-            i--;
-          }
-          // set this position to be already done
-          pos_set[j]  = 1;
-          break;
-        }
-      }
-    }
-  }  
-
+    basis->deg[i] = basis->deg[i];
+    basis->nt[i]  = basis->nt[i];
+    basis->eh[i]  = basis->eh[i];
+    basis->cf[i]  = basis->cf[i];
+  }
   // free temporary allocated memory
   free(sort_cf);
   free(sort_eh);

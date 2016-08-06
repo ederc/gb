@@ -117,7 +117,9 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
       continue;
     if (res == 0)
       return 1;
+    //printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load);
     update_pair_set(ps, basis, basis->load-1);
+    //printf("psl after: %u\n", ps->load);
     // if elements are homogeneous we compute by degree, thus no redundancy can
     // appear
     if (basis->hom == 0)

@@ -327,7 +327,11 @@ static inline hash_t get_hash(const exp_v *ev, const mp_cf4_ht_t *ht)
   hash_t hash  = 0;
   for (int i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
-
+#if HASH_DEBUG
+  for (nelts_t i=0; i<ht->nv; ++i)
+    printf("%u ", exp[i]);
+  printf(" --> %lu\n", hash);
+#endif
   return hash;
 }
 #else
@@ -337,11 +341,11 @@ static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
   hash_t hash  = 0;
   for (i=0; i<ht->nv; ++i)
     hash  +=  ht->rand[i] * exp[i];
-  /*
+#if HASH_DEBUG
   for (nelts_t i=0; i<ht->nv; ++i)
     printf("%u ", exp[i]);
   printf(" --> %lu\n", hash);
-  */
+#endif
   return hash;
 }
 #endif

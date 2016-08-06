@@ -579,15 +579,6 @@ static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
   }
   return memcmp(expb, expa, sizeof(expa));
 #else
-  printf("b: ");
-  for (int j=0; j<ht->nv; ++j)
-    printf("%u ", ht->exp[hb][j]);
-  printf("\n");
-  printf("a: ");
-  for (int j=0; j<ht->nv; ++j)
-    printf("%u ", ht->exp[ha][j]);
-  printf("\n");
-  printf("memcmp(b,a) = %d\n", memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv));
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
 #endif
 }
@@ -1068,7 +1059,9 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       printf("%u ",ht->exp[sp->lcm][ii]);
     printf("\n --- \n");
 #endif
-    if ((sp_last != NULL && sp_last->lcm == sp->lcm)) {
+    // only remove pairs if they are not initial input pairs, i.e. where
+    // sp-gen1=0
+    if (sp->gen1 != 0 && sp_last != NULL && sp_last->lcm == sp->lcm) {
         //&&
         //((sp_last->gen1 == sp->gen1) || (sp_last->gen1 == sp->gen2) || (sp_last->gen2 == sp->gen1) || (sp_last->gen2 == sp->gen2))) {
       //printf("DUPLICATE REMOVED!\n");

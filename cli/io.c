@@ -407,7 +407,7 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
     for (j=0; j<basis->nt[i]; ++j) {
 #if __GB_HAVE_SSE2
       // read SSE vector
-      k = 0;
+      int k = 0;
       while (k < ht->nev && k != (ht->nv-1)/ht->vl) {
         ht->ev[ht->load][k] = ht->ev[basis->eh[i][j]][k];
         ++k;

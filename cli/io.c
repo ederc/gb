@@ -341,8 +341,6 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
 {
   coeff_t *tmp_cf;
   hash_t *tmp_eh;
-  deg_t tmp_deg;
-  nelts_t tmp_nt;
   coeff_t *sort_cf  = (coeff_t *)malloc(sizeof(coeff_t));
   hash_t *sort_eh   = (hash_t *)malloc(sizeof(hash_t));
   int i, j, k;
@@ -396,7 +394,7 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
 }
 
 void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
-  int i, j, k;
+  int i, j;
 #if __GB_HAVE_SSE2
   exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
 #endif

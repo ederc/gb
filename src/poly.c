@@ -247,7 +247,12 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   // get position of lead term in this row
   const nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
 
-  // check first if this element might be redundant: this is only possible if
+  // check if we have found a unit in the basis
+  hash_t hv  = ht->val[spd->col->hpos[fc]];
+  if (hv == 0)
+    return 0;
+
+  // check next if this element might be redundant: this is only possible if
   // the input elements are not homogeneous. in this situation we might have
   // several new elements from D which have lead terms that divide each other.
   // if all polynomials are homogeneous this cannot happen since then such a
@@ -290,9 +295,6 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
 #endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
-  hash_t hv  = ht->val[spd->col->hpos[fc]];
-  if (hv == 0)
-    return 0;
 
   for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
     if (mat->DR->row[ri]->piv_val[i] != 0) {

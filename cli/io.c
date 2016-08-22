@@ -147,10 +147,19 @@ inline char *get_variable_name(const char *line, char **prev_pos)
 
 inline int get_number_of_terms(const char *line)
 {
-  const char add_splicer    = '+';
-  const char minus_splicer  = '-';
+  const char add_splicer        = '+';
+  const char minus_splicer      = '-';
+  const char whitespace_splicer = ' ';
   char *tmp;
   int nterms  = 1;
+  // remove useless whitespaces at the beginning
+  int i = 0;
+  while (strncmp(&whitespace_splicer, line+i, 1) == 0)
+    i++;
+  // check if first non-whitespace char is "-", set term counter -1 in this case
+  if (strncmp(&minus_splicer, line+i, 1) == 0)
+    nterms--;
+  // now count terms
   tmp = strchr(line, add_splicer);
   while (tmp != NULL) {
     nterms++;
@@ -255,6 +264,8 @@ inline void get_term(const char *line, char **prev_pos,
   char *start_pos;
   char *curr_pos_add    = strchr(*prev_pos, add_splicer);
   char *curr_pos_minus  = strchr(*prev_pos, minus_splicer);
+  if (curr_pos_minus == line)
+    curr_pos_minus  = strchr(*prev_pos+1, minus_splicer);
 
   if (*prev_pos != line)
     start_pos = *prev_pos - 1;
@@ -264,6 +275,7 @@ inline void get_term(const char *line, char **prev_pos,
   if (curr_pos_add != NULL && curr_pos_minus != NULL) {
     int term_diff_add   = (int)(curr_pos_add - start_pos);
     int term_diff_minus = (int)(curr_pos_minus - start_pos);
+    // if "-" is the first char in the line, we have to adjust the
     // if minus is nearer
     if (term_diff_add > term_diff_minus) {
       memcpy(*term, start_pos, term_diff_minus);
@@ -537,6 +549,9 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       // we do first term differently since we normalize polynomial with lead
       // coefficient
       get_term(line, &prev_pos, &term);
+#if IO_DEBUG
+      printf("%u : %s ",i, term);
+#endif
       // get coefficient first
       if (term != NULL) {
         iv_tmp  = (int)strtol(term, NULL, 10);
@@ -565,6 +580,9 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
 #endif
       for (j=1; j<nterms; ++j) {
         get_term(line, &prev_pos, &term);
+#if IO_DEBUG
+        printf("%s ",term);
+#endif
         // get coefficient first
         if (term != NULL) {
           cf_tmp  = (int)strtol(term, NULL, 10);
@@ -599,6 +617,9 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       }
       basis->deg[i] = max_deg;
     }
+#if IO_DEBUG
+    printf("\n");
+#endif
   }
   basis->hom  = basis->init_hom;
   // for orderings not degree compatible it is at the moment better to just
@@ -788,10 +809,19 @@ void print_basis(const gb_t *basis, const poly_t *fb)
   nvars_t k;
 
 #if __GB_HAVE_SSE2
-  exp_t exp[ht->nev*ht->vl];
+  exp_t exp[ht->nev*ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
 #else
   exp_t *exp = NULL;
 #endif
+
+  // depending on the chosen order we have different start and end points in the
+  // exponent vectors:
+  // for DRL (ord==0) we have stored the exponents in reverse order,
+  // for LEX (prd==1) we kept the usual order, but have possibly homogenized
+  const nvars_t ev_start  = basis->ord == 0 ? basis->rnv : 0;
+  const nvars_t ev_end    = basis->ord == 0 ? 0 : basis->rnv;
+
   for (k=0; k<basis->rnv-1; ++k) {
     printf("%s, ", basis->vnames[k]);
   }
@@ -806,40 +836,58 @@ void print_basis(const gb_t *basis, const poly_t *fb)
       // it
       printf("%u", fb[i].cf[0]);
 #if __GB_HAVE_SSE2
-      for (k=0; k<ht->nev; ++k)
-        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[0]][k]);
+      for (k=0; k<ht->nev; ++k) {
+        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[0]][k]);
+        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
+      }
 #else
       exp = ht->exp[fb[i].eh[0]];
 #endif
-      for (k=0; k<basis->rnv; ++k) {
-        if (basis->ord == 0) {
-          if (exp[basis->rnv-1-k] != 0) {
-            printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
-          }
-        } else {
-          if (exp[k] != 0) {
-            printf("*%s^%u", basis->vnames[k], exp[k]);
-          }
-        }
-      }
-      for (j=1; j<fb[i].nt; ++j) {
-        printf("+%u", fb[i].cf[j]);
-#if __GB_HAVE_SSE2
-        for (k=0; k<ht->nev; ++k)
-          _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[j]][k]);
-#else
-        exp = ht->exp[fb[i].eh[j]];
-#endif
-        for (k=0; k<basis->rnv; ++k) {
-          if (basis->ord == 0) {
-            if (exp[basis->rnv-1-k] != 0) {
-              printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
+      switch (basis->ord) {
+        case 0:
+          for (k=ev_start; k>ev_end; --k) {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
             }
-          } else {
+          }
+          break;
+        case 1:
+          for (k=ev_start; k<ev_end; ++k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[k], exp[k]);
             }
           }
+          break;
+        default:
+          abort();
+      }
+      for (j=1; j<fb[i].nt; ++j) {
+        printf("+%u", fb[i].cf[j]);
+#if __GB_HAVE_SSE2
+      for (k=0; k<ht->nev; ++k) {
+        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[j]][k]);
+        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
+      }
+#else
+        exp = ht->exp[fb[i].eh[j]];
+#endif
+        switch (basis->ord) {
+          case 0:
+            for (k=ev_start; k>ev_end; --k) {
+              if (exp[k] != 0) {
+                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+              }
+            }
+            break;
+          case 1:
+            for (k=ev_start; k<ev_end; ++k) {
+              if (exp[k] != 0) {
+                printf("*%s^%u", basis->vnames[k], exp[k]);
+              }
+            }
+            break;
+          default:
+            abort();
         }
       }
       printf("\n");
@@ -853,7 +901,8 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
   nvars_t k;
 
 #if __GB_HAVE_SSE2
-  exp_t exp[ht->nev*ht->vl];
+  exp_t exp[ht->nev*ht->vl] __attribute__ ((aligned (16)));
+  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
 #else
   exp_t *exp = NULL;
 #endif
@@ -872,6 +921,13 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       abort();
   }
 
+  // depending on the chosen order we have different start and end points in the
+  // exponent vectors:
+  // for DRL (ord==0) we have stored the exponents in reverse order,
+  // for LEX (prd==1) we kept the usual order, but have possibly homogenized
+  const nvars_t ev_start  = basis->ord == 0 ? basis->rnv : 0;
+  const nvars_t ev_end    = basis->ord == 0 ? 0 : basis->rnv;
+
   // prints input ideal
   printf("ideal i;\n");
   for (i=1; i<basis->st; ++i) {
@@ -880,40 +936,58 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     // it
     printf("%u", basis->cf[i][0]);
 #if __GB_HAVE_SSE2
-    for (k=0; k<ht->nev; ++k)
-      _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][0]][k]);
+    for (k=0; k<ht->nev; ++k) {
+      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->eh[i][0]][k]);
+      memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
 #else
     exp = ht->exp[basis->eh[i][0]];
 #endif
-    for (k=0; k<basis->rnv; ++k) {
-      if (basis->ord == 0) {
-        if (exp[basis->rnv-1-k] != 0) {
-          printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
-        }
-      } else {
-        if (exp[k] != 0) {
-          printf("*%s^%u", basis->vnames[k], exp[k]);
-        }
-      }
-    }
-    for (j=1; j<basis->nt[i]; ++j) {
-      printf("+%u", basis->cf[i][j]);
-#if __GB_HAVE_SSE2
-      for (k=0; k<ht->nev; ++k)
-        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[basis->eh[i][j]][k]);
-#else
-      exp = ht->exp[basis->eh[i][j]];
-#endif
-      for (k=0; k<basis->rnv; ++k) {
-        if (basis->ord == 0) {
-          if (exp[basis->rnv-1-k] != 0) {
-            printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
+    switch (basis->ord) {
+      case 0:
+        for (k=ev_start; k>ev_end; --k) {
+          if (exp[k] != 0) {
+            printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
           }
-        } else {
+        }
+        break;
+      case 1:
+        for (k=ev_start; k<ev_end; ++k) {
           if (exp[k] != 0) {
             printf("*%s^%u", basis->vnames[k], exp[k]);
           }
         }
+        break;
+      default:
+        abort();
+    }
+    for (j=1; j<basis->nt[i]; ++j) {
+      printf("+%u", basis->cf[i][j]);
+#if __GB_HAVE_SSE2
+    for (k=0; k<ht->nev; ++k) {
+      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->eh[i][j]][k]);
+      memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+#else
+      exp = ht->exp[basis->eh[i][j]];
+#endif
+      switch (basis->ord) {
+        case 0:
+          for (k=ev_start; k>ev_end; --k) {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+            }
+          }
+          break;
+        case 1:
+          for (k=ev_start; k<ev_end; ++k) {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[k], exp[k]);
+            }
+          }
+          break;
+        default:
+          abort();
       }
     }
     printf(";\n");
@@ -933,40 +1007,58 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       // it
       printf("%u", fb[i].cf[0]);
 #if __GB_HAVE_SSE2
-      for (k=0; k<ht->nev; ++k)
-        _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[0]][k]);
+      for (k=0; k<ht->nev; ++k) {
+        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[0]][k]);
+        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
+      }
 #else
       exp = ht->exp[fb[i].eh[0]];
 #endif
-      for (k=0; k<basis->rnv; ++k) {
-        if (basis->ord == 0) {
-          if (exp[basis->rnv-1-k] != 0) {
-            printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
-          }
-        } else {
-          if (exp[k] != 0) {
-            printf("*%s^%u", basis->vnames[k], exp[k]);
-          }
-        }
-      }
-      for (j=1; j<fb[i].nt; ++j) {
-        printf("+%u", fb[i].cf[j]);
-#if __GB_HAVE_SSE2
-        for (k=0; k<ht->nev; ++k)
-          _mm_storeu_si128((exp_v *)exp + k*ht->vl, ht->ev[fb[i].eh[j]][k]);
-#else
-        exp = ht->exp[fb[i].eh[j]];
-#endif
-        for (k=0; k<basis->rnv; ++k) {
-          if (basis->ord == 0) {
-            if (exp[basis->rnv-1-k] != 0) {
-              printf("*%s^%u", basis->vnames[k], exp[basis->rnv-1-k]);
+      switch (basis->ord) {
+        case 0:
+          for (k=ev_start; k>ev_end; --k) {
+            if (exp[k] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
             }
-          } else {
+          }
+          break;
+        case 1:
+          for (k=ev_start; k<ev_end; ++k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[k], exp[k]);
             }
           }
+          break;
+        default:
+          abort();
+      }
+      for (j=1; j<fb[i].nt; ++j) {
+        printf("+%u", fb[i].cf[j]);
+#if __GB_HAVE_SSE2
+      for (k=0; k<ht->nev; ++k) {
+        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[0]][k]);
+        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
+      }
+#else
+        exp = ht->exp[fb[i].eh[j]];
+#endif
+        switch (basis->ord) {
+          case 0:
+            for (k=ev_start; k>ev_end; --k) {
+              if (exp[k] != 0) {
+                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+              }
+            }
+            break;
+          case 1:
+            for (k=ev_start; k<ev_end; ++k) {
+              if (exp[k] != 0) {
+                printf("*%s^%u", basis->vnames[k], exp[k]);
+              }
+            }
+            break;
+          default:
+            abort();
         }
       }
       printf(";\n");

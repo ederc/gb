@@ -154,4 +154,3 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
   return mat;
 }
-

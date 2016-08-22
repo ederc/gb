@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
     printf("ht->nev: %u | %u | %u\n",ht->nv, ht->nev, ht->vl);
 #endif
 
-  /*  track time for the complete reduction process (excluding load) */
+  // track time for the complete reduction process (excluding load)
   if (verbose > 0) {
     gettimeofday(&t_complete, NULL);
     gettimeofday(&t_load_start, NULL);

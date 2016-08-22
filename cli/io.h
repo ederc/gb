@@ -58,6 +58,21 @@
  */
 static inline poly_t *final_basis_for_output(gb_t *basis)
 {
+  // if we have a unit in the basis we add it "by hand"
+  if (basis->has_unit == 1) {
+    basis->fl = 1;
+    poly_t *fb  = (poly_t *)malloc(1 * sizeof(poly_t));
+    fb[0].cf    = (coeff_t *)malloc(1 * sizeof(coeff_t));
+    fb[0].eh    = (hash_t *)malloc(1 * sizeof(hash_t));
+    fb[0].cf[0] = 1;
+    fb[0].eh[0] = 0;
+    fb[0].nt    = 1;
+    fb[0].red   = NOT_REDUNDANT;
+
+    return fb;
+  }
+
+  // else we sort the basis
   nelts_t bs  = basis->load - basis->st - basis->nred;
   poly_t *fb  = (poly_t *)malloc(bs * sizeof(poly_t));
   nelts_t np = 0;

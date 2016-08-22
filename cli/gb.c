@@ -450,8 +450,10 @@ int main(int argc, char *argv[])
     }
 
     // if we are done then we have found the constant 1 as element in the basis
-    if (done)
+    if (done) {
+      basis->has_unit = 1;
       break;
+    }
   }
 
   // final basis for possible output data
@@ -514,6 +516,11 @@ int main(int argc, char *argv[])
   free_pair_set(&ps);
   if (basis->sl > 0)
     free_simplifier_list(&sf);
+  // if we have found a unit we have allocated memory for the unit
+  if (basis->has_unit == 1) {
+    free(fb[0].cf);
+    free(fb[0].eh);
+  }
   free_basis(&basis);
   free_hash_table(&ht);
   free(fb);

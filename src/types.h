@@ -218,6 +218,7 @@ typedef struct gb_t
   ord_t ord;        /*!<  monomial ordering */
   nelts_t nred;     /*!<  number of redundant elements in basis */
   coeff_t mod;      /*!<  modulo/field characteristic */
+  int has_unit;     /*!<  is set to 1 if we have found a unit in the basis */
   // element data
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/

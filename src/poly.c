@@ -40,6 +40,8 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->load_ls  = basis->load;
   basis->st       = basis->load;
 
+  basis->has_unit = 0;
+
   basis->size   = 3 * basis->load;
   // we add one extra variable space for possible homogenizations during the
   // computation

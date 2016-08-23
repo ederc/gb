@@ -49,6 +49,24 @@
 #endif
 
 /**
+ * Checks is a line of the input file is just empty resp. consists only
+ * of whitespaces
+ *
+ * \param line line
+ *
+ * \return 1 if the line is empty, else 0
+ */
+static inline int is_line_empty(const char *line)
+{
+  while (*line != '\0') {
+    if (!isspace(*line))
+      return 0;
+    line++;
+  }
+  return 1;
+}
+
+/**
  * Returns a sorted and possibly saturated (i.e. elements in
  * the basis that are redundant after saturation are marked) groebner basis.
  *

@@ -471,8 +471,11 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   int nlines  = 0;
   char buf[10000];
   fh  = fopen(fn,"r");
-  while(fgets(buf, sizeof(buf), fh) != NULL)
-    nlines++;
+  while(fgets(buf, sizeof(buf), fh) != NULL) {
+    // check if there are empty lines in the input file
+    if (is_line_empty(buf) == 0)
+      nlines++;
+  }
   fclose(fh);
 
   fh  = fopen(fn,"r");
@@ -531,7 +534,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   int iv_tmp  = 0; // temp for inverse value, possibly coeff is negative.
   coeff_t iv  = 0; //inverse value of lead coeff in order to normalize input
   for (i=1; i<basis->load; ++i) {
-    if (fgets(line, max_line_size, fh) != NULL) {
+    if (fgets(line, max_line_size, fh) != NULL && is_line_empty(line) != 1) {
       // get number of terms first
       nterms        = get_number_of_terms(line);
       basis->nt[i]  = nterms;
@@ -616,6 +619,10 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
           basis->init_hom  = 0;
       }
       basis->deg[i] = max_deg;
+    } else {
+      // the line is empty, thus we have to reset i by -1 and continue the loop
+      i--;
+      continue;
     }
 #if IO_DEBUG
     printf("\n");

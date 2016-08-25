@@ -1054,16 +1054,20 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 #if SYMBOL_DEBUG
     if (sp_last != NULL)
       printf("lgen1 %u -- lgen2 %u -- llcm %lu | ", sp_last->gen1, sp_last->gen2, sp_last->lcm);
-    printf("gen1  %u -- gen2  %u -- lcm  %lu | ", sp->gen1, sp->gen2, sp->lcm);
+    printf("gen1  %u (red? %u) -- gen2  %u (red? %u) -- lcm  %lu | ", sp->gen1, basis->red[sp->gen1], sp->gen2, basis->red[sp->gen2], sp->lcm);
+    if (sp_last != NULL)
+      printf("lcm(%u,%u) = %lu\n", sp->gen2, sp_last->gen2, get_lcm(basis->eh[sp->gen2][0],basis->eh[sp_last->gen2][0], ht));
     for (int ii=0; ii<ht->nv; ++ii)
       printf("%u ",ht->exp[sp->lcm][ii]);
     printf("\n --- \n");
 #endif
     // only remove pairs if they are not initial input pairs, i.e. where
     // sp-gen1=0
-    if (sp->gen1 != 0 && sp_last != NULL && sp_last->lcm == sp->lcm) {
-        //&&
-        //((sp_last->gen1 == sp->gen1) || (sp_last->gen1 == sp->gen2) || (sp_last->gen2 == sp->gen1) || (sp_last->gen2 == sp->gen2))) {
+    //if (sp->gen1 != 0 && sp_last != NULL && sp_last->lcm == sp->lcm) {
+    if (  (basis->red[sp->gen1] > 0 && basis->red[sp->gen1] != sp->gen2)
+        //|| (sp->gen1 != 0 && sp_last != NULL && sp_last->lcm == sp->lcm && sp_last->gen1 != sp->gen1)
+          //&& sp_last->gen1 == sp->gen1 && sp->lcm != get_lcm(basis->eh[sp->gen2][0],basis->eh[sp_last->gen2][0], ht))
+       ) {
       //printf("DUPLICATE REMOVED!\n");
       //printf("#TERMS KEPT    %5u + %5u = %5u\n", basis->nt[sp_last->gen1], basis->nt[sp_last->gen2], basis->nt[sp_last->gen1]+basis->nt[sp_last->gen2]);
       //printf("#TERMS REMOVED %5u + %5u = %5u\n", basis->nt[sp->gen1], basis->nt[sp->gen2], basis->nt[sp->gen1]+basis->nt[sp->gen2]);

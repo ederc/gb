@@ -85,7 +85,7 @@ static inline poly_t *final_basis_for_output(gb_t *basis)
     fb[0].cf[0] = 1;
     fb[0].eh[0] = 0;
     fb[0].nt    = 1;
-    fb[0].red   = NOT_REDUNDANT;
+    fb[0].red   = 0;
 
     return fb;
   }
@@ -95,11 +95,11 @@ static inline poly_t *final_basis_for_output(gb_t *basis)
   poly_t *fb  = (poly_t *)malloc(bs * sizeof(poly_t));
   nelts_t np = 0;
   for (int i=basis->st; i<basis->load; ++i) {
-    if (basis->red[i] == NOT_REDUNDANT) {
+    if (basis->red[i] == 0) {
       fb[np].cf   = basis->cf[i];
       fb[np].eh   = basis->eh[i];
       fb[np].nt   = basis->nt[i];
-      fb[np].red  = NOT_REDUNDANT;
+      fb[np].red  = 0;
       np++;
     }
   }
@@ -118,7 +118,7 @@ static inline poly_t *final_basis_for_output(gb_t *basis)
     for (int i=0; i<bs; ++i) {
       for (int j=0; j<i; ++j) {
         if (check_monomial_division_saturated(fb[i].eh[0], fb[j].eh[0], ht) == 1) {
-          fb[i].red  = REDUNDANT;
+          fb[i].red = 1; // any value =/= 0 is OK to mark it for deletion
           np--;
           break;
         }

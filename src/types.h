@@ -182,7 +182,7 @@ typedef struct info_t
  * groebner basis which lead monomial divides the lead monomial of an existing
  * element, this element is redundant.
  */
-typedef enum {NOT_REDUNDANT, REDUNDANT} red_t;
+typedef hash_t red_t;
 
 typedef struct sf_t
 {

@@ -839,7 +839,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
   //nelts_t bs  = basis->load - basis->st - basis->nred;
 
   for (i=0; i<bs; ++i) {
-    if (fb[i].red == NOT_REDUNDANT) {
+    if (fb[i].red == 0) {
       // we do the first term differently, since we do not have a "+" in front of
       // it
       printf("%u", fb[i].cf[0]);
@@ -1009,7 +1009,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
   //nelts_t bs  = basis->load - basis->st - basis->nred;
   int ctr = 0;
   for (i=0; i<bs; ++i) {
-    if (fb[i].red == NOT_REDUNDANT) {
+    if (fb[i].red == 0) {
       printf("g[%u]=", ctr+1);
       ctr++;
       // we do the first term differently, since we do not have a "+" in front of

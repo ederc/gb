@@ -109,7 +109,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
     if (ps->pairs[i]->crit != NO_CRIT)
       continue;
     for (j=ps->load; j<i; ++j) {
-      if (i==j || ps->pairs[j]->crit == CHAIN_CRIT) // smaller lcm eliminated j
+      if (ps->pairs[j]->crit != NO_CRIT) // smaller lcm eliminated j
         continue;
       //if (ps->pairs[i]->lcm == ps->pairs[j]->lcm) {
       if (ps->pairs[i]->lcm != ps->pairs[j]->lcm &&
@@ -129,7 +129,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
     if (ps->pairs[i]->crit == PROD_CRIT) {
       // eliminate all new pairs with this lcm
       for (j=ps->load; j<cur_len; ++j) {
-        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+        if (ps->pairs[j]->crit == NO_CRIT && ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
           ps->pairs[j]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
           printf("3CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
@@ -143,7 +143,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
           ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
-          printf("4CC for (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
+          printf("4CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
 #endif
           break;
         }
@@ -217,7 +217,7 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   
   // if one of the generators is redundant we can stop already here and mark it
   // with the CHAIN_CRIT in order to remove it later on
-  if (basis->red[gen2] == REDUNDANT) {
+  if (basis->red[gen2] > 0) {
     sp->crit  = CHAIN_CRIT;
     return sp;
   }

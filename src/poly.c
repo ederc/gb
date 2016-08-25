@@ -278,7 +278,7 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   nelts_t ctr = 0;
   deg_t deg   = 0;
 #if POLY_DEBUG
-  printf("new lm from row %u: ", ri);
+  printf("new lm from row %u (basis element %u): ", ri, basis->load);
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
@@ -333,7 +333,7 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
 #endif
   basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;
-  basis->red[basis->load] = NOT_REDUNDANT;
+  basis->red[basis->load] = 0;
 
 
   // realloc memory to the correct number of terms

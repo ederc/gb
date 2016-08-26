@@ -54,6 +54,8 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->nt     = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
   basis->deg    = (deg_t *)malloc(basis->size * sizeof(deg_t));
   basis->red    = (red_t *)malloc(basis->size * sizeof(red_t));
+  // for the zero and the initial elements we set the redundancy value to zero
+  memset(basis->red, 0, basis->st * sizeof(red_t));
   basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
   basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
   basis->sl     = simplify;

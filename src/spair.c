@@ -229,11 +229,13 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
     sp->crit  = CHAIN_CRIT;
     return sp;
   }
-  sp->crit  = NO_CRIT;
   // check for product criterion and mark correspondingly, i.e. we set sp->deg=0
-  if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]])
+  if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]]) {
     sp->crit  = PROD_CRIT;
-
+    return sp;
+  }
+  // else
+  sp->crit  = NO_CRIT;
   return sp;
 }
 

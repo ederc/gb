@@ -369,8 +369,8 @@ int main(int argc, char *argv[])
       }
     }
     if (verbose == 1) {
-      printf("step %3d : %5u spairs  --->  %7u x %7u matrix\n", steps, meta_data->sel_pairs, meta_data->mat_rows, meta_data->mat_cols);
-      //printf("%d:%u|%u,%u\n", steps, meta_data->sel_pairs, meta_data->mat_rows, meta_data->mat_cols);
+      printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
+          steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
     }
     //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
     if (verbose > 0)

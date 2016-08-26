@@ -155,6 +155,7 @@ typedef re_t coeff_t;
 typedef struct info_t
 {
   nelts_t sel_pairs;                          /*!<  number of selected pairs in last step*/
+  nelts_t curr_deg;                           /*!<  degree of pairs in current step*/
   nelts_t mat_cols;                           /*!<  number of columns in last gbla matrix*/
   nelts_t mat_rows;                           /*!<  number of rows in last gbla matrix*/
   nelts_t nred_last;                          /*!<  number of elements reduced in last step*/

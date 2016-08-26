@@ -185,6 +185,23 @@ typedef struct info_t
  */
 typedef hash_t red_t;
 
+/**
+ * \brief Data structure storing temporarily a  list of indices of basis
+ * elements that already appear in the symbolic preprocessing as a generator of
+ * an spair with the given lcm. Thus we can remove duplicate rows from the gbla
+ * matrices resp. not enter them to the matrix construction at all.
+ */
+typedef struct dup_t
+{
+  nelts_t *idx;
+  nelts_t load;
+  nelts_t size;
+  hash_t lcm;
+} dup_t;
+
+/**
+ * \brief Data structure for connecting simplifiers with basis elements
+ */
 typedef struct sf_t
 {
   //hash_t *mul;  /*!<  hash of multiplier of simplified element */

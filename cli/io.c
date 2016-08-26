@@ -1045,7 +1045,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
         printf("+%u", fb[i].cf[j]);
 #if __GB_HAVE_SSE2
       for (k=0; k<ht->nev; ++k) {
-        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[0]][k]);
+        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[j]][k]);
         memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
       }
 #else

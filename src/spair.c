@@ -122,6 +122,30 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       }
     }
   }
+  for (i=ps->load; i<cur_len; ++i) {
+    switch (ps->pairs[i]->crit) {
+      case CHAIN_CRIT:
+        continue;
+        break;
+      case PROD_CRIT:
+        for (j=ps->load; j<cur_len; ++j) {
+          if (ps->pairs[j]->crit == NO_CRIT && ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+            ps->pairs[j]->crit  = CHAIN_CRIT;
+          }
+        }
+        break;
+      case NO_CRIT:
+        for (j=ps->load; j<i; ++j) {
+          if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+            ps->pairs[i]->crit  = CHAIN_CRIT;
+          }
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  /*
   // third step: remove new pairs via product criterion
   for (i=ps->load; i<cur_len; ++i) {
     if (ps->pairs[i]->crit == CHAIN_CRIT)
@@ -129,7 +153,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
     if (ps->pairs[i]->crit == PROD_CRIT) {
       // eliminate all new pairs with this lcm
       for (j=ps->load; j<cur_len; ++j) {
-        if (ps->pairs[j]->crit == NO_CRIT && ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
           ps->pairs[j]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
           printf("3CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
@@ -150,6 +174,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       }
     }
   }
+  */
 }
 
 inline nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t ctr)

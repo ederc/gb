@@ -1065,16 +1065,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     // has made an older one redundant. thus we only need to keep the one pair
     // that consists of the new basis element and the element that is redundant
     // due to it.
-    // NOTE: we only remove pairs if they are not initial input pairs, i.e. where
-    // sp-gen1=0.
-    //if (sp->gen1 != 0 && sp_last != NULL && sp_last->lcm == sp->lcm) {
-    if ( (basis->red[sp->gen1] > 0 && basis->red[sp->gen1] != sp->gen2)
-        //|| (sp->gen1 != 0 && sp_last != NULL && sp_last->lcm == sp->lcm && sp_last->gen1 != sp->gen1)
-          //&& sp_last->gen1 == sp->gen1 && sp->lcm != get_lcm(basis->eh[sp->gen2][0],basis->eh[sp_last->gen2][0], ht))
-       ) {
-      //printf("DUPLICATE REMOVED!\n");
-      //printf("#TERMS KEPT    %5u + %5u = %5u\n", basis->nt[sp_last->gen1], basis->nt[sp_last->gen2], basis->nt[sp_last->gen1]+basis->nt[sp_last->gen2]);
-      //printf("#TERMS REMOVED %5u + %5u = %5u\n", basis->nt[sp->gen1], basis->nt[sp->gen2], basis->nt[sp->gen1]+basis->nt[sp->gen2]);
+    if ((basis->red[sp->gen1] > 0 || basis->red[sp->gen2] > 0)
+          && basis->red[sp->gen1] != sp->gen2) {
       meta_data->sel_pairs--;
       continue;
     }

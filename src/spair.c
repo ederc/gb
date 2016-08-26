@@ -202,6 +202,13 @@ inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *bas
 inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
+  // we have to fix the positions where the new basis element is put (gen2),
+  // since we are trying to remove as much as possible useless elements in
+  // select_pairs(). if we would dynamically adjust the positioning (as done in
+  // the below commented out code) we could no longer track this correctly.
+  sp->gen1  = gen2;
+  sp->gen2  = gen1;
+  /*
   // number of terms in polynomials decides which one is going to the upper part
   // of the gbla matrix (sp->gen1) and which one to the lower part (sp->gen2)
   if (basis->nt[gen1] < basis->nt[gen2]) {
@@ -211,6 +218,7 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
     sp->gen1  = gen2;
     sp->gen2  = gen1;
   }
+  */
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
   sp->nt    = basis->nt[gen1] + basis->nt[gen2];
   sp->deg   = ht->deg[sp->lcm];

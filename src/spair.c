@@ -179,24 +179,24 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   */
 }
 
-void gebauer_moeller_new(ps_t *ps, const gb_t *basis)
+void gebauer_moeller_new(ps_t *ps, const gb_t *basis, const int nthrds)
 {
   const nelts_t fidx  = basis->load_ls; // index of first new element
   const nelts_t lidx  = basis->load-1;  // index of last new element
 
   nelts_t pos1, pos2;
-  int i, j, k; // we need ints to cover cases where i=0 and j=i-1
 
   // first step: remove elements already in ps due to chain criterion with new
   // pairs in new_pairs
-  for (i=0; i<ps->load; ++i) {
+#pragma omp parallel for num_threads(nthrds)
+  for (int i=0; i<ps->load; ++i) {
     // do not check on initial spairs
     if (ps->pairs[i]->gen1 != 0) {
       // See note on gb_t in src/types.h why we adjust position by -basis->st.
       pos1  = ps->pairs[i]->gen1 - basis->st;
       pos2  = ps->pairs[i]->gen2 - basis->st;
       int sum = 0;
-      for (j=fidx; j<lidx+1; ++j) {
+      for (int j=fidx; j<lidx+1; ++j) {
         sum +=  (int)(j-2-fidx) > 0 ? j-2-fidx : 0;
         hash_t hash  = basis->eh[j][0];
         if (ps->pairs[i]->lcm != ps->pairs[ps->load+(j-fidx)*(basis->load_ls-basis->st)+sum+pos1]->lcm &&
@@ -211,10 +211,13 @@ void gebauer_moeller_new(ps_t *ps, const gb_t *basis)
     }
   }
 
+#pragma omp parallel num_threads(nthrds)
+{
   int sum   = 0;
   int start = 0;
   int end   = ps->load;
-  for (k=fidx; k<lidx+1; ++k) {
+#pragma omp for
+  for (int k=fidx; k<lidx+1; ++k) {
     sum +=  (int)(k-2-fidx) > 0 ? k-2-fidx : 0;
     start = end;
     end   = start+k-basis->st;
@@ -223,10 +226,10 @@ void gebauer_moeller_new(ps_t *ps, const gb_t *basis)
     qsort(ps->pairs+start, k-basis->st, sizeof(spair_t **), ht->sort.compare_spairs);
   
     // second step: remove new pairs by themselves w.r.t the chain criterion
-    for (i=start; i<end; ++i) {
+    for (int i=start; i<end; ++i) {
       if (ps->pairs[i]->crit != NO_CRIT)
         continue;
-      for (j=start; j<i; ++j) {
+      for (int j=start; j<i; ++j) {
         if (ps->pairs[j]->crit != NO_CRIT) // smaller lcm eliminated j
           continue;
         //if (ps->pairs[i]->lcm == ps->pairs[j]->lcm) {
@@ -240,20 +243,20 @@ void gebauer_moeller_new(ps_t *ps, const gb_t *basis)
         }
       }
       }
-      for (i=start; i<end; ++i) {
+      for (int i=start; i<end; ++i) {
         switch (ps->pairs[i]->crit) {
           case CHAIN_CRIT:
             continue;
             break;
           case PROD_CRIT:
-            for (j=start; j<end; ++j) {
+            for (int j=start; j<end; ++j) {
               if (ps->pairs[j]->crit == NO_CRIT && ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
                 ps->pairs[j]->crit  = CHAIN_CRIT;
               }
             }
             break;
           case NO_CRIT:
-            for (j=start; j<i; ++j) {
+            for (int j=start; j<i; ++j) {
               if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
                 ps->pairs[i]->crit  = CHAIN_CRIT;
               }
@@ -264,6 +267,7 @@ void gebauer_moeller_new(ps_t *ps, const gb_t *basis)
         }
       }
     }
+}
   /*
   // third step: remove new pairs via product criterion
   for (i=ps->load; i<cur_len; ++i) {

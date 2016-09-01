@@ -149,7 +149,7 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
  * then the computation is done; else it returns 0.
  */
 static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
-    const mp_cf4_ht_t *ht,  const ri_t rankDR)
+    const mp_cf4_ht_t *ht,  const ri_t rankDR, const int nthrds)
 {
   ri_t i;
   int res;
@@ -169,7 +169,7 @@ static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const mat_
     if (basis->hom == 0)
       track_redundant_elements_in_basis(basis);
   }
-  update_pair_set_new(ps, basis);
+  update_pair_set_new(ps, basis, nthrds);
   // track load of basis at the end of this step
   basis->load_ls  = basis->load;
   return 0;

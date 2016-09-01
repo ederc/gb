@@ -130,7 +130,7 @@ spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basi
  * \param index in basis of newly added basis element idx
  */
 void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
-void gebauer_moeller_new(ps_t *ps, const gb_t *basis);
+void gebauer_moeller_new(ps_t *ps, const gb_t *basis, const int nthrds);
 
 /**
  * \brief Remove spairs detected by either product or chain criterion
@@ -181,24 +181,25 @@ static inline nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const n
  */
 void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx);
 
-static inline void update_pair_set_new(ps_t *ps, const gb_t *basis)
+static inline void update_pair_set_new(ps_t *ps, const gb_t *basis, const int nthrds)
 {
   const nelts_t fidx  = basis->load_ls; // index of first new element
   const nelts_t lidx  = basis->load-1;  // index of last new element
-  nelts_t i, j;
   int sum = 0;
-  for (j=fidx; j<lidx+1; ++j)
-    sum +=  (int)(j-2-fidx) > 0 ? j-2-fidx : 0;
+  for (int j=fidx; j<lidx+1; ++j)
+    sum +=  (j-basis->st);
+    //sum +=  (int)(j-2-fidx) > 0 ? j-2-fidx : 0;
 
   nelts_t end = 0;
   //printf("idx %u\n", i);
   // we get maximal (lidx-1)*(basis->load_ls-basis->st)+sum new pairs
-  while (ps->size <= ps->load + (lidx-1)*(basis->load_ls-basis->st)+sum)
+  while (ps->size <= ps->load + sum)
     enlarge_pair_set(ps, 2*ps->size);
-  for (i=fidx; i<lidx+1; ++i) {
+#pragma omp parallel for num_threads(1)
+  for (int i=fidx; i<lidx+1; ++i) {
     // generate spairs with the initial elements in basis
     // See note on gb_t in src/types.h why we start at position 1 here.
-    for (j=basis->st; j<i; ++j) {
+    for (int j=basis->st; j<i; ++j) {
       ps->pairs[ps->load+end] = generate_spair(i, j, basis, ht);
 #if SPAIR_DEBUG
       printf("pair %p %u, %u + %u | %u\n",ps->pairs[ps->load+j-basis->st],i,j,ps->load,ps->pairs[ps->load+j-basis->st]->deg);
@@ -213,7 +214,7 @@ static inline void update_pair_set_new(ps_t *ps, const gb_t *basis)
     // applies in generate_spair()
   }
   //printf("%u new elements, %u new pairs, %u length of pair set\n", lidx+1-fidx, end, ps->load+end);
-  gebauer_moeller_new(ps, basis);
+  gebauer_moeller_new(ps, basis, nthrds);
   // fix pair set and remove detected pairs
   meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, end);
   meta_data->ncrit_total  +=  meta_data->ncrit_last;

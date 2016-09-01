@@ -588,7 +588,8 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
       }
 #pragma omp task
       {
-        done  = update_basis_new(basis, ps, spd, mat, ht, rankDR);
+        //done  = update_basis(basis, ps, spd, mat, ht, rankDR);
+        done  = update_basis_new(basis, ps, spd, mat, ht, rankDR, nthreads);
       }
     }
     #pragma omp taskwait

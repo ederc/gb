@@ -46,6 +46,7 @@ void enter_input_elements_to_pair_set(ps_t *ps, const gb_t *basis)
 inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
   nelts_t i;
+   // printf("idx %u\n", idx);
 
   // we get maximal idx-1 new pairs
   if (ps->size <= ps->load + (idx-1))
@@ -70,6 +71,7 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, idx-basis->st);
   meta_data->ncrit_total  +=  meta_data->ncrit_last;
 }
+
 
 void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
@@ -177,33 +179,122 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   */
 }
 
-inline nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t ctr)
+void gebauer_moeller_new(ps_t *ps, const gb_t *basis)
 {
-  // current length can be computed already, need to adjust by the starting
-  // position in basis
-  const nelts_t cur_len = ps->load + ctr;
-  nelts_t i, j, nremoved;
+  const nelts_t fidx  = basis->load_ls; // index of first new element
+  const nelts_t lidx  = basis->load-1;  // index of last new element
 
-  j         = 0;
-  nremoved  = 0;
-  for (i=0; i<cur_len; ++i) {
-    if (ps->pairs[i]->crit != NO_CRIT) {
+  nelts_t pos1, pos2;
+  int i, j, k; // we need ints to cover cases where i=0 and j=i-1
+
+  // first step: remove elements already in ps due to chain criterion with new
+  // pairs in new_pairs
+  for (i=0; i<ps->load; ++i) {
+    // do not check on initial spairs
+    if (ps->pairs[i]->gen1 != 0) {
+      // See note on gb_t in src/types.h why we adjust position by -basis->st.
+      pos1  = ps->pairs[i]->gen1 - basis->st;
+      pos2  = ps->pairs[i]->gen2 - basis->st;
+      int sum = 0;
+      for (j=fidx; j<lidx+1; ++j) {
+        sum +=  (int)(j-2-fidx) > 0 ? j-2-fidx : 0;
+        hash_t hash  = basis->eh[j][0];
+        if (ps->pairs[i]->lcm != ps->pairs[ps->load+(j-fidx)*(basis->load_ls-basis->st)+sum+pos1]->lcm &&
+            ps->pairs[i]->lcm != ps->pairs[ps->load+(j-fidx)*(basis->load_ls-basis->st)+sum+pos2]->lcm &&
+            check_monomial_division(ps->pairs[i]->lcm, hash, ht) != 0) {
+          ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
-      printf("REMOVED (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
+          printf("CC for (%u,%u)\n",pos1+1, pos2+1);
 #endif
-      nremoved++;
-      //printf("%p %u\n", ps->pairs[i], i);
-      free(ps->pairs[i]);
-      ps->pairs[i]  = NULL;
-      continue;
+        }
+      }
     }
-    ps->pairs[j++]  = ps->pairs[i];
   }
-  ps->load  = j;
 
-  return nremoved;
+  int sum   = 0;
+  int start = 0;
+  int end   = ps->load;
+  for (k=fidx; k<lidx+1; ++k) {
+    sum +=  (int)(k-2-fidx) > 0 ? k-2-fidx : 0;
+    start = end;
+    end   = start+k-basis->st;
+    // next: sort new pairs bunch by bunch for each new basis element
+    //printf("sorts from %u to %u\n", start, end);
+    qsort(ps->pairs+start, k-basis->st, sizeof(spair_t **), ht->sort.compare_spairs);
+  
+    // second step: remove new pairs by themselves w.r.t the chain criterion
+    for (i=start; i<end; ++i) {
+      if (ps->pairs[i]->crit != NO_CRIT)
+        continue;
+      for (j=start; j<i; ++j) {
+        if (ps->pairs[j]->crit != NO_CRIT) // smaller lcm eliminated j
+          continue;
+        //if (ps->pairs[i]->lcm == ps->pairs[j]->lcm) {
+        if (ps->pairs[i]->lcm != ps->pairs[j]->lcm &&
+            check_monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht) != 0) {
+          ps->pairs[i]->crit  = CHAIN_CRIT;
+#if SPAIR_DEBUG
+          printf("2CC for (%u,%u) by (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2,ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+#endif
+          break;
+        }
+      }
+      }
+      for (i=start; i<end; ++i) {
+        switch (ps->pairs[i]->crit) {
+          case CHAIN_CRIT:
+            continue;
+            break;
+          case PROD_CRIT:
+            for (j=start; j<end; ++j) {
+              if (ps->pairs[j]->crit == NO_CRIT && ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+                ps->pairs[j]->crit  = CHAIN_CRIT;
+              }
+            }
+            break;
+          case NO_CRIT:
+            for (j=start; j<i; ++j) {
+              if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+                ps->pairs[i]->crit  = CHAIN_CRIT;
+              }
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  /*
+  // third step: remove new pairs via product criterion
+  for (i=ps->load; i<cur_len; ++i) {
+    if (ps->pairs[i]->crit == CHAIN_CRIT)
+      continue;
+    if (ps->pairs[i]->crit == PROD_CRIT) {
+      // eliminate all new pairs with this lcm
+      for (j=ps->load; j<cur_len; ++j) {
+        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+          ps->pairs[j]->crit  = CHAIN_CRIT;
+#if SPAIR_DEBUG
+          printf("3CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+#endif
+        }
+      }
+    } else { // earlier pairs may eliminate this pair
+      for (j=ps->load; j<i; ++j) {
+      //for (j=i-1; j>=(int)ps->load; --j) {
+       // printf("j %u || %d\n", j, j);
+        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+          ps->pairs[i]->crit  = CHAIN_CRIT;
+#if SPAIR_DEBUG
+          printf("4CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
+#endif
+          break;
+        }
+      }
+    }
+  }
+  */
 }
-
 
 inline void enlarge_pair_set(ps_t *ps, const nelts_t new_size)
 {
@@ -250,7 +341,7 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   
   // if one of the generators is redundant we can stop already here and mark it
   // with the CHAIN_CRIT in order to remove it later on
-  if (basis->red[gen2] > 0) {
+  if (basis->red[sp->gen1] > 0 && basis->red[sp->gen1] != sp->gen2) {
     sp->crit  = CHAIN_CRIT;
     return sp;
   }

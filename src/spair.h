@@ -190,17 +190,20 @@ static inline void update_pair_set_new(ps_t *ps, const gb_t *basis, const int nt
     sum +=  (j-basis->st);
     //sum +=  (int)(j-2-fidx) > 0 ? j-2-fidx : 0;
 
-  nelts_t end = 0;
   //printf("idx %u\n", i);
   // we get maximal (lidx-1)*(basis->load_ls-basis->st)+sum new pairs
   while (ps->size <= ps->load + sum)
     enlarge_pair_set(ps, 2*ps->size);
-#pragma omp parallel for num_threads(1)
+#pragma omp parallel for num_threads(nthrds)
   for (int i=fidx; i<lidx+1; ++i) {
+    int start = ps->load;
+    nelts_t end = 0;
+    for (int j=fidx; j<i; ++j)
+      start +=  (j-basis->st);
     // generate spairs with the initial elements in basis
     // See note on gb_t in src/types.h why we start at position 1 here.
     for (int j=basis->st; j<i; ++j) {
-      ps->pairs[ps->load+end] = generate_spair(i, j, basis, ht);
+      ps->pairs[start+end] = generate_spair(i, j, basis, ht);
 #if SPAIR_DEBUG
       printf("pair %p %u, %u + %u | %u\n",ps->pairs[ps->load+j-basis->st],i,j,ps->load,ps->pairs[ps->load+j-basis->st]->deg);
 #endif
@@ -216,7 +219,7 @@ static inline void update_pair_set_new(ps_t *ps, const gb_t *basis, const int nt
   //printf("%u new elements, %u new pairs, %u length of pair set\n", lidx+1-fidx, end, ps->load+end);
   gebauer_moeller_new(ps, basis, nthrds);
   // fix pair set and remove detected pairs
-  meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, end);
+  meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, sum);
   meta_data->ncrit_total  +=  meta_data->ncrit_last;
 }
 

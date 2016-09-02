@@ -51,14 +51,8 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->mod    = mod;
   
   // allocate memory for elements
-  basis->nt     = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
-  basis->deg    = (deg_t *)malloc(basis->size * sizeof(deg_t));
-  basis->red    = (red_t *)malloc(basis->size * sizeof(red_t));
-  // for the zero and the initial elements we set the redundancy value to zero
-  memset(basis->red, 0, basis->st * sizeof(red_t));
-  basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
-  basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
-  basis->sl     = simplify;
+  basis->p  = (poly_t **)malloc(basis->size * sizeof(poly_t *));
+  basis->sl = simplify;
 
   if (basis->sl > 0) {
     basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
@@ -109,17 +103,14 @@ inline gb_t *initialize_simplifier_list(const gb_t *basis)
   sf->vnames  = NULL;
 
   // allocate memory for elements
-  sf->nt  = (nelts_t *)malloc(sf->size * sizeof(nelts_t));
-  sf->deg = (deg_t *)malloc(sf->size * sizeof(deg_t));
-  sf->red = (red_t *)malloc(sf->size * sizeof(red_t));
-  sf->cf  = (coeff_t **)malloc(sf->size * sizeof(coeff_t *));
-  sf->eh  = (hash_t **)malloc(sf->size * sizeof(hash_t *));
+  sf->p   = (poly_t **)malloc(sf->size * sizeof(poly_t *));
   sf->sf  = NULL;
 
   // initialize element at position 0 to NULL for faster divisibility checks
   // later on
-  sf->cf[0]  = NULL;
-  sf->eh[0]  = NULL;
+  sf->p[0]      = (poly_t *)malloc(sizeof(poly_t));
+  sf->p[0]->cf  = NULL;
+  sf->p[0]->eh  = NULL;
   sf->load++;
 
   return sf;
@@ -135,18 +126,22 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
 
   // maximal size is B->ncols + 1 (for A)
   nelts_t ms  = B->ncols + 1;
+
+  // allocate memory for new poly
+  sf->p[sf->load]   = (poly_t *)malloc(sizeof(poly_t));
+  poly_t * const p  = sf->p[sf->load];
   // use shorter names in here
-  sf->cf[sf->load] = (coeff_t *)malloc(ms * sizeof(coeff_t));
-  sf->eh[sf->load] = (hash_t *)malloc(ms * sizeof(hash_t));
+  p->cf = (coeff_t *)malloc(ms * sizeof(coeff_t));
+  p->eh = (hash_t *)malloc(ms * sizeof(hash_t));
 
   nelts_t ctr = 0;
   deg_t deg   = 0;
 
   // first we add the term from A
-  sf->cf[sf->load][ctr] = 1;
-  sf->eh[sf->load][ctr] = spd->col->hpos[ri];
-  deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-    ht->deg[sf->eh[sf->load][ctr]] : deg;
+  p->cf[ctr] = 1;
+  p->eh[ctr] = spd->col->hpos[ri];
+  deg = ht->deg[p->eh[ctr]] > deg ?
+    ht->deg[p->eh[ctr]] : deg;
   ctr++;
 
 #if POLY_DEBUG
@@ -198,20 +193,20 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
   if (values != NULL) {
     for (i=si; i<B->ncols; ++i) {
       if (values[i] != 0) {
-        sf->cf[sf->load][ctr] = values[i];
+        p->cf[ctr] = values[i];
         // note that we have to adjust the position via shifting it by
         // spd->col->nlm since DR is on the righthand side of the matrix
-        sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+        p->eh[ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
-        printf("%u|",sf->cf[sf->load][ctr]);
+        printf("%u|",p->cf[ctr]);
 #if !__GB_HAVE_SSE2
         for (int ii=0; ii<ht->nv; ++ii)
-          printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
+          printf("%u",ht->exp[p->eh[ctr]][ii]);
         printf("  ");
 #endif
 #endif
-        deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-          ht->deg[sf->eh[sf->load][ctr]] : deg;
+        deg = ht->deg[p->eh[ctr]] > deg ?
+          ht->deg[p->eh[ctr]] : deg;
         ctr++;
       }
     }
@@ -220,20 +215,18 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
   printf("\n");
   printf("deg: %u\n", deg);
 #endif
-  sf->nt[sf->load]  = ctr;
-  sf->deg[sf->load] = deg;
+  p->nt   = ctr;
+  p->deg  = deg;
 
 
   // realloc memory to the correct number of terms
-  sf->cf[sf->load]  = realloc(sf->cf[sf->load],
-    sf->nt[sf->load] * sizeof(coeff_t));
-  sf->eh[sf->load]  = realloc(sf->eh[sf->load],
-      sf->nt[sf->load] * sizeof(hash_t));
+  p->cf  = realloc(p->cf, p->nt * sizeof(coeff_t));
+  p->eh  = realloc(p->eh, p->nt * sizeof(hash_t));
 
 #if POLY_DEBUG
   printf("new simplifier: %u\n",ri);
-  for (int ii=0; ii<sf->nt[sf->load]; ++ii)
-    printf("%lu ", sf->eh[sf->load][ii]);
+  for (int ii=0; ii<p->nt; ++ii)
+    printf("%lu ", p->eh[ii]);
   printf("\n");
 #endif
   sf->load++;
@@ -273,10 +266,14 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
 
   // maximal size is DR->ncols - row's piv lead
   nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
+
+  // allocate memory for new poly
+  basis->p[basis->load] = (poly_t *)malloc(sizeof(poly_t));
+  poly_t * const p      = basis->p[basis->load];
   // use shorter names in here
-  basis->cf[basis->load]  = (coeff_t *)malloc(ms * sizeof(coeff_t)); 
-  basis->eh[basis->load]  = (hash_t *)malloc(ms * sizeof(hash_t)); 
-  
+  p->cf = (coeff_t *)malloc(ms * sizeof(coeff_t));
+  p->eh = (hash_t *)malloc(ms * sizeof(hash_t));
+
   nelts_t ctr = 0;
   deg_t deg   = 0;
 #if POLY_DEBUG
@@ -300,12 +297,12 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
 
   for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
     if (mat->DR->row[ri]->piv_val[i] != 0) {
-      basis->cf[basis->load][ctr] = mat->DR->row[ri]->piv_val[i];
+      p->cf[ctr]  = mat->DR->row[ri]->piv_val[i];
       // note that we have to adjust the position via shifting it by
       // spd->col->nlm since DR is on the righthand side of the matrix
-      basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+      p->eh[ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
-    printf("%u|",basis->cf[basis->load][ctr]);
+    printf("%u|",basis->p[basis->load].cf[ctr]);
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
@@ -323,8 +320,7 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   printf("  ");
 #endif
 #endif
-      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
-        ht->deg[basis->eh[basis->load][ctr]] : deg;
+      deg = ht->deg[p->eh[ctr]] > deg ? ht->deg[p->eh[ctr]] : deg;
       ctr++;
     }
   }
@@ -333,16 +329,14 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   printf("deg: %u\n", deg);
   printf("# terms = 1 + %u\n",ctr-1);
 #endif
-  basis->nt[basis->load]  = ctr;
-  basis->deg[basis->load] = deg;
-  basis->red[basis->load] = 0;
+  p->nt  = ctr;
+  p->deg = deg;
+  p->red = 0;
 
 
   // realloc memory to the correct number of terms
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(coeff_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
+  p->cf = realloc(p->cf, p->nt * sizeof(coeff_t));
+  p->eh = realloc(p->eh, p->nt * sizeof(hash_t));
 
   if (basis->sf != NULL) {
     basis->sf[basis->load].size = 3;

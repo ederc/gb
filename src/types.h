@@ -210,6 +210,14 @@ typedef struct sf_t
   nelts_t load; /*!<  number of elements in simplifier list for this polynomial */
 } sf_t;
 
+typedef struct poly_t {
+  coeff_t *cf;  /*!<  stores coefficients of polynomial*/
+  hash_t *eh;   /*!<  stores exponent hashes of polynomial*/
+  nelts_t nt;   /*!<  stores number of terms of polynomial*/
+  red_t red;    /*!<  stores if the element is redundant or not*/
+  deg_t deg;    /*!<  stores the degree of the polynomial*/
+} poly_t;
+
 /**
  * \brief Groebner basis, starts with input data
  * 
@@ -238,11 +246,7 @@ typedef struct gb_t
   coeff_t mod;      /*!<  modulo/field characteristic */
   int has_unit;     /*!<  is set to 1 if we have found a unit in the basis */
   // element data
-  nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
-  deg_t *deg;       /*!<  degree of each element resp. polynomial*/
-  red_t *red;       /*!<  stores if the element is redundant or not*/
-  coeff_t **cf;     /*!<  coefficients of input elements*/
-  hash_t **eh;      /*!<  monomial exponent hash*/
+  poly_t **p;       /*!<  list of pointers of polynomials*/
   sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if
                           simplification is not used */
   int sl;           /*!<  global simplify level */
@@ -447,15 +451,6 @@ typedef struct dbr_t
   coeff_t **bl; /*!< array of blocks of coefficients for the dense part of
                      the gbla matrix*/
 } dbr_t;
-
-typedef struct poly_t {
-  coeff_t *cf;  /*!<  stores coefficients of polynomial*/
-  hash_t *eh;   /*!<  stores exponent hashes of polynomial*/
-  nelts_t nt;   /*!<  stores number of terms of polynomial*/
-  red_t red;    /*!<  stores if the element is redundant or not*/
-} poly_t;
-
-
 
 // global meta_data
 extern info_t *meta_data;

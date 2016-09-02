@@ -359,25 +359,26 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
 
   // first we sort the terms of each input polynomial w.r.t. the monomial order
   for (i=1; i<basis->load; ++i) {
+    const nelts_t nt  = basis->p[i]->nt;
     // sort exponent hashes
-    sort_eh  = realloc(sort_eh, basis->nt[i] * sizeof(hash_t));
-    sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(coeff_t));
-    memcpy(sort_eh, basis->eh[i], basis->nt[i] * sizeof(hash_t));
-    qsort(sort_eh, basis->nt[i], sizeof(hash_t), ht->sort.compare_monomials);
+    sort_eh  = realloc(sort_eh, nt * sizeof(hash_t));
+    sort_cf  = realloc(sort_cf, nt * sizeof(coeff_t));
+    memcpy(sort_eh, basis->p[i]->eh, nt * sizeof(hash_t));
+    qsort(sort_eh, nt, sizeof(hash_t), ht->sort.compare_monomials);
     // sort coefficients like the exponent hashes
-    for (j=0; j<basis->nt[i]; ++j) {
-      for (k=0; k<basis->nt[i]; ++k) {
-        if (basis->eh[i][k] == sort_eh[j]) {
-          sort_cf[j]  = basis->cf[i][k];
+    for (j=0; j<nt; ++j) {
+      for (k=0; k<nt; ++k) {
+        if (basis->p[i]->eh[k] == sort_eh[j]) {
+          sort_cf[j]  = basis->p[i]->cf[k];
         }
       }
     }
     // swap arrays
-    tmp_cf  = basis->cf[i];
-    tmp_eh  = basis->eh[i];
+    tmp_cf  = basis->p[i]->cf;
+    tmp_eh  = basis->p[i]->eh;
 
-    basis->cf[i]  = sort_cf;
-    basis->eh[i]  = sort_eh;
+    basis->p[i]->cf  = sort_cf;
+    basis->p[i]->eh  = sort_eh;
     
     sort_cf = tmp_cf;
     sort_eh = tmp_eh;
@@ -387,9 +388,10 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
   // basis->load and not basis->load-1 elements stored at the moment.
   sort_eh = realloc(sort_eh, basis->load * sizeof(hash_t));
   for (i=1; i<basis->load; ++i)
-    sort_eh[i]  = basis->eh[i][0];
+    sort_eh[i]  = basis->p[i]->eh[0];
   qsort(sort_eh+1, basis->load-1, sizeof(hash_t), ht->sort.compare_monomials_inverse);
 
+  /*
   // stores if a position is already set
   uint8_t *pos_set = (uint8_t *)calloc(basis->load, sizeof(uint8_t));
 
@@ -399,10 +401,11 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
     basis->eh[i]  = basis->eh[i];
     basis->cf[i]  = basis->cf[i];
   }
+  */
   // free temporary allocated memory
   free(sort_cf);
   free(sort_eh);
-  free(pos_set);
+  //free(pos_set);
 }
 
 void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
@@ -416,27 +419,28 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
   // use extra variable in exponent vector representation in hash table to
   // homogenize the terms correspondingly
   for (i=1; i<basis->load; ++i) {
-    for (j=0; j<basis->nt[i]; ++j) {
+    const nelts_t nt  = basis->p[i]->nt;
+    for (j=0; j<nt; ++j) {
 #if __GB_HAVE_SSE2
       // read SSE vector
       int k = 0;
       while (k < ht->nev && k != (ht->nv-1)/ht->vl) {
-        ht->ev[ht->load][k] = ht->ev[basis->eh[i][j]][k];
+        ht->ev[ht->load][k] = ht->ev[basis->p[i]->eh[j]][k];
         ++k;
       }
       // copy last sse vector of exponent vector in order to add homogenization
       // variable
-      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[i][j]][k]);
-      tmp[ht->nv-1 % ht->vl]  = (exp_t)( basis->deg[i] -  ht->deg[basis->eh[i][j]]);
+      _mm_store_si128((exp_v *)tmp, ht->ev[basis->p[i]->eh[j]][k]);
+      tmp[ht->nv-1 % ht->vl]  = (exp_t)( basis->p[i]->deg -  ht->deg[basis->p[i]->eh[j]]);
       ht->ev[ht->load][k]  = _mm_load_si128((__m128i *)tmp);
 #else
       memcpy(ht->exp[ht->load], ht->exp[basis->eh[i][j]], ht->nv * sizeof(exp_t));
       // add homogenizing variable entry in exponent
-      ht->exp[ht->load][ht->nv-1] = (exp_t)(basis->deg[i] -  ht->deg[basis->eh[i][j]]);
+      ht->exp[ht->load][ht->nv-1] = (exp_t)(basis->p[i]->deg -  ht->deg[basis->p[i]->eh[j]]);
 #endif
       // add new exponent hash to table
-      ht->deg[ht->load] = basis->deg[i];
-      basis->eh[i][j] = check_in_hash_table(ht);
+      ht->deg[ht->load] = basis->p[i]->deg;
+      basis->p[i]->eh[j] = check_in_hash_table(ht);
     }
   }
   basis->hom  = 1;
@@ -526,8 +530,9 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   // the first position of basis, i.e. index 0 a NULL element.
   // Thus, basis->load is always one bigger than the actual number of elements
   // in the basis.
-  basis->cf[0]  = NULL;
-  basis->eh[0]  = NULL;
+  basis->p[0] = (poly_t *)malloc(sizeof(poly_t));
+  basis->p[0]->cf = NULL;
+  basis->p[0]->eh = NULL;
 
   // get all remaining lines, i.e. generators
   int cf_tmp  = 0; // temp for coefficient value, possibly coeff is negative.
@@ -536,16 +541,18 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   for (i=1; i<basis->load; ++i) {
     if (fgets(line, max_line_size, fh) != NULL && is_line_empty(line) != 1) {
       // get number of terms first
-      nterms        = get_number_of_terms(line);
-      basis->nt[i]  = nterms;
+      nterms            = get_number_of_terms(line);
+      basis->p[i]       = (poly_t *)malloc(sizeof(poly_t));
+      basis->p[i]->nt   = nterms;
+      basis->p[i]->red  = 0;
 
 #if IO_DEBUG
       printf("nterms %d\n",nterms);
 #endif
 
       // allocate memory for all terms
-      basis->cf[i]  = (coeff_t *)malloc(nterms * sizeof(coeff_t));
-      basis->eh[i]  = (hash_t *)malloc(nterms * sizeof(hash_t));
+      basis->p[i]->cf = (coeff_t *)malloc(nterms * sizeof(coeff_t));
+      basis->p[i]->eh = (hash_t *)malloc(nterms * sizeof(hash_t));
       prev_pos  = line;
       max_deg   = 0;
       // next: go through line, term by term
@@ -572,12 +579,12 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
         }
         iv  = iv_tmp;
         inverse_coefficient(&iv, basis->mod);
-        basis->cf[i][0] = 1;
+        basis->p[i]->cf[0] = 1;
       }
       store_exponent(term, basis, ht);
       // hash exponent and store degree
       max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
-      basis->eh[i][0] = check_in_hash_table(ht);
+      basis->p[i]->eh[0] = check_in_hash_table(ht);
 #if IO_DEBUG
       printf("cf[%lu] = %u | eh[%lu][%u] = %lu --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
 #endif
@@ -599,13 +606,13 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
           while (cf_tmp < 0) {
             cf_tmp  +=  basis->mod;
           }
-          basis->cf[i][j] = cf_tmp;
-          basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
+          basis->p[i]->cf[j]  = cf_tmp;
+          basis->p[i]->cf[j]  = MODP(basis->p[i]->cf[j]*iv,basis->mod);
         }
         store_exponent(term, basis, ht);
         // hash exponent and store degree
-        max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
-        basis->eh[i][j] = check_in_hash_table(ht);
+        max_deg             = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
+        basis->p[i]->eh[j]  = check_in_hash_table(ht);
 #if IO_DEBUG
         printf("cf[%lu] = %u | eh[%lu][%lu] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
 #endif
@@ -613,12 +620,12 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       // if basis->init_hom is 0 then we have already found an inhomogeneous
       // polynomial and the system of polynomials is not homogeneous
       if (basis->init_hom == 1) {
-        if (ht->deg[basis->eh[i][0]] == ht->deg[basis->eh[i][basis->nt[i]-1]])
+        if (ht->deg[basis->p[i]->eh[0]] == ht->deg[basis->p[i]->eh[basis->p[i]->nt-1]])
           basis->init_hom  = 1;
         else
           basis->init_hom  = 0;
       }
-      basis->deg[i] = max_deg;
+      basis->p[i]->deg  = max_deg;
     } else {
       // the line is empty, thus we have to reset i by -1 and continue the loop
       i--;
@@ -942,10 +949,10 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     printf("i[%u]=", i);
     // we do the first term differently, since we do not have a "+" in front of
     // it
-    printf("%u", basis->cf[i][0]);
+    printf("%u", basis->p[i]->cf[0]);
 #if __GB_HAVE_SSE2
     for (k=0; k<ht->nev; ++k) {
-      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->eh[i][0]][k]);
+      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->p[i]->eh[0]][k]);
       memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
     }
 #else
@@ -969,11 +976,11 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       default:
         abort();
     }
-    for (j=1; j<basis->nt[i]; ++j) {
-      printf("+%u", basis->cf[i][j]);
+    for (j=1; j<basis->p[i]->nt; ++j) {
+      printf("+%u", basis->p[i]->cf[j]);
 #if __GB_HAVE_SSE2
     for (k=0; k<ht->nev; ++k) {
-      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->eh[i][j]][k]);
+      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->p[i]->eh[j]][k]);
       memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
     }
 #else

@@ -78,7 +78,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // position in basis
   const nelts_t cur_len = ps->load + idx - basis->st;
   //printf("curlen %u for idx %u | %u\n",cur_len,idx, idx-basis->st);
-  const hash_t hash     = basis->eh[idx][0];
+  const hash_t hash     = basis->p[idx]->eh[0];
   int i, j; // we need ints to cover cases where i=0 and j=i-1
 
   //printf("idx %u | psl %u | cl %u\n", idx, ps->load, cur_len);
@@ -216,8 +216,8 @@ inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *bas
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
   sp->gen1  = 0;
   sp->gen2  = gen2;
-  sp->lcm   = basis->eh[gen2][0];
-  sp->nt    = basis->nt[gen2];
+  sp->lcm   = basis->p[gen2]->eh[0];
+  sp->nt    = basis->p[gen2]->nt;
   sp->deg   = ht->deg[sp->lcm];
   sp->crit  = NO_CRIT;
 
@@ -244,18 +244,18 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
     sp->gen2  = gen1;
   }
   */
-  sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
-  sp->nt    = basis->nt[gen1] + basis->nt[gen2];
+  sp->lcm   = get_lcm(basis->p[gen1]->eh[0], basis->p[gen2]->eh[0], ht);
+  sp->nt    = basis->p[gen1]->nt + basis->p[gen2]->nt;
   sp->deg   = ht->deg[sp->lcm];
   
   // if one of the generators is redundant we can stop already here and mark it
   // with the CHAIN_CRIT in order to remove it later on
-  if (basis->red[gen2] > 0) {
+  if (basis->p[gen2]->red > 0) {
     sp->crit  = CHAIN_CRIT;
     return sp;
   }
   // check for product criterion and mark correspondingly, i.e. we set sp->deg=0
-  if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]]) {
+  if (sp->deg == ht->deg[basis->p[gen1]->eh[0]] + ht->deg[basis->p[gen2]->eh[0]]) {
     sp->crit  = PROD_CRIT;
     return sp;
   }
@@ -268,14 +268,14 @@ inline void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
     const hash_t lcm, const nelts_t gen)
 {
   hash_t mul;
-  mul = get_multiplier(lcm, basis->eh[gen][0], ht);
+  mul = get_multiplier(lcm, basis->p[gen]->eh[0], ht);
   if (sel->load == sel->size)
     adjust_size_of_selection(sel, 2*sel->size);
   sel->mpp[sel->load].mlm = lcm;
   sel->mpp[sel->load].mul = mul;
   sel->mpp[sel->load].bi  = gen;
-  sel->mpp[sel->load].eh  = basis->eh[gen];
-  sel->mpp[sel->load].cf  = basis->cf[gen];
-  sel->mpp[sel->load].nt  = basis->nt[gen];
+  sel->mpp[sel->load].eh  = basis->p[gen]->eh;
+  sel->mpp[sel->load].cf  = basis->p[gen]->cf;
+  sel->mpp[sel->load].nt  = basis->p[gen]->nt;
   sel->load++;
 }

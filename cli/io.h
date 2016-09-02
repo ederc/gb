@@ -95,10 +95,10 @@ static inline poly_t *final_basis_for_output(gb_t *basis)
   poly_t *fb  = (poly_t *)malloc(bs * sizeof(poly_t));
   nelts_t np = 0;
   for (int i=basis->st; i<basis->load; ++i) {
-    if (basis->red[i] == 0) {
-      fb[np].cf   = basis->cf[i];
-      fb[np].eh   = basis->eh[i];
-      fb[np].nt   = basis->nt[i];
+    if (basis->p[i]->red == 0) {
+      fb[np].cf   = basis->p[i]->cf;
+      fb[np].eh   = basis->p[i]->eh;
+      fb[np].nt   = basis->p[i]->nt;
       fb[np].red  = 0;
       np++;
     }

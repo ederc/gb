@@ -541,7 +541,7 @@ void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
     // is the fastest choice.
     if (mat->sl == 1) {
       for (i=0; i<mat->BR->nrows; ++i) {
-        if (1+mat->DR->ncols < 2 * basis->nt[spd->selu->mpp[i].bi]) {
+        if (1+mat->DR->ncols < 2 * basis->p[spd->selu->mpp[i].bi]->nt) {
 #if 0
           if (mat->BR->row[i]->init_val != NULL) {
             copy_to_val(mat->BR, i);
@@ -556,7 +556,7 @@ void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
     }
     if (mat->sl > 1) {
       for (i=0; i<mat->BR->nrows; ++i) {
-        if (1+mat->DR->ncols < 2*basis->nt[spd->selu->mpp[i].bi]) {
+        if (1+mat->DR->ncols < 2*basis->p[spd->selu->mpp[i].bi]->nt) {
           if (mat->BR->row[i]->init_val != NULL) {
             copy_to_val(mat->BR, i);
             reduce_B_by_D(mat->BR, mat->DR, i);

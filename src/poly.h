@@ -139,15 +139,12 @@ static inline void free_simplifier_list(gb_t **sf_in)
   if (sf) {
     nelts_t i;
     free(sf->vnames);
-    free(sf->red);
-    free(sf->deg);
-    free(sf->nt);
     for (i=0; i<sf->load; ++i) {
-      free(sf->cf[i]);
-      free(sf->eh[i]);
+      free(sf->p[i]->cf);
+      free(sf->p[i]->eh);
+      free(sf->p[i]);
     }
-    free(sf->cf);
-    free(sf->eh);
+    free(sf->p);
   }
 
   free(sf);
@@ -180,15 +177,12 @@ static inline void free_basis(gb_t **basis_in)
       free(basis->vnames[i]);
     }
     free(basis->vnames);
-    free(basis->red);
-    free(basis->deg);
-    free(basis->nt);
     for (i=0; i<basis->load; ++i) {
-      free(basis->cf[i]);
-      free(basis->eh[i]);
+      free(basis->p[i]->cf);
+      free(basis->p[i]->eh);
+      free(basis->p[i]);
     }
-    free(basis->cf);
-    free(basis->eh);
+    free(basis->p);
   }
 
   free(basis);
@@ -206,11 +200,7 @@ static inline void free_basis(gb_t **basis_in)
 static inline void enlarge_basis(gb_t *basis, const nelts_t size)
 {
   basis->size = size;
-  basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
-  basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
-  basis->red  = realloc(basis->red, basis->size * sizeof(red_t));
-  basis->cf   = realloc(basis->cf, basis->size * sizeof(coeff_t *));
-  basis->eh   = realloc(basis->eh, basis->size * sizeof(hash_t *));
+  basis->p    = realloc(basis->p, basis->size * sizeof(poly_t *));
   if (basis->sf != NULL)
     basis->sf   = realloc(basis->sf, basis->size * sizeof(sf_t));
 }
@@ -245,9 +235,9 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
   nelts_t i;
   // check for redundancy of other elements in basis
   for (i=basis->st; i<basis->load-1; ++i) {
-    if (basis->red[i] == 0) {
-      if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
-        basis->red[i] = basis->load-1;
+    if (basis->p[i]->red == 0) {
+      if (check_monomial_division(basis->p[i]->eh[0], basis->p[basis->load-1]->eh[0], ht)) {
+        basis->p[i]->red = basis->load-1;
         basis->nred++;
       }
     }
@@ -274,7 +264,7 @@ static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basi
 {
   // check for redundancy of other elements in basis
   for (int i=basis->load_ls; i<basis->load; ++i) {
-    if (basis->red[i] == 0 && check_monomial_division(hash, basis->eh[i][0], ht) == 1)
+    if (basis->p[i]->red == 0 && check_monomial_division(hash, basis->p[i]->eh[0], ht) == 1)
       return 1;
   }
   return 0;

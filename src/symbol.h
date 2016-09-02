@@ -973,30 +973,30 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
   for (l=0; l<load; ++l) {
     // we start searching from the end of the list since those elements
     // might be best reduced
-    sf_mul = monomial_division(mpp->mlm, sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0], ht);
+    sf_mul = monomial_division(mpp->mlm, sf->p[basis->sf[mpp->bi].idx[load-1-l]]->eh[0], ht);
     //if (sf_mul != 0) {
-    if (sf_mul != 0 && (sf->nt[basis->sf[mpp->bi].idx[load-1-l]] < mpp->nt + mpp->nt)) {
+    if (sf_mul != 0 && (sf->p[basis->sf[mpp->bi].idx[load-1-l]]->nt < mpp->nt + mpp->nt)) {
 #if SYMBOL_DEBUG
       printf("-- SIMPLIFY --\n");
       for (int ii=0; ii<basis->nv; ++ii)
         printf("%u ",ht->exp[mpp->mul][ii]);
       printf("\n");
       for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[basis->eh[mpp->bi][0]][ii]);
+        printf("%u ",ht->exp[basis->p[mpp->bi][0]]->eh[ii]);
       printf("\n - - -\n");
       for (int ii=0; ii<basis->nv; ++ii)
         printf("%u ",ht->exp[sf_mul][ii]);
       printf("\n");
       for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0]][ii]);
+        printf("%u ",ht->exp[sf->p[basis->sf[mpp->bi].idx[load-1-l]][0]]->eh[ii]);
       printf("\n");
 #endif
 
-      if (sf->nt[basis->sf[mpp->bi].idx[load-1-l]] < 2*mpp->nt) {
+      if (sf->p[basis->sf[mpp->bi].idx[load-1-l]]->nt < 2*mpp->nt) {
         mpp->mul  = sf_mul;
-        mpp->nt   = sf->nt[basis->sf[mpp->bi].idx[load-1-l]];
-        mpp->eh   = sf->eh[basis->sf[mpp->bi].idx[load-1-l]];
-        mpp->cf   = sf->cf[basis->sf[mpp->bi].idx[load-1-l]];
+        mpp->nt   = sf->p[basis->sf[mpp->bi].idx[load-1-l]]->nt;
+        mpp->eh   = sf->p[basis->sf[mpp->bi].idx[load-1-l]]->eh;
+        mpp->cf   = sf->p[basis->sf[mpp->bi].idx[load-1-l]]->cf;
         return;
       }
     }
@@ -1128,8 +1128,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     // has made an older one redundant. thus we only need to keep the one pair
     // that consists of the new basis element and the element that is redundant
     // due to it.
-    if ((basis->red[sp->gen1] > 0 || basis->red[sp->gen2] > 0)
-          && basis->red[sp->gen1] != sp->gen2) {
+    if ((basis->p[sp->gen1]->red > 0 || basis->p[sp->gen2]->red > 0)
+          && basis->p[sp->gen1]->red != sp->gen2) {
       meta_data->sel_pairs--;
       continue;
     }

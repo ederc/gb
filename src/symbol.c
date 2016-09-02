@@ -70,12 +70,12 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       // polynomial is taken
       nelts_t nto = -1;
       while (i<basis->load) {
-        if (basis->red[i] == 0) {
-          h = monomial_division(hash_pos, basis->eh[i][0], ht);
+        if (basis->p[i]->red == 0) {
+          h = monomial_division(hash_pos, basis->p[i]->eh[0], ht);
           if ((h != 0)) {
-            if (basis->nt[i] < nto) {
+            if (basis->p[i]->nt < nto) {
               hio = i;
-              nto = basis->nt[i];
+              nto = basis->p[i]->nt;
               ho  = h;
             }
           }
@@ -111,9 +111,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         sel_upp->mpp[sel_upp->load].bi  = hio;
         sel_upp->mpp[sel_upp->load].mlm = hash_pos;
         sel_upp->mpp[sel_upp->load].mul = ho;
-        sel_upp->mpp[sel_upp->load].nt  = basis->nt[hio];
-        sel_upp->mpp[sel_upp->load].eh  = basis->eh[hio];
-        sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
+        sel_upp->mpp[sel_upp->load].nt  = basis->p[hio]->nt;
+        sel_upp->mpp[sel_upp->load].eh  = basis->p[hio]->eh;
+        sel_upp->mpp[sel_upp->load].cf  = basis->p[hio]->cf;
         sel_upp->load++;
 
         if (basis->sf != NULL)

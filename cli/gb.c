@@ -37,6 +37,7 @@ void print_help()
   printf("    -c HTC      Hash table cache resp. size in log_2: The size is then set\n");
   printf("                to the biggest non-Mersenne prime smaller then 2^(given value).\n");
   printf("                Default: 18.\n");
+  printf("    -g GIT      Outputs git commit hash if verbosity level is >0.\n");
   printf("    -h HELP     Print help.\n");
   printf("    -m MAT      Generates .pbm files of gbla matrices.\n");
   printf("                Considers as argument a folder to write into.\n");
@@ -81,9 +82,10 @@ int main(int argc, char *argv[])
   int simplify      = 0;
   int generate_pbm  = 0;
   int print_gb      = 0;
-  int order      = 0;
+  int order         = 0;
   int keep_A        = 0;
   int htc           = 15;
+  int git_hash      = 0;
   // generate file name holder if pbms are generated
   char *pbm_dir = NULL;
   char pbm_fn[400];
@@ -115,10 +117,13 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:hm:no:p:r:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:ghm:no:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
         htc = (int)strtol(optarg, NULL, 10);
+        break;
+      case 'g':
+        git_hash  = 1;
         break;
       case 'h':
         print_help();
@@ -195,6 +200,19 @@ int main(int argc, char *argv[])
   set_sort_functions_depending_on_monomial_order(ht, order);
 
   if (verbose > 0) {
+    if (git_hash == 1) {
+      printf("git commit: ");
+      FILE *fp;
+      char hash_string[200];
+      fp  = popen("git rev-parse HEAD", "r");
+      if (fp == NULL) {
+        printf("Failed to run command\n");
+        exit(1);
+      }
+      while (fgets(hash_string, sizeof(hash_string)-1, fp) != NULL)
+        printf("%s", hash_string);
+      pclose(fp);
+    }
     printf("---------------------------------------------------------------------------\n");
     printf("----------------------------- Computing Groebner --------------------------\n");
     printf("--------------------- with the following options set ----------------------\n");

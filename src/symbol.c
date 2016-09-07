@@ -116,8 +116,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
         sel_upp->load++;
 
-        if (basis->sf != NULL)
-          try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
+        // function pointer set correspondingly if simplify option is set or not
+        ht->sf.simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
+          //try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
         // now add new monomials to preprocessing hash list
         enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
             mon, ht);

@@ -228,6 +228,7 @@ int main(int argc, char *argv[])
   }
   // input stores input data
   gb_t *basis = load_input(fn, nvars, order, ht, simplify, verbose, nthreads);
+  set_simplify_functions(ht, basis);
 
   // global simplifier list
   // generate simplifier list if simplification is enabled

@@ -50,12 +50,33 @@
 void print_help();
 
 /**
+ * \brief Simplify functions are stored a structure of function pointers in the basis
+ *
+ * \param intermediate groebner basis basis
+ */
+static inline void set_simplify_functions(mp_cf4_ht_t *ht, const gb_t *basis)
+{
+  switch (basis->sl) {
+    // graded reverse lexicographical order
+    case 0:
+      ht->sf.simplify = no_simplify;
+      break;
+    // lexicographical order
+    case 1:
+      ht->sf.simplify = try_to_simplify;
+      break;
+    default:
+      abort ();
+  }
+}
+
+/**
  * \brief Sort functions are stored a structure of function pointers in the hash
  * table. Depening on the chosen monomial order the functions pointers are set.
  *
  * \param hash table ht
  */
-static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *ht, ord_t ord)
+static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *ht, const ord_t ord)
 {
   switch (ord) {
     // graded reverse lexicographical order

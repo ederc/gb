@@ -397,6 +397,15 @@ typedef struct sort_t
 } sort_t;
 
 /**
+ * \brief Struct keeping all function pointers of functions depending on the
+ * usage of simplify
+ */
+typedef struct simplify_t
+{
+  void (*simplify)(mpp_t *mpp, const gb_t *basis, const gb_t *sf);
+} simplify_t;
+
+/**
  * \brief Hash table as defined by Monagan and Pearce in compact F4
  * implementation (see PASCO 2015)
  *
@@ -431,6 +440,7 @@ typedef struct mp_cf4_ht_t
                             monomials already taken care of in symbolic
                             preprocessing*/
   sort_t sort;        /*!<  structure of sort functions */
+  simplify_t sf;      /*!<  simplify function pointers */
 } mp_cf4_ht_t;
 
 /**

@@ -957,6 +957,20 @@ static inline void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t 
 }
 
 /**
+ * \brief Does not perform a simplifier search, just an empty function call.
+ *
+ * \param multiplier polynomial pair mpp
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param simplifier list sf
+ */
+static inline void no_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf)
+{
+  return;
+}
+
+/**
  * \brief Tries to find a simplifier for the given polynomial multiple.
  *
  * \param multiplier polynomial pair mpp
@@ -1149,8 +1163,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     j = sell->load-1;
 
     // check for simplification
-    if (basis->sf != NULL)
-      try_to_simplify(&sell->mpp[j], basis, sf);
+    // function pointer set correspondingly if simplify option is set or not
+    ht->sf.simplify(&sell->mpp[j], basis, sf);
 
     enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
     }
@@ -1175,16 +1189,16 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
         j = selu->load-1;
         // check for simplification
-        if (basis->sf != NULL)
-          try_to_simplify(&selu->mpp[j], basis, sf);
+        // function pointer set correspondingly if simplify option is set or not
+        ht->sf.simplify(&selu->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(selu->mpp[j],
             mon, ht);
       } else {
         add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
         j = sell->load-1;
         // check for simplification
-        if (basis->sf != NULL)
-          try_to_simplify(&sell->mpp[j], basis, sf);
+        // function pointer set correspondingly if simplify option is set or not
+        ht->sf.simplify(&sell->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(sell->mpp[j],
             mon, ht);
       }

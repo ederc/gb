@@ -971,32 +971,32 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
   hash_t sf_mul = 0;
   const nelts_t load  = basis->sf[mpp->bi].load;
   for (l=0; l<load; ++l) {
+    const nelts_t idx = basis->sf[mpp->bi].idx[load-1-l];
     // we start searching from the end of the list since those elements
     // might be best reduced
-    sf_mul = monomial_division(mpp->mlm, sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0], ht);
-    //if (sf_mul != 0) {
-    if (sf_mul != 0 && (sf->nt[basis->sf[mpp->bi].idx[load-1-l]] < mpp->nt + mpp->nt)) {
+    if (sf->nt[idx] < 5* mpp->nt) {
+      sf_mul = monomial_division(mpp->mlm, sf->eh[idx][0], ht);
+      if (sf_mul != 0) {
 #if SYMBOL_DEBUG
-      printf("-- SIMPLIFY --\n");
-      for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[mpp->mul][ii]);
-      printf("\n");
-      for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[basis->eh[mpp->bi][0]][ii]);
-      printf("\n - - -\n");
-      for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[sf_mul][ii]);
-      printf("\n");
-      for (int ii=0; ii<basis->nv; ++ii)
-        printf("%u ",ht->exp[sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0]][ii]);
-      printf("\n");
+        printf("-- SIMPLIFY --\n");
+        for (int ii=0; ii<basis->nv; ++ii)
+          printf("%u ",ht->exp[mpp->mul][ii]);
+        printf("\n");
+        for (int ii=0; ii<basis->nv; ++ii)
+          printf("%u ",ht->exp[basis->eh[mpp->bi][0]][ii]);
+        printf("\n - - -\n");
+        for (int ii=0; ii<basis->nv; ++ii)
+          printf("%u ",ht->exp[sf_mul][ii]);
+        printf("\n");
+        for (int ii=0; ii<basis->nv; ++ii)
+          printf("%u ",ht->exp[sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0]][ii]);
+        printf("\n");
 #endif
 
-      if (sf->nt[basis->sf[mpp->bi].idx[load-1-l]] < 2*mpp->nt) {
         mpp->mul  = sf_mul;
-        mpp->nt   = sf->nt[basis->sf[mpp->bi].idx[load-1-l]];
-        mpp->eh   = sf->eh[basis->sf[mpp->bi].idx[load-1-l]];
-        mpp->cf   = sf->cf[basis->sf[mpp->bi].idx[load-1-l]];
+        mpp->nt   = sf->nt[idx];
+        mpp->eh   = sf->eh[idx];
+        mpp->cf   = sf->cf[idx];
         return;
       }
     }

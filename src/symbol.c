@@ -71,9 +71,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       nelts_t nto = -1;
       while (i<basis->load) {
         if (basis->red[i] == 0) {
-          h = monomial_division(hash_pos, basis->eh[i][0], ht);
-          if ((h != 0)) {
-            if (basis->nt[i] < nto) {
+          if (basis->nt[i] < nto) {
+            h = monomial_division(hash_pos, basis->eh[i][0], ht);
+            if ((h != 0)) {
               hio = i;
               nto = basis->nt[i];
               ho  = h;

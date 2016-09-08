@@ -835,8 +835,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
   printf("%s\n", basis->vnames[k]);
   printf("%u\n", basis->mod);
   // prints groebner basis
-  nelts_t bs  = basis->fl;
-  //nelts_t bs  = basis->load - basis->st - basis->nred;
+  nelts_t bs  = basis->load - basis->st - basis->nred;
 
   for (i=0; i<bs; ++i) {
     if (fb[i].red == 0) {
@@ -1005,8 +1004,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
   printf("ideal g;\n");
   // we need to get the basis size without the probably removed elements due to
   // saturation
-  nelts_t bs  = basis->fl;
-  //nelts_t bs  = basis->load - basis->st - basis->nred;
+  nelts_t bs  = basis->load - basis->st - basis->nred;
   int ctr = 0;
   for (i=0; i<bs; ++i) {
     if (fb[i].red == 0) {

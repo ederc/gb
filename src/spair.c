@@ -141,6 +141,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       }
     }
   }
+#if 0
   for (i=ps->load; i<cur_len; ++i) {
     switch (ps->pairs[i]->crit) {
       case CHAIN_CRIT:
@@ -148,8 +149,16 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         break;
       case PROD_CRIT:
         //if (basis->red[ps->pairs[i]->gen1] == 0) {
-        j = ps->load;
-        for (j=i; j<cur_len; ++j) {
+        for (j=i+1; j<cur_len; ++j) {
+          if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+            if (ps->pairs[j]->crit == NO_CRIT) {
+              ps->pairs[j]->crit  = CHAIN_CRIT;
+            }
+          } else {
+            break;
+          }
+        }
+        for (j=i-1; j>ps->load-1; --j) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
             if (ps->pairs[j]->crit == NO_CRIT) {
               ps->pairs[j]->crit  = CHAIN_CRIT;
@@ -175,6 +184,50 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         break;
     }
   }
+#else
+  // third step: remove new pairs that still have the same lcm
+  hash_t lcm    = ps->pairs[ps->load]->lcm;
+  nelts_t start = ps->load;
+  nelts_t end   = 0;
+  i = ps->load+1;
+  while (i<cur_len) {
+    while (i<cur_len && lcm == ps->pairs[i]->lcm)
+      ++i;
+    end = i;
+    if (end-start>1) {
+      // if we have a PROD_CRIT element we can remove all others, otherwise we
+      // have to keep at least the first one: we set start to start+1, if we
+      // find a PROD_CRIT element we decrement start again and then we remove
+      // NO_CRIT elements with the same lcm
+      start++;
+      for (i=start; i<end; ++i) {
+        if (ps->pairs[i]->crit == PROD_CRIT) {
+          start--;
+          break;
+        }
+      }
+      for (i=start; i<end; ++i)
+        if (ps->pairs[i]->crit == NO_CRIT)
+          ps->pairs[i]->crit  = CHAIN_CRIT;
+    }
+    lcm   = ps->pairs[end]->lcm;
+    start = end;
+    i     = start+1;
+    continue;
+  }
+#endif
+  /*
+  for (i=start; i<end; ++i)
+    if (ps->pairs[i]->crit == PROD_CRIT)
+      break;
+  if (i<end) {
+    for (i=start; i<end; ++i)
+      if (ps->pairs[i]->crit == NO_CRIT)
+        ps->pairs[i]->crit  = CHAIN_CRIT;
+  } else {
+    
+  }
+  */
   /*
   // third step: remove new pairs via product criterion
   for (i=ps->load; i<cur_len; ++i) {

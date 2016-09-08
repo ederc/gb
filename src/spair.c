@@ -103,6 +103,23 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
 
   // next: sort new pairs
   qsort(ps->pairs+ps->load, idx-basis->st, sizeof(spair_t **), ht->sort.compare_spairs);
+
+  // precheck: if (f,g) has the same lcm as (h,g) where h is redundant due to f
+  // then we can already mark (f,g) for removal.
+  for (i=ps->load; i<cur_len; ++i) {
+    if (basis->red[ps->pairs[i]->gen1] != 0) {
+      hash_t lcm  = ps->pairs[i]->lcm;
+      nelts_t red = basis->red[ps->pairs[i]->gen1];
+      j = i+1;
+      while (j<cur_len && ps->pairs[j]->lcm == lcm) {
+        if (ps->pairs[j]->gen1 == red) {
+          ps->pairs[j]->crit  = CHAIN_CRIT;
+          break;
+        }
+        j++;
+      }
+    }
+  }
   
   // second step: remove new pairs by themselves w.r.t the chain criterion
   for (i=ps->load; i<cur_len; ++i) {
@@ -112,8 +129,10 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       if (ps->pairs[j]->crit != NO_CRIT) // smaller lcm eliminated j
         continue;
       //if (ps->pairs[i]->lcm == ps->pairs[j]->lcm) {
-      if (ps->pairs[i]->lcm != ps->pairs[j]->lcm &&
-          check_monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht) != 0) {
+      if (check_monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht) != 0 && ps->pairs[i]->lcm != ps->pairs[j]->lcm
+) {
+      //if (ps->pairs[i]->lcm != ps->pairs[j]->lcm &&
+      //    check_monomial_division(ps->pairs[i]->lcm, ps->pairs[j]->lcm, ht) != 0) {
         ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
         printf("2CC for (%u,%u) by (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2,ps->pairs[j]->gen1, ps->pairs[j]->gen2);
@@ -128,16 +147,27 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         continue;
         break;
       case PROD_CRIT:
-        for (j=ps->load; j<cur_len; ++j) {
-          if (ps->pairs[j]->crit == NO_CRIT && ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
-            ps->pairs[j]->crit  = CHAIN_CRIT;
+        //if (basis->red[ps->pairs[i]->gen1] == 0) {
+        j = ps->load;
+        for (j=i; j<cur_len; ++j) {
+          if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
+            if (ps->pairs[j]->crit == NO_CRIT) {
+              ps->pairs[j]->crit  = CHAIN_CRIT;
+            }
+          } else {
+            break;
           }
         }
+        //}
         break;
       case NO_CRIT:
-        for (j=ps->load; j<i; ++j) {
+        j = i-1 > 0 ? i-1 : 0;
+        while (j>ps->load-1) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
             ps->pairs[i]->crit  = CHAIN_CRIT;
+            j--;
+          } else {
+            break;
           }
         }
         break;
@@ -251,7 +281,8 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   // if one of the generators is redundant we can stop already here and mark it
   // with the CHAIN_CRIT in order to remove it later on
   if (basis->red[gen2] > 0) {
-    sp->crit  = CHAIN_CRIT;
+    //sp->crit  = CHAIN_CRIT;
+    sp->crit  = PROD_CRIT;
     return sp;
   }
   // check for product criterion and mark correspondingly, i.e. we set sp->deg=0

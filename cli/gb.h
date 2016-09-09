@@ -65,6 +65,9 @@ static inline void set_simplify_functions(mp_cf4_ht_t *ht, const gb_t *basis)
     case 1:
       ht->sf.simplify = try_to_simplify;
       break;
+    case 2:
+      ht->sf.simplify = try_to_simplify;
+      break;
     default:
       abort ();
   }

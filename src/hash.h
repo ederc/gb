@@ -84,14 +84,24 @@ static inline uint64_t pseudo_random_generator(uint64_t random_seed)
   random_seed ^=  (random_seed << 11);
   random_seed ^=  (random_seed << 7);
   */
-  random_seed = (uint64_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL);
+  //random_seed = (uint64_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL);
+    uint64_t r = random_seed;
+      for (int i=0; i<64; i += 30) {
+            r = r*(RAND_MAX + (uint64_t)1) + rand();
+              }
+        return r;
+}
+
+/*
+static inline uint32_t pseudo_random_generator(uint32_t random_seed)
+{
+  random_seed = (uint32_t) ((1103515245 * ((unsigned int)random_seed) + 12345) & 0x7fffffffUL);
   return random_seed;
-  /*
   random_seed = 36969*(random_seed & 65535) + (random_seed >> 16);
   random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
   return (random_seed << 16) + random_seed;
-  */
 }
+*/
 
 #elif __GB_WORDSIZE==32
 /**

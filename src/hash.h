@@ -84,12 +84,16 @@ static inline uint64_t pseudo_random_generator(uint64_t random_seed)
   random_seed ^=  (random_seed << 11);
   random_seed ^=  (random_seed << 7);
   */
-  //random_seed = (uint64_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL);
-    uint64_t r = random_seed;
-      for (int i=0; i<64; i += 30) {
-            r = r*(RAND_MAX + (uint64_t)1) + rand();
-              }
-        return r;
+#if 1
+  random_seed = (uint64_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL);
+  return random_seed;
+#else
+  uint64_t r = random_seed;
+  for (int i=0; i<64; i += 30) {
+    r = r*(RAND_MAX + (uint64_t)1) + rand();
+  }
+  return r;
+#endif
 }
 
 /*

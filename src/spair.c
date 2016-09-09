@@ -104,23 +104,6 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // next: sort new pairs
   qsort(ps->pairs+ps->load, idx-basis->st, sizeof(spair_t **), ht->sort.compare_spairs);
 
-  // precheck: if (f,g) has the same lcm as (h,g) where h is redundant due to f
-  // then we can already mark (f,g) for removal.
-  for (i=ps->load; i<cur_len; ++i) {
-    if (basis->red[ps->pairs[i]->gen1] != 0) {
-      hash_t lcm  = ps->pairs[i]->lcm;
-      nelts_t red = basis->red[ps->pairs[i]->gen1];
-      j = i+1;
-      while (j<cur_len && ps->pairs[j]->lcm == lcm) {
-        if (ps->pairs[j]->gen1 == red) {
-          ps->pairs[j]->crit  = CHAIN_CRIT;
-          break;
-        }
-        j++;
-      }
-    }
-  }
-  
   // second step: remove new pairs by themselves w.r.t the chain criterion
   for (i=ps->load; i<cur_len; ++i) {
     if (ps->pairs[i]->crit != NO_CRIT)
@@ -218,48 +201,6 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
     continue;
   }
 #endif
-  /*
-  for (i=start; i<end; ++i)
-    if (ps->pairs[i]->crit == PROD_CRIT)
-      break;
-  if (i<end) {
-    for (i=start; i<end; ++i)
-      if (ps->pairs[i]->crit == NO_CRIT)
-        ps->pairs[i]->crit  = CHAIN_CRIT;
-  } else {
-    
-  }
-  */
-  /*
-  // third step: remove new pairs via product criterion
-  for (i=ps->load; i<cur_len; ++i) {
-    if (ps->pairs[i]->crit == CHAIN_CRIT)
-      continue;
-    if (ps->pairs[i]->crit == PROD_CRIT) {
-      // eliminate all new pairs with this lcm
-      for (j=ps->load; j<cur_len; ++j) {
-        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
-          ps->pairs[j]->crit  = CHAIN_CRIT;
-#if SPAIR_DEBUG
-          printf("3CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
-#endif
-        }
-      }
-    } else { // earlier pairs may eliminate this pair
-      for (j=ps->load; j<i; ++j) {
-      //for (j=i-1; j>=(int)ps->load; --j) {
-       // printf("j %u || %d\n", j, j);
-        if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
-          ps->pairs[i]->crit  = CHAIN_CRIT;
-#if SPAIR_DEBUG
-          printf("4CC for (%u,%u)\n",ps->pairs[j]->gen1, ps->pairs[j]->gen2);
-#endif
-          break;
-        }
-      }
-    }
-  }
-  */
 }
 
 inline nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t ctr)

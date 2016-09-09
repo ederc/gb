@@ -210,6 +210,8 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         if (ps->pairs[i]->crit == NO_CRIT)
           ps->pairs[i]->crit  = CHAIN_CRIT;
     }
+    if (end == cur_len)
+      break;
     lcm   = ps->pairs[end]->lcm;
     start = end;
     i     = start+1;

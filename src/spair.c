@@ -85,8 +85,14 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // first step: remove elements already in ps due to chain criterion with new
   // pairs in new_pairs
   for (i=0; i<ps->load; ++i) {
+    if ((basis->red[ps->pairs[i]->gen2] != 0) ||
+        (basis->red[ps->pairs[i]->gen1] != 0 && basis->red[ps->pairs[i]->gen1] != ps->pairs[i]->gen2)
+       )
+      ps->pairs[i]->crit  = CHAIN_CRIT;
+  }
+  for (i=0; i<ps->load; ++i) {
     // do not check on initial spairs
-    if (ps->pairs[i]->gen1 != 0) {
+    if (ps->pairs[i]->crit == NO_CRIT && ps->pairs[i]->gen1 != 0) {
       // See note on gb_t in src/types.h why we adjust position by -basis->st.
       pos1  = ps->pairs[i]->gen1 - basis->st;
       pos2  = ps->pairs[i]->gen2 - basis->st;

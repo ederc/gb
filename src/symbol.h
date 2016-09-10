@@ -1130,10 +1130,12 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     // has made an older one redundant. thus we only need to keep the one pair
     // that consists of the new basis element and the element that is redundant
     // due to it.
+    /*
     if ((basis->red[sp->gen1] > 0 && basis->red[sp->gen1] != sp->gen2) || basis->red[sp->gen2] > 0) {
       meta_data->sel_pairs--;
       continue;
     }
+    */
     // mark generators of sp that would give duplicate rows in the matrix
     mark_duplicates(duplicates, sp);
     // We have to distinguish between usual spairs and spairs consisting of one

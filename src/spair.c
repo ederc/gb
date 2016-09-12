@@ -92,7 +92,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   }
   for (i=0; i<ps->load; ++i) {
     // do not check on initial spairs
-    if (ps->pairs[i]->crit == NO_CRIT && ps->pairs[i]->gen1 != 0) {
+    if (ps->pairs[i]->crit == NO_CRIT && ps->pairs[i]->gen1 != ps->pairs[i]->gen2) {
       // See note on gb_t in src/types.h why we adjust position by -basis->st.
       pos1  = ps->pairs[i]->gen1 - basis->st;
       pos2  = ps->pairs[i]->gen2 - basis->st;
@@ -246,7 +246,8 @@ inline void enlarge_pair_set(ps_t *ps, const nelts_t new_size)
 inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   spair_t *sp = (spair_t *)malloc(sizeof(spair_t));
-  sp->gen1  = 0;
+  //sp->gen1  = 0;
+  sp->gen1  = gen2;
   sp->gen2  = gen2;
   sp->lcm   = basis->eh[gen2][0];
   sp->nt    = basis->nt[gen2];

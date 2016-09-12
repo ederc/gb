@@ -68,6 +68,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf);
  */
 static inline void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size)
 {
+  //printf("hl->size %u --> %u\n", hl->size, size);
   hl->hpos  = realloc(hl->hpos, size * sizeof(hash_t));
   hl->size  = size;
 }
@@ -109,8 +110,6 @@ static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(cons
     ht->idx[pos]++;
     mon->hpos[mon->load]  = pos;
     mon->load++;
-    if (mon->load == mon->size)
-      adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
 #if SYMBOL_DEBUG
     printf("new mon %u == %u\n", h1,mon->hpos[mon->load]);
 #endif
@@ -158,8 +157,6 @@ static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pr
       printf("2 new mon %u + %u == %u\n", h1,h2,mon->hpos[mon->load]);
 #endif
       mon->load++;
-      if (mon->load == mon->size)
-        adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
     }
   }
 }
@@ -1123,6 +1120,89 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     }
   }
 #endif
+
+#if 1
+  // for each lcm we first detect which elements have to be added to the
+  // symbolic preprocessing step, i.e. we remove duplicates
+  i = 0;
+  hash_t lcm    = 0;
+  nelts_t *gens = (nelts_t *)malloc(2 * nsel * sizeof(nelts_t));
+  nelts_t load  = 0;
+  while (i<nsel) {
+    lcm   = ps->pairs[i]->lcm;
+    j = i;
+    while (j<nsel && ps->pairs[j]->lcm == lcm) {
+      // check first generator
+      for (k=0; k<load; ++k) {
+        if (ps->pairs[j]->gen1 == gens[k]) {
+          break;
+        }
+      }
+      if (k == load) {
+        gens[load]  = ps->pairs[j]->gen1;
+        load++;
+      }
+      // check second generator
+      for (k=0; k<load; ++k) {
+        if (ps->pairs[j]->gen2 == gens[k]) {
+          break;
+        }
+      }
+      if (k == load) {
+        gens[load]  = ps->pairs[j]->gen2;
+        load++;
+      }
+      j++;
+    }
+    i     = j;
+    // now we have handled all poairs of the given lcm, we add them to the
+    // symbolic preprocessing step in the following
+    k = 0;
+    // ht->idx is always at least 1
+    /*
+    for (int ii=0; ii<load; ++ii)
+      printf("gens[%u] = %u\n",ii, gens[ii]);
+    printf("\n");
+    */
+    //ht->idx[lcm]  = 1;
+    if (load>1) {
+      mon->nlm++;
+      //mon->load++;
+      add_spair_generator_to_selection(selu, basis, lcm, gens[k]);
+      j = selu->load-1;
+      // check for simplification
+      // function pointer set correspondingly if simplify option is set or not
+      ht->sf.simplify(&selu->mpp[j], basis, sf);
+      //printf("[u] %u | %u || %u\n", mon->size, mon->load, selu->mpp[j].nt);
+      if (mon->size-mon->load+1 < selu->mpp[j].nt) {
+        const nelts_t max = 2*mon->size > selu->mpp[j].nt ? 2*mon->size : selu->mpp[j].nt;
+        adjust_size_of_preprocessing_hash_list(mon, max);
+      }
+      enter_monomial_to_preprocessing_hash_list(selu->mpp[j], mon, ht);
+      k++;
+      ht->idx[lcm]  = 2;
+    }
+    for (k; k<load; k++) {
+      add_spair_generator_to_selection(sell, basis, lcm, gens[k]);
+      j = sell->load-1;
+      // check for simplification
+      // function pointer set correspondingly if simplify option is set or not
+      ht->sf.simplify(&sell->mpp[j], basis, sf);
+      //printf("[l] %u | %u || %u\n", mon->size, mon->load, sell->mpp[j].nt);
+      if (mon->size-mon->load+1 < sell->mpp[j].nt) {
+        const nelts_t max = 2*mon->size > sell->mpp[j].nt ? 2*mon->size : sell->mpp[j].nt;
+        adjust_size_of_preprocessing_hash_list(mon, max);
+      }
+      enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
+    }
+    // set data for next lcm round
+    load  = 0;
+    //printf("ht->idx[%u] = %u\n", lcm, ht->idx[lcm]);
+  }
+
+  free(gens);
+
+#else
   for (i=0; i<nsel; ++i) {
     // remove duplicates if lcms and the first generators are the same
     sp  = ps->pairs[i];
@@ -1157,6 +1237,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 
     if (sp->gen2 != 0) {
       add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
+      printf("gen %u || lcm %lu || sell %u\n", sp->gen2, sp->lcm, sell->load-1);
       j = sell->load-1;
 
       // check for simplification
@@ -1184,6 +1265,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
 
         add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
+      printf("gen %u || lcm %lu || selu %u\n", sp->gen1, sp->lcm, selu->load-1);
         j = selu->load-1;
         // check for simplification
         // function pointer set correspondingly if simplify option is set or not
@@ -1192,6 +1274,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
             mon, ht);
       } else {
         add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
+      printf("gen %u || lcm %lu || sell %u\n", sp->gen1, sp->lcm, sell->load-1);
         j = sell->load-1;
         // check for simplification
         // function pointer set correspondingly if simplify option is set or not
@@ -1207,7 +1290,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   // free duplicates list
   free(duplicates->idx);
   free(duplicates);
-
+#endif
   // adjust pair set after removing the bunch of selected pairs
   k = 0;
   for (i=0; i<nsel; ++i)

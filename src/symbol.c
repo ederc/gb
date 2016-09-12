@@ -38,11 +38,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   meta_data->curr_deg   = ps->pairs[0]->deg;
 
   // list of monomials that appear in the matrix
-  pre_t *mon      = init_preprocessing_hash_list(2*nsel);
+  pre_t *mon      = init_preprocessing_hash_list(10*nsel*basis->nt[ps->pairs[0]->gen2]);
   // the lower part of the gbla matrix resp. the selection is fixed:
   // those are just the second generators of the spairs, thus we need nsel
   // places.
-  sel_t *sel_low  = init_selection(nsel);
+  sel_t *sel_low  = init_selection(5*nsel);
   sel_t *sel_upp  = init_selection(5*nsel);
   sel_upp->deg    = ps->pairs[0]->deg;
   sel_low->deg    = ps->pairs[0]->deg;

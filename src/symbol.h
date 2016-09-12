@@ -1101,12 +1101,6 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   nelts_t i, j, k;
   spair_t *sp = NULL;
 
-  // keep a list for duplicates, i.e. for each lcm appearing we keep a list of
-  // corresponding polynomials. if a polynomial is appearing again with the same
-  // lcm, this would lead to a duplicate row and we can remove it, i.e. set the
-  // corresponding gen1 or gen2 entry to 0.
-  dup_t *duplicates = init_duplicates_list(nsel);
-
   // wVe do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
@@ -1203,6 +1197,12 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   free(gens);
 
 #else
+  // keep a list for duplicates, i.e. for each lcm appearing we keep a list of
+  // corresponding polynomials. if a polynomial is appearing again with the same
+  // lcm, this would lead to a duplicate row and we can remove it, i.e. set the
+  // corresponding gen1 or gen2 entry to 0.
+  dup_t *duplicates = init_duplicates_list(nsel);
+
   for (i=0; i<nsel; ++i) {
     // remove duplicates if lcms and the first generators are the same
     sp  = ps->pairs[i];

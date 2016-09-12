@@ -118,6 +118,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         ht->sf.simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
           //try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
         // now add new monomials to preprocessing hash list
+        if (mon->size-mon->load+1 < sel_upp->mpp[sel_upp->load-1].nt) {
+          const nelts_t max = 2*mon->size > sel_upp->mpp[sel_upp->load-1].nt ?
+            2*mon->size : sel_upp->mpp[sel_upp->load-1].nt;
+          adjust_size_of_preprocessing_hash_list(mon, max);
+        }
         enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
             mon, ht);
       }

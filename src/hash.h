@@ -497,7 +497,6 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
   tmp_h = hash & (ht->sz-1);
 
   // first check directly
-  i = 0; // initial loop value, it is incremented and then used with gotos later on
   tmp_l = ht->lut[tmp_h];
   if (tmp_l == 0)
     return insert_in_hash_table(hash, tmp_h, ht);
@@ -506,24 +505,22 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
       cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0) {
-        i++;
-        goto go_on_looping;
-      }
+      if (_mm_movemask_epi8(cmpv) == 0)
+        break;
     }
-    return tmp_l;
+    if (j == ht->nev)
+      return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
-    for (j=0; j<ht->nv; ++j) {
-      if (ht->exp[tmp_l][j] != exp[j]) {
-        i++;
-        goto go_on_looping;
-      }
+    for (j=0; j<ht->nv; ++j)
+      if (exp[j] != ht->exp[tmp_l][j])
+        break;
+    if (j == ht->nv) {
+      return tmp_l;
     }
-    return tmp_l;
 #endif
 #endif
   }
@@ -535,7 +532,6 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 
   // remaining checks with probing
   for (i=1; i<ht->sz; ++i) {
-go_on_looping:
     tmp_h = (tmp_h+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
@@ -546,24 +542,23 @@ go_on_looping:
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
       cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0) {
-        i++;
-        goto go_on_looping;
-      }
+      if (_mm_movemask_epi8(cmpv) == 0)
+        break;
     }
-    return tmp_l;
+    if (j == ht->nev)
+      return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
-    for (j=0; j<ht->nv; ++j) {
-      if (ht->exp[tmp_l][j] != exp[j]) {
-        i++;
-        goto go_on_looping;
-      }
+    nvars_t j;
+    for (j=0; j<ht->nv; ++j)
+      if (exp[j] != ht->exp[tmp_l][j])
+        break;
+    if (j == ht->nv) {
+      return tmp_l;
     }
-    return tmp_l;
 #endif
 #endif
   }
@@ -615,7 +610,6 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   tmp_h = hash & (ht->sz-1);
   
   // first check directly
-  i = 0; // initial loop value, it is incremented and then used with gotos later on
   tmp_l = ht->lut[tmp_h];
   if (tmp_l == 0)
     return 0;
@@ -624,30 +618,27 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
       cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ev[j]);
-      if (_mm_movemask_epi8(cmpv) == 0) {
-        i++;
-        goto go_on_looping;
-      }
+      if (_mm_movemask_epi8(cmpv) == 0)
+        break;
     }
-    return tmp_l;
+    if (j == ht->nev)
+      return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
-    for (j=0; j<ht->nv; ++j) {
-      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j]) {
-        i++;
-        goto go_on_looping;
-      }
-    }
+    for (j=0; j<ht->nv; ++j)
+      if (exp[j] != ht->exp[tmp_l][j])
+        break;
+    if (j == ht->nv)
+      return tmp_l;
 #endif
 #endif
   }
 
   // remaining checks with probing
   for (i=1; i<ht->sz; ++i) {
-go_on_looping:
     tmp_h = (tmp_h+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
@@ -658,24 +649,21 @@ go_on_looping:
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
       cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ev[j]);
-      if (_mm_movemask_epi8(cmpv) == 0) {
-        i++;
-        goto go_on_looping;
-      }
+      if (_mm_movemask_epi8(cmpv) == 0)
+        break;
     }
-    return tmp_l;
+    if (j == ht->nev)
+      return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
-    for (j=0; j<ht->nv; ++j) {
-      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j]) {
-        i++;
-        goto go_on_looping;
-      }
-    }
-    return tmp_l;
+    for (j=0; j<ht->nv; ++j)
+      if (exp[j] != ht->exp[tmp_l][j])
+        break;
+    if (j == ht->nv)
+      return tmp_l;
 #endif
 #endif
   }
@@ -723,7 +711,6 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   tmp_h = hash & (ht->sz-1);
 
   // first check directly
-  i = 0; // initial loop value, it is incremented and then used with gotos later on
   tmp_l = ht->lut[tmp_h];
   if (tmp_l == 0)
     return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
@@ -732,31 +719,27 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
       cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0) {
-        i++;
-        goto go_on_looping;
-      }
+      if (_mm_movemask_epi8(cmpv) == 0)
+        break;
     }
-    return tmp_l;
+    if (j == ht->nev)
+      return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
-    for (j=0; j<ht->nv; ++j) {
-      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j]) {
-        i++;
-        goto go_on_looping;
-      }
-    }
-    return tmp_l;
+    for (j=0; j<ht->nv; ++j)
+      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
+        break;
+    if (j == ht->nv)
+      return tmp_l;
 #endif
 #endif
   }
 
   // remaining checks with probing
   for (i=1; i<ht->sz; ++i) {
-go_on_looping:
     tmp_h = (tmp_h+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
@@ -767,25 +750,22 @@ go_on_looping:
     exp_v cmpv;
     for (j=0; j<ht->nev; ++j) {
       cmpv  = _mm_cmpeq_epi32(ht->ev[tmp_l][j], ht->ev[ht->load][j]);
-      if (_mm_movemask_epi8(cmpv) == 0) {
-        i++;
-        goto go_on_looping;
-      }
+      if (_mm_movemask_epi8(cmpv) == 0)
+        break;
     }
-    return tmp_l;
+    if (j == ht->nev)
+      return tmp_l;
 #else
 #if __GB_USE_64_EXP_VEC
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
     nvars_t j;
-    for (j=0; j<ht->nv; ++j) {
-      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j]) {
-        i++;
-        goto go_on_looping;
-      }
-    }
-    return tmp_l;
+    for (j=0; j<ht->nv; ++j)
+      if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
+        break;
+    if (j == ht->nv)
+      return tmp_l;
 #endif
 #endif
   }

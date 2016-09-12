@@ -211,8 +211,9 @@ static inline void enlarge_basis(gb_t *basis, const nelts_t size)
   basis->red  = realloc(basis->red, basis->size * sizeof(red_t));
   basis->cf   = realloc(basis->cf, basis->size * sizeof(coeff_t *));
   basis->eh   = realloc(basis->eh, basis->size * sizeof(hash_t *));
-  if (basis->sf != NULL)
+  if (basis->sf != NULL) {
     basis->sf   = realloc(basis->sf, basis->size * sizeof(sf_t));
+  }
 }
 
 /**
@@ -226,9 +227,9 @@ static inline void initialize_simplifier_link(gb_t *basis)
   nelts_t i;
   //basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
   for (i=0; i<basis->size; ++i) {
-    basis->sf[i].size = 3;
+    basis->sf[i].size = 5;
     basis->sf[i].load = 0;
-    basis->sf[i].idx  = (nelts_t *)malloc(basis->sf[i].size * sizeof(nelts_t));
+    basis->sf[i].idx  = (nelts_t *)calloc(basis->sf[i].size,  sizeof(nelts_t));
   }
 }
 
@@ -300,11 +301,8 @@ static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
 
   // enlarge array if needed
   if (basis->sf[bi].load  ==  basis->sf[bi].size) {
-    basis->sf[bi].idx   =   realloc(basis->sf[bi].idx,
-                              2 * basis->sf[bi].size * sizeof(nelts_t));
-    basis->sf[bi].size  *=  2;
+    basis->sf[bi].load  = 0;
   }
-  // insert link to simplifier list
   basis->sf[bi].idx[basis->sf[bi].load] = sf->load-1;
   basis->sf[bi].load++;
 }

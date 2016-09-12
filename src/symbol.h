@@ -966,7 +966,7 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
   hash_t sf_mul = 0;
   const nelts_t load  = basis->sf[mpp->bi].load;
   for (l=0; l<load; ++l) {
-    const nelts_t idx = basis->sf[mpp->bi].idx[load-1-l];
+    const nelts_t idx = basis->sf[mpp->bi].idx[l];
     // we start searching from the end of the list since those elements
     // might be best reduced
     if (sf->nt[idx] < 3* mpp->nt) {

@@ -130,23 +130,47 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
 {
   nelts_t i;
 
+  /*
   if (sf->load == sf->size)
     enlarge_basis(sf, 2*sf->size);
+  */
 
+  // get index of basis element
+  const nelts_t bi  = spd->selu->mpp[ri].bi;
+  //printf("basis->sf[bi].size = %u\n", basis->sf[bi].size);
+  if (basis->sf[bi].load  ==  basis->sf[bi].size) {
+    basis->sf[bi].load  = 0;
+  }
+  /*
+  for (int ii=0; ii<5; ++ii)
+    printf("2 idx = %u\n", basis->sf[bi].idx[ii]);
+  printf("\n");
+  printf("bi %u, load %u\n", bi, basis->sf[bi].load);
+  */
+  nelts_t idx = basis->sf[bi].idx[basis->sf[bi].load];
+  if (idx != 0) {
+    free(sf->cf[idx]);
+    free(sf->eh[idx]);
+  } else {
+    if (sf->load == sf->size) {
+      enlarge_basis(sf, 2*sf->size);
+    }
+    idx = sf->load;
+  }
   // maximal size is B->ncols + 1 (for A)
   nelts_t ms  = B->ncols + 1;
   // use shorter names in here
-  sf->cf[sf->load] = (coeff_t *)malloc(ms * sizeof(coeff_t));
-  sf->eh[sf->load] = (hash_t *)malloc(ms * sizeof(hash_t));
+  sf->cf[idx] = (coeff_t *)malloc(ms * sizeof(coeff_t));
+  sf->eh[idx] = (hash_t *)malloc(ms * sizeof(hash_t));
 
   nelts_t ctr = 0;
   deg_t deg   = 0;
 
   // first we add the term from A
-  sf->cf[sf->load][ctr] = 1;
-  sf->eh[sf->load][ctr] = spd->col->hpos[ri];
-  deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-    ht->deg[sf->eh[sf->load][ctr]] : deg;
+  sf->cf[idx][ctr] = 1;
+  sf->eh[idx][ctr] = spd->col->hpos[ri];
+  deg = ht->deg[sf->eh[idx][ctr]] > deg ?
+    ht->deg[sf->eh[idx][ctr]] : deg;
   ctr++;
 
 #if POLY_DEBUG
@@ -154,12 +178,12 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
 #if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
    // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u ",ht->exp[sf->eh[sf->load][0]][ii]);
+    printf("%u ",ht->exp[sf->eh[idx][0]][ii]);
 #else
     exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
     exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
     for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[sf->eh[sf->load][0]][ii]);
+      _mm_store_si128((exp_v *)tmp, ht->ev[sf->eh[idx][0]][ii]);
       memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
     }
   for (int ii=0; ii<ht->nv; ++ii)
@@ -198,20 +222,20 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
   if (values != NULL) {
     for (i=si; i<B->ncols; ++i) {
       if (values[i] != 0) {
-        sf->cf[sf->load][ctr] = values[i];
+        sf->cf[idx][ctr] = values[i];
         // note that we have to adjust the position via shifting it by
         // spd->col->nlm since DR is on the righthand side of the matrix
-        sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+        sf->eh[idx][ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
-        printf("%u|",sf->cf[sf->load][ctr]);
+        printf("%u|",sf->cf[idx][ctr]);
 #if !__GB_HAVE_SSE2
         for (int ii=0; ii<ht->nv; ++ii)
-          printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
+          printf("%u",ht->exp[sf->eh[idx][ctr]][ii]);
         printf("  ");
 #endif
 #endif
-        deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-          ht->deg[sf->eh[sf->load][ctr]] : deg;
+        deg = ht->deg[sf->eh[idx][ctr]] > deg ?
+          ht->deg[sf->eh[idx][ctr]] : deg;
         ctr++;
       }
     }
@@ -220,27 +244,27 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
   printf("\n");
   printf("deg: %u\n", deg);
 #endif
-  sf->nt[sf->load]  = ctr;
-  sf->deg[sf->load] = deg;
+  sf->nt[idx]  = ctr;
+  sf->deg[idx] = deg;
 
 
   // realloc memory to the correct number of terms
-  sf->cf[sf->load]  = realloc(sf->cf[sf->load],
-    sf->nt[sf->load] * sizeof(coeff_t));
-  sf->eh[sf->load]  = realloc(sf->eh[sf->load],
-      sf->nt[sf->load] * sizeof(hash_t));
+  sf->cf[idx]  = realloc(sf->cf[idx],
+    sf->nt[idx] * sizeof(coeff_t));
+  sf->eh[idx]  = realloc(sf->eh[idx],
+      sf->nt[idx] * sizeof(hash_t));
 
 #if POLY_DEBUG
   printf("new simplifier: %u\n",ri);
-  for (int ii=0; ii<sf->nt[sf->load]; ++ii)
-    printf("%lu ", sf->eh[sf->load][ii]);
+  for (int ii=0; ii<sf->nt[idx]; ++ii)
+    printf("%lu ", sf->eh[idx][ii]);
   printf("\n");
 #endif
-  sf->load++;
+  //idx++;
   // now we have to link the simplifier with the corresponding element in basis
   
   // get index of element in basis
-  link_simplifier_to_basis(basis, sf, spd, ri);
+  //link_simplifier_to_basis(basis, sf, spd, ri);
 }
 
 int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
@@ -345,9 +369,9 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
       basis->nt[basis->load] * sizeof(hash_t));
 
   if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
+    basis->sf[basis->load].size = 20;
     basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    basis->sf[basis->load].idx  = (nelts_t *)calloc(basis->sf[basis->load].size,  sizeof(nelts_t));
   }
   basis->load++;
 

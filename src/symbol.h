@@ -1098,10 +1098,8 @@ static inline dup_t *init_duplicates_list(const nelts_t n_pairs_selected)
 static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     const gb_t *basis, const gb_t *sf, const nelts_t nsel)
 {
-  nelts_t i, j, k;
-  spair_t *sp = NULL;
-
-  // wVe do not need to check for size problems in sel du to above comment: we
+  int i, j ,k, l;
+  // we do not need to check for size problems in sel du to above comment: we
   // have allocated basis->load slots, so enough for each possible element from
   // the basis
 #if SYMBOL_DEBUG
@@ -1176,8 +1174,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       k++;
       ht->idx[lcm]  = 2;
     }
-    for (k; k<load; k++) {
-      add_spair_generator_to_selection(sell, basis, lcm, gens[k]);
+    for (l=k; l<load; l++) {
+      add_spair_generator_to_selection(sell, basis, lcm, gens[l]);
       j = sell->load-1;
       // check for simplification
       // function pointer set correspondingly if simplify option is set or not
@@ -1197,6 +1195,9 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   free(gens);
 
 #else
+  nelts_t i, j, k;
+  spair_t *sp = NULL;
+
   // keep a list for duplicates, i.e. for each lcm appearing we keep a list of
   // corresponding polynomials. if a polynomial is appearing again with the same
   // lcm, this would lead to a duplicate row and we can remove it, i.e. set the

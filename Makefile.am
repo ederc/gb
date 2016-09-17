@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = gnu subdir-objects parallel-tests
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CFLAGS=${SIMD_FLAGS} ${OPENMP_CFLAGS} ${DEBUG_FLAGS} $(GBLA_FLAGS) -Wall
+AM_CFLAGS=${SIMD_FLAGS} ${OPENMP_CFLAGS} ${CL_FLAGS} ${DEBUG_FLAGS} $(GBLA_FLAGS) -Wall
 
 lib_LTLIBRARIES = libgb.la
 
@@ -43,7 +43,7 @@ gb_SOURCES = \
 	cli/gb.h	cli/gb.c	\
 	cli/io.h	cli/io.c
 
-gb_LDADD = $(top_builddir)/libgb.la $(DEPS_LIBS) $(GBLA_LIBS) -lm
+gb_LDADD = $(top_builddir)/libgb.la $(DEPS_LIBS) ${CL_LIBS} $(GBLA_LIBS) -lm
 
 SUBDIRS =
 

@@ -969,8 +969,8 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
     const nelts_t idx = basis->sf[mpp->bi].idx[load-1-l];
     // we start searching from the end of the list since those elements
     // might be best reduced
-    if (sf->nt[idx] < 3* mpp->nt) {
-      sf_mul = monomial_division(mpp->mlm, sf->eh[idx][0], ht);
+    if (sf->nt[idx] < 3* mpp->nt && check_monomial_division(mpp->mlm, sf->eh[idx][0], ht)) {
+      sf_mul = get_multiplier(mpp->mlm, sf->eh[idx][0], ht);
       if (sf_mul != 0) {
 #if SYMBOL_DEBUG
         printf("-- SIMPLIFY --\n");

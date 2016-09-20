@@ -253,9 +253,9 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
 
   const ht_size_t old_sz  = ht->sz;
   ht->sz  = 2*ht->sz;
-#if HASH_DEBUG
-  printf("enlarging hash table: load = %u || primes[ %u] = %u --> primes[%u] = %u\n",ht->load,old_si,old_sz, ht->si,ht->sz);
-#endif
+//#if HASH_DEBUG
+  printf("enlarging hash table: %10u --> %10u\n", old_sz, ht->sz);
+//#endif
   ht->lut   = realloc(ht->lut, ht->sz * sizeof(ht_size_t));
   ht->val   = realloc(ht->val, ht->sz * sizeof(hash_t));
   ht->deg   = realloc(ht->deg, ht->sz * sizeof(deg_t));
@@ -263,6 +263,7 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   ht->div   = realloc(ht->div, ht->sz * sizeof(nelts_t));
   // set mew values for divisors and index to zero
   memset(ht->idx+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
+  memset(ht->lut+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
   memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
 #if __GB_HAVE_SSE2
   ht->ev    = realloc(ht->ev, ht->sz * sizeof(exp_v *));
@@ -447,10 +448,26 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
   ht->val[last_pos] = hash;
   ht->lut[pos]      = last_pos;
 #if HASH_DEBUG
-  for (int i=0; i<ht->nv; ++i)
-    printf("%u ",ht->exp[ht->load][i]);
-  printf(" ||| ");
-  printf("%11u | %11u\n",hash, last_pos);
+  int i;
+  for (unsigned long j=0; j<ht->load; ++j) {
+    for (i=0; i<ht->nv; ++i) {
+      if (ht->exp[ht->load][i] != ht->exp[j][i]) {
+        break;
+      }
+    }
+    if (i==ht->nv) {
+      for (i=0; i<ht->nv; ++i)
+        printf("%u ",ht->exp[ht->load][i]);
+      printf(" ||| ");
+      printf("%11u | %11u\n",hash, last_pos);
+      printf("------------------------------\n");
+      for (i=0; i<ht->nv; ++i)
+        printf("%u ",ht->exp[j][i]);
+      printf(" ||| ");
+      printf("%11u | %11u\n", ht->val[j], j);
+      printf("==============================\n");
+    }
+  }
 #endif
   // we do not need this anymore since it is already computed and stored in
   // check_in_hash_table_product()
@@ -515,12 +532,16 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
+    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+      return tmp_l;
+    /*
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
         break;
     if (j == ht->nv) {
       return tmp_l;
     }
+    */
 #endif
 #endif
   }
@@ -552,6 +573,9 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
+    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+      return tmp_l;
+    /*
     nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
@@ -559,6 +583,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
     if (j == ht->nv) {
       return tmp_l;
     }
+    */
 #endif
 #endif
   }
@@ -628,11 +653,15 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
+    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+      return tmp_l;
+    /*
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+      */
 #endif
 #endif
   }
@@ -659,11 +688,15 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     if (exp[0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
+    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+      return tmp_l;
+    /*
     for (j=0; j<ht->nv; ++j)
       if (exp[j] != ht->exp[tmp_l][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+    */
 #endif
 #endif
   }
@@ -729,11 +762,15 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
+    if (memcmp(ht->exp[ht->load], ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+      return tmp_l;
+    /*
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+    */
 #endif
 #endif
   }
@@ -760,12 +797,16 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
     if (ht->exp[ht->load][0] == ht->exp[tmp_l][0])
       return tmp_l;
 #else
+    if (memcmp(ht->exp[ht->load], ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+      return tmp_l;
+    /*
     nvars_t j;
     for (j=0; j<ht->nv; ++j)
       if (ht->exp[tmp_l][j] != ht->exp[ht->load][j])
         break;
     if (j == ht->nv)
       return tmp_l;
+    */
 #endif
 #endif
   }
@@ -793,7 +834,7 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   exp_t exp[ht->nev * ht->vl] __attribute__ ((aligned (16)));
   exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
   for (i=0; i<ht->nev; ++i) {
-    ht->ev[ht->load][i] = _mm_max_epi16(ht->ev[h1][i], ht->ev[h2][i]);
+    ht->ev[ht->load][i] = _mm_max_epu16(ht->ev[h1][i], ht->ev[h2][i]);
     _mm_store_si128((exp_v *)tmp, ht->ev[ht->load][i]);
     memcpy(exp+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
   }
@@ -905,10 +946,8 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
   }
   return 1;
 #else
-  exp_t *e1, *e2;
-
-  e1  = ht->exp[h1];
-  e2  = ht->exp[h2];
+  const exp_t * const e1  = ht->exp[h1];
+  const exp_t * const e2  = ht->exp[h2];
 
   for (i=0; i<ht->nv; ++i) {
     if (e1[i] < e2[i])
@@ -961,13 +1000,13 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
   e1  = exp1;
   e2  = exp2;
 #else
-  e1  = ht->exp[h1];
-  e2  = ht->exp[h2];
+  const exp_t * const exp1  = ht->exp[h1];
+  const exp_t * const exp2  = ht->exp[h2];
 #endif
 
   // note that we explicitly do not check w.r.t. the last variable!
   for (i=0; i<ht->nv-1; ++i) {
-    if (e1[i] < e2[i])
+    if (exp1[i] < exp2[i])
       return 0;
   }
   return 1;
@@ -988,22 +1027,27 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
  *
  * \return hash position of multiplier 
  */
-static inline hash_t get_multiplier(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
+static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
 {
   nvars_t i;
 #if __GB_HAVE_SSE2
   for (i=0; i<ht->nev; ++i)
     ht->ev[ht->load][i] = _mm_subs_epu16(ht->ev[h1][i], ht->ev[h2][i]);
 #else
-  exp_t *e, *e1, *e2;
-
-  e   = ht->exp[ht->load];
-  e1  = ht->exp[h1];
-  e2  = ht->exp[h2];
+  exp_t *e  = ht->exp[ht->load];
+  const exp_t * const e1  = ht->exp[h1];
+  const exp_t * const e2  = ht->exp[h2];
 
   // we know that exp e2 divides exp e1, so no check for e1[i] < e2[i]
-  for (i=0; i<ht->nv; ++i)
+  for (i=0; i<ht->nv; ++i) {
     e[i]  = e1[i] - e2[i];
+  }
+  /*
+  for (i=0; i<ht->nv; i=i+2) {
+    e[i]  = e1[i] - e2[i];
+    e[i+1]  = e1[i+1] - e2[i+1];
+  }
+  */
 #endif
   ht->deg[ht->load] = ht->deg[h1] - ht->deg[h2];
   return check_in_hash_table(ht);

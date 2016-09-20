@@ -89,7 +89,7 @@ typedef uint16_t exp_s;
 typedef uint64_t exp_s;
 #else
 //typedef uint8_t exp_s;
-typedef uint32_t exp_s;
+typedef uint16_t exp_s;
 #endif
 #endif
 typedef exp_s exp_t;
@@ -439,7 +439,7 @@ typedef struct mp_cf4_ht_t
   ht_size_t *idx;     /*!<  index used for matrix generation and marking
                             monomials already taken care of in symbolic
                             preprocessing*/
-  sort_t sort;        /*!<  structure of sort functions */
+  sort_t sort;        /*!<  sort functions pointers */
   simplify_t sf;      /*!<  simplify function pointers */
 } mp_cf4_ht_t;
 

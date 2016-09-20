@@ -468,6 +468,24 @@ int main(int argc, char *argv[])
       printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
     }
 
+    /*
+    if (ps->load == 13936 || ps->load == 13950) {
+      for (int ii=0; ii<ps->load; ++ii) {
+        printf("pair[%u]   gen1 %6u | gen2 %6u || deg %4u || lcm ", ii, ps->pairs[ii]->gen1, ps->pairs[ii]->gen2, ps->pairs[ii]->deg);
+        exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+        exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+        for (int jj=0; jj<ht->nev; ++jj) {
+          _mm_store_si128((exp_v *)tmp, ht->ev[ps->pairs[ii]->lcm][jj]);
+          memcpy(expa+(jj*ht->vl), tmp, ht->vl*sizeof(exp_t));
+        }
+        for (int kk=0; kk<ht->nv; ++kk) {
+          printf("%u ", expa[kk]);
+        }
+        printf("\n");
+      }
+    }
+    */
+
     // if we are done then we have found the constant 1 as element in the basis
     if (done) {
       basis->has_unit = 1;

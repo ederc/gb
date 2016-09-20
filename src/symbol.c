@@ -70,13 +70,13 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       // polynomial is taken
       nelts_t nto = -1;
       while (i<basis->load) {
-        if (basis->red[i] == 0 && basis->nt[i] < nto) {
-          h = monomial_division(hash_pos, basis->eh[i][0], ht);
-          if ((h != 0)) {
+        if (basis->red[i] == 0 && basis->nt[i] < nto && check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
+          h = get_multiplier(hash_pos, basis->eh[i][0], ht);
+          //if ((h != 0)) {
             hio = i;
             nto = basis->nt[i];
             ho  = h;
-          }
+          //}
         }
         i++;
       }

@@ -35,8 +35,12 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
 
   // check if limit for spair handling is set
-  if (basis->max_sel != 0)
+  if (basis->max_sel != 0) {
     nsel  = nsel < basis->max_sel ? nsel : basis->max_sel;
+    // try to keep all spairs of same lcm together
+    while (nsel != ps->load && ps->pairs[nsel-1]->lcm == ps->pairs[nsel]->lcm)
+      nsel++;
+  }
   
   meta_data->sel_pairs  = nsel;
   meta_data->curr_deg   = ps->pairs[0]->deg;

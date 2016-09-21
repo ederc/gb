@@ -40,6 +40,8 @@ void print_help()
   printf("    -g GIT      Outputs git commit hash if verbosity level is >0.\n");
   printf("    -h HELP     Print help.\n");
   printf("    -l LIMIT    Maximal number of spairs handled at once.\n");
+  printf("                Note: We try keep all spairs with the same lcm together,\n");
+  printf("                      so it might happen that the limit is exceeded slightly.\n");
   printf("    -m MAT      Generates .pbm files of gbla matrices.\n");
   printf("                Considers as argument a folder to write into.\n");
   printf("    -n NREDMAT  If option is set the gbla matrices are not fully reduced.\n");

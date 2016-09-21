@@ -443,7 +443,8 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
 }
 
 gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
-    mp_cf4_ht_t *ht, const int simplify, const int vb, const int nthrds)
+    mp_cf4_ht_t *ht, const int simplify, const long max_spairs,
+    const int vb, const int nthrds)
 {
   uint64_t fl;
 
@@ -515,7 +516,8 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   }
 
   // initialize basis with information from above
-  gb_t *basis = initialize_basis(order, nlines, nvars, vnames, mod, simplify, fl);
+  gb_t *basis = initialize_basis(order, nlines, nvars, vnames, mod,
+      simplify, max_spairs, fl);
 
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));

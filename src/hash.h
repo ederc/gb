@@ -499,7 +499,7 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
  */
 static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 {
-  nvars_t i, j;
+  nvars_t i;
   // element to be checked, intermediately stored in the first free position of
   // ht->exp
 
@@ -615,7 +615,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
 static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     const mp_cf4_ht_t *ht)
 {
-  ht_size_t i, j;
+  ht_size_t i;
   hash_t hash;
 #if __GB_HAVE_SSE2
   exp_v ev[ht->nev];
@@ -726,7 +726,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     mp_cf4_ht_t *ht)
 {
-  ht_size_t i, j;
+  ht_size_t i;
   hash_t hash;
 #if __GB_HAVE_SSE2
   for (i=0; i<ht->nev; ++i)
@@ -986,7 +986,6 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
     return 0;
   */
   nvars_t i;
-  exp_t *e1, *e2;
 #if __GB_HAVE_SSE2
   exp_t exp1[ht->nev * ht->vl] __attribute__ ((aligned (16)));
   exp_t exp2[ht->nev * ht->vl] __attribute__ ((aligned (16)));

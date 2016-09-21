@@ -39,6 +39,7 @@ void print_help()
   printf("                Default: 18.\n");
   printf("    -g GIT      Outputs git commit hash if verbosity level is >0.\n");
   printf("    -h HELP     Print help.\n");
+  printf("    -l LIMIT    Maximal number of spairs handled at once.\n");
   printf("    -m MAT      Generates .pbm files of gbla matrices.\n");
   printf("                Considers as argument a folder to write into.\n");
   printf("    -n NREDMAT  If option is set the gbla matrices are not fully reduced.\n");
@@ -83,6 +84,7 @@ int main(int argc, char *argv[])
   int generate_pbm  = 0;
   int print_gb      = 0;
   int order         = 0;
+  long max_spairs   = 0;
   int keep_A        = 0;
   int htc           = 15;
   int git_hash      = 0;
@@ -117,7 +119,7 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:ghm:no:p:r:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:ghl:m:no:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'c':
         htc = (int)strtol(optarg, NULL, 10);
@@ -128,6 +130,9 @@ int main(int argc, char *argv[])
       case 'h':
         print_help();
         return 0;
+      case 'l':
+        max_spairs  = (int)strtol(optarg, NULL, 10);
+        break;
       case 'm':
         pbm_dir       = optarg;
         generate_pbm  = 1;
@@ -221,13 +226,14 @@ int main(int argc, char *argv[])
     printf("hash table size             %15u (2^%u)\n", ht->sz, htc);
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("do not reduce A|B in gbla   %15d\n", keep_A);
+    printf("limit for handling spairs?? %15ld\n", max_spairs);
     printf("use simplify?               %15d\n", simplify);
     printf("generate pbm files?         %15d\n", generate_pbm);
     printf("print resulting basis?      %15d\n", print_gb);
     printf("---------------------------------------------------------------------------\n");
   }
   // input stores input data
-  gb_t *basis = load_input(fn, nvars, order, ht, simplify, verbose, nthreads);
+  gb_t *basis = load_input(fn, nvars, order, ht, simplify, max_spairs, verbose, nthreads);
   set_simplify_functions(ht, basis);
 
   // global simplifier list

@@ -33,6 +33,10 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   clear_hash_table_idx(ht);
 
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
+
+  // check if limit for spair handling is set
+  if (basis->max_sel != 0)
+    nsel  = nsel < basis->max_sel ? nsel : basis->max_sel;
   
   meta_data->sel_pairs  = nsel;
   meta_data->curr_deg   = ps->pairs[0]->deg;

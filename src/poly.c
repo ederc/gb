@@ -22,7 +22,7 @@
 #include "poly.h"
 inline gb_t *initialize_basis(const int order, const int nlines,
     const nvars_t nvars, char **vnames, const mod_t mod,
-    const int simplify, const uint64_t fl)
+    const int simplify, const long max_spairs, const uint64_t fl)
 {
   nvars_t i;
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
@@ -33,6 +33,7 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->init_hom = 1;
   basis->hom      = 1;
   basis->mtl      = 0;
+  basis->max_sel  = (nelts_t)max_spairs;
   // #generators of the input system = nlines - 2 since the first line has the
   // variable names and second line is the field modulus. Then we add 1 since we
   // keep the element at position 0 NULL for faster divisibility checks

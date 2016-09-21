@@ -60,13 +60,15 @@
  *
  * \param switch for possible simplification simplify
  *
+ * \param maximal number of spairs handled at once
+ *
  * \param file length of input file fl
  *
  * \return intermediate groebner basis basis
  */
 gb_t *initialize_basis(const int order, const int nlines,
     const nvars_t nvars, char **vnames, const mod_t mod,
-    const int simplify, const uint64_t fl);
+    const int simplify, const long max_spairs, const uint64_t fl);
 
 /**
  * \brief Initializes simplifier list, takes meta data from intermediate

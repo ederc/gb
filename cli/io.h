@@ -190,6 +190,8 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht);
  *
  * \param should simplifications be used? simplify
  *
+ * \param maximal number of spairs handled at once
+ *
  * \param level of verbosity vb
  *
  * \param number of threads nthrds
@@ -197,7 +199,8 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht);
  * \return initial state of input
  */
 gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
-    mp_cf4_ht_t *ht, const int simplify, const int vb, const int nthrds);
+    mp_cf4_ht_t *ht, const int simplify, const long max_spairs,
+    const int vb, const int nthrds);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 

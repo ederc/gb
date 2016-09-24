@@ -159,8 +159,13 @@ CFLAGS=$oldCFLAGS;
 dnl Check for OpenCL
 AX_CHECK_CL
 if test "X$no_cl" = "Xyes"; then
-    AC_MSG_FAILURE([No OpenCL available.])
-  fi
+    #AC_MSG_FAILURE([No OpenCL available.])
+    CL_FLAGS=""
+    AC_SUBST(CL_FLAGS)
+    AC_DEFINE([HAVE_OPENCL],[0],"OPENCL not available.")
+else
+    AC_DEFINE([HAVE_OPENCL],[1],"OPENCL available.")
+fi
 
 dnl Search for KAAPI
  AC_CHECK_LIB([kaapi], [main], [

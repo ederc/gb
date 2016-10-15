@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     // the order of the left side columns since gbla expects blocks be
     // inverted for a faster reduction of A in the first step of the matrix
     // reduction..
-    if (keep_A == 1)
+    if (keep_A == 1 || reduce_gb == 2)
       ht->sort.sort_presorted_columns(spd, nthreads);
     else
       ht->sort.sort_presorted_columns_invert_left_side(spd, nthreads);
@@ -377,127 +377,266 @@ int main(int argc, char *argv[])
     // generate gbla matrix out of data from symbolic preprocessing
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
-    mat_t *mat  = NULL;
-    if (keep_A == 1) {
-      mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
-      meta_data->mat_rows = mat->AR->nrows+mat->CR->nrows;
-      meta_data->mat_cols = mat->AR->ncols+mat->B->ncols;
-      if (verbose > 1) {
-        printf("matrix rows %6u + %6u = %6u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
-        printf("matrix cols %6u + %6u = %6u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
-      }
-    } else {
-      mat = generate_gbla_matrix(basis, sf, spd, nthreads);
-      meta_data->mat_rows = mat->A->nrows+mat->C->nrows;
-      meta_data->mat_cols = mat->A->ncols+mat->B->ncols;
-      if (verbose > 1) {
-        printf("matrix rows %6u + %6u = %6u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
-        printf("matrix cols %6u + %6u = %6u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
-      }
-    }
-    if (verbose == 1) {
-      printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
-          steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
-    }
-    //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
-    if (verbose > 0)
-      t_generating_gbla_matrix  +=  walltime(t_load_start);
-    // generate pbm files of gbla matrix
-    if (generate_pbm) {
-      int pos = 0;
-      pos = snprintf(pbm_fn+pos, 200, "%s/",pbm_dir);
-      pos = snprintf(pbm_fn+pos, 200, "%s-mat%u.pbm", fn, steps);
-      printf("%s\n", pbm_fn);
-      write_matrix_to_pbm(mat, pbm_fn);
-    }
-    // reduce matrix using gbla
-    if (verbose == 2) {
-      gettimeofday(&t_load_start, NULL);
-      printf("[%2u] ", steps);
-      printf("%-33s","GBLA matrix reduction ...");
-      fflush(stdout);
-    }
-    int rankDR  = 0;
-    if (keep_A == 1)
-      rankDR  = reduce_gbla_matrix_keep_A(mat, verbose, nthreads);
-    else
-      rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
-    if (verbose == 2) {
-      printf("%9.3f sec %7d %7d %7d\n",
-          walltime(t_load_start) / (1000000), rankDR, mat->DR->nrows - rankDR, mat->DR->nrows);
-    }
-    if (verbose > 0)
-      t_linear_algebra  +=  walltime(t_load_start);
-
-    // generate pbm files of gbla matrix
-    if (generate_pbm) {
-      int pos = 0;
-      pos = snprintf(pbm_fn+pos, 200, "%s/",pbm_dir);
-      pos = snprintf(pbm_fn+pos, 200, "%s-mat%u-red.pbm", fn, steps);
-      printf("%s\n", pbm_fn);
-      write_reduced_matrix_to_pbm(mat, pbm_fn);
-    }
-
-    // add new elements to basis and update pair set
-    if (verbose > 0)
-      gettimeofday(&t_load_start, NULL);
-    
-    if (basis->sl == 0)
-      done  = update_basis(basis, ps, spd, mat, ht, rankDR);
-    else
-      done  = update_basis_and_add_simplifier(basis, sf, ps,
-          spd, mat, ht, rankDR, nthreads);
-    if (verbose > 2) {
-      if (basis->sf != NULL)
-        printf("basis->load %u | sf->load %u (%u)\n",basis->load, sf->load, spd->col->nlm);
-      else
-        printf("basis->load %u (%u)\n",basis->load, spd->col->nlm);
-    }
-
-    if (verbose > 0) {
-      n_zero_reductions +=  (mat->DR->nrows - mat->DR->rank);
-    }
-    free_gbla_matrix(&mat);
-    free_symbolic_preprocessing_data(&spd);
-    clear_hash_table_idx(ht);
-
-    if (verbose > 0)
-      t_update_pairs  +=  walltime(t_load_start);
-
-    if (verbose > 2) {
-      printf("---------------------------------------------------------------------------\n");
-      printf("ps->size                          %9u\n",ps->size);
-      printf("ps->load                          %9u\n",ps->load);
-      printf("basis->size                       %9u\n",basis->size);
-      // See note on gb_t in src/types.h why we decrement basis->load here.
-      printf("basis->load                       %9u\n",basis->load-1); 
-      printf("---------------------------------------------------------------------------\n");
-      printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
-      printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
-    }
 
     /*
-    if (ps->load == 13936 || ps->load == 13950) {
-      for (int ii=0; ii<ps->load; ++ii) {
-        printf("pair[%u]   gen1 %6u | gen2 %6u || deg %4u || lcm ", ii, ps->pairs[ii]->gen1, ps->pairs[ii]->gen2, ps->pairs[ii]->deg);
-        exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-        exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-        for (int jj=0; jj<ht->nev; ++jj) {
-          _mm_store_si128((exp_v *)tmp, ht->ev[ps->pairs[ii]->lcm][jj]);
-          memcpy(expa+(jj*ht->vl), tmp, ht->vl*sizeof(exp_t));
-        }
-        for (int kk=0; kk<ht->nv; ++kk) {
-          printf("%u ", expa[kk]);
-        }
-        printf("\n");
-      }
-    }
-    */
+     * FOR TESTING ONLY
+     */
+    if (reduce_gb == 2) {
+#if 0
+      // we generate the matrix in the following shape:
+      // AB = already known lead terms resp. pivots
+      // --
+      // CD = new data, new lead terms to be computed
 
-    // if we are done then we have found the constant 1 as element in the basis
-    if (done) {
-      basis->has_unit = 1;
-      break;
+      // genearte upper matrix, i.e. already known pivots
+      smc_t *AB = NULL, *CD = NULL;
+      if (spd->selu->load > 0)
+        AB = generate_sparse_compact_matrix(basis, sf, spd->selu,
+            spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+            nthreads);
+      // genearte lower matrix, i.e. unkown pivots
+      CD = generate_sparse_compact_matrix(basis, sf, spd->sell,
+          spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+          nthreads);
+      meta_data->mat_rows = spd->selu->load + spd->sell->load;
+      meta_data->mat_cols = CD->ncl + CD->ncr;
+      if (verbose > 1) {
+        printf("matrix rows %6u \n", meta_data->mat_rows);
+        printf("matrix cols %6u \n", meta_data->mat_cols);
+      }
+      if (AB != NULL) {
+#pragma omp parallel for num_threads(nthreads)
+        for (nelts_t i=0; i<CD->nr; ++i)
+          CD->r[i]  = reduce_lower_by_upper_compact_rows(CD->r[i], AB);
+      }
+      //if (CD->nr > 1)
+      reduce_lower_rows(CD, nthreads);
+      printf("--CD--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (CD->r[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=0; jj<CD->r[ii][0]; ++jj) {
+            printf("%u at %u | ",CD->r[ii][2*jj+2],CD->r[ii][2*jj+1]);
+          }
+          printf("\n");
+        }
+      }
+
+
+      done  = update_basis_new(basis, ps, spd, CD, ht);
+#else
+      // genearte upper matrix, i.e. already known pivots
+      smat_t *AB = NULL, *CD = NULL;
+      if (spd->selu->load > 0)
+        AB = generate_sparse_matrix(basis, sf, spd->selu,
+            spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+            nthreads);
+      // genearte lower matrix, i.e. unkown pivots
+      CD = generate_sparse_matrix(basis, sf, spd->sell,
+          spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+          nthreads);
+      meta_data->mat_rows = spd->selu->load + spd->sell->load;
+      meta_data->mat_cols = CD->ncl + CD->ncr;
+      if (verbose > 1) {
+        printf("matrix rows %6u \n", meta_data->mat_rows);
+        printf("matrix cols %6u \n", meta_data->mat_cols);
+      }
+#if newred
+      printf("--CD BEGINNING--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] (%p)",ii, CD->row[ii]);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=0; jj<CD->row[ii]->sz; ++jj) {
+            printf("%u at %u | ",CD->row[ii]->val[jj],CD->row[ii]->pos[jj]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      if (AB != NULL) {
+#pragma omp parallel for num_threads(nthreads)
+        for (nelts_t i=0; i<CD->nr; ++i) {
+          CD->row[i]  = reduce_lower_by_upper_rows(CD->row[i], AB);
+#if newred
+          printf("row[%u] after = %p\n", i, CD->row[i]);
+#endif
+        }
+        nelts_t ctr = 0;
+        for (nelts_t i=0; i<CD->nr; ++i) {
+#if newred
+          printf("test CD->row[%u] = %p\n", i, CD->row[i]);
+#endif
+          if (CD->row[i] != NULL) {
+            CD->row[ctr] = CD->row[i];
+            ctr++;
+          }
+        }
+        CD->nr  = ctr;
+        CD->rk  = ctr;
+      }
+#if newred
+      printf("--CD BEFORE--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] (%p | %p)",ii, CD->row[ii], CD->row[ii]->pos);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=0; jj<CD->row[ii]->sz; ++jj) {
+            printf("%u at %u | ",CD->row[ii]->val[jj],CD->row[ii]->pos[jj]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      //if (CD->nr > 1)
+      reduce_lower_rows(CD, nthreads);
+#if newred
+      printf("--CD AFTER--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] (%p)",ii, CD->row[ii]);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=0; jj<CD->row[ii]->sz; ++jj) {
+            printf("%u at %u | ",CD->row[ii]->val[jj],CD->row[ii]->pos[jj]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+
+      done  = update_basis_new_new(basis, ps, spd, CD, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (CD->nr - CD->rk);
+      }
+#endif
+    } else {
+      mat_t *mat  = NULL;
+      if (keep_A == 1) {
+        mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
+        meta_data->mat_rows = mat->AR->nrows+mat->CR->nrows;
+        meta_data->mat_cols = mat->AR->ncols+mat->B->ncols;
+        if (verbose > 1) {
+          printf("matrix rows %6u + %6u = %6u\n", mat->AR->nrows, mat->CR->nrows, mat->AR->nrows + mat->CR->nrows);
+          printf("matrix cols %6u + %6u = %6u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
+        }
+      } else {
+        mat = generate_gbla_matrix(basis, sf, spd, nthreads);
+        meta_data->mat_rows = mat->A->nrows+mat->C->nrows;
+        meta_data->mat_cols = mat->A->ncols+mat->B->ncols;
+        if (verbose > 1) {
+          printf("matrix rows %6u + %6u = %6u\n", mat->A->nrows, mat->C->nrows, mat->A->nrows + mat->C->nrows);
+          printf("matrix cols %6u + %6u = %6u\n", mat->A->ncols, mat->B->ncols, mat->A->ncols + mat->B->ncols);
+        }
+      }
+      if (verbose == 1) {
+        printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
+            steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+      }
+      //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
+      if (verbose > 0)
+        t_generating_gbla_matrix  +=  walltime(t_load_start);
+      // generate pbm files of gbla matrix
+      if (generate_pbm) {
+        int pos = 0;
+        pos = snprintf(pbm_fn+pos, 200, "%s/",pbm_dir);
+        pos = snprintf(pbm_fn+pos, 200, "%s-mat%u.pbm", fn, steps);
+        printf("%s\n", pbm_fn);
+        write_matrix_to_pbm(mat, pbm_fn);
+      }
+      // reduce matrix using gbla
+      if (verbose == 2) {
+        gettimeofday(&t_load_start, NULL);
+        printf("[%2u] ", steps);
+        printf("%-33s","GBLA matrix reduction ...");
+        fflush(stdout);
+      }
+      int rankDR  = 0;
+      if (keep_A == 1)
+        rankDR  = reduce_gbla_matrix_keep_A(mat, verbose, nthreads);
+      else
+        rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
+      if (verbose == 2) {
+        printf("%9.3f sec %7d %7d %7d\n",
+            walltime(t_load_start) / (1000000), rankDR, mat->DR->nrows - rankDR, mat->DR->nrows);
+      }
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+
+      // generate pbm files of gbla matrix
+      if (generate_pbm) {
+        int pos = 0;
+        pos = snprintf(pbm_fn+pos, 200, "%s/",pbm_dir);
+        pos = snprintf(pbm_fn+pos, 200, "%s-mat%u-red.pbm", fn, steps);
+        printf("%s\n", pbm_fn);
+        write_reduced_matrix_to_pbm(mat, pbm_fn);
+      }
+
+      // add new elements to basis and update pair set
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+
+      if (basis->sl == 0)
+        done  = update_basis(basis, ps, spd, mat, ht, rankDR);
+      else
+        done  = update_basis_and_add_simplifier(basis, sf, ps,
+            spd, mat, ht, rankDR, nthreads);
+      if (verbose > 2) {
+        if (basis->sf != NULL)
+          printf("basis->load %u | sf->load %u (%u)\n",basis->load, sf->load, spd->col->nlm);
+        else
+          printf("basis->load %u (%u)\n",basis->load, spd->col->nlm);
+      }
+
+      if (verbose > 0) {
+        n_zero_reductions +=  (mat->DR->nrows - mat->DR->rank);
+      }
+      free_gbla_matrix(&mat);
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+
+      if (verbose > 2) {
+        printf("---------------------------------------------------------------------------\n");
+        printf("ps->size                          %9u\n",ps->size);
+        printf("ps->load                          %9u\n",ps->load);
+        printf("basis->size                       %9u\n",basis->size);
+        // See note on gb_t in src/types.h why we decrement basis->load here.
+        printf("basis->load                       %9u\n",basis->load-1); 
+        printf("---------------------------------------------------------------------------\n");
+        printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
+        printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
+      }
+
+      /*
+         if (ps->load == 13936 || ps->load == 13950) {
+         for (int ii=0; ii<ps->load; ++ii) {
+         printf("pair[%u]   gen1 %6u | gen2 %6u || deg %4u || lcm ", ii, ps->pairs[ii]->gen1, ps->pairs[ii]->gen2, ps->pairs[ii]->deg);
+         exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+         exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+         for (int jj=0; jj<ht->nev; ++jj) {
+         _mm_store_si128((exp_v *)tmp, ht->ev[ps->pairs[ii]->lcm][jj]);
+         memcpy(expa+(jj*ht->vl), tmp, ht->vl*sizeof(exp_t));
+         }
+         for (int kk=0; kk<ht->nv; ++kk) {
+         printf("%u ", expa[kk]);
+         }
+         printf("\n");
+         }
+         }
+         */
+
+      // if we are done then we have found the constant 1 as element in the basis
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
     }
   }
 

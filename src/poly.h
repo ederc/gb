@@ -211,7 +211,7 @@ static inline void enlarge_basis(gb_t *basis, const nelts_t size)
   basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
   basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
   basis->red  = realloc(basis->red, basis->size * sizeof(red_t));
-  basis->cf   = realloc(basis->cf, basis->size * sizeof(coeff_t *));
+  basis->cf   = realloc(basis->cf, basis->size * sizeof(cf_t *));
   basis->eh   = realloc(basis->eh, basis->size * sizeof(hash_t *));
   if (basis->sf != NULL)
     basis->sf   = realloc(basis->sf, basis->size * sizeof(sf_t));

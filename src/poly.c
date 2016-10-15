@@ -57,7 +57,7 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->red    = (red_t *)malloc(basis->size * sizeof(red_t));
   // for the zero and the initial elements we set the redundancy value to zero
   memset(basis->red, 0, basis->st * sizeof(red_t));
-  basis->cf     = (coeff_t **)malloc(basis->size * sizeof(coeff_t *));
+  basis->cf     = (cf_t **)malloc(basis->size * sizeof(cf_t *));
   basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
   basis->sl     = simplify;
 
@@ -113,7 +113,7 @@ inline gb_t *initialize_simplifier_list(const gb_t *basis)
   sf->nt  = (nelts_t *)malloc(sf->size * sizeof(nelts_t));
   sf->deg = (deg_t *)malloc(sf->size * sizeof(deg_t));
   sf->red = (red_t *)malloc(sf->size * sizeof(red_t));
-  sf->cf  = (coeff_t **)malloc(sf->size * sizeof(coeff_t *));
+  sf->cf  = (cf_t **)malloc(sf->size * sizeof(cf_t *));
   sf->eh  = (hash_t **)malloc(sf->size * sizeof(hash_t *));
   sf->sf  = NULL;
 
@@ -137,7 +137,7 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
   // maximal size is B->ncols + 1 (for A)
   nelts_t ms  = B->ncols + 1;
   // use shorter names in here
-  sf->cf[sf->load] = (coeff_t *)malloc(ms * sizeof(coeff_t));
+  sf->cf[sf->load] = (cf_t *)malloc(ms * sizeof(cf_t));
   sf->eh[sf->load] = (hash_t *)malloc(ms * sizeof(hash_t));
 
   nelts_t ctr = 0;
@@ -227,7 +227,7 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
 
   // realloc memory to the correct number of terms
   sf->cf[sf->load]  = realloc(sf->cf[sf->load],
-    sf->nt[sf->load] * sizeof(coeff_t));
+    sf->nt[sf->load] * sizeof(cf_t));
   sf->eh[sf->load]  = realloc(sf->eh[sf->load],
       sf->nt[sf->load] * sizeof(hash_t));
 
@@ -242,6 +242,230 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
   
   // get index of element in basis
   link_simplifier_to_basis(basis, sf, spd, ri);
+}
+
+int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
+    const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  // get position of lead term in this row
+  const nelts_t fc  = row->pos[0];
+
+  // check if we have found a unit in the basis
+  hash_t hv  = ht->val[spd->col->hpos[fc]];
+  if (hv == 0)
+    return 0;
+
+  // check next if this element might be redundant: this is only possible if
+  // the input elements are not homogeneous. in this situation we might have
+  // several new elements from D which have lead terms that divide each other.
+  // if all polynomials are homogeneous this cannot happen since then such a
+  // lead term divisibility must have been found already in the linear algebra
+  // reduction process.
+  if (basis->hom == 0 &&
+      check_new_element_for_redundancy(spd->col->hpos[fc], basis) != 0) {
+    return -1;
+  }
+#if POLY_DEBUG
+  printf("new lm from row (basis element %u): ", basis->load);
+#if !__GB_HAVE_SSE2
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[spd->col->hpos[fc]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u ",expa[ii]);
+#endif
+  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
+#endif
+
+  // if not redundandant
+  nelts_t i;
+
+  if (basis->load == basis->size)
+    enlarge_basis(basis, 2*basis->size);
+
+  //nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
+  // use shorter names in here
+  basis->cf[basis->load]  = (cf_t *)malloc(row->sz * sizeof(cf_t)); 
+  basis->eh[basis->load]  = (hash_t *)malloc(row->sz * sizeof(hash_t)); 
+  
+  nelts_t ctr = 0;
+  deg_t deg   = 0;
+
+  for (i=0; i<row->sz; ++i) {
+  //for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
+    //if (mat->DR->row[ri]->piv_val[i] != 0) {
+      basis->cf[basis->load][ctr] = row->val[i];
+      // note that we have to adjust the position via shifting it by
+      // spd->col->nlm since DR is on the righthand side of the matrix
+      basis->eh[basis->load][ctr] = spd->col->hpos[row->pos[i]];
+      //basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+#if POLY_DEBUG
+    printf("%u|",basis->cf[basis->load][ctr]);
+#if !__GB_HAVE_SSE2
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
+  printf("  ");
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[basis->load][ctr]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u",expa[ii]);
+  printf("  ");
+#endif
+#endif
+      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
+        ht->deg[basis->eh[basis->load][ctr]] : deg;
+      ctr++;
+    //}
+  }
+#if POLY_DEBUG
+  printf("\n");
+  printf("deg: %u\n", deg);
+  printf("# terms = 1 + %u\n",ctr-1);
+#endif
+  basis->nt[basis->load]  = ctr;
+  basis->deg[basis->load] = deg;
+  basis->red[basis->load] = 0;
+
+
+  // realloc memory to the correct number of terms
+  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
+    basis->nt[basis->load] * sizeof(cf_t));
+  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
+      basis->nt[basis->load] * sizeof(hash_t));
+
+  if (basis->sf != NULL) {
+    basis->sf[basis->load].size = 3;
+    basis->sf[basis->load].load = 0;
+    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+  }
+  basis->load++;
+
+  return 1;
+}
+
+int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
+    const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  // get position of lead term in this row
+  const nelts_t fc  = row[1];
+
+  // check if we have found a unit in the basis
+  hash_t hv  = ht->val[spd->col->hpos[fc]];
+  if (hv == 0)
+    return 0;
+
+  // check next if this element might be redundant: this is only possible if
+  // the input elements are not homogeneous. in this situation we might have
+  // several new elements from D which have lead terms that divide each other.
+  // if all polynomials are homogeneous this cannot happen since then such a
+  // lead term divisibility must have been found already in the linear algebra
+  // reduction process.
+  if (basis->hom == 0 &&
+      check_new_element_for_redundancy(spd->col->hpos[fc], basis) != 0) {
+    return -1;
+  }
+#if POLY_DEBUG
+  printf("new lm from row (basis element %u): ", basis->load);
+#if !__GB_HAVE_SSE2
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[spd->col->hpos[fc]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u ",expa[ii]);
+#endif
+  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
+#endif
+
+  // if not redundandant
+  nelts_t i;
+
+  if (basis->load == basis->size)
+    enlarge_basis(basis, 2*basis->size);
+
+  //nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
+  // use shorter names in here
+  basis->cf[basis->load]  = (cf_t *)malloc(row[0] * sizeof(cf_t)); 
+  basis->eh[basis->load]  = (hash_t *)malloc(row[0] * sizeof(hash_t)); 
+  
+  nelts_t ctr = 0;
+  deg_t deg   = 0;
+
+  for (i=row[1]; i<row[0]; ++i) {
+  //for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
+    //if (mat->DR->row[ri]->piv_val[i] != 0) {
+      basis->cf[basis->load][ctr] = row[2*i+2];
+      // note that we have to adjust the position via shifting it by
+      // spd->col->nlm since DR is on the righthand side of the matrix
+      basis->eh[basis->load][ctr] = spd->col->hpos[row[2*i+1]];
+      //basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+#if POLY_DEBUG
+    printf("%u|",basis->cf[basis->load][ctr]);
+#if !__GB_HAVE_SSE2
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
+  printf("  ");
+#else
+    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
+    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
+    for (int ii=0; ii<ht->nev; ++ii) {
+      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[basis->load][ctr]][ii]);
+      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
+    }
+  for (int ii=0; ii<ht->nv; ++ii)
+   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
+    printf("%u",expa[ii]);
+  printf("  ");
+#endif
+#endif
+      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
+        ht->deg[basis->eh[basis->load][ctr]] : deg;
+      ctr++;
+    //}
+  }
+#if POLY_DEBUG
+  printf("\n");
+  printf("deg: %u\n", deg);
+  printf("# terms = 1 + %u\n",ctr-1);
+#endif
+  basis->nt[basis->load]  = ctr;
+  basis->deg[basis->load] = deg;
+  basis->red[basis->load] = 0;
+
+
+  // realloc memory to the correct number of terms
+  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
+    basis->nt[basis->load] * sizeof(cf_t));
+  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
+      basis->nt[basis->load] * sizeof(hash_t));
+
+  if (basis->sf != NULL) {
+    basis->sf[basis->load].size = 3;
+    basis->sf[basis->load].load = 0;
+    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+  }
+  basis->load++;
+
+  return 1;
 }
 
 int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
@@ -275,7 +499,7 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   // maximal size is DR->ncols - row's piv lead
   nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
   // use shorter names in here
-  basis->cf[basis->load]  = (coeff_t *)malloc(ms * sizeof(coeff_t)); 
+  basis->cf[basis->load]  = (cf_t *)malloc(ms * sizeof(cf_t)); 
   basis->eh[basis->load]  = (hash_t *)malloc(ms * sizeof(hash_t)); 
   
   nelts_t ctr = 0;
@@ -341,7 +565,7 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
 
   // realloc memory to the correct number of terms
   basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(coeff_t));
+    basis->nt[basis->load] * sizeof(cf_t));
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
 

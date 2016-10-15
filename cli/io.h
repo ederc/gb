@@ -80,7 +80,7 @@ static inline poly_t *final_basis_for_output(gb_t *basis)
   if (basis->has_unit == 1) {
     basis->fl = 1;
     poly_t *fb  = (poly_t *)malloc(1 * sizeof(poly_t));
-    fb[0].cf    = (coeff_t *)malloc(1 * sizeof(coeff_t));
+    fb[0].cf    = (cf_t *)malloc(1 * sizeof(cf_t));
     fb[0].eh    = (hash_t *)malloc(1 * sizeof(hash_t));
     fb[0].cf[0] = 1;
     fb[0].eh[0] = 0;
@@ -378,7 +378,7 @@ static inline info_t *init_meta_data()
  *
  * \param modulus w.r.t. which the inverse is computed modulus
  */
-void inverse_coefficient(coeff_t *x, const coeff_t modulus);
+void inverse_coefficient(cf_t *x, const cf_t modulus);
 
 /**
  * \brief Prints resulting groebner basis to stdout, sorted w.r.t. the given

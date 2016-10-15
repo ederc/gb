@@ -94,7 +94,8 @@ typedef uint16_t exp_s;
 #endif
 typedef exp_s exp_t;
 
-typedef re_t coeff_t;
+typedef re_t cf_t;
+typedef re_l_t bf_t;
 
 
 #define ALIGNT 32
@@ -235,14 +236,14 @@ typedef struct gb_t
   hom_t hom;        /*!<  homogeneous computation? 1=yes, 0=no (we might homogenize) */
   ord_t ord;        /*!<  monomial ordering */
   nelts_t nred;     /*!<  number of redundant elements in basis */
-  coeff_t mod;      /*!<  modulo/field characteristic */
+  cf_t mod;      /*!<  modulo/field characteristic */
   int has_unit;     /*!<  is set to 1 if we have found a unit in the basis */
   nelts_t max_sel;  /*!<  maximal number of spairs handled at once */
   // element data
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
   red_t *red;       /*!<  stores if the element is redundant or not*/
-  coeff_t **cf;     /*!<  coefficients of input elements*/
+  cf_t **cf;     /*!<  coefficients of input elements*/
   hash_t **eh;      /*!<  monomial exponent hash*/
   sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if
                           simplification is not used */
@@ -294,7 +295,7 @@ typedef struct mpp_t
   nelts_t bi;   /*!<  index of polynomial in basis */
   hash_t *eh;   /*!<  exponent vector hash, either from basis element or from
                       corresponding simplifier*/
-  coeff_t *cf;  /*!<  coefficient vector, either from basis element or from
+  cf_t *cf;  /*!<  coefficient vector, either from basis element or from
                       corresponding simplifier*/
   nelts_t nt;   /*!<  number of terms, either from basis element or from
                       corresponding simplifier*/
@@ -368,7 +369,7 @@ typedef struct mat_t
   sm_fl_t *CR;  /*!<  lower right sparse row matrix part */
   dbm_fl_t *D;  /*!<  lower right dense block matrix part */
   dm_t *DR;     /*!<  reduced D in dense row matrix format */
-  coeff_t mod;  /*!<  modulo/field characteristic */
+  cf_t mod;  /*!<  modulo/field characteristic */
   bi_t bs;      /*!<  block size given by gbla */
   ci_t ncl;     /*!<  number of columns lefthand side, i.e. cols of A resp. C */
   ci_t ncr;     /*!<  number of columns righthand side, i.e. cols of B resp. D */
@@ -380,6 +381,52 @@ typedef struct mat_t
   ci_t cbr;     /*!<  number of column blocks for right part of gbla matrix */
   int sl;       /*!<  level of simplify, might be different in different steps of the algorithm */
 } mat_t;
+
+/**
+ * \brief sparse row structure
+ */
+typedef struct sr_t
+{
+  cf_t *val;
+  nelts_t *pos;
+  nelts_t sz;
+} sr_t;
+
+typedef uint32_t src_t;
+/**
+ * \brief sparse matrix structure
+ *
+ * \note the rows r have the following structure:
+ *  r[0] = number of nonzero entries in row
+ *  ----
+ *  r[1] = column position of r[2]
+ *  r[2] = entry
+ *  r[3] = column position of r[4]
+ *  r[4] = entry
+ *  ...
+ */
+typedef struct smc_t
+{
+  src_t **r;    /*!<  rows of matrix, stores not only entries, but also positions */
+  ci_t ncl;     /*!<  number of columns lefthand side, i.e. cols of A resp. C */
+  ci_t ncr;     /*!<  number of columns righthand side, i.e. cols of B resp. D */
+  ri_t nr;     /*!<  number of rows lower par, i.e. rows of C resp. D*/
+  ri_t rk;      /*<!  rank of the matrix */
+  cf_t mod;  /*!<  modulo/field characteristic */
+} smc_t;
+
+/**
+ * \brief sparse matrix structure
+ */
+typedef struct smat_t
+{
+  sr_t **row;     /*!<  rows of the matrix */
+  ci_t ncl;       /*!<  number of columns lefthand side, i.e. cols of A resp. C */
+  ci_t ncr;       /*!<  number of columns righthand side, i.e. cols of B resp. D */
+  ri_t nr;        /*!<  number of rows*/
+  ri_t rk;        /*<!  rank of the matrix */
+  cf_t mod;       /*!<  modulo/field characteristic */
+} smat_t;
 
 /**
  * \brief Struct keeping all function pointers of functions depending on the
@@ -454,13 +501,13 @@ typedef struct mp_cf4_ht_t
 typedef struct dbr_t
 {
   nelts_t *ctr; /*!< array of counts how many nonzero elements are stored */
-  coeff_t **cf; /*!< array of coefficients in the given row and block */
-  coeff_t **bl; /*!< array of blocks of coefficients for the dense part of
+  cf_t **cf; /*!< array of coefficients in the given row and block */
+  cf_t **bl; /*!< array of blocks of coefficients for the dense part of
                      the gbla matrix*/
 } dbr_t;
 
 typedef struct poly_t {
-  coeff_t *cf;  /*!<  stores coefficients of polynomial*/
+  cf_t *cf;  /*!<  stores coefficients of polynomial*/
   hash_t *eh;   /*!<  stores exponent hashes of polynomial*/
   nelts_t nt;   /*!<  stores number of terms of polynomial*/
   red_t red;    /*!<  stores if the element is redundant or not*/

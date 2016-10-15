@@ -44,6 +44,8 @@
 #define GB_DEBUG 0
 #endif
 
+#define newred 0
+
 /**
  * \brief Prints help for gb call.
  */
@@ -135,6 +137,60 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
   for (i=0; i<rankDR; ++i) {
     // add lowest row first, it has the smallest new lead monomial
     res = add_new_element_to_basis(basis, mat, rankDR-1-i, spd, ht);
+    // if hash value 0 is new lead monomial we are done, since we have found a
+    // unit in the basis, i.e. basis = { 1 }
+    if (res == -1)
+      continue;
+    if (res == 0)
+      return 1;
+    //printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load);
+    update_pair_set(ps, basis, basis->load-1);
+    //printf("psl after: %u\n", ps->load);
+    // if elements are homogeneous we compute by degree, thus no redundancy can
+    // appear
+    if (basis->hom == 0)
+      track_redundant_elements_in_basis(basis);
+  }
+  // track load of basis at the end of this step
+  basis->load_ls  = basis->load;
+  return 0;
+}
+
+static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const smc_t *mat,
+    const mp_cf4_ht_t *ht)
+{
+  ri_t i;
+  int res;
+  for (i=0; i<mat->rk; ++i) {
+    // add lowest row first, it has the smallest new lead monomial
+    res = add_new_element_to_basis_new(basis, mat->r[mat->rk-1-i], spd, ht);
+    // if hash value 0 is new lead monomial we are done, since we have found a
+    // unit in the basis, i.e. basis = { 1 }
+    if (res == -1)
+      continue;
+    if (res == 0)
+      return 1;
+    //printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load);
+    update_pair_set(ps, basis, basis->load-1);
+    //printf("psl after: %u\n", ps->load);
+    // if elements are homogeneous we compute by degree, thus no redundancy can
+    // appear
+    if (basis->hom == 0)
+      track_redundant_elements_in_basis(basis);
+  }
+  // track load of basis at the end of this step
+  basis->load_ls  = basis->load;
+  return 0;
+}
+
+static inline int update_basis_new_new(gb_t *basis, ps_t *ps, spd_t *spd, const smat_t *mat,
+    const mp_cf4_ht_t *ht)
+{
+  ri_t i;
+  int res;
+  for (i=0; i<mat->rk; ++i) {
+    // add lowest row first, it has the smallest new lead monomial
+    res = add_new_element_to_basis_new_new(basis, mat->row[mat->rk-1-i], spd, ht);
     // if hash value 0 is new lead monomial we are done, since we have found a
     // unit in the basis, i.e. basis = { 1 }
     if (res == -1)

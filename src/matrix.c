@@ -73,6 +73,24 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   // copy block D to dense wide (re_l_t) representation
   mat->DR = copy_block_to_dense_matrix(&(mat->D), nthreads, 1);
   mat->DR->mod  = mat->mod;
+#if 0
+  printf("number of rows of DR %u\n", mat->DR->nrows);
+  for (int ii=0; ii<mat->DR->nrows; ++ii) {
+    printf("ROW %d\n",ii);
+    if (mat->DR->row[ii]->init_val == NULL)
+      printf("NULL!");
+    else {
+      printf("%u || ", mat->DR->row[ii]->lead);
+      for (int jj=0; jj<mat->DR->ncols; ++jj)
+#if defined(GBLA_USE_UINT16) || defined(GBLA_USE_UINT32)
+        printf("%u (%u)  ", mat->DR->row[ii]->init_val[jj], jj+mat->ncl);
+#else
+        printf("%.0f  ", mat->DR->row[ii]->init_val[jj]);
+#endif
+    }
+    printf("\n");
+  }
+#endif
 
   // eliminate mat->DR using a structured Gaussian Elimination process on the rows
   ri_t rank_D = 0;

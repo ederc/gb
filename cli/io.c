@@ -351,9 +351,9 @@ nvars_t get_nvars(const char *fn)
 
 void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
 {
-  coeff_t *tmp_cf;
+  cf_t *tmp_cf;
   hash_t *tmp_eh;
-  coeff_t *sort_cf  = (coeff_t *)malloc(sizeof(coeff_t));
+  cf_t *sort_cf  = (cf_t *)malloc(sizeof(cf_t));
   hash_t *sort_eh   = (hash_t *)malloc(sizeof(hash_t));
   int i, j, k;
 
@@ -361,7 +361,7 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
   for (i=1; i<basis->load; ++i) {
     // sort exponent hashes
     sort_eh  = realloc(sort_eh, basis->nt[i] * sizeof(hash_t));
-    sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(coeff_t));
+    sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(cf_t));
     memcpy(sort_eh, basis->eh[i], basis->nt[i] * sizeof(hash_t));
     qsort(sort_eh, basis->nt[i], sizeof(hash_t), ht->sort.compare_monomials);
     // sort coefficients like the exponent hashes
@@ -534,7 +534,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   // get all remaining lines, i.e. generators
   int cf_tmp  = 0; // temp for coefficient value, possibly coeff is negative.
   int iv_tmp  = 0; // temp for inverse value, possibly coeff is negative.
-  coeff_t iv  = 0; //inverse value of lead coeff in order to normalize input
+  cf_t iv  = 0; //inverse value of lead coeff in order to normalize input
   for (i=1; i<basis->load; ++i) {
     if (fgets(line, max_line_size, fh) != NULL && is_line_empty(line) != 1) {
       // get number of terms first
@@ -546,7 +546,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
 #endif
 
       // allocate memory for all terms
-      basis->cf[i]  = (coeff_t *)malloc(nterms * sizeof(coeff_t));
+      basis->cf[i]  = (cf_t *)malloc(nterms * sizeof(cf_t));
       basis->eh[i]  = (hash_t *)malloc(nterms * sizeof(hash_t));
       prev_pos  = line;
       max_deg   = 0;
@@ -1075,7 +1075,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
   }
 }
 
-void inverse_coefficient(coeff_t *x, const coeff_t modulus)
+void inverse_coefficient(cf_t *x, const cf_t modulus)
 {
   assert(*x);
   if ( *x == 1 ) return ;

@@ -404,19 +404,20 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
 
   //nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
   // use shorter names in here
-  basis->cf[basis->load]  = (cf_t *)malloc(row[0] * sizeof(cf_t)); 
-  basis->eh[basis->load]  = (hash_t *)malloc(row[0] * sizeof(hash_t)); 
+  basis->nt[basis->load]  = (row[0]-1)/2;
+  basis->cf[basis->load]  = (cf_t *)malloc(basis->nt[basis->load] * sizeof(cf_t)); 
+  basis->eh[basis->load]  = (hash_t *)malloc(basis->nt[basis->load] * sizeof(hash_t)); 
   
   nelts_t ctr = 0;
   deg_t deg   = 0;
 
-  for (i=row[1]; i<row[0]; ++i) {
+  for (i=1; i<row[0]; i += 2) {
   //for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
     //if (mat->DR->row[ri]->piv_val[i] != 0) {
-      basis->cf[basis->load][ctr] = row[2*i+2];
+      basis->cf[basis->load][ctr] = row[i+1];
       // note that we have to adjust the position via shifting it by
       // spd->col->nlm since DR is on the righthand side of the matrix
-      basis->eh[basis->load][ctr] = spd->col->hpos[row[2*i+1]];
+      basis->eh[basis->load][ctr] = spd->col->hpos[row[i]];
       //basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);

@@ -50,6 +50,8 @@
 
 #define __GB_WORDSIZE __WORDSIZE
 
+#define COMPACT_SPARSE  0
+
 static const uint32_t __GB_MINUS_ONE_32 = (uint32_t) -1;
 static const uint16_t __GB_MINUS_ONE_16 = (uint16_t) -1;
 static const uint8_t  __GB_MINUS_ONE_8  = (uint8_t)  -1;

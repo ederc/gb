@@ -163,7 +163,7 @@ static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const smc_
   int res;
   for (i=0; i<mat->rk; ++i) {
     // add lowest row first, it has the smallest new lead monomial
-    res = add_new_element_to_basis_new(basis, mat->r[mat->rk-1-i], spd, ht);
+    res = add_new_element_to_basis_new(basis, mat->row[mat->rk-1-i], spd, ht);
     // if hash value 0 is new lead monomial we are done, since we have found a
     // unit in the basis, i.e. basis = { 1 }
     if (res == -1)

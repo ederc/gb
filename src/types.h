@@ -407,12 +407,12 @@ typedef uint32_t src_t;
  */
 typedef struct smc_t
 {
-  src_t **r;    /*!<  rows of matrix, stores not only entries, but also positions */
+  src_t **row;  /*!<  rows of matrix, stores not only entries, but also positions */
   ci_t ncl;     /*!<  number of columns lefthand side, i.e. cols of A resp. C */
   ci_t ncr;     /*!<  number of columns righthand side, i.e. cols of B resp. D */
-  ri_t nr;     /*!<  number of rows lower par, i.e. rows of C resp. D*/
+  ri_t nr;      /*!<  number of rows lower par, i.e. rows of C resp. D*/
   ri_t rk;      /*<!  rank of the matrix */
-  cf_t mod;  /*!<  modulo/field characteristic */
+  cf_t mod;     /*!<  modulo/field characteristic */
 } smc_t;
 
 /**

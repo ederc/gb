@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
      * FOR TESTING ONLY
      */
     if (reduce_gb == 2) {
-#if 0
+#if COMPACT_SPARSE
       // we generate the matrix in the following shape:
       // AB = already known lead terms resp. pivots
       // --
@@ -398,6 +398,20 @@ int main(int argc, char *argv[])
       CD = generate_sparse_compact_matrix(basis, sf, spd->sell,
           spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
           nthreads);
+#if newred
+      printf("--CD BEGINNING--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+          }
+          printf("\n");
+        }
+      }
+#endif
       meta_data->mat_rows = spd->selu->load + spd->sell->load;
       meta_data->mat_cols = CD->ncl + CD->ncr;
       if (verbose > 1) {
@@ -407,22 +421,50 @@ int main(int argc, char *argv[])
       if (AB != NULL) {
 #pragma omp parallel for num_threads(nthreads)
         for (nelts_t i=0; i<CD->nr; ++i)
-          CD->r[i]  = reduce_lower_by_upper_compact_rows(CD->r[i], AB);
+          CD->row[i]  = reduce_lower_by_upper_rows(CD->row[i], AB);
       }
       //if (CD->nr > 1)
-      reduce_lower_rows(CD, nthreads);
-      printf("--CD--\n");
+#if newred
+      printf("--CD BEFORE--\n");
       for (int ii=0; ii<CD->nr; ++ii) {
         printf("row[%u] ",ii);
-        if (CD->r[ii] == NULL)
+        if (CD->row[ii] == NULL)
           printf("NULL\n");
         else {
-          for (int jj=0; jj<CD->r[ii][0]; ++jj) {
-            printf("%u at %u | ",CD->r[ii][2*jj+2],CD->r[ii][2*jj+1]);
+          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
           }
           printf("\n");
         }
       }
+#endif
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+#if newred
+        printf("test CD->row[%u] = %p\n", i, CD->row[i]);
+#endif
+        if (CD->row[i] != NULL) {
+          CD->row[ctr] = CD->row[i];
+          ctr++;
+        }
+      }
+      CD->nr  = ctr;
+      CD->rk  = ctr;
+      reduce_lower_rows(CD, nthreads);
+#if newred
+      printf("--CD AFTER--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+          }
+          printf("\n");
+        }
+      }
+#endif
 
 
       done  = update_basis_new(basis, ps, spd, CD, ht);

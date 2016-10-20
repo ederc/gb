@@ -415,6 +415,8 @@ int main(int argc, char *argv[])
       meta_data->mat_cols = CD->ncl + CD->ncr;
       if (verbose > 0)
         t_generating_gbla_matrix  +=  walltime(t_load_start);
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
       if (verbose > 1) {
         printf("matrix rows %6u \n", meta_data->mat_rows);
         printf("matrix cols %6u \n", meta_data->mat_cols);
@@ -478,6 +480,8 @@ int main(int argc, char *argv[])
       if (verbose > 0)
         t_linear_algebra  +=  walltime(t_load_start);
 
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
       done  = update_basis_new(basis, ps, spd, CD, ht);
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
@@ -489,6 +493,8 @@ int main(int argc, char *argv[])
       }
       free(CD);
       CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
       if (done) {
         basis->has_unit = 1;
         break;
@@ -509,6 +515,8 @@ int main(int argc, char *argv[])
       meta_data->mat_cols = CD->ncl + CD->ncr;
       if (verbose > 0)
         t_generating_gbla_matrix  +=  walltime(t_load_start);
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
       if (verbose > 1) {
         printf("matrix rows %6u \n", meta_data->mat_rows);
         printf("matrix cols %6u \n", meta_data->mat_cols);
@@ -592,6 +600,9 @@ int main(int argc, char *argv[])
       if (verbose > 0)
         t_linear_algebra  +=  walltime(t_load_start);
 
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+
       done  = update_basis_new_new(basis, ps, spd, CD, ht);
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
@@ -605,13 +616,12 @@ int main(int argc, char *argv[])
       CD  = NULL;
       free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
       if (done) {
         basis->has_unit = 1;
         break;
       }
-
-      if (verbose > 0)
-        t_update_pairs  +=  walltime(t_load_start);
     }
     if (reduce_gb == 0) {
       mat_t *mat  = NULL;

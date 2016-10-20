@@ -106,6 +106,12 @@ gb_t *initialize_simplifier_list(const gb_t *basis);
 int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
     const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
 
+int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
+    const spd_t *spd, const mp_cf4_ht_t *ht);
+
+int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
+    const spd_t *spd, const mp_cf4_ht_t *ht);
+
 /**
  * \brief Adds new element from reduced B part of gbla matrix to simplifier list.
  *

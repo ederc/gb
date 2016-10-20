@@ -1437,7 +1437,8 @@ static inline sr_t *poly_to_sparse_matrix_row(const gb_t *basis,
   for (nelts_t i=0; i<nc; ++i) {
     if (bf[i] != 0) {
       row->pos[ctr]   = i;
-      row->val[ctr++] = bf[i];
+      row->val[ctr] = bf[i];
+      ctr++;
     }
   }
 
@@ -1943,12 +1944,12 @@ static int  cas(int *ptr, int old_val, int new_val)
 #endif
 	return ret;
 }
-*/
 
 static uint64_t compare_and_swap(uint64_t* ptr, uint64_t old_value, uint64_t new_value)
 {
       return __sync_val_compare_and_swap(ptr, old_value, new_value);
 }
+*/
 
 static int cas(int *ptr, int old, int new)
 {
@@ -1964,7 +1965,6 @@ static int cas(int *ptr, int old, int new)
 	return prev;
 }
 
-#if !COMPACT_SPARSE
 static inline sr_t *normalize_row(sr_t *row, const cf_t mod)
 {
   nelts_t i;
@@ -2009,9 +2009,11 @@ static inline void interreduce_pivots(sr_t **pivs, const nelts_t rk,
 
   // store row in dense format using bf_t data type for delayed modulus
   // computations
+  bf_t *bf  = NULL;
   for (nelts_t k=0; k<rk; ++k) {
     const nelts_t shift = pivs[rk-k-1]->pos[0];
-    bf_t *bf = (bf_t *)calloc(nc-shift, sizeof(bf_t));
+    bf = realloc(bf, (nc-shift) * sizeof(bf_t));
+    memset(bf, 0, (nc-shift)*sizeof(bf_t));
     for (nelts_t j=0; j<pivs[rk-k-1]->sz; ++j) {
       bf[pivs[rk-k-1]->pos[j]-shift]  = (bf_t)pivs[rk-k-1]->val[j];
     }
@@ -2065,6 +2067,7 @@ static inline void interreduce_pivots(sr_t **pivs, const nelts_t rk,
     pivs[rk-k-1]->val  = realloc(pivs[rk-k-1]->val, pivs[rk-k-1]->sz * sizeof(cf_t));
     pivs[rk-k-1]->pos  = realloc(pivs[rk-k-1]->pos, pivs[rk-k-1]->sz * sizeof(nelts_t));
   }
+  free(bf);
 }
 
 static inline sr_t *reduce_lower_rows_by_pivots(sr_t *row, sr_t **pivs,
@@ -2480,8 +2483,7 @@ static inline sr_t *reduce_lower_by_upper_rows(sr_t *row, const smat_t *pivs)
 
   return row;
 }
-# else
-static inline src_t *normalize_row(src_t *row, const cf_t mod)
+static inline src_t *normalize_row_c(src_t *row, const cf_t mod)
 {
   nelts_t i;
 
@@ -2502,7 +2504,7 @@ static inline src_t *normalize_row(src_t *row, const cf_t mod)
   return row;
 }
 
-static inline int cmp_sparse_rows_by_lead_column(const void *a,
+static inline int cmp_sparse_rows_by_lead_column_c(const void *a,
     const void *b)
 {
   const src_t *ra  = *((src_t **)a);
@@ -2511,7 +2513,7 @@ static inline int cmp_sparse_rows_by_lead_column(const void *a,
   return (ra[1] - rb[1]);
 }
 
-static inline void interreduce_pivots(src_t **pivs, const nelts_t rk,
+static inline void interreduce_pivots_c(src_t **pivs, const nelts_t rk,
     const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
 
@@ -2525,9 +2527,11 @@ static inline void interreduce_pivots(src_t **pivs, const nelts_t rk,
 
   // store row in dense format using bf_t data type for delayed modulus
   // computations
+  bf_t *bf  = NULL;
   for (nelts_t k=0; k<rk; ++k) {
     const nelts_t shift = pivs[rk-k-1][1];
-    bf_t *bf = (bf_t *)calloc(nc-shift, sizeof(bf_t));
+    bf = realloc(bf, (nc-shift) * sizeof(bf_t));
+    memset(bf, 0, (nc-shift)*sizeof(bf_t));
     for (nelts_t j=1; j<pivs[rk-k-1][0]; j=j+2) {
       /*
       printf("shift %u | nc-shift %u\n", shift, nc-shift);
@@ -2589,9 +2593,10 @@ static inline void interreduce_pivots(src_t **pivs, const nelts_t rk,
     */
     pivs[rk-k-1]    = realloc(pivs[rk-k-1], pivs[rk-k-1][0]*sizeof(src_t));
   }
+  free(bf);
 }
 
-static inline src_t *reduce_lower_rows_by_pivots(src_t *row, src_t **pivs,
+static inline src_t *reduce_lower_rows_by_pivots_c(src_t *row, src_t **pivs,
     const nelts_t nr, const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
 
@@ -2742,19 +2747,19 @@ red_with_piv:
 #endif
 
   if (row[2] != 1)
-    row = normalize_row(row, mod);
+    row = normalize_row_c(row, mod);
 
   free(bf);
   return row;
 }
 
-static inline void compute_new_pivots(src_t *row, src_t **pivs, const nelts_t nr,
+static inline void compute_new_pivots_c(src_t *row, src_t **pivs, const nelts_t nr,
     const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
   int not_done;
 
   do {
-    row = reduce_lower_rows_by_pivots(row, pivs, nr, ncl, ncr, mod);
+    row = reduce_lower_rows_by_pivots_c(row, pivs, nr, ncl, ncr, mod);
     if (!row) 
       return;
     not_done  = cas((void *)(&pivs[row[1]-ncl]), 0, row);
@@ -2764,14 +2769,14 @@ static inline void compute_new_pivots(src_t *row, src_t **pivs, const nelts_t nr
   } while (not_done);
 }
 
-static inline void reduce_lower_rows(smc_t *mat, int nthreads)
+static inline void reduce_lower_rows_c(smc_t *mat, int nthreads)
 {
 #if newred
   printf("mat %p, mat->row %p, mat->row[0] %p\n", mat, mat->row, mat->row[0]);
   printf("mat->nr %u\n", mat->nr);
 #endif
   // sort rows by lead columns
-  qsort(mat->row, mat->nr, sizeof(src_t **), cmp_sparse_rows_by_lead_column);
+  qsort(mat->row, mat->nr, sizeof(src_t **), cmp_sparse_rows_by_lead_column_c);
   // initialize holder for pivots that we find during the reduction
   src_t **pivs = (src_t **)malloc(mat->ncr * sizeof(src_t *));
   for (nelts_t i=0; i<mat->ncr; ++i) {
@@ -2789,7 +2794,7 @@ static inline void reduce_lower_rows(smc_t *mat, int nthreads)
   }
 #pragma omp parallel for num_threads(nthreads)
   for (nelts_t i=0; i<j; ++i)
-    compute_new_pivots(mat->row[i], pivs, mat->nr, mat->ncl, mat->ncr, mat->mod);
+    compute_new_pivots_c(mat->row[i], pivs, mat->nr, mat->ncl, mat->ncr, mat->mod);
 #if newred
   printf("FINAL PIVOTS:\n");
   for (nelts_t i=0; i<mat->ncr; ++i) {
@@ -2813,11 +2818,11 @@ static inline void reduce_lower_rows(smc_t *mat, int nthreads)
   mat->rk = ctr;
   for (nelts_t i=ctr; i<mat->nr; ++i)
     mat->row[i] = NULL;
-  interreduce_pivots(mat->row, mat->rk, mat->ncl, mat->ncr, mat->mod);
+  interreduce_pivots_c(mat->row, mat->rk, mat->ncl, mat->ncr, mat->mod);
   free(pivs);
 }
 
-static inline sr_t *reduce_lower_by_upper_rows(src_t *row, const smc_t *pivs)
+static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
 {
   if (row[1] >= pivs->ncl)
     return row;
@@ -2827,7 +2832,7 @@ static inline sr_t *reduce_lower_by_upper_rows(src_t *row, const smc_t *pivs)
   const nelts_t ncl = pivs->ncl;
   // lc is the lead column of the row to be reduced
   nelts_t lc  = row[1];
-  nelts_t i, j;
+  nelts_t j;
   const nelts_t shift = lc;
   // store row in dense format using bf_t data type for delayed modulus
   // computations
@@ -2938,12 +2943,11 @@ static inline sr_t *reduce_lower_by_upper_rows(src_t *row, const smc_t *pivs)
 #endif
 
   if (row[2] != 1)
-    row = normalize_row(row, mod);
+    row = normalize_row_c(row, mod);
 
   free(bf);
   return row;
 }
-#endif
 /**
  * \brief Reduces gbla matrix generated by symbolic preprocessing data. Stores
  * reduced D in mat->DR in dense row format. This computation is completely done

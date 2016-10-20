@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     // the order of the left side columns since gbla expects blocks be
     // inverted for a faster reduction of A in the first step of the matrix
     // reduction..
-    if (keep_A == 1 || reduce_gb == 2)
+    if (keep_A == 1 || reduce_gb == 2 || reduce_gb == 3)
       ht->sort.sort_presorted_columns(spd, nthreads);
     else
       ht->sort.sort_presorted_columns_invert_left_side(spd, nthreads);
@@ -382,7 +382,6 @@ int main(int argc, char *argv[])
      * FOR TESTING ONLY
      */
     if (reduce_gb == 2) {
-#if COMPACT_SPARSE
       // we generate the matrix in the following shape:
       // AB = already known lead terms resp. pivots
       // --
@@ -418,10 +417,19 @@ int main(int argc, char *argv[])
         printf("matrix rows %6u \n", meta_data->mat_rows);
         printf("matrix cols %6u \n", meta_data->mat_cols);
       }
+      if (verbose == 1) {
+        printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
+            steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+      }
       if (AB != NULL) {
 #pragma omp parallel for num_threads(nthreads)
         for (nelts_t i=0; i<CD->nr; ++i)
-          CD->row[i]  = reduce_lower_by_upper_rows(CD->row[i], AB);
+          CD->row[i]  = reduce_lower_by_upper_rows_c(CD->row[i], AB);
+        for (nelts_t k=0; k<AB->nr; ++k) {
+          free(AB->row[k]);
+        }
+        free(AB);
+        AB  = NULL;
       }
       //if (CD->nr > 1)
 #if newred
@@ -450,7 +458,7 @@ int main(int argc, char *argv[])
       }
       CD->nr  = ctr;
       CD->rk  = ctr;
-      reduce_lower_rows(CD, nthreads);
+      reduce_lower_rows_c(CD, nthreads);
 #if newred
       printf("--CD AFTER--\n");
       for (int ii=0; ii<CD->nr; ++ii) {
@@ -468,7 +476,22 @@ int main(int argc, char *argv[])
 
 
       done  = update_basis_new(basis, ps, spd, CD, ht);
-#else
+      if (verbose > 0) {
+        n_zero_reductions +=  (CD->nr - CD->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]);
+      }
+      free(CD);
+      CD  = NULL;
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
+    if (reduce_gb == 3) {
       // genearte upper matrix, i.e. already known pivots
       smat_t *AB = NULL, *CD = NULL;
       if (spd->selu->load > 0)
@@ -484,6 +507,10 @@ int main(int argc, char *argv[])
       if (verbose > 1) {
         printf("matrix rows %6u \n", meta_data->mat_rows);
         printf("matrix cols %6u \n", meta_data->mat_cols);
+      }
+      if (verbose == 1) {
+        printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
+            steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
       }
 #if newred
       printf("--CD BEGINNING--\n");
@@ -507,19 +534,26 @@ int main(int argc, char *argv[])
           printf("row[%u] after = %p\n", i, CD->row[i]);
 #endif
         }
-        nelts_t ctr = 0;
-        for (nelts_t i=0; i<CD->nr; ++i) {
-#if newred
-          printf("test CD->row[%u] = %p\n", i, CD->row[i]);
-#endif
-          if (CD->row[i] != NULL) {
-            CD->row[ctr] = CD->row[i];
-            ctr++;
-          }
+        for (nelts_t k=0; k<AB->nr; ++k) {
+          free(AB->row[k]->pos);
+          free(AB->row[k]->val);
         }
-        CD->nr  = ctr;
-        CD->rk  = ctr;
+        free(AB->row);
+        free(AB);
+        AB  = NULL;
       }
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+#if newred
+        printf("test CD->row[%u] = %p\n", i, CD->row[i]);
+#endif
+        if (CD->row[i] != NULL) {
+          CD->row[ctr] = CD->row[i];
+          ctr++;
+        }
+      }
+      CD->nr  = ctr;
+      CD->rk  = ctr;
 #if newred
       printf("--CD BEFORE--\n");
       for (int ii=0; ii<CD->nr; ++ii) {
@@ -555,8 +589,24 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-#endif
-    } else {
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]->pos);
+        free(CD->row[k]->val);
+      }
+      free(CD->row);
+      free(CD);
+      CD  = NULL;
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+    }
+    if (reduce_gb == 0) {
       mat_t *mat  = NULL;
       if (keep_A == 1) {
         mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);

@@ -413,6 +413,8 @@ int main(int argc, char *argv[])
 #endif
       meta_data->mat_rows = spd->selu->load + spd->sell->load;
       meta_data->mat_cols = CD->ncl + CD->ncr;
+      if (verbose > 0)
+        t_generating_gbla_matrix  +=  walltime(t_load_start);
       if (verbose > 1) {
         printf("matrix rows %6u \n", meta_data->mat_rows);
         printf("matrix cols %6u \n", meta_data->mat_cols);
@@ -473,7 +475,8 @@ int main(int argc, char *argv[])
         }
       }
 #endif
-
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
 
       done  = update_basis_new(basis, ps, spd, CD, ht);
       if (verbose > 0) {
@@ -504,6 +507,8 @@ int main(int argc, char *argv[])
           nthreads);
       meta_data->mat_rows = spd->selu->load + spd->sell->load;
       meta_data->mat_cols = CD->ncl + CD->ncr;
+      if (verbose > 0)
+        t_generating_gbla_matrix  +=  walltime(t_load_start);
       if (verbose > 1) {
         printf("matrix rows %6u \n", meta_data->mat_rows);
         printf("matrix cols %6u \n", meta_data->mat_cols);
@@ -584,6 +589,8 @@ int main(int argc, char *argv[])
         }
       }
 #endif
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
 
       done  = update_basis_new_new(basis, ps, spd, CD, ht);
       if (verbose > 0) {

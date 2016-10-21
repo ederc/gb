@@ -2071,7 +2071,8 @@ static inline void interreduce_pivots(sr_t **pivs, const nelts_t rk,
 }
 
 static inline sr_t *reduce_lower_rows_by_pivots(sr_t *row, sr_t **pivs,
-    const nelts_t nr, const nelts_t ncl, const nelts_t ncr, const cf_t mod)
+    const nelts_t nr, const nelts_t start, const nelts_t ncl, const nelts_t ncr,
+    const cf_t mod)
 {
 
 #if newred
@@ -2092,6 +2093,7 @@ static inline sr_t *reduce_lower_rows_by_pivots(sr_t *row, sr_t **pivs,
   bf_t *bf = (bf_t *)calloc(nc-shift, sizeof(bf_t));
 #if newred
   printf("row->sz = %u\n", row->sz);
+  printf("sz %u | shift %u | ncl %u | nc %u\n", row->sz, shift, ncl, nc);
 #endif
   for (nelts_t i=0; i<row->sz; ++i) {
 #if newred
@@ -2122,7 +2124,7 @@ red_with_piv:
   lc    = -1;
   gate  = 0;
   //while (i<nc) {
-  for (i; i<nc; ++i) {
+  for (; i<nc; ++i) {
     if (bf[i-shift])
       bf[i-shift] = MODP(bf[i-shift], mod);
     if (!bf[i-shift])
@@ -2132,8 +2134,9 @@ red_with_piv:
     printf("lc %u\n", lc);
     printf("i %u | gate %u\n", i, gate);
 #endif
-    const sr_t *red = pivs[i-ncl];
+    const sr_t *red = pivs[i-start];
 #if newred
+    printf("i %u | start %u\n", i, start);
     printf("red %p\n", red);
 #endif
     if (!red) {
@@ -2192,7 +2195,7 @@ red_with_piv:
       return row;
     }
     // probably new pivots are added by other threads
-    if (gate && pivs[lc-ncl])
+    if (gate && pivs[lc-start])
       goto red_with_piv;
   }
   // row is completely reduced
@@ -2204,7 +2207,7 @@ red_with_piv:
     return row; // i.e. row = NULL
   }
   // probably new pivots are added by other threads
-  if (gate && pivs[lc-ncl])
+  if (gate && pivs[lc-start])
     goto red_with_piv;
 
 #if newred
@@ -2256,22 +2259,22 @@ red_with_piv:
 }
 
 static inline void compute_new_pivots(sr_t *row, sr_t **pivs, const nelts_t nr,
-    const nelts_t ncl, const nelts_t ncr, const cf_t mod)
+    const nelts_t shift, const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
   int not_done;
 
   do {
-    row = reduce_lower_rows_by_pivots(row, pivs, nr, ncl, ncr, mod);
+    row = reduce_lower_rows_by_pivots(row, pivs, nr, shift, ncl, ncr, mod);
     if (!row) 
       return;
-    not_done  = cas((void *)(&pivs[row->pos[0]-ncl]), 0, row);
+    not_done  = cas((void *)(&pivs[row->pos[0]-shift]), 0, row);
     //pivs[row->pos[0]-ncl] = row;
     not_done  = 0;
     //not_done  = compare_and_swap((void *)(&pivs[ret->pos[0]-mat->ncl]), 0, mat->nrl);
   } while (not_done);
 }
 
-static inline void reduce_lower_rows(smat_t *mat, int nthreads)
+static inline void reduce_lower_rows(smat_t *mat, const nelts_t shift, const int nthreads)
 {
 #if newred
   printf("mat %p, mat->row %p, mat->row[0] %p\n", mat, mat->row, mat->row[0]);
@@ -2281,8 +2284,8 @@ static inline void reduce_lower_rows(smat_t *mat, int nthreads)
   qsort(mat->row, mat->nr, sizeof(sr_t **), cmp_sparse_rows_by_lead_column);
   // initialize holder for pivots that we find during the reduction
   //sr_t **pivs = (sr_t **)malloc(mat->nr * sizeof(sr_t *));
-  sr_t **pivs = (sr_t **)malloc(mat->ncr * sizeof(sr_t *));
-  for (nelts_t i=0; i<mat->ncr; ++i) {
+  sr_t **pivs = (sr_t **)malloc((mat->ncr+mat->ncl-shift) * sizeof(sr_t *));
+  for (nelts_t i=0; i<(mat->ncr+mat->ncl-shift); ++i) {
     pivs[i] = NULL;
   }
   nelts_t j = 0;
@@ -2290,17 +2293,17 @@ static inline void reduce_lower_rows(smat_t *mat, int nthreads)
 #if newred
     printf("nrl %u | pos[0] %u | ncl %u\n", mat->nr, mat->row[i]->pos[0], mat->ncl);
 #endif
-    if (!pivs[mat->row[i]->pos[0]-mat->ncl])
-      pivs[mat->row[i]->pos[0]-mat->ncl] = mat->row[i];
+    if (!pivs[mat->row[i]->pos[0]-shift])
+      pivs[mat->row[i]->pos[0]-shift] = mat->row[i];
     else
       mat->row[j++] = mat->row[i];
   }
 #pragma omp parallel for num_threads(nthreads)
   for (nelts_t i=0; i<j; ++i)
-    compute_new_pivots(mat->row[i], pivs, mat->nr, mat->ncl, mat->ncr, mat->mod);
+    compute_new_pivots(mat->row[i], pivs, mat->nr, shift, mat->ncl, mat->ncr, mat->mod);
 #if newred
   printf("FINAL PIVOTS:\n");
-  for (nelts_t i=0; i<mat->ncr; ++i) {
+  for (nelts_t i=0; i<(mat->ncr+mat->ncl-shift); ++i) {
     printf("piv[%u] (%p)",i, pivs[i]);
     if (pivs[i] == NULL)
       printf("NULL\n");
@@ -2313,7 +2316,7 @@ static inline void reduce_lower_rows(smat_t *mat, int nthreads)
   }
 #endif
   nelts_t ctr=0;
-  for (nelts_t i=0; i<mat->ncr; ++i) {
+  for (nelts_t i=0; i<(mat->ncr+mat->ncl-shift); ++i) {
     if (pivs[i] != NULL) {
       mat->row[ctr++] = pivs[i];
     }
@@ -2369,7 +2372,7 @@ static inline sr_t *reduce_lower_by_upper_rows(sr_t *row, const smat_t *pivs)
   bf_t mul;
   while (lc < ncl) {
 #if newred
-    printf("lc %u\n", lc);
+    printf("lc %u == %u ?\n", lc, pivs->row[lc]->pos[0]);
 #endif
     const sr_t *red = pivs->row[lc];
 #if newred
@@ -2384,7 +2387,7 @@ static inline sr_t *reduce_lower_by_upper_rows(sr_t *row, const smat_t *pivs)
     // reduction on the pivot entry in order to get a even loop length
     j = red->sz % 2;
     j = j & 1 ? 1 : 0;
-    for (j; j<red->sz; j+=2) {
+    for (; j<red->sz; j+=2) {
 #if newred
       printf("pos[%u] = %u\n",j, red->pos[j]-shift);
       printf("%lu + %lu * %u = ",bf[red->pos[j]-shift], mul, red->val[j]);
@@ -2640,7 +2643,7 @@ red_with_piv:
   lc    = -1;
   gate  = 0;
   //while (i<nc) {
-  for (i; i<nc; ++i) {
+  for (; i<nc; ++i) {
     if (bf[i-shift])
       bf[i-shift] = MODP(bf[i-shift], mod);
     if (!bf[i-shift])

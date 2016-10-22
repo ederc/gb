@@ -623,6 +623,125 @@ int main(int argc, char *argv[])
         break;
       }
     }
+    if (reduce_gb == 5) {
+      // genearte upper matrix, i.e. already known pivots
+      smat_t *AB = NULL, *CD = NULL;
+      // genearte lower matrix, i.e. unkown pivots
+      CD = generate_sparse_matrix(basis, sf, spd->sell,
+          spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+          nthreads);
+      meta_data->mat_rows = spd->selu->load + spd->sell->load;
+      meta_data->mat_cols = CD->ncl + CD->ncr;
+      if (verbose > 0)
+        t_generating_gbla_matrix  +=  walltime(t_load_start);
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      if (verbose > 1) {
+        printf("matrix rows %6u \n", meta_data->mat_rows);
+        printf("matrix cols %6u \n", meta_data->mat_cols);
+      }
+      if (verbose == 1) {
+        printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
+            steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+      }
+#if newred
+      printf("--CD BEGINNING--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] (%p)",ii, CD->row[ii]);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=0; jj<CD->row[ii]->sz; ++jj) {
+            printf("%u at %u | ",CD->row[ii]->val[jj],CD->row[ii]->pos[jj]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      if (spd->selu->load > 0) {
+        for (nelts_t l=0; l<spd->selu->load; ++l) {
+          sr_t *reducer = poly_to_sparse_matrix_row(basis, sf, spd->selu->mpp+l, CD->ncl+CD->ncr);
+#pragma omp parallel for num_threads(nthreads)
+          for (nelts_t i=0; i<CD->nr; ++i) {
+            if (CD->row[i] != NULL) {
+              CD->row[i]  = reduce_lower_by_one_upper_row(CD->row[i], reducer, CD->mod, CD->ncl, CD->ncl+CD->ncr);
+            }
+          }
+          free(reducer->val);
+          free(reducer->pos);
+          free(reducer);
+        }
+        //free(row);
+      }
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+#if newred
+        printf("test CD->row[%u] = %p\n", i, CD->row[i]);
+#endif
+        if (CD->row[i] != NULL) {
+          CD->row[i] = normalize_row(CD->row[i], CD->mod);
+          CD->row[ctr] = CD->row[i];
+          ctr++;
+        }
+      }
+      CD->nr  = ctr;
+      CD->rk  = ctr;
+#if newred
+      printf("--CD BEFORE--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] (%p | %p)",ii, CD->row[ii], CD->row[ii]->pos);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=0; jj<CD->row[ii]->sz; ++jj) {
+            printf("%u at %u | ",CD->row[ii]->val[jj],CD->row[ii]->pos[jj]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      //if (CD->nr > 1)
+      reduce_lower_rows(CD, CD->ncl, nthreads);
+#if newred
+      printf("--CD AFTER--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] (%p)",ii, CD->row[ii]);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=0; jj<CD->row[ii]->sz; ++jj) {
+            printf("%u at %u | ",CD->row[ii]->val[jj],CD->row[ii]->pos[jj]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+
+      done  = update_basis_new_new(basis, ps, spd, CD, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (CD->nr - CD->rk);
+      }
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]->pos);
+        free(CD->row[k]->val);
+      }
+      free(CD->row);
+      free(CD);
+      CD  = NULL;
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
     if (reduce_gb == 4) {
       // genearte upper matrix, i.e. already known pivots
       smat_t *AB = NULL, *CD = NULL;

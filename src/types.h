@@ -95,6 +95,7 @@ typedef uint16_t exp_s;
 typedef exp_s exp_t;
 
 typedef re_t cf_t;
+//typedef uint32_t cf_t;
 typedef re_l_t bf_t;
 
 

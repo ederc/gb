@@ -1,4 +1,5 @@
-AC_INIT([gb],[0.0.1])
+AC_PREREQ([2.69])
+AC_INIT([GB], [0.1], [ederc@mathematik.uni-kl.de])
 
 AC_CANONICAL_HOST
 
@@ -25,7 +26,6 @@ AM_SILENT_RULES()
 AC_PROG_LN_S
 
 LT_INIT
-
 # set output variable INSTALL to the name of a BSD-compatible install program.
 # Requires install-sh to be present as a fallback, even on systems where
 # the fallback is not used.
@@ -42,7 +42,17 @@ AM_MAINTAINER_MODE
 dnl Needed when reconfiguring with 'autoreconf -i -s'
 AC_CONFIG_MACRO_DIR([m4])
 
-dnl Compiling with per-target flags (test_elimination.c) requires AM_PROG_CC_C_O.
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_AWK
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+
+# Compiling with per-target flags (test_elimination.c) requires AM_PROG_CC_C_O.
 AM_PROG_CC_C_O
 
 AC_CONFIG_HEADERS(src/config.h)
@@ -56,6 +66,24 @@ fi
 # LB_CHECK_ATLAS
 # LB_CHECK_GMP
 # LB_CHECK_NTL
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_INLINE
+AC_TYPE_INT32_T
+AC_TYPE_INT64_T
+AC_TYPE_SIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+AC_TYPE_UINT8_T
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_CHECK_FUNCS([gettimeofday memset pow strchr strstr strtol])
+
+# Checks for header files.
+AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h sys/time.h unistd.h])
 
 # SSE2 support
 AC_ARG_ENABLE([sse2],
@@ -375,8 +403,5 @@ else
    AC_SUBST(GB_HAVE_LIBPNG)
 fi
 
-AC_PROG_MAKE_SET
-
 AC_CONFIG_FILES([Makefile src/gb_config.h gb.pc])
 AC_OUTPUT
-

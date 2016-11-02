@@ -427,15 +427,16 @@ int main(int argc, char *argv[])
       }
       if (AB != NULL) {
 #pragma omp parallel for num_threads(nthreads)
-        for (nelts_t i=0; i<CD->nr; ++i)
+        for (nelts_t i=0; i<CD->nr; ++i) {
           CD->row[i]  = reduce_lower_by_upper_rows_c(CD->row[i], AB);
+        }
         for (nelts_t k=0; k<AB->nr; ++k) {
           free(AB->row[k]);
         }
+        free(AB->row);
         free(AB);
         AB  = NULL;
       }
-      //if (CD->nr > 1)
 #if newred
       printf("--CD BEFORE--\n");
       for (int ii=0; ii<CD->nr; ++ii) {
@@ -462,8 +463,10 @@ int main(int argc, char *argv[])
       }
       CD->nr  = ctr;
       CD->rk  = ctr;
-      reduce_lower_rows_c(CD, nthreads);
+      if (CD->rk > 1)
+        reduce_lower_rows_c(CD, nthreads);
 #if newred
+      printf("rank of CD %u\n", CD->rk);
       printf("--CD AFTER--\n");
       for (int ii=0; ii<CD->nr; ++ii) {
         printf("row[%u] ",ii);
@@ -491,6 +494,7 @@ int main(int argc, char *argv[])
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
       }
+      free(CD->row);
       free(CD);
       CD  = NULL;
       if (verbose > 0)
@@ -582,7 +586,7 @@ int main(int argc, char *argv[])
       }
 #endif
       //if (CD->nr > 1)
-      reduce_lower_rows(CD, CD->ncl, nthreads);
+        reduce_lower_rows(CD, CD->ncl, nthreads);
 #if newred
       printf("--CD AFTER--\n");
       for (int ii=0; ii<CD->nr; ++ii) {

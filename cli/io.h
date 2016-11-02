@@ -45,7 +45,7 @@
 #endif
 
 #ifndef IO_DEBUG
-#define IO_DEBUG  1
+#define IO_DEBUG  0
 #endif
 
 /**

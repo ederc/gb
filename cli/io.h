@@ -45,7 +45,7 @@
 #endif
 
 #ifndef IO_DEBUG
-#define IO_DEBUG  0
+#define IO_DEBUG  1
 #endif
 
 /**
@@ -151,6 +151,18 @@ nvars_t get_nvars(const char *fn);
  * \param hash table ht
  */
 void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht);
+
+/**
+ * \brief Checks if any polynomial in basis has terms with the same exponent. It
+ * then merges these terms.
+ *
+ * \note This can only happen for input polynomials.
+ *
+ * \param input elements resp. intermediate basis basis
+ *
+ * \param hash table ht
+ */
+void check_for_same_exponents(gb_t *basis, const mp_cf4_ht_t *ht);
 
 /**
  * \brief Homogenizes input polynomials with an extra variable.

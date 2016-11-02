@@ -349,6 +349,58 @@ nvars_t get_nvars(const char *fn)
   return nvars;
 }
 
+void check_for_same_exponents(gb_t *basis, const mp_cf4_ht_t *ht)
+{
+  cf_t *tmp_cf;
+  hash_t *tmp_eh;
+  cf_t *sort_cf   = (cf_t *)malloc(sizeof(cf_t));
+  hash_t *sort_eh = (hash_t *)malloc(sizeof(hash_t));
+  nelts_t i, j, k;
+  nelts_t ctr;
+  bf_t coeff;
+
+  // first we sort the terms of each input polynomial w.r.t. the monomial order
+  for (i=1; i<basis->load; ++i) {
+    sort_eh  = realloc(sort_eh, basis->nt[i] * sizeof(hash_t));
+    sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(cf_t));
+    ctr = 0;
+    // lead term is clear
+    sort_eh[0]  = basis->eh[i][0];
+    sort_cf[0]  = basis->cf[i][0];
+    ctr++;
+    // check all other exponents with previous exponents, probably add
+    // coefficients
+    for (j=1; j<basis->nt[i]; ++j) {
+      if (basis->eh[i][j] == sort_eh[ctr-1]) {
+        coeff = (bf_t)sort_cf[ctr-1] + basis->cf[i][j];
+        coeff %=  basis->mod;
+        sort_cf[ctr-1]  = (cf_t)coeff;
+      } else {
+        sort_eh[ctr]  = basis->eh[i][j];
+        sort_cf[ctr]  = basis->cf[i][j];
+        ctr++;
+      }
+    }
+    // reallocate memory
+    sort_eh  = realloc(sort_eh, ctr * sizeof(hash_t));
+    sort_cf  = realloc(sort_cf, ctr * sizeof(cf_t));
+
+    // swap arrays
+    tmp_cf  = basis->cf[i];
+    tmp_eh  = basis->eh[i];
+
+    basis->cf[i]  = sort_cf;
+    basis->eh[i]  = sort_eh;
+    basis->nt[i]  = ctr;
+    
+    sort_cf = tmp_cf;
+    sort_eh = tmp_eh;
+  }
+  // free temporary allocated memory
+  free(sort_cf);
+  free(sort_eh);
+}
+
 void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
 {
   cf_t *tmp_cf;
@@ -637,6 +689,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
     homogenize_input_polynomials(basis, ht);
   // sort polynomial w.r.t. the chosen monomial order
   sort_input_polynomials(basis, ht);
+  check_for_same_exponents(basis, ht);
   free(term);
   free(line);
   fclose(fh);

@@ -64,7 +64,8 @@ inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
   // check product and chain criterion in gebauer moeller style
   // note that we have already marked the pairs for which the product criterion
   // applies in generate_spair()
-  gebauer_moeller(ps, basis, idx);
+  if (idx > basis->st)
+    gebauer_moeller(ps, basis, idx);
 
   // fix pair set and remove detected pairs
   meta_data->ncrit_last   =   remove_detected_pairs(ps, basis, idx-basis->st);

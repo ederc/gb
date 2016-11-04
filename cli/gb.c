@@ -367,13 +367,15 @@ int main(int argc, char *argv[])
 #if GB_DEBUG
     printf("# lead terms: %u\n", spd->col->nlm);
     for (int ii=0; ii<spd->col->load; ++ii) {
+      if (ii==spd->col->nlm)
+        printf("-------------------------\n");
       for (int jj=0; jj<ht->nv; ++jj) {
         printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
       }
       printf("|| %lu | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
     }
 #endif
-
+  
     // generate gbla matrix out of data from symbolic preprocessing
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
@@ -389,46 +391,48 @@ int main(int argc, char *argv[])
 
       // genearte upper matrix, i.e. already known pivots
       smc_t *AB = NULL, *CD = NULL;
-      if (spd->selu->load > 0)
-        AB = generate_sparse_compact_matrix(basis, sf, spd->selu,
-            spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
-            nthreads);
-      // genearte lower matrix, i.e. enkown pivots
+      // genearte lower matrix, i.e. unkown pivots
       CD = generate_sparse_compact_matrix(basis, sf, spd->sell,
           spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
           nthreads);
+      if (spd->selu->load > 0) {
+        AB = generate_sparse_compact_matrix(basis, sf, spd->selu,
+            spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+            nthreads);
 #if newred
-      printf("--CD BEGINNING--\n");
-      for (int ii=0; ii<CD->nr; ++ii) {
-        printf("row[%u] ",ii);
-        if (CD->row[ii] == NULL)
-          printf("NULL\n");
-        else {
-          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
-            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+        printf("--CD BEGINNING--\n");
+        for (int ii=0; ii<CD->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (CD->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+            }
+            printf("\n");
           }
-          printf("\n");
         }
-      }
 #endif
-      meta_data->mat_rows = spd->selu->load + spd->sell->load;
-      meta_data->mat_cols = CD->ncl + CD->ncr;
-      if (verbose > 0)
-        t_generating_gbla_matrix  +=  walltime(t_load_start);
-      if (verbose > 0)
-        gettimeofday(&t_load_start, NULL);
-      if (verbose > 1) {
-        printf("matrix rows %6u \n", meta_data->mat_rows);
-        printf("matrix cols %6u \n", meta_data->mat_cols);
-      }
-      if (verbose == 1) {
-        printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
-            steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
-      }
-      if (AB != NULL) {
+        meta_data->mat_rows = spd->selu->load + spd->sell->load;
+        meta_data->mat_cols = CD->ncl + CD->ncr;
+        if (verbose > 0)
+          t_generating_gbla_matrix  +=  walltime(t_load_start);
+        if (verbose > 0)
+          gettimeofday(&t_load_start, NULL);
+        if (verbose > 1) {
+          printf("matrix rows %6u \n", meta_data->mat_rows);
+          printf("matrix cols %6u \n", meta_data->mat_cols);
+        }
+        if (verbose == 1) {
+          printf("%3d %5u/%5u spairs of deg %3u %7u x %7u matrix ",
+              steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+          fflush(stdout);
+        }
 #pragma omp parallel for num_threads(nthreads)
         for (nelts_t i=0; i<CD->nr; ++i) {
-          CD->row[i]  = reduce_lower_by_upper_rows_c(CD->row[i], AB);
+          //printf("CD row idx %u of %u | length %u\n", i, CD->nr, CD->row[i][0]);
+          //printf("CD row idx %u of %u | length %u | last colum idx %u\n", i, CD->nr, CD->row[i][0], CD->row[i][CD->row[i][0]-2]);
+          CD->row[i]  = reduce_lower_by_upper_rows_c(CD->row[i], AB, i);
         }
         for (nelts_t k=0; k<AB->nr; ++k) {
           free(AB->row[k]);
@@ -482,6 +486,8 @@ int main(int argc, char *argv[])
 #endif
       if (verbose > 0)
         t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1 && steps > 1)
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
 
       if (verbose > 0)
         gettimeofday(&t_load_start, NULL);
@@ -629,7 +635,7 @@ int main(int argc, char *argv[])
     }
     if (reduce_gb == 5) {
       // genearte upper matrix, i.e. already known pivots
-      smat_t *AB = NULL, *CD = NULL;
+      smat_t *CD = NULL;
       // genearte lower matrix, i.e. unkown pivots
       CD = generate_sparse_matrix(basis, sf, spd->sell,
           spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
@@ -893,8 +899,9 @@ int main(int argc, char *argv[])
         }
       }
       if (verbose == 1) {
-        printf("step %3d : %5u spairs of degree %3u  --->  %7u x %7u matrix\n",
-            steps, meta_data->sel_pairs, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+        printf("%3d %5u/%5u spairs of deg %3u %7u x %7u matrix ",
+            steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+        fflush(stdout);
       }
       //mat_t *mat  = generate_gbla_matrix(basis, sf, spd, nthreads);
       if (verbose > 0)
@@ -925,6 +932,8 @@ int main(int argc, char *argv[])
       }
       if (verbose > 0)
         t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1)
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
 
       // generate pbm files of gbla matrix
       if (generate_pbm) {

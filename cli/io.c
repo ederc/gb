@@ -355,7 +355,7 @@ void check_for_same_exponents(gb_t *basis, const mp_cf4_ht_t *ht)
   hash_t *tmp_eh;
   cf_t *sort_cf   = (cf_t *)malloc(sizeof(cf_t));
   hash_t *sort_eh = (hash_t *)malloc(sizeof(hash_t));
-  nelts_t i, j, k;
+  nelts_t i, j;
   nelts_t ctr;
   bf_t coeff;
 

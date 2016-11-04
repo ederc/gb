@@ -1373,47 +1373,51 @@ static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts
   free_dense_block_row_new(dbr, fbr);
 }
 
-static inline src_t *poly_to_sparse_compact_matrix_row(const gb_t *basis,
-    const gb_t *sf, const mpp_t *mpp, const nelts_t nc)
+static inline void poly_to_sparse_compact_matrix_row(const gb_t *basis,
+    const gb_t *sf, const mpp_t *mpp_start, const nelts_t nc, const nelts_t idx,
+    const nelts_t bs, src_t **rows)
 {
-  src_t *row  = (src_t *)malloc((2*mpp->nt+1) * sizeof(src_t));
-  row[0]      = 2*mpp->nt+1;
+  src_t *bf = (src_t *)malloc(nc * sizeof(src_t));
 
-  nelts_t cp; // column position
+  for (nelts_t k=0; k<bs; ++k) {
+    memset(bf, 0, nc*sizeof(src_t));
+    const mpp_t *mpp  = mpp_start+k;
+    //printf("nt[%u] = %u\n", k, mpp->nt);
+    rows[k]           = (src_t *)malloc((2*mpp->nt+1) * sizeof(src_t));
+    rows[k][0]        = 2*mpp->nt+1;
+
+    nelts_t cp; // column position
 
 #if newred
-  printf("nc %u\n", nc);
+    printf("nc %u\n", nc);
 #endif
-  src_t *bf = (src_t *)calloc(nc, sizeof(src_t));
+
 #if newred
-  printf("row size = %u\n", row[0]);
+    printf("row size = %u\n", row[0]);
 #endif
-  for (nelts_t i=0; i<mpp->nt; ++i) {
-    cp  = ht->idx[find_in_hash_table_product(mpp->mul, mpp->eh[i], ht)];
-    bf[cp]  = mpp->cf[i];
-    //printf("cp %u | bf[%u] = %u\n", cp, cp, bf[cp]);
-  }
-  nelts_t ctr = 1;
-  for (nelts_t i=0; i<nc; ++i) {
-    if (bf[i] != 0) {
-      //printf("write bf[%u] = %u to position %u\n", i, bf[i], ctr);
-      row[ctr++]  = i;
-      row[ctr++]  = bf[i];
+    for (nelts_t i=0; i<mpp->nt; ++i) {
+      cp  = ht->idx[find_in_hash_table_product(mpp->mul, mpp->eh[i], ht)];
+      bf[cp]  = mpp->cf[i];
+      //printf("cp %u | bf[%u] = %u for term %u | hpos %lu\n", cp, cp, bf[cp], i,find_in_hash_table_product(mpp->mul, mpp->eh[i], ht));
     }
-  }
-  //printf("row[0] %u =?= %u ctr\n", row[0], ctr);
-  //printf("row %p\n", row);
-
-  free(bf);
+    nelts_t ctr = 1;
+    for (nelts_t i=0; i<nc; ++i) {
+      if (bf[i] != 0) {
+        //printf("write bf[%u] = %u to position %u || cp0 %u\n", i, bf[i], ctr, cp0);
+        rows[k][ctr++]  = i;
+        rows[k][ctr++]  = bf[i];
+      }
+    }
+    //printf("ctr %u == %u rows[%u][0] ?\n", ctr, rows[k][0], k);
 #if newred
-  printf("\n");
-  printf("row[0] ===== %u\n", row[0]);
-  for (int ii=1; ii<row[0]; ii += 2)
-    printf("%u ! %u -- ", row[ii+1], row[ii]);
-  printf("\n");
+    printf("\n");
+    printf("row[0] ===== %u\n", row[0]);
+    for (int ii=1; ii<row[0]; ii += 2)
+      printf("%u ! %u -- ", row[ii+1], row[ii]);
+    printf("\n");
 #endif
-
-  return row;
+  }
+  free(bf);
 }
 
 static inline sr_t *poly_to_sparse_matrix_row(const gb_t *basis,
@@ -1695,16 +1699,20 @@ static inline smc_t *generate_sparse_compact_matrix(const gb_t *basis,
   // constructing gbla matrices is not threadsafe at the moment
   const int t = nthreads;
 
+#define BLOCK 1
   smc_t *mat  = initialize_sparse_compact_matrix(nr, ncl, ncr, basis->mod);
   #pragma omp parallel num_threads(t)
   {
     #pragma omp single nowait
     {
     // fill the upper part AB
-    for (nelts_t i=0; i<mat->nr; ++i) {
+    for (nelts_t i=0; i<mat->nr; i=i+BLOCK) {
       #pragma omp task
       {
-        mat->row[i] = poly_to_sparse_compact_matrix_row(basis, sf, sel->mpp+i, mat->ncl + mat->ncr);
+        const nelts_t bs  = BLOCK > mat->nr-i ? mat->nr-i : BLOCK;
+        //printf("mat->nr %u | i %u | bs %u\n", mat->nr, i, bs);
+        //printf("constructs row %u\n",i);
+        poly_to_sparse_compact_matrix_row(basis, sf, sel->mpp+i, mat->ncl + mat->ncr, i, bs, mat->row+i);
       }
     }
     }
@@ -2297,7 +2305,7 @@ static inline void reduce_lower_rows(smat_t *mat, const nelts_t shift, const int
   nelts_t j = 0;
   for (nelts_t i=0; i<mat->nr; ++i) {
 #if newred
-    printf("nrl %u | pos[0] %u | ncl %u\n", mat->nr, mat->row[i]->pos[0], mat->ncl);
+    printf("i %u | nrl %u | pos[0] %u | ncl %u\n", i, mat->nr, mat->row[i]->pos[0], mat->ncl);
 #endif
     if (!pivs[mat->row[i]->pos[0]-shift])
       pivs[mat->row[i]->pos[0]-shift] = mat->row[i];
@@ -2721,7 +2729,7 @@ static inline void interreduce_pivots_c(src_t **pivs, const nelts_t rk,
         // loop unrolling by 2, test length in advance and probably add the useless
         // reduction on the pivot entry in order to get a even loop length
         j = (red[0]-1)/2;
-#if 1
+#if 0
         j = j & 1 ? 3 : 1;
         for (; j<red[0]; j+=4) {
           bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
@@ -2729,8 +2737,26 @@ static inline void interreduce_pivots_c(src_t **pivs, const nelts_t rk,
         }
         // due to above loop unrolling we cannot be sure if we have set the old
         // pivot entry to zero
-        bft[plc] = 0;
 #else
+        /*
+        const nelts_t mod8  = j % 8;
+        //printf("mod4 %u\n", mod4);
+        for (j=1; j<2*mod8; j=j+2) {
+          //printf("red[%u] %u == %u lc || red[0] %u ?\n", j, red[j], lc, red[0]);
+          bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+        }
+        //bft[lc] = 0;
+        for (; j<red[0]; j+=16) {
+          bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+          bft[red[j+2]] +=  (bf_t)(mul) * red[j+3];
+          bft[red[j+4]] +=  (bf_t)(mul) * red[j+5];
+          bft[red[j+6]] +=  (bf_t)(mul) * red[j+7];
+          bft[red[j+8]] +=  (bf_t)(mul) * red[j+9];
+          bft[red[j+10]] +=  (bf_t)(mul) * red[j+11];
+          bft[red[j+12]] +=  (bf_t)(mul) * red[j+13];
+          bft[red[j+14]] +=  (bf_t)(mul) * red[j+15];
+        }
+        */
         const nelts_t mod4  = j % 4;
         for (j=1; j<2*mod4; j=j+2)
           bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
@@ -2741,6 +2767,7 @@ static inline void interreduce_pivots_c(src_t **pivs, const nelts_t rk,
           bft[red[j+6]] +=  (bf_t)(mul) * red[j+7];
         }
 #endif
+        bft[plc] = 0;
       }
     }
     // write pivot back to sparse representation
@@ -2802,7 +2829,7 @@ static inline src_t *reduce_lower_rows_by_pivots_c(src_t *row, src_t **pivs,
 #endif
 
   bf_t mul;
-  bf_t t0, t1;
+  bf_t t0;
 
 #if newred
   printf("nr %u\n",nr);
@@ -2848,7 +2875,7 @@ red_with_piv:
     // loop unrolling by 2, test length in advance and probably add the useless
     // reduction on the pivot entry in order to get a even loop length
     j = (red[0]-1)/2;
-#if 1
+#if 0
     j = j & 1 ? 3 : 1;
     for (; j<red[0]; j+=4) {
       bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
@@ -2856,8 +2883,26 @@ red_with_piv:
     }
     // due to above loop unrolling we cannot be sure if we have set the old
     // pivot entry to zero
-    bft[i] = 0;
 #else
+    /*
+    const nelts_t mod8  = j % 8;
+    //printf("mod4 %u\n", mod4);
+    for (j=1; j<2*mod8; j=j+2) {
+      //printf("red[%u] %u == %u lc || red[0] %u ?\n", j, red[j], lc, red[0]);
+      bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+    }
+    //bft[lc] = 0;
+    for (; j<red[0]; j+=16) {
+      bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+      bft[red[j+2]] +=  (bf_t)(mul) * red[j+3];
+      bft[red[j+4]] +=  (bf_t)(mul) * red[j+5];
+      bft[red[j+6]] +=  (bf_t)(mul) * red[j+7];
+      bft[red[j+8]] +=  (bf_t)(mul) * red[j+9];
+      bft[red[j+10]] +=  (bf_t)(mul) * red[j+11];
+      bft[red[j+12]] +=  (bf_t)(mul) * red[j+13];
+      bft[red[j+14]] +=  (bf_t)(mul) * red[j+15];
+    }
+    */
     const nelts_t mod4  = j % 4;
     for (j=1; j<2*mod4; j=j+2)
       bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
@@ -2868,6 +2913,7 @@ red_with_piv:
       bft[red[j+6]] +=  (bf_t)(mul) * red[j+7];
     }
 #endif
+    bft[i] = 0;
 #if newred
     printf("buffer:  ");
     for (int ii=0; ii<nc-shift; ++ii)
@@ -2997,15 +3043,15 @@ static inline void reduce_lower_rows_c(smc_t *mat, int nthreads)
   free(pivs);
 }
 
-static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
+static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs, const nelts_t idx)
 {
   if (row[1] >= pivs->ncl)
     return row;
 
+  //printf("row %p | lc %u\n", row, row[1]);
   const cf_t mod    = pivs->mod;
   const nelts_t nc  = pivs->ncl + pivs->ncr;
   const nelts_t ncl = pivs->ncl;
-  const nelts_t ncr = pivs->ncr;
   // lc is the lead column of the row to be reduced
   nelts_t lc  = row[1];
   nelts_t j;
@@ -3043,7 +3089,7 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
     // loop unrolling by 2, test length in advance and probably add the useless
     // reduction on the pivot entry in order to get a even loop length
     j = (red[0]-1)/2;
-#if 1
+#if 0
     j = j & 1 ? 3 : 1;
     for (; j<red[0]; j+=4) {
       bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
@@ -3051,11 +3097,34 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
     }
     // due to above loop unrolling we cannot be sure if we have set the old
     // pivot entry to zero
-    bft[lc] = 0;
+    //bft[lc] = 0; // element is never checked again, so we assume it is zero
 #else
-    const nelts_t mod4  = j % 4;
-    for (j=1; j<2*mod4; j=j+2)
+    /*
+    const nelts_t mod8  = j % 8;
+    //printf("mod4 %u\n", mod4);
+    for (j=1; j<2*mod8; j=j+2) {
+      //printf("red[%u] %u == %u lc || red[0] %u ?\n", j, red[j], lc, red[0]);
       bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+    }
+    //bft[lc] = 0;
+    for (; j<red[0]; j+=16) {
+      bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+      bft[red[j+2]] +=  (bf_t)(mul) * red[j+3];
+      bft[red[j+4]] +=  (bf_t)(mul) * red[j+5];
+      bft[red[j+6]] +=  (bf_t)(mul) * red[j+7];
+      bft[red[j+8]] +=  (bf_t)(mul) * red[j+9];
+      bft[red[j+10]] +=  (bf_t)(mul) * red[j+11];
+      bft[red[j+12]] +=  (bf_t)(mul) * red[j+13];
+      bft[red[j+14]] +=  (bf_t)(mul) * red[j+15];
+    }
+    */
+    const nelts_t mod4  = j % 4;
+    //printf("mod4 %u\n", mod4);
+    for (j=1; j<2*mod4; j=j+2) {
+      //printf("red[%u] %u == %u lc || red[0] %u ?\n", j, red[j], lc, red[0]);
+      bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+    }
+    //bft[lc] = 0;
     for (; j<red[0]; j+=8) {
       bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
       bft[red[j+2]] +=  (bf_t)(mul) * red[j+3];
@@ -3080,15 +3149,15 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
 #endif
     // next pivot
     lc  = j+shift;
+    if (lc >= nc) {
+#if newred
+      printf("NULL RETURNED!\n");
+#endif
+      free(bf);
+      return row; // i.e. row = NULL
+    }
   }
 
-  if (lc == nc) {
-#if newred
-    printf("NULL RETURNED!\n");
-#endif
-    free(bf);
-    return row; // i.e. row = NULL
-  }
   // move data from buffer back to sparse row
   // normalize row if needed
 #if newred
@@ -3097,7 +3166,7 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
   // allocate maximal possibly needed memory
   row = (src_t *)malloc((2*(nc-shift)-1)*sizeof(src_t));
   nelts_t ctr = 1;
-  for (j=0; j<nc-shift; ++j) {
+  for (j=lc-shift; j<nc-shift; ++j) {
     bf[j] = bf[j] % mod;
     if (bf[j] != 0) {
       row[ctr++] = j+shift;

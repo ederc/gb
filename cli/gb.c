@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
     printf("hash table size             %15u (2^%u)\n", ht->sz, htc);
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("do not reduce A|B in gbla   %15d\n", keep_A);
-    printf("limit for handling spairs?? %15ld\n", max_spairs);
+    printf("limit for handling spairs?   %15ld\n", max_spairs);
     printf("use simplify?               %15d\n", simplify);
     printf("generate pbm files?         %15d\n", generate_pbm);
     printf("print resulting basis?      %15d\n", print_gb);

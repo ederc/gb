@@ -177,11 +177,7 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
 {
   nvars_t k;
   // first we have to fill the buffers with zeroes
-#if __GB_HAVE_SSE2
-  exp_t *expv = (exp_t *)calloc(ht->nev * ht->vl, sizeof(exp_t));
-#else
   memset(ht->exp[ht->load], 0, ht->nv * sizeof(exp_t));
-#endif
   const char mult_splicer = '*';
   const char exp_splicer  = '^';
   exp_t exp = 0;
@@ -231,26 +227,11 @@ inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
     // lexicographic order (basis->ord = 1)  we store
     // the exponents in reverse order so that we can use memcmp to sort the terms
     // efficiently later on
-#if __GB_HAVE_SSE2
-    if (basis->ord == 0)
-      deg +=  expv[ht->nv-1-k] = exp;
-    else
-      deg +=  expv[k] = exp;
-#else
     if (basis->ord == 0)
       deg +=  ht->exp[ht->load][ht->nv-1-k] = exp;
     else
       deg +=  ht->exp[ht->load][k] = exp;
-#endif
   }
-#if __GB_HAVE_SSE2
-  exp_t tmpv[ht->vl] __attribute__ ((aligned (16)));
-  for (k=0; k<ht->nev; ++k) {
-    memcpy(tmpv, expv+(k*ht->vl), ht->vl*sizeof(exp_t));
-    ht->ev[ht->load][k]  = _mm_load_si128((__m128i *)tmpv);
-  }
-  free(expv);
-#endif
   ht->deg[ht->load] = deg;
 }
 
@@ -459,9 +440,6 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
 
 void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
   int i, j;
-#if __GB_HAVE_SSE2
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-#endif
   // make sure that hash table is big enough
   if (2*basis->load > ht->sz)
     enlarge_hash_table(ht);
@@ -469,23 +447,9 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
   // homogenize the terms correspondingly
   for (i=1; i<basis->load; ++i) {
     for (j=0; j<basis->nt[i]; ++j) {
-#if __GB_HAVE_SSE2
-      // read SSE vector
-      int k = 0;
-      while (k < ht->nev && k != (ht->nv-1)/ht->vl) {
-        ht->ev[ht->load][k] = ht->ev[basis->eh[i][j]][k];
-        ++k;
-      }
-      // copy last sse vector of exponent vector in order to add homogenization
-      // variable
-      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[i][j]][k]);
-      tmp[ht->nv-1 % ht->vl]  = (exp_t)( basis->deg[i] -  ht->deg[basis->eh[i][j]]);
-      ht->ev[ht->load][k]  = _mm_load_si128((__m128i *)tmp);
-#else
       memcpy(ht->exp[ht->load], ht->exp[basis->eh[i][j]], ht->nv * sizeof(exp_t));
       // add homogenizing variable entry in exponent
       ht->exp[ht->load][ht->nv-1] = (exp_t)(basis->deg[i] -  ht->deg[basis->eh[i][j]]);
-#endif
       // add new exponent hash to table
       ht->deg[ht->load] = basis->deg[i];
       basis->eh[i][j] = check_in_hash_table(ht);
@@ -869,13 +833,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
 {
   nelts_t i, j;
   nvars_t k;
-
-#if __GB_HAVE_SSE2
-  exp_t exp[ht->nev*ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-#else
   exp_t *exp = NULL;
-#endif
 
   // depending on the chosen order we have different start and end points in the
   // exponent vectors:
@@ -897,14 +855,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
       // we do the first term differently, since we do not have a "+" in front of
       // it
       printf("%u", fb[i].cf[0]);
-#if __GB_HAVE_SSE2
-      for (k=0; k<ht->nev; ++k) {
-        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[0]][k]);
-        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
-      }
-#else
       exp = ht->exp[fb[i].eh[0]];
-#endif
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
@@ -925,14 +876,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
       }
       for (j=1; j<fb[i].nt; ++j) {
         printf("+%u", fb[i].cf[j]);
-#if __GB_HAVE_SSE2
-      for (k=0; k<ht->nev; ++k) {
-        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[j]][k]);
-        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
-      }
-#else
         exp = ht->exp[fb[i].eh[j]];
-#endif
         switch (basis->ord) {
           case 0:
             for (k=ev_start; k>ev_end; --k) {
@@ -961,13 +905,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
 {
   nelts_t i, j;
   nvars_t k;
-
-#if __GB_HAVE_SSE2
-  exp_t exp[ht->nev*ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-#else
   exp_t *exp = NULL;
-#endif
   // prints ring
   printf("ring r = %u, (%s", basis->mod, basis->vnames[0]);
   for (k=1; k<basis->rnv; ++k)
@@ -997,14 +935,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     // we do the first term differently, since we do not have a "+" in front of
     // it
     printf("%u", basis->cf[i][0]);
-#if __GB_HAVE_SSE2
-    for (k=0; k<ht->nev; ++k) {
-      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->eh[i][0]][k]);
-      memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-#else
     exp = ht->exp[basis->eh[i][0]];
-#endif
     switch (basis->ord) {
       case 0:
         for (k=ev_start; k>ev_end; --k) {
@@ -1025,14 +956,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     }
     for (j=1; j<basis->nt[i]; ++j) {
       printf("+%u", basis->cf[i][j]);
-#if __GB_HAVE_SSE2
-    for (k=0; k<ht->nev; ++k) {
-      _mm_storeu_si128((exp_v *)tmp, ht->ev[basis->eh[i][j]][k]);
-      memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-#else
       exp = ht->exp[basis->eh[i][j]];
-#endif
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
@@ -1068,14 +992,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       // we do the first term differently, since we do not have a "+" in front of
       // it
       printf("%u", fb[i].cf[0]);
-#if __GB_HAVE_SSE2
-      for (k=0; k<ht->nev; ++k) {
-        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[0]][k]);
-        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
-      }
-#else
       exp = ht->exp[fb[i].eh[0]];
-#endif
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
@@ -1096,14 +1013,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       }
       for (j=1; j<fb[i].nt; ++j) {
         printf("+%u", fb[i].cf[j]);
-#if __GB_HAVE_SSE2
-      for (k=0; k<ht->nev; ++k) {
-        _mm_store_si128((exp_v *)tmp, ht->ev[fb[i].eh[j]][k]);
-        memcpy(exp+(k*ht->vl), tmp, ht->vl*sizeof(exp_t));
-      }
-#else
         exp = ht->exp[fb[i].eh[j]];
-#endif
         switch (basis->ord) {
           case 0:
             for (k=ev_start; k>ev_end; --k) {

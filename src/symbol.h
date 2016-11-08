@@ -251,25 +251,11 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,
 static inline int cmp_symbolic_preprocessing_monomials_by_lex(const void *a,
     const void *b)
 {
-  hash_t ha = *((hash_t *)a);
-  hash_t hb = *((hash_t *)b);
+  const hash_t ha = *((hash_t *)a);
+  const hash_t hb = *((hash_t *)b);
 
   // else we have to check lexicographical
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expb, expa, sizeof(expa));
-#else
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**
@@ -292,25 +278,11 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lex(const void *a,
 static inline int cmp_symbolic_preprocessing_monomials_by_inverse_lex(const void *a,
     const void *b)
 {
-  hash_t ha = *((hash_t *)a);
-  hash_t hb = *((hash_t *)b);
+  const hash_t ha = *((hash_t *)a);
+  const hash_t hb = *((hash_t *)b);
 
   // else we have to check lexicographical
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expa, expb, sizeof(expa));
-#else
   return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**
@@ -330,8 +302,8 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_lex(const void
 static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
     const void *b)
 {
-  hash_t ha = *((hash_t *)a);
-  hash_t hb = *((hash_t *)b);
+  const hash_t ha = *((hash_t *)a);
+  const hash_t hb = *((hash_t *)b);
 
   // compare degree first
   if (ht->deg[hb] != ht->deg[ha])
@@ -340,21 +312,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   // else we have to check reverse lexicographical
   // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
   // => we can use memcmp() here and still get reverse lexicographical ordering
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expa, expb, sizeof(expa));
-#else
   return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**
@@ -377,29 +335,15 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
 static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const void *a,
     const void *b)
 {
-  hash_t ha = *((hash_t *)a);
-  hash_t hb = *((hash_t *)b);
+  const hash_t ha = *((hash_t *)a);
+  const hash_t hb = *((hash_t *)b);
 
   // compare degree first
   if (ht->deg[hb] != ht->deg[ha])
     return ht->deg[ha]-ht->deg[hb];
 
   // else we have to check reverse lexicographical
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expb, expa, sizeof(expa));
-#else
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**
@@ -416,27 +360,13 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
 static inline int cmp_polynomials_by_lex(const void *a,
     const void *b)
 {
-  poly_t pa = *((poly_t *)a);
-  poly_t pb = *((poly_t *)b);
+  const poly_t pa = *((poly_t *)a);
+  const poly_t pb = *((poly_t *)b);
 
-  hash_t ha = pa.eh[0];
-  hash_t hb = pb.eh[0];
+  const hash_t ha = pa.eh[0];
+  const hash_t hb = pb.eh[0];
 
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expb, expa, sizeof(expa));
-#else
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**
@@ -453,11 +383,11 @@ static inline int cmp_polynomials_by_lex(const void *a,
 static inline int cmp_polynomials_by_grevlex(const void *a,
     const void *b)
 {
-  poly_t pa = *((poly_t *)a);
-  poly_t pb = *((poly_t *)b);
+  const poly_t pa = *((poly_t *)a);
+  const poly_t pb = *((poly_t *)b);
 
-  hash_t ha = pa.eh[0];
-  hash_t hb = pb.eh[0];
+  const hash_t ha = pa.eh[0];
+  const hash_t hb = pb.eh[0];
 
   // compare degree first
   if (ht->deg[hb] != ht->deg[ha])
@@ -466,21 +396,7 @@ static inline int cmp_polynomials_by_grevlex(const void *a,
   // else we have to check reverse lexicographical
   // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
   // => we can use memcmp() here and still get reverse lexicographical ordering
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expa, expb, sizeof(expa));
-#else
   return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**
@@ -497,27 +413,13 @@ static inline int cmp_polynomials_by_grevlex(const void *a,
 static inline int cmp_polynomials_by_inverse_lex(const void *a,
     const void *b)
 {
-  poly_t pa = *((poly_t *)a);
-  poly_t pb = *((poly_t *)b);
+  const poly_t pa = *((poly_t *)a);
+  const poly_t pb = *((poly_t *)b);
 
-  hash_t ha = pa.eh[0];
-  hash_t hb = pb.eh[0];
+  const hash_t ha = pa.eh[0];
+  const hash_t hb = pb.eh[0];
 
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expa, expb, sizeof(expa));
-#else
   return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**
@@ -534,11 +436,11 @@ static inline int cmp_polynomials_by_inverse_lex(const void *a,
 static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
     const void *b)
 {
-  poly_t pa = *((poly_t *)a);
-  poly_t pb = *((poly_t *)b);
+  const poly_t pa = *((poly_t *)a);
+  const poly_t pb = *((poly_t *)b);
 
-  hash_t ha = pa.eh[0];
-  hash_t hb = pb.eh[0];
+  const hash_t ha = pa.eh[0];
+  const hash_t hb = pb.eh[0];
 
   // compare degree first
   if (ht->deg[hb] != ht->deg[ha])
@@ -547,21 +449,7 @@ static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
   // else we have to check reverse lexicographical
   // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
   // => we can use memcmp() here and still get reverse lexicographical ordering
-#if __GB_HAVE_SSE2
-  nvars_t i;
-  exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-  exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-  for (i=0; i<ht->nev; ++i) {
-    _mm_store_si128((exp_v *)tmp, ht->ev[ha][i]);
-    memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    _mm_store_si128((exp_v *)tmp, ht->ev[hb][i]);
-    memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-  }
-  return memcmp(expb, expa, sizeof(expa));
-#else
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
-#endif
 }
 
 /**

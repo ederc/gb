@@ -81,17 +81,8 @@ typedef int hom_t;
 typedef int ord_t;
 
 /* exponent size */
-#if __GB_HAVE_SSE2
-typedef __m128i exp_v;
-typedef uint16_t exp_s;
-#else
-#if __GB_USE_64_EXP_VEC
-typedef uint64_t exp_s;
-#else
 //typedef uint8_t exp_s;
 typedef uint16_t exp_s;
-#endif
-#endif
 typedef exp_s exp_t;
 
 typedef re_t cf_t;
@@ -472,14 +463,8 @@ typedef struct mp_cf4_ht_t
   ht_size_t *lut;     /*!<  lookup table between hash value and position in
                             exponent array*/
   hash_t *val;        /*!<  array of hash values*/
-#if __GB_HAVE_SSE2
-  exp_v **ev;         /*!<  sse vector of exponents*/
-  nvars_t nev;        /*!<  number of sse vectors for exponents*/
-  nvars_t vl;         /*!<  length of each SSE vector*/
-#else
   exp_t **exp;        /*!<  array of exponents, note that exp_t is possibly
                             SSE/AVX vector if available*/
-#endif
   hash_t *rand;       /*!<  array of random values for each variable
                             to generate hash values out of exponents*/
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/

@@ -152,38 +152,14 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
 
 #if POLY_DEBUG
   printf("row %u -- new simplifier lm: ", ri);
-#if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
    // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
     printf("%u ",ht->exp[sf->eh[sf->load][0]][ii]);
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[sf->eh[sf->load][0]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u ",expa[ii]);
-#endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[ri]], spd->col->hpos[ri]);
   printf("for the basis lm:  ");
-#if !__GB_HAVE_SSE2
   printf("ri %u -- bi %u\n", ri, spd->selu->mpp[ri].bi);
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[basis->eh[spd->selu->mpp[ri].bi][0]][ii]);
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[spd->selu->mpp[ri].bi][0]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u ",expa[ii]);
-#endif
   printf("\n");
 #endif
   // now we do B
@@ -205,11 +181,9 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
         sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
         printf("%u|",sf->cf[sf->load][ctr]);
-#if !__GB_HAVE_SSE2
         for (int ii=0; ii<ht->nv; ++ii)
           printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
         printf("  ");
-#endif
 #endif
         deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
           ht->deg[sf->eh[sf->load][ctr]] : deg;
@@ -267,20 +241,8 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
   }
 #if POLY_DEBUG
   printf("new lm from row (basis element %u): ", basis->load);
-#if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[spd->col->hpos[fc]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u ",expa[ii]);
-#endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
 
@@ -308,22 +270,9 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
       //basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
-#if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
   printf("  ");
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[basis->load][ctr]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u",expa[ii]);
-  printf("  ");
-#endif
 #endif
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
@@ -379,20 +328,8 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
   }
 #if POLY_DEBUG
   printf("new lm from row (basis element %u): ", basis->load);
-#if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[spd->col->hpos[fc]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u ",expa[ii]);
-#endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
 
@@ -421,22 +358,9 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
       //basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
-#if !__GB_HAVE_SSE2
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
-  printf("  ");
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[basis->load][ctr]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u",expa[ii]);
-  printf("  ");
-#endif
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
+    printf("  ");
 #endif
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
@@ -507,20 +431,8 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   deg_t deg   = 0;
 #if POLY_DEBUG
   printf("new lm from row %u (basis element %u): ", ri, basis->load);
-#if !__GB_HAVE_SSE2
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[spd->col->hpos[fc]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u ",expa[ii]);
-#endif
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
 #endif
 
@@ -532,22 +444,9 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
       basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
-#if !__GB_HAVE_SSE2
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
-  printf("  ");
-#else
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (int ii=0; ii<ht->nev; ++ii) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[basis->eh[basis->load][ctr]][ii]);
-      memcpy(expa+(ii*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-  for (int ii=0; ii<ht->nv; ++ii)
-   // printf("%u ",ht->exp[spd->col->hpos[ri]][ii]);
-    printf("%u",expa[ii]);
-  printf("  ");
-#endif
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
+    printf("  ");
 #endif
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;

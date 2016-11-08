@@ -269,10 +269,6 @@ int main(int argc, char *argv[])
     printf("input file size             %18.2f %s\n", basis->fs, basis->fsu);
     printf("---------------------------------------------------------------------------\n");
   }
-#if __GB_HAVE_SSE2
-  if (verbose > 2)
-    printf("ht->nev: %u | %u | %u\n",ht->nv, ht->nev, ht->vl);
-#endif
 
   // track time for the complete reduction process (excluding load)
   if (verbose > 0) {

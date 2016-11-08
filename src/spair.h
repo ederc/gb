@@ -253,21 +253,8 @@ static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
     // NOTE: for graded reverse lexicographical ordering we store the exponents
     // ht->exp and ht->ev in reverse order => we can use memcmp() for reverse
     // lex comparison
-#if __GB_HAVE_SSE2
-    nvars_t i;
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (i=0; i<ht->nev; ++i) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[spa->lcm][i]);
-      memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-      _mm_store_si128((exp_v *)tmp, ht->ev[spb->lcm][i]);
-      memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-#else
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
-#endif
     /*
     for (int ii=0; ii<ht->nv; ++ii)
       printf("%u | ",expa[ii]);
@@ -332,21 +319,8 @@ static inline int cmp_spairs_by_deg_lex(const void *a, const void *b)
         return -1;
     }
     // compare lexicographical
-#if __GB_HAVE_SSE2
-    nvars_t i;
-    exp_t expa[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t expb[ht->nev * ht->vl] __attribute__ ((aligned (16)));
-    exp_t tmp[ht->vl] __attribute__ ((aligned (16)));
-    for (i=0; i<ht->nev; ++i) {
-      _mm_store_si128((exp_v *)tmp, ht->ev[spa->lcm][i]);
-      memcpy(expa+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-      _mm_store_si128((exp_v *)tmp, ht->ev[spb->lcm][i]);
-      memcpy(expb+(i*ht->vl), tmp, ht->vl*sizeof(exp_t));
-    }
-#else
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
-#endif
     /*
     for (int ii=0; ii<ht->nv; ++ii)
       printf("%u | ",expa[ii]);

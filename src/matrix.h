@@ -1699,7 +1699,7 @@ static inline smc_t *generate_sparse_compact_matrix(const gb_t *basis,
   // constructing gbla matrices is not threadsafe at the moment
   const int t = nthreads;
 
-#define BLOCK 1
+#define BLOCK 256
   smc_t *mat  = initialize_sparse_compact_matrix(nr, ncl, ncr, basis->mod);
   #pragma omp parallel num_threads(t)
   {

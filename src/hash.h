@@ -309,9 +309,12 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
 static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
 {
   nvars_t i;
-  hash_t hash  = 0;
-  for (i=0; i<ht->nv; ++i)
+  hash_t hash  = ht->rand[0] * exp[0];
+  i = ht->nv & 1 ? 1 : 0;
+  for (; i<ht->nv; i=i+2) {
     hash  +=  ht->rand[i] * exp[i];
+    hash  +=  ht->rand[i+1] * exp[i+1];
+  }
 #if HASH_DEBUG
   for (nelts_t i=0; i<ht->nv; ++i)
     printf("%u ", exp[i]);
@@ -508,6 +511,12 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   ht_size_t i;
   hash_t hash;
   exp_t exp[ht->nv];
+  exp[0] = ht->exp[mon_1][0] + ht->exp[mon_2][0];
+  i = ht->nv & 1 ? 1 : 0;
+  for (; i<ht->nv; i=i+2) {
+    exp[i]    = ht->exp[mon_1][i] + ht->exp[mon_2][i];
+    exp[i+1]  = ht->exp[mon_1][i+1] + ht->exp[mon_2][i+1];
+  }
   for (i=0; i<ht->nv; ++i)
     exp[i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
   // hash value of the product is the sum of the hash values in our setting
@@ -564,8 +573,12 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
 {
   ht_size_t i;
   hash_t hash;
-  for (i=0; i<ht->nv; ++i)
-    ht->exp[ht->load][i] = ht->exp[mon_1][i] + ht->exp[mon_2][i];
+  ht->exp[ht->load][0] = ht->exp[mon_1][0] + ht->exp[mon_2][0];
+  i = ht->nv & 1 ? 1 : 0;
+  for (; i<ht->nv; i=i+2) {
+    ht->exp[ht->load][i]    = ht->exp[mon_1][i] + ht->exp[mon_2][i];
+    ht->exp[ht->load][i+1]  = ht->exp[mon_1][i+1] + ht->exp[mon_2][i+1];
+  }
   //hash = get_hash(ht->exp[ht->load], ht);
   // hash value of the product is the sum of the hash values in our setting
   hash   = ht->val[mon_1] + ht->val[mon_2];
@@ -652,10 +665,15 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
   e1  = ht->exp[h1];
   e2  = ht->exp[h2];
 
-  for (i=0; i<ht->nv; ++i) {
-    if (e1[i] < e2[i])
+  if (e1[0] < e2[0])
+    return 0;
+  e[i]  = e1[i] - e2[i];
+  i = ht->nv & 1 ? 1 : 0;
+  for (; i<ht->nv; i=i+2) {
+    if (e1[i] < e2[i] || e1[i+1] < e2[i+1])
       return 0;
-    e[i]  = e1[i] - e2[i];
+    e[i]    = e1[i] - e2[i];
+    e[i+1]  = e1[i+1] - e2[i+1];
   }
   ht->deg[ht->load] = ht->deg[h1] - ht->deg[h2];
   return check_in_hash_table(ht);
@@ -682,11 +700,14 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
   if (ht->deg[h1] < ht->deg[h2])
     return 0;
   nvars_t i;
-  const exp_t * const e1  = ht->exp[h1];
-  const exp_t * const e2  = ht->exp[h2];
+  const exp_t * const exp1  = ht->exp[h1];
+  const exp_t * const exp2  = ht->exp[h2];
 
-  for (i=0; i<ht->nv; ++i) {
-    if (e1[i] < e2[i])
+  if (exp1[0] < exp2[0])
+    return 0;
+  i = ht->nv & 1 ? 1 : 0;
+  for (; i<ht->nv; i=i+2) {
+    if (exp1[i] < exp2[i] || exp1[i+1] < exp2[i+1])
       return 0;
   }
   return 1;
@@ -725,8 +746,13 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
   const exp_t * const exp2  = ht->exp[h2];
 
   // note that we explicitly do not check w.r.t. the last variable!
-  for (i=0; i<ht->nv-1; ++i) {
+  i = (ht->nv-1) & 1 ? 1 : 0;
+  if (exp1[0] < exp2[0])
+    return 0;
+  for (; i<ht->nv-1; i=i+2) {
     if (exp1[i] < exp2[i])
+      return 0;
+    if (exp1[i+1] < exp2[i+1])
       return 0;
   }
   return 1;
@@ -755,8 +781,11 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, mp_cf4_ht_
   const exp_t * const e2  = ht->exp[h2];
 
   // we know that exp e2 divides exp e1, so no check for e1[i] < e2[i]
-  for (i=0; i<ht->nv; ++i) {
-    e[i]  = e1[i] - e2[i];
+  i = ht->nv & 1 ? 1 : 0;
+  e[0]  = e1[0] - e2[0];
+  for (; i<ht->nv; i=i+2) {
+    e[i]    = e1[i] - e2[i];
+    e[i+1]  = e1[i+1] - e2[i+1];
   }
   ht->deg[ht->load] = ht->deg[h1] - ht->deg[h2];
   return check_in_hash_table(ht);

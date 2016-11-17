@@ -135,6 +135,9 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
 void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
     const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
 
+int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
+    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+
 /**
  * \brief Frees dynamically allocated memory from simplifier list. Sets the list
  * to NULL.

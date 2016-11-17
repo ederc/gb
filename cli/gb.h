@@ -156,6 +156,18 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
   return 0;
 }
 
+static inline int update_simplifiers_new(gb_t *basis, gb_t *sf, spd_t *spd, const smc_t *mat,
+    const mp_cf4_ht_t *ht)
+{
+  ri_t i;
+  int res;
+  for (i=0; i<mat->rk; ++i) {
+    // add lowest row first, it has the smallest new lead monomial
+    res = add_new_element_to_simplifier_new(basis, sf, mat->row[mat->rk-1-i], mat->rk-1-i, spd, ht);
+  }
+  return 0;
+}
+
 static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const smc_t *mat,
     const mp_cf4_ht_t *ht)
 {

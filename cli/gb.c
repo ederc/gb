@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
     printf("hash table size             %15u (2^%u)\n", ht->sz, htc);
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("do not reduce A|B in gbla   %15d\n", keep_A);
-    printf("limit for handling spairs?   %15ld\n", max_spairs);
+    printf("limit for handling spairs?  %15ld\n", max_spairs);
     printf("use simplify?               %15d\n", simplify);
     printf("generate pbm files?         %15d\n", generate_pbm);
     printf("print resulting basis?      %15d\n", print_gb);
@@ -379,6 +379,134 @@ int main(int argc, char *argv[])
     /*
      * FOR TESTING ONLY
      */
+
+    if (reduce_gb == 7) {
+      // we generate the matrix in the following shape:
+      // AB = already known lead terms resp. pivots
+      // --
+      // CD = new data, new lead terms to be computed
+
+      // genearte upper matrix, i.e. already known pivots
+      smc_t *AB = NULL, *CD = NULL;
+      // genearte lower matrix, i.e. unkown pivots
+      CD = generate_sparse_compact_matrix(basis, sf, spd->sell,
+          spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+          nthreads);
+      if (spd->selu->load > 0) {
+        AB = generate_sparse_compact_multiline_matrix(basis, sf, spd->selu,
+            spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+            nthreads);
+#if newred
+        printf("--CD BEGINNING--\n");
+        for (int ii=0; ii<CD->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (CD->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+            }
+            printf("\n");
+          }
+        }
+#endif
+        meta_data->mat_rows = spd->selu->load + spd->sell->load;
+        meta_data->mat_cols = CD->ncl + CD->ncr;
+        if (verbose > 0)
+          t_generating_gbla_matrix  +=  walltime(t_load_start);
+        if (verbose > 0)
+          gettimeofday(&t_load_start, NULL);
+        if (verbose > 1) {
+          printf("matrix rows %6u \n", meta_data->mat_rows);
+          printf("matrix cols %6u \n", meta_data->mat_cols);
+        }
+        if (verbose == 1) {
+          printf("%3d %5u/%5u spairs of deg %3u %7u x %7u matrix ",
+              steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+          fflush(stdout);
+        }
+#pragma omp parallel for num_threads(nthreads)
+        for (nelts_t i=0; i<CD->nr; ++i) {
+          //printf("CD row idx %u of %u | length %u\n", i, CD->nr, CD->row[i][0]);
+          //printf("CD row idx %u of %u | length %u | last colum idx %u\n", i, CD->nr, CD->row[i][0], CD->row[i][CD->row[i][0]-2]);
+          CD->row[i]  = reduce_lower_by_upper_multiline_rows_c(CD->row[i], AB, i);
+        }
+        for (nelts_t k=0; k<AB->nr; ++k) {
+          free(AB->row[k]);
+        }
+        free(AB->row);
+        free(AB);
+        AB  = NULL;
+      }
+#if newred
+      printf("--CD BEFORE--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+#if newred
+        printf("test CD->row[%u] = %p\n", i, CD->row[i]);
+#endif
+        if (CD->row[i] != NULL) {
+          CD->row[ctr] = CD->row[i];
+          ctr++;
+        }
+      }
+      CD->nr  = ctr;
+      CD->rk  = ctr;
+      if (CD->rk > 1)
+        reduce_lower_rows_c(CD, CD->ncl, nthreads);
+#if newred
+      printf("rank of CD %u\n", CD->rk);
+      printf("--CD AFTER--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1 && steps > 1)
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
+
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      done  = update_basis_new(basis, ps, spd, CD, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (CD->nr - CD->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]);
+      }
+      free(CD->row);
+      free(CD);
+      CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
     if (reduce_gb == 2) {
       // we generate the matrix in the following shape:
       // AB = already known lead terms resp. pivots
@@ -395,6 +523,10 @@ int main(int argc, char *argv[])
         AB = generate_sparse_compact_matrix(basis, sf, spd->selu,
             spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
             nthreads);
+        if (simplify > 0) {
+          interreduce_pivots_c(AB->row, AB->nr, AB->ncl, AB->ncr, AB->mod);
+          update_simplifiers_new(basis, sf, spd, AB, ht);
+        }
 #if newred
         printf("--CD BEGINNING--\n");
         for (int ii=0; ii<CD->nr; ++ii) {
@@ -464,7 +596,7 @@ int main(int argc, char *argv[])
       CD->nr  = ctr;
       CD->rk  = ctr;
       if (CD->rk > 1)
-        reduce_lower_rows_c(CD, nthreads);
+        reduce_lower_rows_c(CD, CD->ncl, nthreads);
 #if newred
       printf("rank of CD %u\n", CD->rk);
       printf("--CD AFTER--\n");
@@ -1039,6 +1171,7 @@ int main(int argc, char *argv[])
         walltime(t_complete) / (1000000));
     printf("---------------------------------------------------------------------------\n");
     printf("Size of basis                     %9u\n", basis->fl);
+    printf("criteria applications (total)     %9u\n", meta_data->ncrit_total);
     printf("Number of zero reductions         %9lu\n", n_zero_reductions);
     printf("---------------------------------------------------------------------------\n");
     if (verbose > 2)

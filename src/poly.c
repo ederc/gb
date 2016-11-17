@@ -218,6 +218,82 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
   link_simplifier_to_basis(basis, sf, spd, ri);
 }
 
+int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
+    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  // get position of lead term in this row
+  const nelts_t fc  = row[1];
+
+#if POLY_DEBUG
+  printf("new lm from row (simplifier element %u): ", sf->load);
+  for (int ii=0; ii<ht->nv; ++ii)
+    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
+  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
+#endif
+
+  // if not redundandant
+  nelts_t i;
+
+  if (sf->load == sf->size)
+    enlarge_basis(sf, 2*sf->size);
+
+  //nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
+  // use shorter names in here
+  sf->nt[sf->load]  = (row[0]-1)/2;
+  sf->cf[sf->load]  = (cf_t *)malloc(sf->nt[sf->load] * sizeof(cf_t)); 
+  sf->eh[sf->load]  = (hash_t *)malloc(sf->nt[sf->load] * sizeof(hash_t)); 
+  
+  nelts_t ctr = 0;
+  deg_t deg   = 0;
+
+  for (i=1; i<row[0]; i += 2) {
+  //for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
+    //if (mat->DR->row[ri]->piv_val[i] != 0) {
+      sf->cf[sf->load][ctr] = row[i+1];
+      // note that we have to adjust the position via shifting it by
+      // spd->col->nlm since DR is on the righthand side of the matrix
+      sf->eh[sf->load][ctr] = spd->col->hpos[row[i]];
+      //sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
+#if POLY_DEBUG
+    printf("%u|",sf->cf[sf->load][ctr]);
+    for (int ii=0; ii<ht->nv; ++ii)
+      printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
+    printf("  ");
+#endif
+      deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
+        ht->deg[sf->eh[sf->load][ctr]] : deg;
+      ctr++;
+    //}
+  }
+#if POLY_DEBUG
+  printf("\n");
+  printf("deg: %u\n", deg);
+  printf("# terms = 1 + %u\n",ctr-1);
+#endif
+  sf->nt[sf->load]  = ctr;
+  sf->deg[sf->load] = deg;
+  sf->red[sf->load] = 0;
+
+
+  // realloc memory to the correct number of terms
+  sf->cf[sf->load]  = realloc(sf->cf[sf->load],
+    sf->nt[sf->load] * sizeof(cf_t));
+  sf->eh[sf->load]  = realloc(sf->eh[sf->load],
+      sf->nt[sf->load] * sizeof(hash_t));
+
+  if (sf->sf != NULL) {
+    sf->sf[sf->load].size = 3;
+    sf->sf[sf->load].load = 0;
+    sf->sf[sf->load].idx  = (nelts_t *)malloc(sf->sf[sf->load].size * sizeof(nelts_t));
+  }
+  sf->load++;
+  
+  // get index of element in sf
+  link_simplifier_to_basis(basis, sf, spd, ri);
+
+  return 1;
+}
+
 int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
     const spd_t *spd, const mp_cf4_ht_t *ht)
 {

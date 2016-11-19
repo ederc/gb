@@ -1451,6 +1451,110 @@ static inline void poly_to_sparse_compact_matrix_multiline_row(const gb_t *basis
   free(bf2);
 }
 
+static inline void poly_to_sparse_compact_matrix_row_new(const gb_t *basis,
+    const gb_t *sf, const mpp_t *mpp_start, const nelts_t ncl, const nelts_t nc, const nelts_t idx,
+    const nelts_t bs, src_t **rows)
+{
+  src_t *bf = (src_t *)malloc(nc * sizeof(src_t));
+  nelts_t ner;
+
+  for (nelts_t k=0; k<bs; ++k) {
+    memset(bf, 0, nc*sizeof(src_t));
+    const mpp_t *mpp  = mpp_start+k;
+    rows[k]           = (src_t *)malloc((3*mpp->nt+1) * sizeof(src_t));
+    rows[k][0]        = 2*mpp->nt+1;
+
+    nelts_t cp; // column position
+
+#if newred
+    printf("nc %u\n", nc);
+#endif
+
+#if newred
+    printf("row size = %u\n", row[0]);
+#endif
+    for (nelts_t i=0; i<mpp->nt; ++i) {
+      cp  = ht->idx[find_in_hash_table_product(mpp->mul, mpp->eh[i], ht)];
+      bf[cp]  = mpp->cf[i];
+      //printf("cp %u | bf[%u] = %u for term %u | hpos %lu\n", cp, cp, bf[cp], i,find_in_hash_table_product(mpp->mul, mpp->eh[i], ht));
+    }
+    nelts_t ctr = 1;
+    nelts_t pos = 0;
+    nelts_t ctr_len = 0;
+    for (nelts_t i=0; i<nc; ++i) {
+      if (bf[i] != 0) {
+        pos = i;
+        rows[k][ctr++]  = pos;
+        ctr_len = ctr;
+        ctr++;
+        while (i<nc && bf[i] != 0) {
+          rows[k][ctr++]  = bf[i];
+          i++;
+        }
+        rows[k][ctr_len]  = i-pos;
+      }
+    }
+    rows[k][0]  = ctr;
+    rows[k] = realloc(rows[k], rows[k][0] * sizeof(src_t));
+#if newred
+    printf("\n");
+    printf("row[0] ===== %u\n", row[0]);
+    for (int ii=1; ii<row[0]; ii += 2)
+      printf("%u ! %u -- ", row[ii+1], row[ii]);
+    printf("\n");
+#endif
+  }
+  free(bf);
+}
+
+static inline void poly_to_sparse_compact_matrix_row_pos_val(const gb_t *basis,
+    const gb_t *sf, const mpp_t *mpp_start, const nelts_t ncl, const nelts_t nc, const nelts_t idx,
+    const nelts_t bs, src_t **rows)
+{
+  src_t *bf = (src_t *)malloc(nc * sizeof(src_t));
+
+  for (nelts_t k=0; k<bs; ++k) {
+    memset(bf, 0, nc*sizeof(src_t));
+    const mpp_t *mpp  = mpp_start+k;
+    //printf("nt[%u] = %u\n", k, mpp->nt);
+    rows[k]           = (src_t *)malloc((2*mpp->nt+1) * sizeof(src_t));
+    rows[k][0]        = 2*mpp->nt+1;
+
+    nelts_t cp; // column position
+
+#if newred
+    printf("nc %u\n", nc);
+#endif
+
+#if newred
+    printf("row size = %u\n", row[0]);
+#endif
+    for (nelts_t i=0; i<mpp->nt; ++i) {
+      cp  = ht->idx[find_in_hash_table_product(mpp->mul, mpp->eh[i], ht)];
+      bf[cp]  = mpp->cf[i];
+      //printf("cp %u | bf[%u] = %u for term %u | hpos %lu\n", cp, cp, bf[cp], i,find_in_hash_table_product(mpp->mul, mpp->eh[i], ht));
+    }
+    nelts_t ctrp = 1;
+    nelts_t ctrv = (rows[k][0]-1)/2 + 1;
+    for (nelts_t i=0; i<nc; ++i) {
+      if (bf[i] != 0) {
+        //printf("write bf[%u] = %u to position %u || cp0 %u\n", i, bf[i], ctr, cp0);
+        rows[k][ctrp++] = i;
+        rows[k][ctrv++] = bf[i];
+      }
+    }
+    //printf("ctr %u == %u rows[%u][0] ?\n", ctr, rows[k][0], k);
+#if newred
+    printf("\n");
+    printf("row[0] ===== %u\n", rows[k][0]);
+    for (int ii=1; ii<rows[k][0]; ii += 2)
+      printf("%u ! %u -- ", rows[k][ii], rows[k][ii+1]);
+    printf("\n");
+#endif
+  }
+  free(bf);
+}
+
 static inline void poly_to_sparse_compact_matrix_row(const gb_t *basis,
     const gb_t *sf, const mpp_t *mpp_start, const nelts_t ncl, const nelts_t nc, const nelts_t idx,
     const nelts_t bs, src_t **rows)
@@ -1801,6 +1905,62 @@ static inline smc_t *generate_sparse_compact_multiline_matrix(const gb_t *basis,
     }
   }
   //mat->nr = mat->nr/2 + mat->nr%2;
+  return mat;
+}
+
+static inline smc_t *generate_sparse_compact_matrix_pos_val(const gb_t *basis,
+    const gb_t *sf, const sel_t *sel, const nelts_t nr, const nelts_t ncl,
+    const nelts_t ncr, const int nthreads)
+{
+  // constructing gbla matrices is not threadsafe at the moment
+  const int t = nthreads;
+
+#define BLOCK 256
+  smc_t *mat  = initialize_sparse_compact_matrix(nr, ncl, ncr, basis->mod);
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+    // fill the upper part AB
+    for (nelts_t i=0; i<mat->nr; i=i+BLOCK) {
+      #pragma omp task
+      {
+        const nelts_t bs  = BLOCK > mat->nr-i ? mat->nr-i : BLOCK;
+        //printf("mat->nr %u | i %u | bs %u\n", mat->nr, i, bs);
+        //printf("constructs row %u\n",i);
+        poly_to_sparse_compact_matrix_row_pos_val(basis, sf, sel->mpp+i, mat->ncl, mat->ncl + mat->ncr, i, bs, mat->row+i);
+      }
+    }
+    }
+  }
+  return mat;
+}
+
+static inline smc_t *generate_sparse_compact_matrix_new(const gb_t *basis,
+    const gb_t *sf, const sel_t *sel, const nelts_t nr, const nelts_t ncl,
+    const nelts_t ncr, const int nthreads)
+{
+  // constructing gbla matrices is not threadsafe at the moment
+  const int t = nthreads;
+
+#define BLOCK 256
+  smc_t *mat  = initialize_sparse_compact_matrix(nr, ncl, ncr, basis->mod);
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+    // fill the upper part AB
+    for (nelts_t i=0; i<mat->nr; i=i+BLOCK) {
+      #pragma omp task
+      {
+        const nelts_t bs  = BLOCK > mat->nr-i ? mat->nr-i : BLOCK;
+        //printf("mat->nr %u | i %u | bs %u\n", mat->nr, i, bs);
+        //printf("constructs row %u\n",i);
+        poly_to_sparse_compact_matrix_row_new(basis, sf, sel->mpp+i, mat->ncl, mat->ncl + mat->ncr, i, bs, mat->row+i);
+      }
+    }
+    }
+  }
   return mat;
 }
 
@@ -3260,6 +3420,242 @@ static inline src_t *reduce_lower_by_upper_multiline_rows_c(src_t *row, const sm
     row = normalize_row_c(row, mod);
 
   free(bf);
+  return row;
+}
+static inline src_t *reduce_lower_by_upper_rows_new_c(src_t *row, const smc_t *pivs, const nelts_t idx)
+{
+  if (row[1] >= pivs->ncl)
+    return row;
+
+  //printf("row %p | lc %u\n", row, row[1]);
+  const cf_t mod    = pivs->mod;
+  const nelts_t nc  = pivs->ncl + pivs->ncr;
+  const nelts_t ncl = pivs->ncl;
+  // lc is the lead column of the row to be reduced
+  nelts_t lc  = row[1];
+  nelts_t j;
+  const nelts_t shift = lc;
+  // store row in dense format using bf_t data type for delayed modulus
+  // computations
+  bf_t *bf = (bf_t *)calloc(nc-shift, sizeof(bf_t));
+  bf_t *bft = bf-shift;
+  for (nelts_t j=1; j<row[0]; j=j+2) {
+    bft[row[j]]  = (bf_t)row[j+1];
+  }
+  free(row);
+  row = NULL;
+
+#if newred
+  printf("buffer:  ");
+  for (i=0; i<nc-shift; ++i)
+    printf("%lu ", bf[i]);
+  printf("\n");
+#endif
+
+  bf_t mul;
+  while (lc < ncl) {
+    const src_t *red = pivs->row[lc];
+#if newred
+    printf("lc %u\n", lc);
+    printf("red %p --> red[0] %u\n", red, red[0]);
+    printf("we reduce with:\n");
+    for (int ii=1; ii<red[0]; ++ii) {
+      printf("%u | %u -- ", red[2*ii+1], red[2*ii]);
+    }
+    printf("\n");
+#endif
+    mul = (bf_t)(mod) - bft[lc]; // it is already reduced modulo mod
+    // loop unrolling by 2, test length in advance and probably add the useless
+    // reduction on the pivot entry in order to get a even loop length
+    j = 1;
+    nelts_t len, start;
+    while (j<red[0]) {
+      bft = bf - shift + red[j++];
+      len = red[j++];
+      start = len%2;
+      //printf("len %u | start %u\n", len, start);
+      //bft[0]  +=  (bf_t)(mul) * red[j];
+      for (nelts_t k=0; k<len; k=k+1) {
+      //for (nelts_t k=start; k<len; k=k+1) {
+        bft[k]  +=  (bf_t)(mul) * red[j+k];
+        //bft[pos+k+1]  +=  (bf_t)(mul) * red[j+k+1];
+      }
+      j +=  len;
+    }
+    bft = bf - shift;
+    bft[lc]  = 0;
+    // get new pivot element in row
+    for (j=lc+1-shift; j<nc-shift; ++j) {
+      if (bf[j] != 0) {
+        bf[j] = MODP(bf[j], mod);
+      }
+      if (bf[j] != 0) {
+        break;
+      }
+    }
+#if newred
+    printf("buffer:  ");
+    for (i=0; i<nc-shift; ++i)
+      printf("%lu ", bf[i]);
+    printf("\n");
+#endif
+    // next pivot
+    lc  = j+shift;
+    if (lc >= nc) {
+#if newred
+      printf("NULL RETURNED!\n");
+#endif
+      free(bf);
+      return row; // i.e. row = NULL
+    }
+  }
+
+  // move data from buffer back to sparse row
+  // normalize row if needed
+#if newred
+  printf("nc - lc = %u - %u\n", nc, lc);
+#endif
+  // allocate maximal possibly needed memory
+  row = (src_t *)malloc((2*(nc-shift)-1)*sizeof(src_t));
+  nelts_t ctr = 1;
+  for (j=lc-shift; j<nc-shift; ++j) {
+    bf[j] = bf[j] % mod;
+    if (bf[j] != 0) {
+      row[ctr++] = j+shift;
+      row[ctr++] = bf[j];
+    }
+  } 
+  // fix memory
+  row[0] = ctr;
+  row    = realloc(row, row[0]*sizeof(src_t));
+#if newred
+  printf("row->sz %u\n", row[0]);
+#endif
+
+  if (row[2] != 1)
+    row = normalize_row_c(row, mod);
+
+  free(bf);
+  return row;
+}
+
+static inline src_t *reduce_lower_by_upper_rows_pos_val_c(src_t *row, const smc_t *pivs, const nelts_t idx)
+{
+  if (row[1] >= pivs->ncl)
+    return row;
+
+  //printf("row %p | lc %u\n", row, row[1]);
+  const cf_t mod    = pivs->mod;
+  const nelts_t nc  = pivs->ncl + pivs->ncr;
+  const nelts_t ncl = pivs->ncl;
+  // lc is the lead column of the row to be reduced
+  nelts_t lc  = row[1];
+  nelts_t j;
+  const nelts_t shift = lc;
+  // store row in dense format using bf_t data type for delayed modulus
+  // computations
+  bf_t *bf = (bf_t *)calloc(nc-shift, sizeof(bf_t));
+  bf_t *bf2 = (bf_t *)calloc(nc-shift, sizeof(bf_t));
+  bf_t *bft = bf-shift;
+  bf_t *bft2;
+  for (nelts_t j=1; j<row[0]; j=j+2) {
+    bft[row[j]]  = (bf_t)row[j+1];
+  }
+  free(row);
+  row = NULL;
+
+#if newred
+  printf("buffer:  ");
+  for (i=0; i<nc-shift; ++i)
+    printf("%lu ", bf[i]);
+  printf("\n");
+#endif
+
+  bf_t mul;
+  while (lc < ncl) {
+    const src_t *red = pivs->row[lc];
+#if newred
+    printf("lc %u\n", lc);
+    printf("red %p --> red[0] %u\n", red, red[0]);
+    printf("we reduce with:\n");
+    for (int ii=1; ii<red[0]; ++ii) {
+      printf("%u | %u -- ", red[2*ii+1], red[2*ii]);
+    }
+    printf("\n");
+#endif
+    mul = (bf_t)(mod) - bft[lc]; // it is already reduced modulo mod
+    // loop unrolling by 2, test length in advance and probably add the useless
+    // reduction on the pivot entry in order to get a even loop length
+    j = (red[0]-1)/2+1;
+    // read values
+    bft2 = bf2 - 1;
+    for (nelts_t l=1; l<j; ++l) {
+      bft2[l]  = bft[red[l]];
+    }
+    // compute new values
+    bft2 = bf2 - j;
+    for (nelts_t l=j; l<red[0]; ++l) {
+      bft2[l]  +=  (bf_t)(mul) * red[l];
+    }
+    // write values
+    bft2 = bf2 - 1;
+    for (nelts_t l=1; l<j; ++l) {
+      bft[red[l]] = bft2[l];
+    }
+    // get new pivot element in row
+    for (j=lc+1-shift; j<nc-shift; ++j) {
+      if (bf[j] != 0) {
+        bf[j] = MODP(bf[j], mod);
+      }
+      if (bf[j] != 0) {
+        break;
+      }
+    }
+#if newred
+    printf("buffer:  ");
+    for (i=0; i<nc-shift; ++i)
+      printf("%lu ", bf[i]);
+    printf("\n");
+#endif
+    // next pivot
+    lc  = j+shift;
+    if (lc >= nc) {
+#if newred
+      printf("NULL RETURNED!\n");
+#endif
+      free(bf);
+      free(bf2);
+      return row; // i.e. row = NULL
+    }
+  }
+
+  // move data from buffer back to sparse row
+  // normalize row if needed
+#if newred
+  printf("nc - lc = %u - %u\n", nc, lc);
+#endif
+  // allocate maximal possibly needed memory
+  row = (src_t *)malloc((2*(nc-shift)-1)*sizeof(src_t));
+  nelts_t ctr = 1;
+  for (j=lc-shift; j<nc-shift; ++j) {
+    bf[j] = bf[j] % mod;
+    if (bf[j] != 0) {
+      row[ctr++] = j+shift;
+      row[ctr++] = bf[j];
+    }
+  } 
+  // fix memory
+  row[0] = ctr;
+  row    = realloc(row, row[0]*sizeof(src_t));
+#if newred
+  printf("row->sz %u\n", row[0]);
+#endif
+
+  if (row[2] != 1)
+    row = normalize_row_c(row, mod);
+
+  free(bf);
+  free(bf2);
   return row;
 }
 static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs, const nelts_t idx)

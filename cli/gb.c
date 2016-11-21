@@ -955,7 +955,7 @@ int main(int argc, char *argv[])
         free(AB);
         AB  = NULL;
       }
-//#if newred
+#if newred
       printf("--CD BEFORE--\n");
       for (int ii=0; ii<CD->nr; ++ii) {
         printf("row[%u] ",ii);
@@ -968,7 +968,7 @@ int main(int argc, char *argv[])
           printf("\n");
         }
       }
-//#endif
+#endif
       nelts_t ctr = 0;
       for (nelts_t i=0; i<CD->nr; ++i) {
 #if newred

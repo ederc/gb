@@ -27,17 +27,17 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   nelts_t i, idx, last_div, nsel;
   hash_t hash_pos;
 
-  // clears hash table index: there we store during symbolic preprocessing a 2
-  // if it is a lead monomial and 1 if it is not a lead monomial. all other
-  // entries keep 0, thus they are not part of this reduction step
+  /* clears hash table index: there we store during symbolic preprocessing a 2
+   * if it is a lead monomial and 1 if it is not a lead monomial. all other
+   * entries keep 0, thus they are not part of this reduction step */
   clear_hash_table_idx(ht);
 
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
 
-  // check if limit for spair handling is set
+  /* check if limit for spair handling is set */
   if (basis->max_sel != 0) {
     nsel  = nsel < basis->max_sel ? nsel : basis->max_sel;
-    // try to keep all spairs of same lcm together
+    /* try to keep all spairs of same lcm together */
     while (nsel != ps->load && ps->pairs[nsel-1]->lcm == ps->pairs[nsel]->lcm)
       nsel++;
   }
@@ -45,53 +45,53 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   meta_data->sel_pairs  = nsel;
   meta_data->curr_deg   = ps->pairs[0]->deg;
 
-  // list of monomials that appear in the matrix
+  /* list of monomials that appear in the matrix */
   pre_t *mon      = init_preprocessing_hash_list(10*nsel*basis->nt[ps->pairs[0]->gen2]);
-  // the lower part of the gbla matrix resp. the selection is fixed:
-  // those are just the second generators of the spairs, thus we need nsel
-  // places.
+  /* the lower part of the gbla matrix resp. the selection is fixed:
+   * those are just the second generators of the spairs, thus we need nsel
+   * places. */
   sel_t *sel_low  = init_selection(5*nsel);
   sel_t *sel_upp  = init_selection(5*nsel);
   sel_upp->deg    = ps->pairs[0]->deg;
   sel_low->deg    = ps->pairs[0]->deg;
-  // list of polynomials and their multipliers
+  /* list of polynomials and their multipliers */
   select_pairs(ps, sel_upp, sel_low, mon, basis, sf, nsel);
 
-  // we use mon as LIFO: last in, first out. thus we can easily remove and add
-  // new elements to mon
+  /* we use mon as LIFO: last in, first out. thus we can easily remove and add
+   * new elements to mon */
   idx = 0;
   nelts_t hio;
   hash_t h, ho;
   while (idx < mon->load) {
     hash_pos  = mon->hpos[idx];
-    // only if not already a lead monomial, e.g. if coming from spair
+    /* only if not already a lead monomial, e.g. if coming from spair */
     if (ht->idx[hash_pos] != 2) {
       last_div  = ht->div[hash_pos];
 
-      // takes last element in basis and test for division, goes down until we
-      // reach the last known divisor last_div
+      /* takes last element in basis and test for division, goes down until we
+       * reach the last known divisor last_div */
       hio = 0;
       ho  = 0;
       i   = last_div == 0 ? basis->st : last_div;
 #if 1
-      // max value for an unsigned data type in order to ensure that the first
-      // polynomial is taken
-      nelts_t nto = -1;
+      /* max value for an unsigned data type in order to ensure that the first
+       * polynomial is taken */
+      nelts_t nto = UINT32_MAX;
       while (i<basis->load) {
         if (basis->red[i] == 0 && basis->nt[i] < nto && check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
           h = get_multiplier(hash_pos, basis->eh[i][0], ht);
-          //if ((h != 0)) {
+          /* if ((h != 0)) { */
             hio = i;
             nto = basis->nt[i];
             ho  = h;
-          //}
+          /* } */
         }
         i++;
       }
 #else
       nelts_t b = i;
-      // max value for an unsigned data type in order to ensure that the first
-      // polynomial is taken
+      /* max value for an unsigned data type in order to ensure that the first
+       * polynomial is taken */
       for (i=basis->load; i>b; --i) {
         h = monomial_division(hash_pos, basis->eh[i-1][0], ht);
         if ((h != 0)) {
@@ -102,15 +102,15 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 #endif
       if (hio > 0) {
         mon->nlm++;
-        //printf("this is the reducer finally taken %3u\n",hio);
+        /* printf("this is the reducer finally taken %3u\n",hio); */
         ht->div[hash_pos]  = hio;
-        // if multiple is not already in the selected list
-        // we have found another element with such a monomial, since we do not
-        // take care of the lead monomial below when entering the other lower
-        // order monomials, we have to adjust the idx for this given monomial
-        // here.
-        // we have reducer, i.e. the monomial is a leading monomial (important for
-        // splicing matrix later on
+        /* if multiple is not already in the selected list
+         * we have found another element with such a monomial, since we do not
+         * take care of the lead monomial below when entering the other lower
+         * order monomials, we have to adjust the idx for this given monomial
+         * here.
+         * we have reducer, i.e. the monomial is a leading monomial (important for
+         * splicing matrix later on */
         ht->idx[hash_pos] = 2;
         if (sel_upp->load == sel_upp->size)
           adjust_size_of_selection(sel_upp, 2*sel_upp->size);
@@ -122,10 +122,10 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
         sel_upp->load++;
 
-        // function pointer set correspondingly if simplify option is set or not
+        /* function pointer set correspondingly if simplify option is set or not */
         ht->sf.simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
-          //try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
-        // now add new monomials to preprocessing hash list
+        /* try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf); */
+        /* now add new monomials to preprocessing hash list */
         if (mon->size-mon->load+1 < sel_upp->mpp[sel_upp->load-1].nt) {
           const nelts_t max = 2*mon->size > sel_upp->mpp[sel_upp->load-1].nt ?
             2*mon->size : sel_upp->mpp[sel_upp->load-1].nt;
@@ -138,11 +138,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
     idx++;
   }
 
-  // next we store the information needed to construct the GBLA matrix in the
-  // following
+  /* next we store the information needed to construct the GBLA matrix in the
+   * following */
   spd_t *mat  = (spd_t *)malloc(sizeof(spd_t));
 
-  // adjust memory
+  /* adjust memory */
   adjust_size_of_selection(sel_upp, sel_upp->load);
   adjust_size_of_preprocessing_hash_list(mon, mon->load);
 #if SYMBOL_DEBUG

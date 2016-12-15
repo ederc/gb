@@ -23,6 +23,8 @@
 #ifndef GB_TYPES_H
 #define GB_TYPES_H
 
+#include <sys/time.h>
+
 #include <gbla/matrix.h>
 #if defined(_MSC_VER)
      /* Microsoft C/C++-compatible compiler */
@@ -49,14 +51,14 @@
 /* #define GB_USE_INT16 XXX */
 #else
 #define GB_USE_UINT16 OK
-//#define GB_USE_UINT32 OK
+/* #define GB_USE_UINT32 OK */
 #endif
 /* #define GB_USE_UINT32 OK */
 /* #define GB_USE_INT32 */
 /* #define GB_USE_AVX */
 
 /* number of variables */
-//typedef uint16_t nvars_t;
+/* typedef uint16_t nvars_t; */
 typedef uint32_t nvars_t;
 
 /* number of elements */
@@ -67,11 +69,11 @@ typedef uint32_t ht_size_t;
 
 /* hash table entry size */
 typedef uint64_t hash_t;
-//typedef unsigned long hash_t;
+/* typedef unsigned long hash_t; */
 
 /* degree size */
-//typedef uint16_t deg_t;
-//typedef unsigned int deg_t;
+/* typedef uint16_t deg_t; */
+/* typedef unsigned int deg_t; */
 typedef uint32_t deg_t;
 
 /* homogeneity */
@@ -81,12 +83,12 @@ typedef int hom_t;
 typedef int ord_t;
 
 /* exponent size */
-//typedef uint8_t exp_s;
+/* typedef uint8_t exp_s; */
 typedef uint16_t exp_s;
 typedef exp_s exp_t;
 
-typedef re_t cf_t;
-//typedef uint32_t cf_t;
+/* typedef re_t cf_t; */
+typedef uint32_t cf_t;
 typedef re_l_t bf_t;
 
 
@@ -145,7 +147,7 @@ typedef re_l_t bf_t;
 /**
  * \brief Verbosity information
  */
-typedef struct info_t
+struct info_t
 {
   nelts_t sel_pairs;                          /*!<  number of selected pairs in last step*/
   nelts_t curr_deg;                           /*!<  degree of pairs in current step*/
@@ -168,7 +170,8 @@ typedef struct info_t
                                                     from matrix data*/
   struct timeval linear_algebra_time;         /*!<  overall time for reduction in
                                                     linear algebra*/
-} info_t;
+};
+typedef struct info_t info_t;
 
 
 /**
@@ -197,7 +200,7 @@ typedef struct dup_t
  */
 typedef struct sf_t
 {
-  //hash_t *mul;  /*!<  hash of multiplier of simplified element */
+  /* hash_t *mul;  [>!<  hash of multiplier of simplified element <] */
   nelts_t *idx; /*!<  index of simplified element in simplifier list */
   nelts_t size; /*!<  memory allocated */
   nelts_t load; /*!<  number of elements in simplifier list for this polynomial */
@@ -216,7 +219,7 @@ typedef struct sf_t
  */
 typedef struct gb_t
 {
-  // global data
+  /* global data */
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in basis*/
   nelts_t load_ls;  /*!<  number of elements in basis after last step*/
@@ -231,7 +234,7 @@ typedef struct gb_t
   cf_t mod;      /*!<  modulo/field characteristic */
   int has_unit;     /*!<  is set to 1 if we have found a unit in the basis */
   nelts_t max_sel;  /*!<  maximal number of spairs handled at once */
-  // element data
+  /* element data */
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
   red_t *red;       /*!<  stores if the element is redundant or not*/
@@ -240,12 +243,12 @@ typedef struct gb_t
   sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if
                           simplification is not used */
   int sl;           /*!<  global simplify level */
-  // meta data
+  /* meta data */
   char **vnames;    /*!<  variable names */
-  uint16_t mtl;     /*!<  maximal length of term (needed for
+  size_t mtl;       /*!<  maximal length of term (needed for
                           estimating buffer size when writing result)*/
   double fs;        /*!<  file size of input matrix */
-  char *fsu;        /*!<  file size unit of input matrix, e.g. GB */
+  const char *fsu;  /*!<  file size unit of input matrix, e.g. GB */
 } gb_t;
 
 /**
@@ -272,10 +275,10 @@ typedef struct spair_t
  */
 typedef struct ps_t
 {
-  // global data
+  /* global data */
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in basis*/
-  // element data
+  /* element data */
   spair_t **pairs;   /*!<  pointers of spairs */
 } ps_t;
 
@@ -302,11 +305,11 @@ typedef struct mpp_t
  */
 typedef struct sel_t
 {
-  // global data
+  /* global data */
   deg_t deg;        /*!<  maximal degree of all elements in selection set*/
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in selection*/
-  // element data
+  /* element data */
   mpp_t *mpp;       /*!<  multiplier-polynomial-pair for symbolic preprocessing */
 } sel_t;
 
@@ -455,11 +458,11 @@ typedef struct simplify_t
  */
 typedef struct mp_cf4_ht_t
 {
-  // size and load counters
+  /* size and load counters */
   nvars_t nv;         /*!<  number of variables*/
   ht_size_t load;     /*!<  load of hash table*/
   ht_size_t sz;       /*!<  hash table size*/
-  // data and arrays for storage
+  /* data and arrays for storage */
   ht_size_t *lut;     /*!<  lookup table between hash value and position in
                             exponent array*/
   hash_t *val;        /*!<  array of hash values*/
@@ -470,6 +473,7 @@ typedef struct mp_cf4_ht_t
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/
   nelts_t *div;       /*!<  latest element from gb checked for its leading
                             term dividing corresponding monomial in hash table*/
+  ht_size_t *ctr;     /*!<  counts how often a hash appears */
   ht_size_t *idx;     /*!<  index used for matrix generation and marking
                             monomials already taken care of in symbolic
                             preprocessing*/
@@ -487,8 +491,8 @@ typedef struct mp_cf4_ht_t
 typedef struct dbr_t
 {
   nelts_t *ctr; /*!< array of counts how many nonzero elements are stored */
-  cf_t **cf; /*!< array of coefficients in the given row and block */
-  cf_t **bl; /*!< array of blocks of coefficients for the dense part of
+  re_t **cf; /*!< array of coefficients in the given row and block */
+  re_t **bl; /*!< array of blocks of coefficients for the dense part of
                      the gbla matrix*/
 } dbr_t;
 
@@ -501,6 +505,6 @@ typedef struct poly_t {
 
 
 
-// global meta_data
+/* global meta_data */
 extern info_t *meta_data;
 #endif /* GB_TYPES_H */

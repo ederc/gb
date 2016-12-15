@@ -22,14 +22,14 @@
  */
 #include "matrix.h"
 
-int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
+ri_t reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
 {
   /*  timing structs */
   struct timeval t_load_start;
   struct timeval t_complete;
   if (verbose > 2)
     gettimeofday(&t_complete, NULL);
-  // A^-1 * B
+  /* A^-1 * B */
   if (verbose > 2) {
     printf("---------------------------------------------------------------------------\n");
     printf("GBLA Matrix Reduction\n");
@@ -41,7 +41,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   if (mat->A->blocks != NULL) {
     if (elim_fl_A_sparse_dense_block(&(mat->A), mat->B, mat->mod, nthreads)) {
       printf("Error while reducing A.\n");
-      return -1;
+      return 1;
     }
   }
   if (verbose > 2) {
@@ -51,7 +51,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   if (verbose > 3) {
     print_mem_usage();
   }
-  // reducing submatrix C to zero using methods of Faugère & Lachartre
+  /* reducing submatrix C to zero using methods of Faugère & Lachartre */
   if (verbose > 2) {
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Reducing C ...");
@@ -60,7 +60,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   if (mat->C->blocks != NULL) {
     if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 1, mat->mod, nthreads)) {
       printf("Error while reducing C.\n");
-      return -1;
+      return 1;
     }
   }
   if (verbose > 2) {
@@ -70,7 +70,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   if (verbose > 3) {
     print_mem_usage();
   }
-  // copy block D to dense wide (re_l_t) representation
+  /* copy block D to dense wide (re_l_t) representation */
   mat->DR = copy_block_to_dense_matrix(&(mat->D), nthreads, 1);
   mat->DR->mod  = mat->mod;
 #if 0
@@ -92,9 +92,9 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   }
 #endif
 
-  // eliminate mat->DR using a structured Gaussian Elimination process on the rows
-  ri_t rank_D = 0;
-  // echelonizing D to zero using methods of Faugère & Lachartre
+  /* eliminate mat->DR using a structured Gaussian Elimination process on the rows */
+  nelts_t rank_D = 0;
+  /* echelonizing D to zero using methods of Faugère & Lachartre */
   if (verbose > 2) {
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Reducing D ...");
@@ -105,10 +105,11 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
       rank_D = elim_fl_dense_D_completely(mat->DR, nthreads);
     } else {
       rank_D = elim_fl_dense_D(mat->DR, nthreads);
-      int l;
-      for (l=mat->DR->rank-1; l>0; --l) {
-        copy_piv_to_val(mat->DR, l-1);
-        completely_reduce_D(mat->DR, l-1);
+      nelts_t l;
+      for (l=1; l<mat->DR->rank; ++l) {
+      /* for (l=(int)(mat->DR->rank-1); l>0; --l) { */
+        copy_piv_to_val(mat->DR, mat->DR->rank-l-1);
+        completely_reduce_D(mat->DR, mat->DR->rank-l-1);
       }
     }
   }
@@ -116,9 +117,9 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     printf("%9.3f sec %5d %5d %5d\n",
         walltime(t_load_start) / (1000000), rank_D, mat->DR->nrows - rank_D, mat->DR->nrows);
   }
-  // if we simplify, then copy B to dense row representation
+  /* if we simplify, then copy B to dense row representation */
   if (mat->sl > 0 && mat->B->blocks != NULL) {
-    // first copy B to BR (dense row format)
+    /* first copy B to BR (dense row format) */
     mat->BR = copy_block_to_dense_matrix(&(mat->B), nthreads, 0);
     mat->BR->mod  = mat->mod;
   }
@@ -138,7 +139,7 @@ int reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
   return rank_D;
 }
 
-int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
+ri_t reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
 {
   /*  timing structs */
   struct timeval t_load_start;
@@ -146,7 +147,7 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
 
   if (verbose > 2)
     gettimeofday(&t_complete, NULL);
-  // A^-1 * B
+  /* A^-1 * B */
   if (verbose > 2) {
     printf("---------------------------------------------------------------------------\n");
     printf("GBLA Matrix Reduction\n");
@@ -159,7 +160,7 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
   if (mat->AR->row != NULL) {
     if (elim_fl_C_sparse_dense_keep_A(mat->CR, &(mat->AR), mat->mod, nthreads)) {
       printf("Error while reducing A.\n");
-      return -1;
+      return 1;
     }
   }
   if (verbose > 2) {
@@ -169,7 +170,7 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
   if (verbose > 3) {
     print_mem_usage();
   }
-  // reducing submatrix C to zero using methods of Faugère & Lachartre
+  /* reducing submatrix C to zero using methods of Faugère & Lachartre */
   if (verbose > 2) {
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Copying C to sparse block representation ...");
@@ -193,7 +194,7 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
   if (mat->C != NULL) {
     if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 0, mat->mod, nthreads)) {
       printf("Error while reducing A.\n");
-      return -1;
+      return 1;
     }
   }
   if (verbose > 2) {
@@ -203,20 +204,20 @@ int reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
   if (verbose > 3) {
     print_mem_usage();
   }
-  // copy block D to dense wide (re_l_t) representation
+  /* copy block D to dense wide (re_l_t) representation */
   mat->DR = copy_block_to_dense_matrix(&(mat->D), nthreads, 1);
   mat->DR->mod  = mat->mod;
 
-  // eliminate mat->DR using a structured Gaussian Elimination process on the rows
-  ri_t rank_D = 0;
-  // echelonizing D to zero using methods of Faugère & Lachartre
+  /* eliminate mat->DR using a structured Gaussian Elimination process on the rows */
+  nelts_t rank_D = 0;
+  /* echelonizing D to zero using methods of Faugère & Lachartre */
   if (verbose > 2) {
     gettimeofday(&t_load_start, NULL);
     printf("%-38s","Reducing D ...");
     fflush(stdout);
   }
   if (mat->DR->nrows > 0)
-    //rank_D = elim_fl_dense_D(mat->DR, nthreads);
+    /* rank_D = elim_fl_dense_D(mat->DR, nthreads); */
     rank_D = elim_fl_dense_D_completely(mat->DR, nthreads);
   if (verbose > 2) {
     printf("%9.3f sec %5d %5d %5d\n",

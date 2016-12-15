@@ -34,7 +34,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
-#include <src/gb_config.h>
+#include <config.h>
 #include <omp.h>
 #include <src/hash.h>
 #include <src/poly.h>
@@ -76,7 +76,7 @@ static inline int is_line_empty(const char *line)
  */
 static inline poly_t *final_basis_for_output(gb_t *basis)
 {
-  // if we have a unit in the basis we add it "by hand"
+  /* if we have a unit in the basis we add it "by hand" */
   if (basis->has_unit == 1) {
     basis->fl = 1;
     poly_t *fb  = (poly_t *)malloc(1 * sizeof(poly_t));
@@ -90,11 +90,11 @@ static inline poly_t *final_basis_for_output(gb_t *basis)
     return fb;
   }
 
-  // else we sort the basis
+  /* else we sort the basis */
   nelts_t bs  = basis->load - basis->st - basis->nred;
   poly_t *fb  = (poly_t *)malloc(bs * sizeof(poly_t));
   nelts_t np = 0;
-  for (int i=basis->st; i<basis->load; ++i) {
+  for (nelts_t i=basis->st; i<basis->load; ++i) {
     if (basis->red[i] == 0) {
       fb[np].cf   = basis->cf[i];
       fb[np].eh   = basis->eh[i];
@@ -103,29 +103,29 @@ static inline poly_t *final_basis_for_output(gb_t *basis)
       np++;
     }
   }
-  // sort final basis
+  /* sort final basis */
   qsort(fb, np, sizeof(poly_t), ht->sort.compare_polynomials_inverse);
 
   fb  = realloc(fb, np*sizeof(poly_t));
 
-  // if the given monomial order is not degree compatible and the input system
-  // is not homogeneous the computation was homogenized, thus we have to
-  // saturate, i.e. recheck for redundancy when setting the homogenization
-  // variable to 1.
-  // note that we have already removed redundant elements, but when saturating
-  // more redundancy might appear.
+  /* if the given monomial order is not degree compatible and the input system
+   * is not homogeneous the computation was homogenized, thus we have to
+   * saturate, i.e. recheck for redundancy when setting the homogenization
+   * variable to 1.
+   * note that we have already removed redundant elements, but when saturating
+   * more redundancy might appear. */
   if (basis->init_hom == 0 && basis->hom == 1) {
-    for (int i=0; i<bs; ++i) {
-      for (int j=0; j<i; ++j) {
+    for (nelts_t i=0; i<bs; ++i) {
+      for (nelts_t j=0; j<i; ++j) {
         if (check_monomial_division_saturated(fb[i].eh[0], fb[j].eh[0], ht) == 1) {
-          fb[i].red = 1; // any value =/= 0 is OK to mark it for deletion
+          fb[i].red = 1; /* any value =/= 0 is OK to mark it for deletion */
           np--;
           break;
         }
       }
     }
   }
-  // final size of basis
+  /* final size of basis */
   basis->fl = np;
 
   return fb;
@@ -159,10 +159,8 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht);
  * \note This can only happen for input polynomials.
  *
  * \param input elements resp. intermediate basis basis
- *
- * \param hash table ht
  */
-void check_for_same_exponents(gb_t *basis, const mp_cf4_ht_t *ht);
+void check_for_same_exponents(gb_t *basis);
 
 /**
  * \brief Homogenizes input polynomials with an extra variable.
@@ -206,13 +204,11 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht);
  *
  * \param level of verbosity vb
  *
- * \param number of threads nthrds
- *
  * \return initial state of input
  */
 gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
     mp_cf4_ht_t *ht, const int simplify, const long max_spairs,
-    const int vb, const int nthrds);
+    const int vb);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 
@@ -231,7 +227,7 @@ double walltime(struct timeval t_start);
  * \note This clearly depends on the operating system and is only tested for
  * UNIX(>=3.1.4) and OS X (>=10.11).
  */
-void print_mem_usage();
+void print_mem_usage(void);
 
 
 /**
@@ -278,7 +274,7 @@ void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht);
  *
  * \return number of terms in polynomial
  */
-int get_number_of_terms(const char *line);
+nelts_t get_number_of_terms(const char *line);
 
 /**
  * \brief Writes matrix to pbm file for printing.
@@ -369,7 +365,7 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
 /**
  * \brief Initializes meta data information
  */
-static inline info_t *init_meta_data()
+static inline info_t *init_meta_data(void)
 {
   info_t *meta_data = (info_t *)malloc(sizeof(info_t));
   meta_data->nred_last      = 0;

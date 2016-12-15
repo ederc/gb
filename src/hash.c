@@ -34,7 +34,7 @@
  * _mm_cmplt_epi8 (-1 if true, 0 if false)
  * _mm256_cmpgt_epi8 (-1 if true, 0 if false)
  ***************************************************************************************/
-// extern declaration in src/hash.h
+/** extern declaration in src/hash.h */
 mp_cf4_ht_t *ht;
 
 /********************************************************************************

@@ -22,12 +22,12 @@
 #ifndef GB_SPAIR_H
 #define GB_SPAIR_H
 
-#include "gb_config.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
 #include <omp.h>
+#include <config.h>
 #include "types.h"
 #include "hash.h"
 
@@ -46,7 +46,7 @@
  *
  * \param hash table ht
  */
-ps_t *initialize_pair_set(const gb_t *input, mp_cf4_ht_t *ht);
+ps_t *initialize_pair_set(const gb_t *input);
 
 /**
  * \brief Enters the input elements as sepcial spairs to the pair set:
@@ -147,13 +147,11 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
  *
  * \param pair set ps
  *
- * \param intermediate groebner basis basis
- *
  * \param index of basis element the new pairs were generated with idx
  *
  * \return number of removed pairs
  */
-nelts_t remove_detected_pairs(ps_t *ps, const gb_t *basis, const nelts_t idx);
+nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
 
 /**
  * \brief Adds generator gen of the corresponding spair with least common
@@ -230,29 +228,25 @@ static inline void free_selection(sel_t **sel_in)
  */
 static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
 {
-  spair_t *spa  = *((spair_t **)a);
-  spair_t *spb  = *((spair_t **)b);
-//#if SPAIR_DEBUG
-  //printf("%p | %p\n", spa, spb);
-  //printf("nvars %u\n",ht->nv);
-  /*
+  const spair_t *spa  = *((spair_t **)a);
+  const spair_t *spb  = *((spair_t **)b);
+#if SPAIR_DEBUG
   printf("GEN %u | %u || %u | %u\n",spa->gen1, spa->gen2, spb->gen1, spb->gen2);
   printf("LCM %lu | %lu\n",spa->lcm, spb->lcm);
   printf("DEG %u | %u\n",spa->deg, spb->deg);
-  */
-//#endif
+#endif
   if (spa->lcm != spb->lcm) {
-    // compare degree
+    /* compare degree */
     if (spa->deg > spb->deg) {
       return 1;
     } else {
       if (spa->deg != spb->deg)
         return -1;
     }
-    // compare reverse lexicographical
-    // NOTE: for graded reverse lexicographical ordering we store the exponents
-    // ht->exp and ht->ev in reverse order => we can use memcmp() for reverse
-    // lex comparison
+    /* compare reverse lexicographical
+     * NOTE: for graded reverse lexicographical ordering we store the exponents
+     * ht->exp and ht->ev in reverse order => we can use memcmp() for reverse
+     * lex comparison */
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
     /*
@@ -266,8 +260,8 @@ static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
     */
     return memcmp(expb,expa, sizeof(exp_t) * ht->nv);
   } else {
-    // both have the same lcms and are not detected by the product criterion,
-    // then we break ties by the overall number of terms
+    /* both have the same lcms and are not detected by the product criterion,
+     * then we break ties by the overall number of terms */
     if (spa->nt != spb->nt) {
       if (spa->nt < spb->nt) {
         return -1;
@@ -299,26 +293,22 @@ static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
  */
 static inline int cmp_spairs_by_deg_lex(const void *a, const void *b)
 {
-  spair_t *spa  = *((spair_t **)a);
-  spair_t *spb  = *((spair_t **)b);
-//#if SPAIR_DEBUG
-  //printf("%p | %p\n", spa, spb);
-  //printf("nvars %u\n",ht->nv);
-  /*
+  const spair_t *spa  = *((spair_t **)a);
+  const spair_t *spb  = *((spair_t **)b);
+#if SPAIR_DEBUG
   printf("GEN %u | %u || %u | %u\n",spa->gen1, spa->gen2, spb->gen1, spb->gen2);
   printf("LCM %lu | %lu\n",spa->lcm, spb->lcm);
   printf("DEG %u | %u\n",spa->deg, spb->deg);
-  */
-//#endif
+#endif
   if (spa->lcm != spb->lcm) {
-    // compare degree
+    /* compare degree */
     if (spa->deg > spb->deg) {
       return 1;
     } else {
       if (spa->deg != spb->deg)
         return -1;
     }
-    // compare lexicographical
+    /* compare lexicographical */
     exp_t *expa = ht->exp[spa->lcm];
     exp_t *expb = ht->exp[spb->lcm];
     /*
@@ -332,8 +322,8 @@ static inline int cmp_spairs_by_deg_lex(const void *a, const void *b)
     */
     return memcmp(expa,expb, sizeof(exp_t) * ht->nv);
   } else {
-    // both have the same lcms and are not detected by the product criterion,
-    // then we break ties by the overall number of terms
+    /* both have the same lcms and are not detected by the product criterion,
+     * then we break ties by the overall number of terms */
     if (spa->nt != spb->nt) {
       if (spa->nt < spb->nt) {
         return -1;
@@ -362,7 +352,7 @@ static inline int cmp_spairs_by_deg_lex(const void *a, const void *b)
  */
 static inline void sort_pair_set_by_lcm_deg_lex(ps_t *ps)
 {
-  qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_by_deg_lex);
+  qsort(ps->pairs, ps->load, sizeof(ps), cmp_spairs_by_deg_lex);
 }
 
 /**
@@ -374,7 +364,7 @@ static inline void sort_pair_set_by_lcm_deg_lex(ps_t *ps)
  */
 static inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
 {
-  qsort(ps->pairs, ps->load, sizeof(spair_t **), cmp_spairs_by_grevlex);
+  qsort(ps->pairs, ps->load, sizeof(ps), cmp_spairs_by_grevlex);
 }
 
 /**
@@ -390,14 +380,14 @@ static inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
  */
 static inline nelts_t get_pairs_by_minimal_degree_lex(ps_t *ps)
 {
-  // sort pair set by lcms
+  /* sort pair set by lcms */
   sort_pair_set_by_lcm_deg_lex(ps);
 
   nelts_t i   = 0;
   deg_t dmin  = ps->pairs[0]->deg;
 
-  // we assume here that the pair set is already sorted by degree of the lcms
-  // (in particular, we assume grevlex ordering)
+  /* we assume here that the pair set is already sorted by degree of the lcms
+   * (in particular, we assume grevlex ordering) */
   while (i < ps->load && ps->pairs[i]->deg == dmin)
     i++;
 
@@ -418,14 +408,14 @@ static inline nelts_t get_pairs_by_minimal_degree_lex(ps_t *ps)
  */
 static inline nelts_t get_pairs_by_minimal_degree_grevlex(ps_t *ps)
 {
-  // sort pair set by lcms
+  /* sort pair set by lcms */
   sort_pair_set_by_lcm_grevlex(ps);
 
   deg_t dmin  = ps->pairs[0]->deg;
   nelts_t i   = 0;
 
-  // we assume here that the pair set is already sorted by degree of the lcms
-  // (in particular, we assume grevlex ordering)
+  /* we assume here that the pair set is already sorted by degree of the lcms
+   * (in particular, we assume grevlex ordering) */
   while (i < ps->load && ps->pairs[i]->deg == dmin)
     i++;
 

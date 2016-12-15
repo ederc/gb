@@ -111,8 +111,8 @@ LIBS=$ax_save_LIBS
 CPPFLAGS=$ax_save_CPPFLAGS])
 
 AS_IF([test "X$ax_cv_check_cl_libcl" = Xno],
-      [no_cl=yes; CL_CFLAGS=""; CL_LIBS=""],
-      [CL_LIBS="$ax_cv_check_cl_libcl $CL_LIBS"])
+      [no_cl=yes; CL_CFLAGS=""; CL_LIBS=""; AC_DEFINE_UNQUOTED(HAVE_OPENCL, 0, [OpenCL not available.])],
+      [CL_LIBS="$ax_cv_check_cl_libcl $CL_LIBS"; AC_DEFINE_UNQUOTED(HAVE_OPENCL, 1, [OpenCL available.])])
 AC_LANG_POP([C])
 
 AC_SUBST([CL_CFLAGS])

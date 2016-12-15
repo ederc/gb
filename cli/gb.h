@@ -26,6 +26,8 @@
 #ifndef GB_GB_H
 #define GB_GB_H
 
+#define _XOPEN_SOURCE 500
+
 #include <math.h>
 #include <unistd.h>
 #include <limits.h>
@@ -49,7 +51,7 @@
 /**
  * \brief Prints help for gb call.
  */
-void print_help();
+void print_help(void);
 
 /**
  * \brief Simplify functions are stored a structure of function pointers in the basis
@@ -59,11 +61,10 @@ void print_help();
 static inline void set_simplify_functions(mp_cf4_ht_t *ht, const gb_t *basis)
 {
   switch (basis->sl) {
-    // graded reverse lexicographical order
+    /* graded reverse lexicographical order */
     case 0:
       ht->sf.simplify = no_simplify;
       break;
-    // lexicographical order
     case 1:
       ht->sf.simplify = try_to_simplify;
       break;
@@ -84,7 +85,7 @@ static inline void set_simplify_functions(mp_cf4_ht_t *ht, const gb_t *basis)
 static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *ht, const ord_t ord)
 {
   switch (ord) {
-    // graded reverse lexicographical order
+    /* graded reverse lexicographical order */
     case 0:
       ht->sort.get_pairs_by_minimal_degree              = get_pairs_by_minimal_degree_grevlex;
       ht->sort.sort_presorted_columns                   = sort_presorted_columns_by_grevlex;
@@ -95,7 +96,7 @@ static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *h
       ht->sort.compare_polynomials                      = cmp_polynomials_by_grevlex;
       ht->sort.compare_polynomials_inverse              = cmp_polynomials_by_inverse_grevlex;
       break;
-    // lexicographical order
+    /* lexicographical order */
     case 1:
       ht->sort.get_pairs_by_minimal_degree              = get_pairs_by_minimal_degree_lex;
       ht->sort.sort_presorted_columns                   = sort_presorted_columns_by_lex;
@@ -135,23 +136,23 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
   ri_t i;
   int res;
   for (i=0; i<rankDR; ++i) {
-    // add lowest row first, it has the smallest new lead monomial
+    /* add lowest row first, it has the smallest new lead monomial */
     res = add_new_element_to_basis(basis, mat, rankDR-1-i, spd, ht);
-    // if hash value 0 is new lead monomial we are done, since we have found a
-    // unit in the basis, i.e. basis = { 1 }
+    /* if hash value 0 is new lead monomial we are done, since we have found a */
+    /* unit in the basis, i.e. basis = { 1 } */
     if (res == -1)
       continue;
     if (res == 0)
       return 1;
-    //printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load);
+    /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
     update_pair_set(ps, basis, basis->load-1);
-    //printf("psl after: %u\n", ps->load);
-    // if elements are homogeneous we compute by degree, thus no redundancy can
-    // appear
+    /* printf("psl after: %u\n", ps->load); */
+    /* if elements are homogeneous we compute by degree, thus no redundancy can
+     * appear */
     if (basis->hom == 0)
-      track_redundant_elements_in_basis(basis);
+      track_redundant_elements_in_basis(basis, ht);
   }
-  // track load of basis at the end of this step
+  /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
   return 0;
 }
@@ -160,10 +161,9 @@ static inline int update_simplifiers_new(gb_t *basis, gb_t *sf, spd_t *spd, cons
     const mp_cf4_ht_t *ht)
 {
   ri_t i;
-  int res;
   for (i=0; i<mat->rk; ++i) {
-    // add lowest row first, it has the smallest new lead monomial
-    res = add_new_element_to_simplifier_new(basis, sf, mat->row[mat->rk-1-i], mat->rk-1-i, spd, ht);
+    /* add lowest row first, it has the smallest new lead monomial */
+    add_new_element_to_simplifier_new(basis, sf, mat->row[mat->rk-1-i], mat->rk-1-i, spd, ht);
   }
   return 0;
 }
@@ -174,23 +174,23 @@ static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const smc_
   ri_t i;
   int res;
   for (i=0; i<mat->rk; ++i) {
-    // add lowest row first, it has the smallest new lead monomial
+    /* add lowest row first, it has the smallest new lead monomial */
     res = add_new_element_to_basis_new(basis, mat->row[mat->rk-1-i], spd, ht);
-    // if hash value 0 is new lead monomial we are done, since we have found a
-    // unit in the basis, i.e. basis = { 1 }
+    /* if hash value 0 is new lead monomial we are done, since we have found a
+     * unit in the basis, i.e. basis = { 1 } */
     if (res == -1)
       continue;
     if (res == 0)
       return 1;
-    //printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load);
+    /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
     update_pair_set(ps, basis, basis->load-1);
-    //printf("psl after: %u\n", ps->load);
-    // if elements are homogeneous we compute by degree, thus no redundancy can
-    // appear
+    /* printf("psl after: %u\n", ps->load); */
+    /* if elements are homogeneous we compute by degree, thus no redundancy can
+     * appear */
     if (basis->hom == 0)
-      track_redundant_elements_in_basis(basis);
+      track_redundant_elements_in_basis(basis, ht);
   }
-  // track load of basis at the end of this step
+  /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
   return 0;
 }
@@ -201,23 +201,23 @@ static inline int update_basis_new_new(gb_t *basis, ps_t *ps, spd_t *spd, const 
   ri_t i;
   int res;
   for (i=0; i<mat->rk; ++i) {
-    // add lowest row first, it has the smallest new lead monomial
+    /* add lowest row first, it has the smallest new lead monomial */
     res = add_new_element_to_basis_new_new(basis, mat->row[mat->rk-1-i], spd, ht);
-    // if hash value 0 is new lead monomial we are done, since we have found a
-    // unit in the basis, i.e. basis = { 1 }
+    /* if hash value 0 is new lead monomial we are done, since we have found a
+     * unit in the basis, i.e. basis = { 1 } */
     if (res == -1)
       continue;
     if (res == 0)
       return 1;
-    //printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load);
+    /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
     update_pair_set(ps, basis, basis->load-1);
-    //printf("psl after: %u\n", ps->load);
-    // if elements are homogeneous we compute by degree, thus no redundancy can
-    // appear
+    /* printf("psl after: %u\n", ps->load); */
+    /* if elements are homogeneous we compute by degree, thus no redundancy can
+     * appear */
     if (basis->hom == 0)
-      track_redundant_elements_in_basis(basis);
+      track_redundant_elements_in_basis(basis, ht);
   }
-  // track load of basis at the end of this step
+  /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
   return 0;
 }

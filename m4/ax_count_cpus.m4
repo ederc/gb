@@ -60,7 +60,9 @@
       AS_IF([test "x$CPU_COUNT" = "x0"],[
         CPU_COUNT="1"
         AC_MSG_RESULT( [unable to detect (assuming 1)] )
+        AC_DEFINE_UNQUOTED(NUMBER_OF_CPUS, ${CPU_COUNT},[Number of CPUs, test failed, set to one.])
         ],[
         AC_MSG_RESULT( $CPU_COUNT )
+        AC_DEFINE_UNQUOTED(NUMBER_OF_CPUS, ${CPU_COUNT},[Number of CPUs.])
         ])
       ])

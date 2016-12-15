@@ -22,12 +22,12 @@
 #ifndef GB_SYMBOL_H
 #define GB_SYMBOL_H
 
-#include "gb_config.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
 #include <omp.h>
+#include <config.h>
 #include "types.h"
 #include "hash.h"
 #include "spair.h"
@@ -68,7 +68,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf);
  */
 static inline void adjust_size_of_preprocessing_hash_list(pre_t *hl, const nelts_t size)
 {
-  //printf("hl->size %u --> %u\n", hl->size, size);
+  /* printf("hl->size %u --> %u\n", hl->size, size); */
   hl->hpos  = realloc(hl->hpos, size * sizeof(hash_t));
   hl->size  = size;
 }
@@ -96,8 +96,8 @@ static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(cons
     pre_t *mon)
 {
   hash_t pos  = h1;
-  // only in this case we have this monomial hash for the first time,
-  // otherwise it has already been taken care of
+  /* only in this case we have this monomial hash for the first time,
+   * otherwise it has already been taken care of */
 #if SYMBOL_DEBUG
     for (int i=0; i<ht->nv; ++i)
       printf("%u ",ht->exp[h1][i]);
@@ -106,8 +106,9 @@ static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(cons
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
 #endif
+  ht->idx[pos]++;
   if (ht->idx[pos] == 0) {
-    ht->idx[pos]++;
+    ht->ctr[pos]++;
     mon->hpos[mon->load]  = pos;
     mon->load++;
 #if SYMBOL_DEBUG
@@ -125,7 +126,6 @@ static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(cons
  *
  * \param preprocessing hash list mon
  */
-//void enter_monomial_to_preprocessing_hash_list(const hash_t h1, const hash_t h2, pre_t *mon);
 static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pre_t *mon,
     mp_cf4_ht_t *ht)
 {
@@ -135,8 +135,8 @@ static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pr
   for (i=0; i<mpp.nt; ++i) {
     const hash_t h2 = mpp.eh[i];
     hash_t pos = check_in_hash_table_product(h1, h2, ht);
-    // only in this case we have this monomial hash for the first time,
-    // otherwise it has already been taken care of
+    /* only in this case we have this monomial hash for the first time,
+     * otherwise it has already been taken care of */
 #if SYMBOL_DEBUG
     printf("h1 %lu -- h2 %lu -- pos %lu\n", h1, h2, pos);
     for (int i=0; i<ht->nv; ++i)
@@ -149,6 +149,7 @@ static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pr
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
 #endif
+    ht->ctr[pos]++;
     if (ht->idx[pos] == 0) {
       ht->idx[pos]++;
       mon->hpos[mon->load]  = pos;
@@ -170,8 +171,8 @@ static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pr
  */
 static inline pre_t *init_preprocessing_hash_list(const nelts_t size)
 {
-  // allocate a list for hashes of monomials to be checked in the symbolic
-  // preprocessing
+  /* allocate a list for hashes of monomials to be checked in the symbolic
+   * preprocessing */
   pre_t *mon  = (pre_t *)malloc(sizeof(pre_t));
   mon->hpos   = (hash_t *)malloc(size * sizeof(hash_t));
   mon->size   = size;
@@ -231,7 +232,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lead(const void *a,
   hash_t h1 = *((hash_t *)a);
   hash_t h2 = *((hash_t *)b);
 
-  return (ht->idx[h2] - ht->idx[h1]);
+  return (int)(ht->idx[h2] - ht->idx[h1]);
 }
 
 /**
@@ -254,7 +255,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lex(const void *a,
   const hash_t ha = *((hash_t *)a);
   const hash_t hb = *((hash_t *)b);
 
-  // else we have to check lexicographical
+  /* else we have to check lexicographical */
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
 }
 
@@ -281,7 +282,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_lex(const void
   const hash_t ha = *((hash_t *)a);
   const hash_t hb = *((hash_t *)b);
 
-  // else we have to check lexicographical
+  /* else we have to check lexicographical */
   return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
 }
 
@@ -305,13 +306,13 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   const hash_t ha = *((hash_t *)a);
   const hash_t hb = *((hash_t *)b);
 
-  // compare degree first
+  /* compare degree first */
   if (ht->deg[hb] != ht->deg[ha])
-    return ht->deg[hb]-ht->deg[ha];
+    return (int)(ht->deg[hb]-ht->deg[ha]);
 
-  // else we have to check reverse lexicographical
-  // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
-  // => we can use memcmp() here and still get reverse lexicographical ordering
+  /* else we have to check reverse lexicographical
+   * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
+   * => we can use memcmp() here and still get reverse lexicographical ordering */
   return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
 }
 
@@ -338,11 +339,11 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
   const hash_t ha = *((hash_t *)a);
   const hash_t hb = *((hash_t *)b);
 
-  // compare degree first
+  /* compare degree first */
   if (ht->deg[hb] != ht->deg[ha])
-    return ht->deg[ha]-ht->deg[hb];
+    return (int)(ht->deg[ha]-ht->deg[hb]);
 
-  // else we have to check reverse lexicographical
+  /* else we have to check reverse lexicographical */
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
 }
 
@@ -389,13 +390,13 @@ static inline int cmp_polynomials_by_grevlex(const void *a,
   const hash_t ha = pa.eh[0];
   const hash_t hb = pb.eh[0];
 
-  // compare degree first
+  /* compare degree first */
   if (ht->deg[hb] != ht->deg[ha])
-    return ht->deg[hb]-ht->deg[ha];
+    return (int)(ht->deg[hb]-ht->deg[ha]);
 
-  // else we have to check reverse lexicographical
-  // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
-  // => we can use memcmp() here and still get reverse lexicographical ordering
+  /* else we have to check reverse lexicographical
+   * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
+   * => we can use memcmp() here and still get reverse lexicographical ordering */
   return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
 }
 
@@ -442,13 +443,13 @@ static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
   const hash_t ha = pa.eh[0];
   const hash_t hb = pb.eh[0];
 
-  // compare degree first
+  /* compare degree first */
   if (ht->deg[hb] != ht->deg[ha])
-    return ht->deg[ha]-ht->deg[hb];
+    return (int)(ht->deg[ha]-ht->deg[hb]);
 
-  // else we have to check reverse lexicographical
-  // NOTE: We store the exponents in reverse order in ht->exp and ht->ev
-  // => we can use memcmp() here and still get reverse lexicographical ordering
+  /* else we have to check reverse lexicographical
+   * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
+   * => we can use memcmp() here and still get reverse lexicographical ordering */
   return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
 }
 
@@ -478,7 +479,7 @@ static inline void sort_columns_by_lead(spd_t *spd)
 static inline void sort_lead_columns_by_lex(spd_t *spd)
 {
   if (spd->col->nlm != 0) {
-    // sort the start of spd->col, i.e. the lead monomial list
+    /* sort the start of spd->col, i.e. the lead monomial list */
     qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
         cmp_symbolic_preprocessing_monomials_by_lex);
   }
@@ -497,7 +498,7 @@ static inline void sort_lead_columns_by_lex(spd_t *spd)
 static inline void sort_lead_columns_by_grevlex(spd_t *spd)
 {
   if (spd->col->nlm != 0) {
-    // sort the start of spd->col, i.e. the lead monomial list
+    /* sort the start of spd->col, i.e. the lead monomial list */
     qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
         cmp_symbolic_preprocessing_monomials_by_grevlex);
   }
@@ -519,7 +520,7 @@ static inline void sort_lead_columns_by_grevlex(spd_t *spd)
 static inline void sort_lead_columns_by_inverse_lex(spd_t *spd)
 {
   if (spd->col->nlm != 0) {
-    // sort the start of spd->col, i.e. the lead monomial list
+    /* sort the start of spd->col, i.e. the lead monomial list */
     qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
         cmp_symbolic_preprocessing_monomials_by_inverse_lex);
   }
@@ -541,7 +542,7 @@ static inline void sort_lead_columns_by_inverse_lex(spd_t *spd)
 static inline void sort_lead_columns_by_inverse_grevlex(spd_t *spd)
 {
   if (spd->col->nlm != 0) {
-    // sort the start of spd->col, i.e. the lead monomial list
+    /* sort the start of spd->col, i.e. the lead monomial list */
     qsort(spd->col->hpos, spd->col->nlm, sizeof(hash_t),
         cmp_symbolic_preprocessing_monomials_by_inverse_grevlex);
   }
@@ -559,7 +560,7 @@ static inline void sort_lead_columns_by_inverse_grevlex(spd_t *spd)
  */
 static inline void sort_non_lead_columns_by_lex(spd_t *spd)
 {
-  // sort the end of spd->col, i.e. the non lead monomial list
+  /* sort the end of spd->col, i.e. the non lead monomial list */
   qsort(spd->col->hpos+spd->col->nlm, (spd->col->load - spd->col->nlm),
       sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_lex);
 }
@@ -576,7 +577,7 @@ static inline void sort_non_lead_columns_by_lex(spd_t *spd)
  */
 static inline void sort_non_lead_columns_by_grevlex(spd_t *spd)
 {
-  // sort the end of spd->col, i.e. the non lead monomial list
+  /* sort the end of spd->col, i.e. the non lead monomial list */
   qsort(spd->col->hpos+spd->col->nlm, (spd->col->load - spd->col->nlm),
       sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
 }
@@ -729,7 +730,7 @@ static inline int cmp_monomial_polynomial_pair(const void *a, const void *b)
   hash_t h1 = ((mpp_t *)a)->mlm;
   hash_t h2 = ((mpp_t *)b)->mlm;
 
-  return (ht->idx[h1] - ht->idx[h2]);
+  return (int)(ht->idx[h1] - ht->idx[h2]);
 }
 
 /**
@@ -749,7 +750,7 @@ static inline int cmp_monomial_polynomial_pair_inverted(const void *a, const voi
   hash_t h1 = ((mpp_t *)a)->mlm;
   hash_t h2 = ((mpp_t *)b)->mlm;
 
-  return (ht->idx[h2] - ht->idx[h1]);
+  return (int)(ht->idx[h2] - ht->idx[h1]);
 }
 
 /**
@@ -765,11 +766,9 @@ static inline int cmp_monomial_polynomial_pair_inverted(const void *a, const voi
  *
  * \param symbolic data structure spd
  *
- * \param hash table ht
- *
  * \param number of threads nthreads
  */
-static inline void sort_selection_by_inverted_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
+static inline void sort_selection_by_inverted_column_index(spd_t *spd,
   const int nthreads)
 {
   const int t = 2<nthreads ? 2 : nthreads;
@@ -777,11 +776,11 @@ static inline void sort_selection_by_inverted_column_index(spd_t *spd, const mp_
   {
     #pragma omp single
     {
-      // upper selection
+      /* upper selection */
       #pragma omp task
       qsort(spd->selu->mpp, spd->selu->load, sizeof(mpp_t),
           cmp_monomial_polynomial_pair_inverted);
-      // lower selection
+      /* lower selection */
       #pragma omp task
       qsort(spd->sell->mpp, spd->sell->load, sizeof(mpp_t),
           cmp_monomial_polynomial_pair_inverted);
@@ -800,11 +799,9 @@ static inline void sort_selection_by_inverted_column_index(spd_t *spd, const mp_
  *
  * \param symbolic data structure spd
  *
- * \param hash table ht
- *
  * \param number of threads nthreads
  */
-static inline void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t *ht,
+static inline void sort_selection_by_column_index(spd_t *spd,
   const int nthreads)
 {
   const int t = 2<nthreads ? 2 : nthreads;
@@ -812,11 +809,11 @@ static inline void sort_selection_by_column_index(spd_t *spd, const mp_cf4_ht_t 
   {
     #pragma omp single
     {
-      // upper selection
+      /* upper selection */
       #pragma omp task
       qsort(spd->selu->mpp, spd->selu->load, sizeof(mpp_t),
           cmp_monomial_polynomial_pair);
-      // lower selection
+      /* lower selection */
       #pragma omp task
       qsort(spd->sell->mpp, spd->sell->load, sizeof(mpp_t),
           cmp_monomial_polynomial_pair);
@@ -855,8 +852,8 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
   const nelts_t load  = basis->sf[mpp->bi].load;
   for (l=0; l<load; ++l) {
     const nelts_t idx = basis->sf[mpp->bi].idx[load-1-l];
-    // we start searching from the end of the list since those elements
-    // might be best reduced
+    /* we start searching from the end of the list since those elements
+     * might be best reduced */
     if (sf->nt[idx] < 3* mpp->nt && check_monomial_division(mpp->mlm, sf->eh[idx][0], ht)) {
       sf_mul = get_multiplier(mpp->mlm, sf->eh[idx][0], ht);
       if (sf_mul != 0) {
@@ -901,19 +898,19 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
  */
 static inline void mark_duplicates(dup_t *duplicates, spair_t *sp)
 {
-  int k = 0;
-  // so pair is not redundant
+  nelts_t k = 0;
+  /* so pair is not redundant */
   if (sp->lcm == duplicates->lcm) {
-    // check gen1
+    /* check gen1 */
     for (k=0; k<duplicates->load; ++k) {
       if (duplicates->idx[k] == sp->gen1) {
         sp->gen1  = 0;
         goto next_loop;
       }
     }
-    // add gen1
+    /* add gen1 */
     duplicates->idx[duplicates->load++]  = sp->gen1;
-    // check gen2
+    /* check gen2 */
 next_loop:
     for (k=0; k<duplicates->load; ++k) {
       if (duplicates->idx[k] == sp->gen2) {
@@ -921,9 +918,9 @@ next_loop:
         return;
       }
     }
-    // add gen2
+    /* add gen2 */
     duplicates->idx[duplicates->load++]  = sp->gen2;
-  } else { // reset duplicates list
+  } else { /* reset duplicates list */
     duplicates->lcm   = sp->lcm;
     duplicates->load  = 0;
     memset(duplicates->idx, 0, duplicates->size*sizeof(nelts_t));
@@ -943,8 +940,8 @@ next_loop:
 static inline dup_t *init_duplicates_list(const nelts_t n_pairs_selected)
 {
   dup_t *duplicates = (dup_t *)malloc(sizeof(dup_t));
-  // allocating space for all generators of all selected pairs in order not
-  // having to reallocate memory
+  /* allocating space for all generators of all selected pairs in order not
+   * having to reallocate memory */
   duplicates->idx   = (nelts_t *)malloc(2 * n_pairs_selected * sizeof(nelts_t));
   duplicates->lcm   = 0;
   duplicates->size  = 2 * n_pairs_selected;
@@ -986,13 +983,13 @@ static inline dup_t *init_duplicates_list(const nelts_t n_pairs_selected)
 static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     const gb_t *basis, const gb_t *sf, const nelts_t nsel)
 {
-  int i, j ,k, l;
-  // we do not need to check for size problems in sel du to above comment: we
-  // have allocated basis->load slots, so enough for each possible element from
-  // the basis
+  nelts_t i, j ,k, l;
+  /* we do not need to check for size problems in sel du to above comment: we
+   * have allocated basis->load slots, so enough for each possible element from
+   * the basis */
 #if SYMBOL_DEBUG
   printf("%5u selected pairs in this step of the algorithm:\n", nsel);
-  for (int k=0; k<nsel; ++k) {
+  for (k=0; k<nsel; ++k) {
     if (k+1<nsel) {
       if (ps->pairs[k]->lcm == ps->pairs[k+1]->lcm) {
         printf("same lcms! %5u | %5u\n",k,k+1);
@@ -1002,8 +999,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 #endif
 
 #if 1
-  // for each lcm we first detect which elements have to be added to the
-  // symbolic preprocessing step, i.e. we remove duplicates
+  /* for each lcm we first detect which elements have to be added to the
+   * symbolic preprocessing step, i.e. we remove duplicates */
   i = 0;
   hash_t lcm    = 0;
   nelts_t *gens = (nelts_t *)malloc(2 * nsel * sizeof(nelts_t));
@@ -1012,7 +1009,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     lcm   = ps->pairs[i]->lcm;
     j = i;
     while (j<nsel && ps->pairs[j]->lcm == lcm) {
-      // check first generator
+      /* check first generator */
       for (k=0; k<load; ++k) {
         if (ps->pairs[j]->gen1 == gens[k]) {
           break;
@@ -1022,7 +1019,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         gens[load]  = ps->pairs[j]->gen1;
         load++;
       }
-      // check second generator
+      /* check second generator */
       for (k=0; k<load; ++k) {
         if (ps->pairs[j]->gen2 == gens[k]) {
           break;
@@ -1035,25 +1032,25 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       j++;
     }
     i     = j;
-    // now we have handled all poairs of the given lcm, we add them to the
-    // symbolic preprocessing step in the following
+    /* now we have handled all poairs of the given lcm, we add them to the
+     * symbolic preprocessing step in the following */
     k = 0;
-    // ht->idx is always at least 1
+    /* ht->idx is always at least 1 */
     /*
     for (int ii=0; ii<load; ++ii)
       printf("gens[%u] = %u\n",ii, gens[ii]);
     printf("\n");
     */
-    //ht->idx[lcm]  = 1;
+    /* ht->idx[lcm]  = 1; */
     if (load>1) {
       mon->nlm++;
-      //mon->load++;
+      /* mon->load++; */
       add_spair_generator_to_selection(selu, basis, lcm, gens[k]);
       j = selu->load-1;
-      // check for simplification
-      // function pointer set correspondingly if simplify option is set or not
+      /* check for simplification
+       * function pointer set correspondingly if simplify option is set or not */
       ht->sf.simplify(&selu->mpp[j], basis, sf);
-      //printf("[u] %u | %u || %u\n", mon->size, mon->load, selu->mpp[j].nt);
+      /* printf("[u] %u | %u || %u\n", mon->size, mon->load, selu->mpp[j].nt); */
       if (mon->size-mon->load+1 < selu->mpp[j].nt) {
         const nelts_t max = 2*mon->size > selu->mpp[j].nt ? 2*mon->size : selu->mpp[j].nt;
         adjust_size_of_preprocessing_hash_list(mon, max);
@@ -1061,23 +1058,24 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       enter_monomial_to_preprocessing_hash_list(selu->mpp[j], mon, ht);
       k++;
       ht->idx[lcm]  = 2;
+      ht->ctr[lcm]  = 2;
     }
     for (l=k; l<load; l++) {
       add_spair_generator_to_selection(sell, basis, lcm, gens[l]);
       j = sell->load-1;
-      // check for simplification
-      // function pointer set correspondingly if simplify option is set or not
+      /* check for simplification
+       * function pointer set correspondingly if simplify option is set or not */
       ht->sf.simplify(&sell->mpp[j], basis, sf);
-      //printf("[l] %u | %u || %u\n", mon->size, mon->load, sell->mpp[j].nt);
+      /* printf("[l] %u | %u || %u\n", mon->size, mon->load, sell->mpp[j].nt); */
       if (mon->size-mon->load+1 < sell->mpp[j].nt) {
         const nelts_t max = 2*mon->size > sell->mpp[j].nt ? 2*mon->size : sell->mpp[j].nt;
         adjust_size_of_preprocessing_hash_list(mon, max);
       }
       enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
     }
-    // set data for next lcm round
+    /* set data for next lcm round */
     load  = 0;
-    //printf("ht->idx[%u] = %u\n", lcm, ht->idx[lcm]);
+    /* printf("ht->idx[%u] = %u\n", lcm, ht->idx[lcm]); */
   }
 
   free(gens);
@@ -1086,36 +1084,36 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   nelts_t i, j, k;
   spair_t *sp = NULL;
 
-  // keep a list for duplicates, i.e. for each lcm appearing we keep a list of
-  // corresponding polynomials. if a polynomial is appearing again with the same
-  // lcm, this would lead to a duplicate row and we can remove it, i.e. set the
-  // corresponding gen1 or gen2 entry to 0.
+  /* keep a list for duplicates, i.e. for each lcm appearing we keep a list of
+   * corresponding polynomials. if a polynomial is appearing again with the same
+   * lcm, this would lead to a duplicate row and we can remove it, i.e. set the
+   * corresponding gen1 or gen2 entry to 0. */
   dup_t *duplicates = init_duplicates_list(nsel);
 
   for (i=0; i<nsel; ++i) {
-    // remove duplicates if lcms and the first generators are the same
+    /* remove duplicates if lcms and the first generators are the same */
     sp  = ps->pairs[i];
-    // we remove pairs that are redundant in the sense that a new basis element
-    // has made an older one redundant. thus we only need to keep the one pair
-    // that consists of the new basis element and the element that is redundant
-    // due to it.
+    /* we remove pairs that are redundant in the sense that a new basis element
+     * has made an older one redundant. thus we only need to keep the one pair
+     * that consists of the new basis element and the element that is redundant
+     * due to it. */
     /*
     if ((basis->red[sp->gen1] > 0 && basis->red[sp->gen1] != sp->gen2) || basis->red[sp->gen2] > 0) {
       meta_data->sel_pairs--;
       continue;
     }
     */
-    // mark generators of sp that would give duplicate rows in the matrix
+    /* mark generators of sp that would give duplicate rows in the matrix */
     mark_duplicates(duplicates, sp);
-    // We have to distinguish between usual spairs and spairs consisting of one
-    // initial input element: The latter ones have only 1 generator (gen2 has
-    // the generator, gen1 is zero) and the
-    // corresponding lead monomial is not part of the basis. Thus we cannot set
-    // ht->idx[*] = 2 for these. The whole data for these special spairs is in
-    // basis before basis->st, whereas the data of the usual spairs is
-    // completely in basis starting at position basis->st.
-
-    // gen2 is only 0 if it might be a duplicate, see above
+    /* We have to distinguish between usual spairs and spairs consisting of one
+    * initial input element: The latter ones have only 1 generator (gen2 has
+    * the generator, gen1 is zero) and the
+    * corresponding lead monomial is not part of the basis. Thus we cannot set
+    * ht->idx[*] = 2 for these. The whole data for these special spairs is in
+    * basis before basis->st, whereas the data of the usual spairs is
+    * completely in basis starting at position basis->st.
+    *
+    * gen2 is only 0 if it might be a duplicate, see above */
     /*
      * sp->gen2 > sp->gen1 when constructing new spairs. so if sp->gen2 != 0
      * then we must have sp->gen2 - sp->gen1 > 0.
@@ -1129,18 +1127,18 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       printf("gen %u || lcm %lu || sell %u\n", sp->gen2, sp->lcm, sell->load-1);
       j = sell->load-1;
 
-      // check for simplification
-      // function pointer set correspondingly if simplify option is set or not
+      /* check for simplification
+       * function pointer set correspondingly if simplify option is set or not */
       ht->sf.simplify(&sell->mpp[j], basis, sf);
 
       enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
     }
-    // now we distinguish cases for gen1
+    /* now we distinguish cases for gen1 */
     if (sp->gen1 != 0) {
-      // first generator for upper part of gbla matrix if there is no other pair
-      // with the same lcm
+      /* first generator for upper part of gbla matrix if there is no other pair
+       * with the same lcm */
       if (ht->idx[sp->lcm] == 1) {
-        //mon->hpos[mon->load]  = sp->lcm;
+        /* mon->hpos[mon->load]  = sp->lcm; */
         ht->idx[sp->lcm]      = 2;
 #if SYMBOL_DEBUG
       printf("hpos[%u] = %u\n", mon->load, mon->hpos[mon->load]);
@@ -1149,15 +1147,15 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       printf("\n");
 #endif
         mon->nlm++;
-        //mon->load++;
+        /* mon->load++; */
         if (mon->load == mon->size)
           adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
 
         add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
       printf("gen %u || lcm %lu || selu %u\n", sp->gen1, sp->lcm, selu->load-1);
         j = selu->load-1;
-        // check for simplification
-        // function pointer set correspondingly if simplify option is set or not
+        /* check for simplification
+         * function pointer set correspondingly if simplify option is set or not */
         ht->sf.simplify(&selu->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(selu->mpp[j],
             mon, ht);
@@ -1165,22 +1163,22 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
       printf("gen %u || lcm %lu || sell %u\n", sp->gen1, sp->lcm, sell->load-1);
         j = sell->load-1;
-        // check for simplification
-        // function pointer set correspondingly if simplify option is set or not
+        /* check for simplification
+         * function pointer set correspondingly if simplify option is set or not */
         ht->sf.simplify(&sell->mpp[j], basis, sf);
         enter_monomial_to_preprocessing_hash_list(sell->mpp[j],
             mon, ht);
       }
     }
-    // remove the selected pair from the pair set
-    //free(sp);
+    /* remove the selected pair from the pair set */
+    /* free(sp); */
   }
 
-  // free duplicates list
+  /* free duplicates list */
   free(duplicates->idx);
   free(duplicates);
 #endif
-  // adjust pair set after removing the bunch of selected pairs
+  /* adjust pair set after removing the bunch of selected pairs */
   k = 0;
   for (i=0; i<nsel; ++i)
     free(ps->pairs[i]);

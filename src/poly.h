@@ -22,12 +22,12 @@
 #ifndef GB_POLY_H
 #define GB_POLY_H
 
-#include "gb_config.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
 #include <omp.h>
+#include <config.h>
 #include "types.h"
 #include "hash.h"
 
@@ -68,7 +68,7 @@
  */
 gb_t *initialize_basis(const int order, const int nlines,
     const nvars_t nvars, char **vnames, const mod_t mod,
-    const int simplify, const long max_spairs, const uint64_t fl);
+    const int simplify, const long max_spairs, const int64_t fl);
 
 /**
  * \brief Initializes simplifier list, takes meta data from intermediate
@@ -235,7 +235,7 @@ static inline void enlarge_basis(gb_t *basis, const nelts_t size)
 static inline void initialize_simplifier_link(gb_t *basis)
 {
   nelts_t i;
-  //basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
+  /* basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t)); */
   for (i=0; i<basis->size; ++i) {
     basis->sf[i].size = 3;
     basis->sf[i].load = 0;
@@ -251,10 +251,10 @@ static inline void initialize_simplifier_link(gb_t *basis)
  *
  * \param intermediate groebner basis basis
  */
-static inline void track_redundant_elements_in_basis(gb_t *basis)
+static inline void track_redundant_elements_in_basis(gb_t *basis, const mp_cf4_ht_t *ht)
 {
   nelts_t i;
-  // check for redundancy of other elements in basis
+  /* check for redundancy of other elements in basis */
   for (i=basis->st; i<basis->load-1; ++i) {
     if (basis->red[i] == 0) {
       if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
@@ -281,10 +281,11 @@ static inline void track_redundant_elements_in_basis(gb_t *basis)
  *
  * \return 0 if not redundant, =/= 0 else
  */
-static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basis)
+static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basis,
+    const mp_cf4_ht_t *ht)
 {
-  // check for redundancy of other elements in basis
-  for (int i=basis->load_ls; i<basis->load; ++i) {
+  /* check for redundancy of other elements in basis */
+  for (nelts_t i=basis->load_ls; i<basis->load; ++i) {
     if (basis->red[i] == 0 && check_monomial_division(hash, basis->eh[i][0], ht) == 1)
       return 1;
   }
@@ -306,16 +307,16 @@ static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basi
 static inline void link_simplifier_to_basis(gb_t *basis, const gb_t *sf,
     const spd_t *spd, const ri_t ri)
 {
-  // get index of basis element
+  /* get index of basis element */
   const nelts_t bi  = spd->selu->mpp[ri].bi;
 
-  // enlarge array if needed
+  /* enlarge array if needed */
   if (basis->sf[bi].load  ==  basis->sf[bi].size) {
     basis->sf[bi].idx   =   realloc(basis->sf[bi].idx,
                               2 * basis->sf[bi].size * sizeof(nelts_t));
     basis->sf[bi].size  *=  2;
   }
-  // insert link to simplifier list
+  /* insert link to simplifier list */
   basis->sf[bi].idx[basis->sf[bi].load] = sf->load-1;
   basis->sf[bi].load++;
 }

@@ -46,6 +46,10 @@
 #define GB_DEBUG 0
 #endif
 
+#ifndef HASH_CHECK
+#define HASH_CHECK 0
+#endif
+
 #define newred 0
 
 /**

@@ -203,7 +203,6 @@ int main(int argc, char *argv[])
   /* first get number of variables in order to initialize hash table */
   nvars_t nvars = get_nvars(fn);
   /* initialize hash table */
-  printf("ht %p ---> htc $u | nvars %u\n", ht, htc, nvars);
   ht = init_hash_table(htc, nvars);
   set_sort_functions_depending_on_monomial_order(ht, order);
 
@@ -304,6 +303,7 @@ int main(int argc, char *argv[])
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
     spd_t *spd  = symbolic_preprocessing(ps, basis, sf);
+#if HASH_CHECK
     printf("HOW OFTEN DO HASHES APPEAR?\n");
     nelts_t counter = 0;
     for (nelts_t kk=0; kk<ht->load; ++kk) {
@@ -313,6 +313,7 @@ int main(int argc, char *argv[])
       }
     }
     printf("%u hashes appear only once!\n",counter);
+#endif
     if (verbose > 0)
       t_symbolic_preprocessing +=  walltime(t_load_start);
 

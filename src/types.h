@@ -23,6 +23,10 @@
 #ifndef GB_TYPES_H
 #define GB_TYPES_H
 
+#ifndef HASH_CHECK
+#define HASH_CHECK 0
+#endif
+
 #include <sys/time.h>
 
 #include <gbla/matrix.h>
@@ -473,7 +477,9 @@ typedef struct mp_cf4_ht_t
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/
   nelts_t *div;       /*!<  latest element from gb checked for its leading
                             term dividing corresponding monomial in hash table*/
-  ht_size_t *ctr;     /*!<  counts how often a hash appears */
+#if HASH_CHECK
+  ht_size_t *ctr;     [>!<  counts how often a hash appears <]
+#endif
   ht_size_t *idx;     /*!<  index used for matrix generation and marking
                             monomials already taken care of in symbolic
                             preprocessing*/

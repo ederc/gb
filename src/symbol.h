@@ -40,6 +40,10 @@
 #define SYMBOL_DEBUG 0
 #endif
 
+#ifndef HASH_CHECK
+#define HASH_CHECK 0
+#endif
+
 /**
  * \brief Symbolic preprocessing searching for all possible reducers of all
  * ocurring monomials. These data are then used to construct the matrices for
@@ -108,7 +112,9 @@ static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(cons
 #endif
   ht->idx[pos]++;
   if (ht->idx[pos] == 0) {
+#if HASH_CHECK
     ht->ctr[pos]++;
+#endif
     mon->hpos[mon->load]  = pos;
     mon->load++;
 #if SYMBOL_DEBUG
@@ -149,7 +155,9 @@ static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pr
       printf("%u ",ht->exp[pos][i]);
     printf("\n");
 #endif
+#if HASH_CHECK
     ht->ctr[pos]++;
+#endif
     if (ht->idx[pos] == 0) {
       ht->idx[pos]++;
       mon->hpos[mon->load]  = pos;
@@ -1058,7 +1066,9 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       enter_monomial_to_preprocessing_hash_list(selu->mpp[j], mon, ht);
       k++;
       ht->idx[lcm]  = 2;
+#if HASH_CHECK
       ht->ctr[lcm]  = 2;
+#endif
     }
     for (l=k; l<load; l++) {
       add_spair_generator_to_selection(sell, basis, lcm, gens[l]);

@@ -397,7 +397,6 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
     sort_eh  = realloc(sort_eh, basis->nt[i] * sizeof(hash_t));
     sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(cf_t));
     memcpy(sort_eh, basis->eh[i], basis->nt[i] * sizeof(hash_t));
-    printf("%u -- %u\n", i, basis->nt[i]);
     qsort(sort_eh, basis->nt[i], sizeof(hash_t), ht->sort.compare_monomials);
     /** sort coefficients like the exponent hashes */
     for (j=0; j<basis->nt[i]; ++j) {
@@ -602,9 +601,9 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
 #endif
       for (j=1; j<nterms; ++j) {
         get_term(line, &prev_pos, &term);
-//#if IO_DEBUG
+#if IO_DEBUG
         printf("%s ",term);
-//#endif
+#endif
         /** get coefficient first */
         if (term != NULL) {
           cf_tmp  = (int)strtol(term, NULL, 10);

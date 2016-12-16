@@ -62,6 +62,10 @@
 #define HASH_QUADRATIC_PROBING  0
 #endif
 
+#ifndef HASH_CHECK
+#define HASH_CHECK 0
+#endif
+
 
 /***************************
  * OUR HASH TABLE IS GLOBAL
@@ -193,7 +197,9 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
   ht->deg   = (deg_t *)calloc(ht->sz, sizeof(deg_t));
   ht->div   = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
   ht->idx   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
+#if HASH_CHECK
   ht->ctr   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
+#endif
   ht->rand  = (hash_t *)malloc(ht->nv * sizeof(hash_t));
   ht->exp   = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
   /* get memory for each exponent */
@@ -256,11 +262,15 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   ht->val   = realloc(ht->val, ht->sz * sizeof(hash_t));
   ht->deg   = realloc(ht->deg, ht->sz * sizeof(deg_t));
   ht->idx   = realloc(ht->idx, ht->sz * sizeof(ht_size_t));
-  ht->ctr   = realloc(ht->idx, ht->sz * sizeof(ht_size_t));
+#if HASH_CHECK
+  ht->ctr   = realloc(ht->ctr, ht->sz * sizeof(ht_size_t));
+#endif
   ht->div   = realloc(ht->div, ht->sz * sizeof(nelts_t));
   /* set mew values for divisors and index to zero */
   memset(ht->idx+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
+#if HASH_CHECK
   memset(ht->ctr+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
+#endif
   memset(ht->lut+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
   memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
   ht->exp   = realloc(ht->exp, ht->sz * sizeof(exp_t *));
@@ -294,7 +304,9 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
     free(ht->deg);
     free(ht->div);
     free(ht->idx);
+#if HASH_CHECK
     free(ht->ctr);
+#endif
     for (i=0; i<ht->sz; ++i) {
       free(ht->exp[i]);
     }
@@ -804,6 +816,6 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, mp_cf4_ht_
 static inline void clear_hash_table_idx(mp_cf4_ht_t *ht)
 {
   memset(ht->idx, 0, ht->sz * sizeof(ht_size_t));
-  memset(ht->ctr, 0, ht->sz * sizeof(ht_size_t));
+  /* memset(ht->ctr, 0, ht->sz * sizeof(ht_size_t)); */
 }
 #endif /* GB_HASH_TABLE_H */

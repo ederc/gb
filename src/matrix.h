@@ -2292,45 +2292,6 @@ static inline mat_t *generate_gbla_matrix_keep_A(const gb_t *basis,
   return mat;
 }
 
-/* atomic compare and swap based on cmpxchg
- * NOTE: works only on x86 processors, need something else for ARM etc. */
-/*
-static int  cas(int *ptr, int old_val, int new_val)
-{
-	int ret;
-#if MULTICORE && WORDSIZE==32
-	__asm__ __volatile__("lock; cmpxchgl %2, %1" : "=a"(ret), "+m"(*ptr) : "r"(new_val), "0"(old_val) : "memory");
-#elif MULTICORE && WORDSIZE==64
-	__asm__ __volatile__("lock; cmpxchgq %2, %1" : "=a"(ret), "+m"(*ptr) : "r"(new_val), "0"(old_val) : "memory");
-#else
-	ret = *ptr;
-	if (ret==old_val)
-    *ptr = new_val;
-#endif
-	return ret;
-}
-
-static uint64_t compare_and_swap(uint64_t* ptr, uint64_t old_value, uint64_t new_value)
-{
-      return __sync_val_compare_and_swap(ptr, old_value, new_value);
-}
-*/
-
-static int cas(int *ptr, int old, int new)
-{
-	int prev;
-/* #if MULTICORE && WORDSIZE==32 */
-#if 0
-	__asm__ __volatile__("lock; cmpxchgl %2, %1" : "=a"(prev), "+m"(*ptr) : "r"(new), "0"(old) : "memory");
-/* #elif MULTICORE && WORDSIZE==64 */
-	__asm__ __volatile__("lock; cmpxchgq %2, %1" : "=a"(prev), "+m"(*ptr) : "r"(new), "0"(old) : "memory");
-#else
-	prev = *ptr;
-	if (prev==old) *ptr = new;
-#endif
-	return prev;
-}
-
 static inline sr_t *normalize_row(sr_t *row, const cf_t mod)
 {
   nelts_t i;
@@ -2629,19 +2590,14 @@ red_with_piv:
 static inline void compute_new_pivots(sr_t *row, sr_t **pivs,
     const nelts_t shift, const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
-  int not_done;
+  int done;
 
   do {
     row = reduce_lower_rows_by_pivots(row, pivs, shift, ncl, ncr, mod);
     if (!row) 
       return;
-    not_done  = (int)row->pos[0]-(int)shift;
-    //not_done  = cas((void *)(&pivs[row->pos[0]-shift]), 0, not_done);
-    not_done  = cas((void *)(&pivs[row->pos[0]-shift]), 0, row);
-    /* pivs[row->pos[0]-ncl] = row; */
-    not_done  = 0;
-    /* not_done  = compare_and_swap((void *)(&pivs[ret->pos[0]-mat->ncl]), 0, mat->nrl); */
-  } while (not_done);
+    done  = __sync_bool_compare_and_swap(&pivs[row->pos[0]-shift], NULL, row);
+  } while (!done);
 }
 
 static inline void reduce_lower_rows(smat_t *mat, const nelts_t shift, const int nthreads)
@@ -3330,19 +3286,14 @@ red_with_piv:
 static inline void compute_new_pivots_c(src_t *row, src_t **pivs,
     const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
-  int not_done;
+  int done;
 
   do {
     row = reduce_lower_rows_by_pivots_c(row, pivs, ncl, ncr, mod);
     if (!row) 
       return;
-    not_done  = (int)row[1]-(int)ncl;
-    not_done  = cas((void *)(&pivs[row[1]-ncl]), 0, row);
-    //not_done  = cas((void *)(&pivs[row[1]-ncl]), 0, not_done);
-    /* pivs[row->pos[0]-ncl] = row; */
-    not_done  = 0;
-    /* not_done  = compare_and_swap((void *)(&pivs[ret->pos[0]-mat->ncl]), 0, mat->nrl); */
-  } while (not_done);
+    done  = __sync_bool_compare_and_swap(&pivs[row[1]-ncl], NULL, row);
+  } while (!done);
 }
 
 static inline void reduce_lower_rows_c(smc_t *mat, const nelts_t shift, const int nthreads)

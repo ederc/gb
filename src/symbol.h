@@ -839,7 +839,8 @@ static inline void sort_selection_by_column_index(spd_t *spd,
  *
  * \param simplifier list sf
  */
-static inline void no_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf)
+static inline void no_simplify(__attribute__((unused))mpp_t *mpp,
+    __attribute__((unused))const gb_t *basis, __attribute__((unused))const gb_t *sf)
 {
   return;
 }

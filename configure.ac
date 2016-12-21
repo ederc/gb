@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([GB], [0.0.1], [ederc@mathematik.uni-kl.de])
 AM_INIT_AUTOMAKE([foreign color-tests -Wall -Werror])
-AM_SILENT_RULES([yes])
+#AM_SILENT_RULES([yes])
 
 # Include maintainer mode targets
 AM_MAINTAINER_MODE
@@ -68,9 +68,9 @@ PKG_CHECK_MODULES(GBLA, gbla >= 0.0.3)
 AC_OPENMP
 AX_CHECK_CL
 AX_COUNT_CPUS
-AX_APPEND_COMPILE_FLAGS
-AX_APPEND_LINK_FLAGS
-AX_APPEND_FLAG
+#AX_APPEND_COMPILE_FLAGS
+#AX_APPEND_LINK_FLAGS
+#AX_APPEND_FLAG
 AX_GCC_BUILTIN
 
 # May be used later for optimizations

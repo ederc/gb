@@ -58,7 +58,7 @@ ri_t reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     fflush(stdout);
   }
   if (mat->C->blocks != NULL) {
-    if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 1, mat->mod, nthreads)) {
+    if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, mat->mod, nthreads)) {
       printf("Error while reducing C.\n");
       return 1;
     }
@@ -192,7 +192,7 @@ ri_t reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
     fflush(stdout);
   }
   if (mat->C != NULL) {
-    if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, 0, mat->mod, nthreads)) {
+    if (elim_fl_C_sparse_dense_block(mat->B, &(mat->C), mat->D, mat->mod, nthreads)) {
       printf("Error while reducing A.\n");
       return 1;
     }

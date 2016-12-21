@@ -29,7 +29,7 @@
 
 #include <sys/time.h>
 
-#include <gbla/matrix.h>
+#include <gbla/src/matrix.h>
 #if defined(_MSC_VER)
      /* Microsoft C/C++-compatible compiler */
      #include <intrin.h>

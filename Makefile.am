@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = gnu subdir-objects
 ACLOCAL_AMFLAGS	=	-I m4
 
-AM_CFLAGS	=	-std=c99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
+AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wpointer-arith -Wcast-align -Wstrict-prototypes \
 						-Wmissing-prototypes -Wstrict-overflow=5 -Wwrite-strings \
 						-Waggregate-return -Wswitch-default \

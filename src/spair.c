@@ -133,43 +133,24 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
     }
   }
 
-#if 0
+#if 1
   for (i=ps->load; i<cur_len; ++i) {
     switch (ps->pairs[i]->crit) {
       case CHAIN_CRIT:
         continue;
-        break;
       case PROD_CRIT:
-        for (j=i+1; j<cur_len; ++j) {
+        for (j=ps->load; j<cur_len; ++j) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
-            if (ps->pairs[j]->crit == NO_CRIT) {
-              ps->pairs[j]->crit  = CHAIN_CRIT;
-            }
-          } else {
-            break;
+            ps->pairs[j]->crit  = CHAIN_CRIT;
           }
         }
+      case NO_CRIT:
         for (j=i-1; j>ps->load-1; --j) {
           if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
-            if (ps->pairs[j]->crit == NO_CRIT) {
-              ps->pairs[j]->crit  = CHAIN_CRIT;
-            }
-          } else {
-            break;
-          }
-        }
-        break;
-      case NO_CRIT:
-        j = i-1 > 0 ? i-1 : 0;
-        while (j>ps->load-1) {
-          if (ps->pairs[j]->lcm == ps->pairs[i]->lcm) {
             ps->pairs[i]->crit  = CHAIN_CRIT;
-            j--;
-          } else {
             break;
           }
         }
-        break;
       default:
         break;
     }
@@ -286,7 +267,7 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
    * with the CHAIN_CRIT in order to remove it later on */
   if (basis->red[gen2] > 0) {
     /* sp->crit  = CHAIN_CRIT; */
-    sp->crit  = PROD_CRIT;
+    /* sp->crit  = PROD_CRIT; */
     return sp;
   }
   /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */

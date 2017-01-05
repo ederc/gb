@@ -132,6 +132,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       }
     }
   }
+
 #if 0
   for (i=ps->load; i<cur_len; ++i) {
     switch (ps->pairs[i]->crit) {
@@ -196,8 +197,10 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         }
       }
       for (i=start; i<end; ++i)
-        if (ps->pairs[i]->crit == NO_CRIT)
+        if (ps->pairs[i]->crit == NO_CRIT) {
           ps->pairs[i]->crit  = CHAIN_CRIT;
+          break;
+        }
     }
     if (end == cur_len)
       break;

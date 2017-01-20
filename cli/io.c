@@ -412,6 +412,15 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
 
     basis->cf[i]  = sort_cf;
     basis->eh[i]  = sort_eh;
+
+    /* normalize polynomials */
+    if (basis->cf[i][0] != 1) {
+      cf_t iv = basis->cf[i][0];
+      inverse_coefficient(&iv, basis->mod);
+      basis->cf[i][0]  = 1;
+      for (j=1; j<basis->nt[i]; ++j)
+        basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
+    }
     
     sort_cf = tmp_cf;
     sort_eh = tmp_eh;
@@ -589,8 +598,12 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
           iv_tmp  +=  (int)basis->mod;
         }
         iv  = (cf_t)iv_tmp;
-        inverse_coefficient(&iv, basis->mod);
-        basis->cf[i][0] = 1;
+        basis->cf[i][0] = iv;
+        /* normalization is done at the end when sorting the polynomials
+         * printf("iv %u\n", iv);
+         * inverse_coefficient(&iv, basis->mod);
+         * printf("iv %u\n", iv);
+         * basis->cf[i][0] = 1; */
       }
       store_exponent(term, basis, ht);
       /** hash exponent and store degree */
@@ -618,7 +631,8 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
             cf_tmp  += (int)basis->mod;
           }
           basis->cf[i][j] = (cf_t)cf_tmp;
-          basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
+          /* normalization is done at the end when sorting the polynomials
+           * basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod); */
         }
         store_exponent(term, basis, ht);
         /** hash exponent and store degree */

@@ -325,6 +325,17 @@ int main(int argc, char *argv[])
       printf("mon->load                         %9u\n",spd->col->load);
       printf("mon->nlm                          %9u\n",spd->col->nlm);
     }
+#if GB_DEBUG
+    printf("# lead terms before sorting: %u\n", spd->col->nlm);
+    for (int ii=0; ii<spd->col->load; ++ii) {
+      if (ii==spd->col->nlm)
+        printf("-------------------------\n");
+      for (int jj=0; jj<ht->nv; ++jj) {
+        printf("%u ", ht->exp[spd->col->hpos[ii]][jj]);
+      }
+      printf("|| %lu | %u\n", spd->col->hpos[ii], ht->idx[spd->col->hpos[ii]]);
+    }
+#endif
 
     /* next we have to store arrays for the connection between lead monomials
      * and matrix column indices resp. non-lead monomials and matrix column
@@ -334,23 +345,32 @@ int main(int argc, char *argv[])
      * 1 or = 2 */
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
-    sort_columns_by_lead(spd);
+    if (reduce_gb != 111) {
+      sort_columns_by_lead(spd);
 
-    /* next we can sort both parts (we know the number of lead monomials =
-     * spd->sel->load - spd->sel->nsp, i.e. all polynomials considered in
-     * symbolic preprocessing minus the number of spairs)
-     *
-     * if we do not keep A we use for A and C a row structure and thus do
-     * not invert the order of the left side columns.
-     * if we keep A we use for A and C a block structure and we invert
-     * the order of the left side columns since gbla expects blocks be
-     * inverted for a faster reduction of A in the first step of the matrix
-     * reduction. */
-    if (keep_A == 1 || reduce_gb > 1)
-      ht->sort.sort_presorted_columns(spd, nthreads);
-    else
-      ht->sort.sort_presorted_columns_invert_left_side(spd, nthreads);
-
+      /* next we can sort both parts (we know the number of lead monomials =
+       * spd->sel->load - spd->sel->nsp, i.e. all polynomials considered in
+       * symbolic preprocessing minus the number of spairs)
+       *
+       * if we do not keep A we use for A and C a row structure and thus do
+       * not invert the order of the left side columns.
+       * if we keep A we use for A and C a block structure and we invert
+       * the order of the left side columns since gbla expects blocks be
+       * inverted for a faster reduction of A in the first step of the matrix
+       * reduction. */
+      if (keep_A == 1 || reduce_gb > 1)
+        ht->sort.sort_presorted_columns(spd, nthreads);
+      else
+        ht->sort.sort_presorted_columns_invert_left_side(spd, nthreads);
+    } else { 
+      /* reduce_gb == 111 */
+      if (basis->ord == 0)
+        qsort(spd->col->hpos, spd->col->load,
+            sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
+      if (basis->ord == 1)
+        qsort(spd->col->hpos, spd->col->load,
+            sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_lex);
+    }
     /* connect monomial hash positions with columns in to be constructed gbla
      * matrix */
     set_column_index_in_hash_table(ht, spd);
@@ -391,7 +411,10 @@ int main(int argc, char *argv[])
      * FOR TESTING ONLY
      */
 
-    if (reduce_gb == 10) {
+    if (reduce_gb == 11) {
+      /* in this variant we first interreduce AB, so a good comparison to gbla */
+
+
       /* we generate the matrix in the following shape:
       * AB = already known lead terms resp. pivots
       * --
@@ -407,6 +430,423 @@ int main(int argc, char *argv[])
         AB = generate_sparse_compact_matrix_offset(basis, spd->selu,
             spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
             nthreads);
+        AB  = reduce_upper_rows_c(AB);
+#if newred
+        printf("--CD BEGINNING--\n");
+        for (int ii=0; ii<CD->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (CD->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+            }
+            printf("\n");
+          }
+        }
+#endif
+        meta_data->mat_rows = spd->selu->load + spd->sell->load;
+        meta_data->mat_cols = CD->ncl + CD->ncr;
+        if (verbose > 0)
+          t_generating_gbla_matrix  +=  walltime(t_load_start);
+        if (verbose > 0)
+          gettimeofday(&t_load_start, NULL);
+        if (verbose > 1) {
+          printf("matrix rows %6u \n", meta_data->mat_rows);
+          printf("matrix cols %6u \n", meta_data->mat_cols);
+        }
+        if (verbose == 1) {
+          printf("%3d %5u/%5u pairs of deg %3u %7u x %7u matrix ",
+              steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+          fflush(stdout);
+        }
+#pragma omp parallel for num_threads(nthreads)
+        for (nelts_t i=0; i<CD->nr; ++i) {
+          /* printf("CD row idx %u of %u | length %u\n", i, CD->nr, CD->row[i][0]); */
+          /* printf("CD row idx %u of %u | length %u | last colum idx %u\n", i, CD->nr, CD->row[i][0], CD->row[i][CD->row[i][0]-2]); */
+          CD->row[i]  = reduce_lower_by_upper_rows_offset_c(CD->row[i], AB);
+        }
+        for (nelts_t k=0; k<AB->nr; ++k) {
+          free(AB->row[k]);
+        }
+        free(AB->row);
+        free(AB);
+        AB  = NULL;
+      }
+#if newred
+      printf("--CD BEFORE--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+#if newred
+        printf("test CD->row[%u] = %p\n", i, CD->row[i]);
+#endif
+        if (CD->row[i] != NULL) {
+          CD->row[ctr] = CD->row[i];
+          ctr++;
+        }
+      }
+      CD->nr  = ctr;
+      CD->rk  = ctr;
+      if (CD->rk > 1)
+        reduce_lower_rows_c(CD, CD->ncl, nthreads);
+#if newred
+      printf("rank of CD %u\n", CD->rk);
+      printf("--CD AFTER--\n");
+      for (int ii=0; ii<CD->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (CD->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1 && steps > 1)
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
+
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      done  = update_basis_new(basis, ps, spd, CD, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (CD->nr - CD->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]);
+      }
+      free(CD->row);
+      free(CD);
+      CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
+    /* here we do not remap the columns. in this way we can store A via column
+     * positions only and map to the corresponding polynomials in basis for the
+     * coefficients */
+    if (reduce_gb == 111) {
+      /* we generate the matrix in the following shape:
+      * AB = already known lead terms resp. pivots
+      * --
+      * CD = new data, new lead terms to be computed
+      *
+      * genearte upper matrix, i.e. already known pivots */
+      nelts_t init_rk_CD  = 0;
+      smc_t *AB = NULL, *CD = NULL;
+      /* genearte lower matrix, i.e. unkown pivots */
+      CD = generate_sparse_compact_matrix_true_columns(basis, spd->sell,
+          spd->col->load, nthreads);
+      init_rk_CD  = CD->nr;
+      /* check appearing columns in CD */
+      if (spd->selu->load > 0) {
+        AB = generate_sparse_compact_matrix_offset_true_columns(basis, spd->selu,
+            spd->col->load, nthreads);
+        meta_data->mat_rows = spd->selu->load + spd->sell->load;
+        meta_data->mat_cols = CD->ncl + CD->ncr;
+        if (verbose > 0)
+          t_generating_gbla_matrix  +=  walltime(t_load_start);
+        if (verbose > 0)
+          gettimeofday(&t_load_start, NULL);
+        if (verbose > 1) {
+          printf("matrix rows %6u \n", meta_data->mat_rows);
+          printf("matrix cols %6u \n", meta_data->mat_cols);
+        }
+        if (verbose == 1) {
+          printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+              steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+          fflush(stdout);
+        }
+#pragma omp parallel for num_threads(nthreads)
+        for (nelts_t i=0; i<CD->nr; ++i) {
+          CD->row[i]  = reduce_lower_by_upper_rows_offset_true_columns(CD->row[i], AB, basis);
+        }
+        for (nelts_t k=0; k<AB->nr; ++k) {
+          free(AB->row[k]);
+        }
+        free(AB->row);
+        free(AB);
+        AB  = NULL;
+      }
+#if COL_CHECK
+      free(columns);
+#endif
+
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+        if (CD->row[i] != NULL) {
+          CD->row[ctr] = CD->row[i];
+          ctr++;
+        }
+      }
+      CD->nr  = ctr;
+      CD->rk  = ctr;
+      if (CD->rk > 1)
+        reduce_lower_rows_c(CD, 0, nthreads);
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1 && steps > 1)
+        printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk);
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
+
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      done  = update_basis_new(basis, ps, spd, CD, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (init_rk_CD - CD->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]);
+      }
+      free(CD->row);
+      free(CD);
+      CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
+    if (reduce_gb == 101) {
+      /* we generate the matrix in the following shape:
+      * AB = already known lead terms resp. pivots
+      * --
+      * CD = new data, new lead terms to be computed
+      *
+      * genearte upper matrix, i.e. already known pivots */
+      nelts_t init_rk_CD  = 0;
+      smc_t *AB = NULL, *CD = NULL;
+      /* genearte lower matrix, i.e. unkown pivots */
+      CD = generate_sparse_compact_matrix_test(basis, spd->sell,
+          spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+          nthreads);
+#if 0
+        printf("--CD 1--\n");
+        for (int ii=0; ii<CD->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (CD->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+            }
+            printf("\n");
+          }
+        }
+#endif
+      init_rk_CD  = CD->nr;
+      /* check appearing columns in CD */
+#define COL_CHECK 0
+#if COL_CHECK
+      uint32_t *columns  = (uint32_t *)calloc(spd->col->nlm, sizeof(uint32_t));
+      for (int ii=0; ii<CD->nr; ++ii) {
+        for (int jj=1; jj<CD->row[ii][0]; jj=jj+2) {
+          if (CD->row[ii][jj] < spd->col->nlm)
+            columns[CD->row[ii][jj]] = 1;
+        }
+      }
+      uint32_t colctr  = 0;
+      for (uint32_t ii=0; ii<spd->col->nlm; ++ii) {
+        if (columns[ii] != 0)
+          colctr++;
+      }
+      printf("\n\nCD %6u / %6u cols | %4.2f %\n", colctr, spd->col->nlm,
+          (float)colctr / (float)spd->col->nlm);
+#endif
+      if (spd->selu->load > 0) {
+        AB = generate_sparse_compact_matrix_offset_test(basis, spd->selu,
+            spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+            nthreads);
+#if COL_CHECK
+        uint32_t *appears  = (uint32_t *)calloc(spd->col->nlm, sizeof(uint32_t));
+        for (int ii=0; ii<AB->nr; ++ii) {
+          // starting at 2 due to offsets!
+          for (int jj=2; jj<AB->row[ii][0]; jj=jj+2) {
+            if (AB->row[ii][jj] < spd->col->nlm && columns[AB->row[ii][jj]] == 0)
+              appears[AB->row[ii][jj]]++;
+          }
+        }
+        uint32_t ac = 0;
+        for (int ii=0; ii<AB->nr; ++ii) {
+          // starting at 2 due to offsets!
+          for (int jj=2; jj<AB->row[ii][0]; jj=jj+2) {
+            if (AB->row[ii][jj] < spd->col->nlm && columns[AB->row[ii][jj]] == 0) {
+              ac++;
+              break;
+            }
+          }
+        }
+        printf("AB %6u / %6u rows | %4.2f %\n\n",ac, AB->nr, (float)ac/(float)AB->nr);
+        free(appears);
+#endif
+        meta_data->mat_rows = spd->selu->load + spd->sell->load;
+        meta_data->mat_cols = CD->ncl + CD->ncr;
+        if (verbose > 0)
+          t_generating_gbla_matrix  +=  walltime(t_load_start);
+        if (verbose > 0)
+          gettimeofday(&t_load_start, NULL);
+        if (verbose > 1) {
+          printf("matrix rows %6u \n", meta_data->mat_rows);
+          printf("matrix cols %6u \n", meta_data->mat_cols);
+        }
+        if (verbose == 1) {
+          printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+              steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+          fflush(stdout);
+        }
+#pragma omp parallel for num_threads(nthreads)
+        for (nelts_t i=0; i<CD->nr; ++i) {
+          CD->row[i]  = reduce_lower_by_upper_rows_offset_c(CD->row[i], AB);
+        }
+        for (nelts_t k=0; k<AB->nr; ++k) {
+          free(AB->row[k]);
+        }
+        free(AB->row);
+        free(AB);
+        AB  = NULL;
+      }
+#if COL_CHECK
+      free(columns);
+#endif
+
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+        if (CD->row[i] != NULL) {
+          CD->row[ctr] = CD->row[i];
+          ctr++;
+        }
+      }
+#if 0
+        printf("--CD 2--\n");
+        for (int ii=0; ii<CD->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (CD->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+            }
+            printf("\n");
+          }
+        }
+#endif
+      CD->nr  = ctr;
+      CD->rk  = ctr;
+      if (CD->rk > 1)
+        reduce_lower_rows_c(CD, CD->ncl, nthreads);
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1 && steps > 1)
+        printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk);
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
+
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      done  = update_basis_new(basis, ps, spd, CD, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (init_rk_CD - CD->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]);
+      }
+      free(CD->row);
+      free(CD);
+      CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
+    if (reduce_gb == 10) {
+      /* we generate the matrix in the following shape:
+      * AB = already known lead terms resp. pivots
+      * --
+      * CD = new data, new lead terms to be computed
+      *
+      * genearte upper matrix, i.e. already known pivots */
+      smc_t *AB = NULL, *CD = NULL;
+      /* genearte lower matrix, i.e. unkown pivots */
+      CD = generate_sparse_compact_matrix(basis, spd->sell,
+          spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+          nthreads);
+      /* check appearing columns in CD */
+#define COL_CHECK 0
+#if COL_CHECK
+      uint32_t *columns  = (uint32_t *)calloc(spd->col->nlm, sizeof(uint32_t));
+      for (int ii=0; ii<CD->nr; ++ii) {
+        for (int jj=1; jj<CD->row[ii][0]; jj=jj+2) {
+          if (CD->row[ii][jj] < spd->col->nlm)
+            columns[CD->row[ii][jj]] = 1;
+        }
+      }
+      uint32_t colctr  = 0;
+      for (uint32_t ii=0; ii<spd->col->nlm; ++ii) {
+        if (columns[ii] != 0)
+          colctr++;
+      }
+      printf("\n\nCD %6u / %6u cols | %4.2f %\n", colctr, spd->col->nlm,
+          (float)colctr / (float)spd->col->nlm);
+#endif
+      if (spd->selu->load > 0) {
+        AB = generate_sparse_compact_matrix_offset(basis, spd->selu,
+            spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+            nthreads);
+#if COL_CHECK
+        uint32_t *appears  = (uint32_t *)calloc(spd->col->nlm, sizeof(uint32_t));
+        for (int ii=0; ii<AB->nr; ++ii) {
+          // starting at 2 due to offsets!
+          for (int jj=2; jj<AB->row[ii][0]; jj=jj+2) {
+            if (AB->row[ii][jj] < spd->col->nlm && columns[AB->row[ii][jj]] == 0)
+              appears[AB->row[ii][jj]]++;
+          }
+        }
+        /* uint32_t cc=0;
+         * for (uint32_t ii=0; ii<spd->col->nlm; ++ii) {
+         *   if (appears[ii] != 0) {
+         *     cc++;
+         *     printf("[%u] column %6u appears %6u times\n", cc, ii, appears[ii]);
+         *   }
+         * } */
+        uint32_t ac = 0;
+        for (int ii=0; ii<AB->nr; ++ii) {
+          // starting at 2 due to offsets!
+          for (int jj=2; jj<AB->row[ii][0]; jj=jj+2) {
+            if (AB->row[ii][jj] < spd->col->nlm && columns[AB->row[ii][jj]] == 0) {
+              ac++;
+              break;
+            }
+          }
+        }
+        printf("AB %6u / %6u rows | %4.2f %\n\n",ac, AB->nr, (float)ac/(float)AB->nr);
+        free(appears);
+#endif
 #if newred
         printf("--CD BEGINNING--\n");
         for (int ii=0; ii<CD->nr; ++ii) {
@@ -449,6 +889,9 @@ int main(int argc, char *argv[])
         free(AB);
         AB  = NULL;
       }
+#if COL_CHECK
+      free(columns);
+#endif
 #if newred
       printf("--CD BEFORE--\n");
       for (int ii=0; ii<CD->nr; ++ii) {
@@ -1543,6 +1986,31 @@ int main(int argc, char *argv[])
         }
       } else {
         mat = generate_gbla_matrix(basis, spd, nthreads);
+
+        /* if (mat->B->blocks != NULL) {
+         *   const uint32_t clB  = (uint32_t) ceil((float)mat->B->ncols / __GBLA_SIMD_BLOCK_SIZE);
+         *   // row loops
+         *   const uint32_t rlB  = (uint32_t) ceil((float)mat->B->nrows / __GBLA_SIMD_BLOCK_SIZE);
+         *   uint64_t neltsnz  = 0;
+         *   for (int ii=0; ii<rlB; ++ii) {
+         *     for (int jj=0; jj<clB; ++jj) {
+         *       if (mat->B->blocks[ii][jj].val != NULL) {
+         *         neltsnz = 0;
+         *         for (int kk=0; kk<__GBLA_SIMD_BLOCK_SIZE; ++kk) {
+         *           for (int ll=0; ll<__GBLA_SIMD_BLOCK_SIZE; ++ll) {
+         *             if (mat->B->blocks[ii][jj].val[kk*__GBLA_SIMD_BLOCK_SIZE+ll] != 0)
+         *               neltsnz++;
+         *           }
+         *         }
+         *         printf("B %6lu elements of block [%3u, %3u] are nonzero (%6.3f %%)", neltsnz, ii, jj,(float)neltsnz/(float)65536);
+         *         if ((float)neltsnz/(float)65536 > 0.4)
+         *           printf(" <---\n");
+         *         else
+         *           printf("\n");
+         *       }
+         *     }
+         *   }
+         * } */
         meta_data->mat_rows = mat->A->nrows+mat->C->nrows;
         meta_data->mat_cols = mat->A->ncols+mat->B->ncols;
         if (verbose > 1) {

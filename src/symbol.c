@@ -63,6 +63,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   nelts_t hio;
   hash_t h, ho;
   while (idx < mon->load) {
+    /* printf("mon_load %u\n", mon->load); */
     hash_pos  = mon->hpos[idx];
     /* only if not already a lead monomial, e.g. if coming from spair */
     if (ht->idx[hash_pos] != 2) {
@@ -77,13 +78,28 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       /* max value for an unsigned data type in order to ensure that the first
        * polynomial is taken */
       nelts_t nto = UINT32_MAX;
+
+      if (last_div != 0) {
+        if (basis->red[i] == 0) {
+          hio = i;
+          ho  = get_multiplier(hash_pos, basis->eh[i][0], ht);
+          nto = basis->nt[i];
+          goto done;
+        } else {
+          i++;
+        }
+      }
+
       while (i<basis->load) {
-        if (basis->red[i] == 0 && basis->nt[i] < nto && check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
+        /* if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) { */
+        if (basis->red[i] == 0 && check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
+        /* if (basis->red[i] == 0 && basis->nt[i] < nto && check_monomial_division(hash_pos, basis->eh[i][0], ht)) { */
           h = get_multiplier(hash_pos, basis->eh[i][0], ht);
           /* if ((h != 0)) { */
             hio = i;
             nto = basis->nt[i];
             ho  = h;
+            break;
           /* } */
         }
         i++;
@@ -101,8 +117,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       }
 #endif
       if (hio > 0) {
+        done:
         mon->nlm++;
         /* printf("this is the reducer finally taken %3u\n",hio); */
+        /* if (ht->div[hash_pos] != hio)
+         *   printf("hdiv changed: %u --> %u\n", ht->div[hash_pos], hio); */
         ht->div[hash_pos]  = hio;
         /* if multiple is not already in the selected list
          * we have found another element with such a monomial, since we do not

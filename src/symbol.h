@@ -23,6 +23,7 @@
 #define GB_SYMBOL_H
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -43,6 +44,8 @@
 #ifndef HASH_CHECK
 #define HASH_CHECK 0
 #endif
+
+unsigned long load_global = 0;
 
 /**
  * \brief Symbolic preprocessing searching for all possible reducers of all
@@ -1051,6 +1054,10 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     printf("\n");
     */
     /* ht->idx[lcm]  = 1; */
+    /* if (load > 2)
+     *   load_global++;
+     * if (load > 3)
+     *   printf("load %u for lcm %lu || load_global %lu\n", load, lcm, load_global); */
     if (load>1) {
       mon->nlm++;
       /* mon->load++; */
@@ -1071,6 +1078,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       ht->ctr[lcm]  = 2;
 #endif
     }
+    /* if (load > 1)
+     *   load  = 2; */
     for (l=k; l<load; l++) {
       add_spair_generator_to_selection(sell, basis, lcm, gens[l]);
       j = sell->load-1;
@@ -1198,5 +1207,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     k++;
   }
   ps->load  = k;
+  /* adjust size of lower selection set, it will not change from this point onwards */
+  adjust_size_of_selection(sell, sell->load);
 }
 #endif

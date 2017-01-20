@@ -509,6 +509,11 @@ typedef struct poly_t {
   red_t red;    /*!<  stores if the element is redundant or not*/
 } poly_t;
 
+typedef struct src_tmp_t
+{
+  uint32_t pos;
+  uint32_t cf;
+} src_tmp_t;
 
 
 /* global meta_data */

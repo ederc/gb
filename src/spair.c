@@ -266,6 +266,7 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   /* if one of the generators is redundant we can stop already here and mark it
    * with the CHAIN_CRIT in order to remove it later on */
   if (basis->red[gen2] > 0) {
+    sp->crit  = NO_CRIT;
     /* sp->crit  = CHAIN_CRIT; */
     /* sp->crit  = PROD_CRIT; */
     return sp;

@@ -374,6 +374,8 @@ static inline info_t *init_meta_data(void)
   meta_data->ncrit_total    = 0;
   meta_data->nzerored_last  = 0;
   meta_data->nzerored_total = 0;
+  meta_data->non_div        = 0;
+  meta_data->non_div_found  = 0;
 
   return meta_data;
 }

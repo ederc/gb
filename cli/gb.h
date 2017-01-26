@@ -50,6 +50,11 @@
 #define HASH_CHECK 0
 #endif
 
+#ifndef COUNT_DIV_HITS
+#define COUNT_DIV_HITS 0
+#endif
+
+
 #define newred 0
 
 /**

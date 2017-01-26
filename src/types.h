@@ -86,6 +86,9 @@ typedef int hom_t;
 /* monomial ordering */
 typedef int ord_t;
 
+/* divmask */
+typedef int divm_t;
+
 /* exponent size */
 /* typedef uint8_t exp_s; */
 typedef uint16_t exp_s;
@@ -153,6 +156,8 @@ typedef re_l_t bf_t;
  */
 struct info_t
 {
+  unsigned long long non_div;
+  unsigned long long non_div_found;
   nelts_t sel_pairs;                          /*!<  number of selected pairs in last step*/
   nelts_t curr_deg;                           /*!<  degree of pairs in current step*/
   nelts_t mat_cols;                           /*!<  number of columns in last gbla matrix*/
@@ -477,6 +482,13 @@ typedef struct mp_cf4_ht_t
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/
   nelts_t *div;       /*!<  latest element from gb checked for its leading
                             term dividing corresponding monomial in hash table*/
+#if 1
+  nelts_t bpv;        /*!<  bits per variable in divmask */
+  nelts_t ndv;        /*!<  number of divmask variables */
+  deg_t *divmap;      /*!<  divmap for each divmask caluclations */ 
+  divm_t *dm;         /*!<  divmask for monomial */
+  uint32_t rcdm;      /*!<  counter when to recalculate divmaps and divmasks */
+#endif
 #if HASH_CHECK
   ht_size_t *ctr;     [>!<  counts how often a hash appears <]
 #endif

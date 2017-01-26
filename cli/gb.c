@@ -2162,6 +2162,10 @@ int main(int argc, char *argv[])
     printf("%9.3f sec\n",
         walltime(t_complete) / (1000000));
     printf("---------------------------------------------------------------------------\n");
+#if COUNT_DIV_HITS
+    printf("Div Hits                          %9lu/%9lu (%4.2f)\n", meta_data->non_div_found,
+        meta_data->non_div, (double)(meta_data->non_div_found)/(double)(meta_data->non_div));
+#endif
     printf("Size of basis                     %9u\n", basis->fl);
     printf("criteria applications (total)     %9u\n", meta_data->ncrit_total);
     printf("Number of zero reductions         %9lu\n", n_zero_reductions);

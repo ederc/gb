@@ -22,8 +22,10 @@
 #ifndef GB_HASH_H
 #define GB_HASH_H
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -64,6 +66,14 @@
 
 #ifndef HASH_CHECK
 #define HASH_CHECK 0
+#endif
+
+#ifndef COUNT_DIV_HITS
+#define COUNT_DIV_HITS 0
+#endif
+
+#ifndef DIVMAP_RECALCULATE_COUNTER
+#define DIVMAP_RECALCULATE_COUNTER  100000000
 #endif
 
 
@@ -169,6 +179,109 @@ uint32_t random_seed  = 2463534242;
 }
 
 /**
+ * \brief Generates divmask for given exponent exp.
+ *
+ * \param exponent vector exp
+ *
+ * \param hash table ht
+ *
+ * \return divmask of exp
+ */
+#if 1
+static inline divm_t generate_divmask(const exp_t *exp, mp_cf4_ht_t *ht)
+{
+  /* for (nelts_t i=0; i<32; ++i)
+   *   printf("%2u|%2u ", i, ht->divmap[i]);
+   * printf("\n"); */
+  /* for (nelts_t i=0; i<ht->nv; ++i)
+   *   printf("%u ", exp[i]); */
+  nelts_t ctr = 0;
+  divm_t dm = 0;
+  for (nelts_t i=0; i<ht->ndv; ++i) {
+    /* printf("i %u\n", i); */
+    for (nelts_t j=0; j<ht->bpv; ++j) {
+      if (exp[i] >= ht->divmap[ctr]) {
+        /* printf("i %u, j %u, ctr %u, ht->ndv %u, ht->bpv %u\n", i, j, ctr, ht->ndv, ht->bpv); */
+        dm |= 1 << ctr;
+      }
+      ctr++;
+    }
+  }
+  /* printf("--> %d\n", dm); */
+  return dm;
+}
+
+/**
+ * \brief Recalculates the divmaps for each variable and updated the divmasks
+ * correspondingly. ivmaps depend on the average of max and min exponent
+ * appearing in the hash table for a variable index i.
+ *
+ * \param hash table ht
+ */
+static inline void recalculate_divmaps(mp_cf4_ht_t *ht)
+{
+  /* printf("recalculate: ndv %u | bpv %u \n",ht->ndv, ht->bpv);
+   * for (nelts_t i=0; i<32; ++i)
+   *   printf("%2u|%2u ", i, ht->divmap[i]);
+   * printf("\n"); */
+  deg_t *max_exponents = (deg_t *)malloc(ht->ndv * sizeof(deg_t));
+  deg_t *min_exponents = (deg_t *)malloc(ht->ndv * sizeof(deg_t));
+
+  /* get initial values for min and max from first hash table entry */
+  for (nelts_t j=0; j<ht->ndv; ++j)
+    max_exponents[j]  = min_exponents[j]  = ht->exp[1][j]; 
+  /* printf("max and min initial\n");
+   * for (nelts_t i=0; i<ht->ndv; ++i)
+   *   printf("%3u ", max_exponents[i]);
+   * printf("\n");
+   * for (nelts_t i=0; i<ht->ndv; ++i)
+   *   printf("%3u ", min_exponents[i]);
+   * printf("\n"); */
+  /* now calculate min and max over the full hash table */
+  for (nelts_t i=2; i<ht->load; ++i) {
+    for (nelts_t j=0; j<ht->ndv; ++j) {
+      if (ht->exp[i][j] > max_exponents[j])
+        max_exponents[j]  = ht->exp[i][j];
+      if (ht->exp[i][j] < min_exponents[j])
+        min_exponents[j]  = ht->exp[i][j];
+    }
+  }
+  /* printf("max and min\n");
+   * for (nelts_t i=0; i<ht->ndv; ++i)
+   *   printf("%3u ", max_exponents[i]);
+   * printf("\n");
+   * for (nelts_t i=0; i<ht->ndv; ++i)
+   *   printf("%3u ", min_exponents[i]);
+   * printf("\n"); */
+  /* reset divmap values */
+  nelts_t ctr = 0;
+  for (nelts_t i=0; i<ht->ndv; ++i) {
+    /* take average and increment it over the bits per variable area */
+    deg_t inc = (max_exponents[i] - min_exponents[i]) / ht->bpv;
+    if (inc == 0)
+      inc = 1;
+    for (nelts_t j=0; j<ht->bpv; ++j) {
+      ht->divmap[ctr]   =   min_exponents[i];
+      min_exponents[i]  +=  inc;
+      ctr++;
+    }
+  }
+  /* printf("recalculated divmap\n");
+   * for (nelts_t i=0; i<CHAR_BIT * sizeof(divm_t); ++i)
+   *   printf("%u | %u\n", i, ht->divmap[i]); */
+  /* recalculate divmask entries for all elements in hash table */
+  for (nelts_t i=1; i<ht->load; ++i) {
+    ht->dm[i] = generate_divmask(ht->exp[i], ht);
+  }
+
+  /* reset recalculate counter for divmaps */
+  ht->rcdm  = DIVMAP_RECALCULATE_COUNTER;
+  
+  free(max_exponents);
+  free(min_exponents);
+}
+#endif
+/**
  * \brief Generates hash table as defined in compact F4 implementation by
  * Monagan and Pearce (see PASCO 2015)
  *
@@ -191,17 +304,31 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
   ht->nv    = nv+1;
   /* for easier divisibility checks we start at index 1. If the divisibility
    * check routines return 0, there is no division. */
-  ht->load  = 1;
-  ht->lut   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
-  ht->val   = (hash_t *)calloc(ht->sz, sizeof(hash_t));
-  ht->deg   = (deg_t *)calloc(ht->sz, sizeof(deg_t));
-  ht->div   = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
-  ht->idx   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
-#if HASH_CHECK
-  ht->ctr   = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
+  ht->load    = 1;
+  ht->lut     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
+  ht->val     = (hash_t *)calloc(ht->sz, sizeof(hash_t));
+  ht->deg     = (deg_t *)calloc(ht->sz, sizeof(deg_t));
+  ht->div     = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
+  ht->idx     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
+#if 1
+  ht->dm      = (divm_t *)calloc(ht->sz, sizeof(divm_t));
+  /* the divmap has to work on exactly 32 entries independently of the
+   * number of variables: initially all exponents are set to zero, after reading
+   * in all the input elements we recalculate the possible exponents for the
+   * divmap for the first time */
+  ht->divmap  = (deg_t *)calloc(CHAR_BIT * sizeof(divm_t), sizeof(deg_t)); 
+  ht->bpv     = (CHAR_BIT * sizeof(divm_t)) / ht->nv;
+  if (ht->bpv == 0)
+    ht->bpv = 1;
+  ht->ndv     = ht->nv < (CHAR_BIT * sizeof(divm_t)) ?
+    ht->nv : (CHAR_BIT * sizeof(divm_t));
+  ht->rcdm    = DIVMAP_RECALCULATE_COUNTER;
 #endif
-  ht->rand  = (hash_t *)malloc(ht->nv * sizeof(hash_t));
-  ht->exp   = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
+#if HASH_CHECK
+  ht->ctr     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
+#endif
+  ht->rand    = (hash_t *)malloc(ht->nv * sizeof(hash_t));
+  ht->exp     = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
   /* get memory for each exponent */
   for (i=0; i<ht->sz; ++i) {
     ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
@@ -262,6 +389,9 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
   ht->val   = realloc(ht->val, ht->sz * sizeof(hash_t));
   ht->deg   = realloc(ht->deg, ht->sz * sizeof(deg_t));
   ht->idx   = realloc(ht->idx, ht->sz * sizeof(ht_size_t));
+#if 1
+  ht->dm    = realloc(ht->dm, ht->sz * sizeof(divm_t));
+#endif
 #if HASH_CHECK
   ht->ctr   = realloc(ht->ctr, ht->sz * sizeof(ht_size_t));
 #endif
@@ -304,6 +434,10 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
     free(ht->deg);
     free(ht->div);
     free(ht->idx);
+#if 1
+    free(ht->dm);
+    free(ht->divmap);
+#endif
 #if HASH_CHECK
     free(ht->ctr);
 #endif
@@ -369,6 +503,10 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  * ht->div and ht->idx are already initialized with 0, so nothing to do there */
   ht->val[ht->load] = hash;
   ht->lut[pos]      = ht->load;
+  if (ht->rcdm == 0)
+    recalculate_divmaps(ht);
+  ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
+  ht->rcdm--;
 #if HASH_DEBUG
   for (int i=0; i<ht->nv; ++i)
     printf("%u ",ht->exp[ht->load][i]);
@@ -413,12 +551,14 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
     const hash_t hash, const ht_size_t pos,  mp_cf4_ht_t *ht)
 {
 
-  ht_size_t last_pos = ht->load;
-
   /* ht->div and ht->idx are already initialized with 0, so nothing to do there */
-  ht->deg[last_pos] = ht->deg[mon_1] + ht->deg[mon_2];
-  ht->val[last_pos] = hash;
-  ht->lut[pos]      = last_pos;
+  ht->deg[ht->load] = ht->deg[mon_1] + ht->deg[mon_2];
+  ht->val[ht->load] = hash;
+  ht->lut[pos]      = ht->load;
+  if (ht->rcdm == 0)
+    recalculate_divmaps(ht);
+  ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
+  ht->rcdm--;
 #if HASH_DEBUG
   int i;
   for (unsigned long j=0; j<ht->load; ++j) {
@@ -431,7 +571,7 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
       for (i=0; i<ht->nv; ++i)
         printf("%u ",ht->exp[ht->load][i]);
       printf(" ||| ");
-      printf("%11u | %11u\n",hash, last_pos);
+      printf("%11u | %11u\n",hash, ht->load);
       printf("------------------------------\n");
       for (i=0; i<ht->nv; ++i)
         printf("%u ",ht->exp[j][i]);
@@ -448,7 +588,7 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
   if (ht->load >= ht->sz)
     enlarge_hash_table(ht);
 
-  return last_pos;
+  return (ht->load-1);
 }
 
 /**
@@ -644,7 +784,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
  *
  * \return position of lcm of generators h1 and h2 in hash table ht
  */
-static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
+static inline hash_t get_lcm(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
 {
   nvars_t i;
   exp_t *lcm, *e1, *e2;
@@ -675,7 +815,7 @@ static inline hash_t get_lcm(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  *
  * \return hash position of multiplier or 0
  */
-static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
+static inline hash_t monomial_division(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
 {
   if (ht->deg[h1] < ht->deg[h2])
     return 0;
@@ -718,18 +858,37 @@ static inline hash_t monomial_division(hash_t h1, hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline int check_monomial_division(const hash_t h1, const hash_t h2, const mp_cf4_ht_t *ht)
 {
-  if (ht->deg[h1] < ht->deg[h2])
+  if ((ht->dm[h2] & ~ht->dm[h1])) {
+#if COUNT_DIV_HITS
+    meta_data->non_div_found++;
+    meta_data->non_div++;
+#endif
     return 0;
+  }
+  if (ht->deg[h1] < ht->deg[h2]) {
+#if COUNT_DIV_HITS
+    meta_data->non_div++;
+#endif
+    return 0;
+  }
   nvars_t i;
   const exp_t * const exp1  = ht->exp[h1];
   const exp_t * const exp2  = ht->exp[h2];
 
-  if (exp1[0] < exp2[0])
+  if (exp1[0] < exp2[0]) {
+#if COUNT_DIV_HITS
+    meta_data->non_div++;
+#endif
     return 0;
+  }
   i = ht->nv & 1 ? 1 : 0;
   for (; i<ht->nv; i=i+2) {
-    if (exp1[i] < exp2[i] || exp1[i+1] < exp2[i+1])
+    if (exp1[i] < exp2[i] || exp1[i+1] < exp2[i+1]) {
+#if COUNT_DIV_HITS
+      meta_data->non_div++;
+#endif
       return 0;
+    }
   }
   return 1;
 }

@@ -668,6 +668,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   /** sort polynomial w.r.t. the chosen monomial order */
   sort_input_polynomials(basis, ht);
   check_for_same_exponents(basis);
+  recalculate_divmaps(ht);
   free(term);
   free(line);
   fclose(fh);

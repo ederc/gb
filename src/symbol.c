@@ -77,27 +77,27 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 #if 1
       /* max value for an unsigned data type in order to ensure that the first
        * polynomial is taken */
-      nelts_t nto = UINT32_MAX;
+      /* nelts_t nto = UINT32_MAX; */
 
-      if (last_div != 0) {
-        if (basis->red[i] == 0) {
-          hio = i;
-          ho  = get_multiplier(hash_pos, basis->eh[i][0], ht);
-          nto = basis->nt[i];
-          goto done;
-        } else {
-          i++;
-        }
-      }
+      /* if (last_div != 0) {
+       *   if (basis->red[i] == 0) {
+       *     hio = i;
+       *     ho  = get_multiplier(hash_pos, basis->eh[i][0], ht);
+       *     nto = basis->nt[i];
+       *     goto done;
+       *   } else {
+       *     i++;
+       *   }
+       * } */
 
       while (i<basis->load) {
         /* if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) { */
         if (basis->red[i] == 0 && check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
         /* if (basis->red[i] == 0 && basis->nt[i] < nto && check_monomial_division(hash_pos, basis->eh[i][0], ht)) { */
-          h = get_multiplier(hash_pos, basis->eh[i][0], ht);
+          /* h = get_multiplier(hash_pos, basis->eh[i][0], ht); */
           /* if ((h != 0)) { */
             hio = i;
-            nto = basis->nt[i];
+            /* nto = basis->nt[i]; */
             ho  = h;
             break;
           /* } */
@@ -106,18 +106,21 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       }
 #else
       nelts_t b = i;
+      hio = 0;
       /* max value for an unsigned data type in order to ensure that the first
        * polynomial is taken */
       for (i=basis->load; i>b; --i) {
-        if (basis->red[i] == 0 && check_monomial_division(hash_pos, basis->eh[i-1][0], ht)) {
-          h = get_multiplier(hash_pos, basis->eh[i-1][0], ht);
+        if (basis->red[i-1] == 0 && check_monomial_division(hash_pos, basis->eh[i-1][0], ht)) {
+          /* h = get_multiplier(hash_pos, basis->eh[i-1][0], ht); */
           hio = i-1;
           ho  = h;
+          break;
         }
       }
 #endif
       if (hio > 0) {
         done:
+        ho = get_multiplier(hash_pos, basis->eh[hio][0], ht);
         mon->nlm++;
         /* printf("this is the reducer finally taken %3u\n",hio); */
         /* if (ht->div[hash_pos] != hio)

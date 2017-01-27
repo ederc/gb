@@ -220,7 +220,6 @@ static inline divm_t generate_divmask(const exp_t *exp, mp_cf4_ht_t *ht)
  */
 static inline void recalculate_divmaps(mp_cf4_ht_t *ht)
 {
-  printf("rc\n");
   /* printf("recalculate: ndv %u | bpv %u \n",ht->ndv, ht->bpv);
    * for (nelts_t i=0; i<32; ++i)
    *   printf("%2u|%2u ", i, ht->divmap[i]);
@@ -821,8 +820,19 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
  */
 static inline hash_t monomial_division(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
 {
-  if (ht->deg[h1] < ht->deg[h2])
+  if ((ht->dm[h2] & ~ht->dm[h1])) {
+#if COUNT_DIV_HITS
+    meta_data->non_div_found++;
+    meta_data->non_div++;
+#endif
     return 0;
+  }
+  if (ht->deg[h1] < ht->deg[h2]) {
+#if COUNT_DIV_HITS
+    meta_data->non_div++;
+#endif
+    return 0;
+  }
   nvars_t i;
   exp_t *e, *e1, *e2;
 
@@ -830,13 +840,21 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, mp_cf4_
   e1  = ht->exp[h1];
   e2  = ht->exp[h2];
 
-  if (e1[0] < e2[0])
+  if (e1[0] < e2[0]) {
+#if COUNT_DIV_HITS
+    meta_data->non_div++;
+#endif
     return 0;
+  }
   e[i]  = (exp_t)(e1[i] - e2[i]);
   i = ht->nv & 1 ? 1 : 0;
   for (; i<ht->nv; i=i+2) {
-    if (e1[i] < e2[i] || e1[i+1] < e2[i+1])
+    if (e1[i] < e2[i] || e1[i+1] < e2[i+1]) {
+#if COUNT_DIV_HITS
+      meta_data->non_div++;
+#endif
       return 0;
+    }
     e[i]    = (exp_t)(e1[i] - e2[i]);
     e[i+1]  = (exp_t)(e1[i+1] - e2[i+1]);
   }

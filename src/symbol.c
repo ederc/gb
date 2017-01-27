@@ -109,8 +109,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       /* max value for an unsigned data type in order to ensure that the first
        * polynomial is taken */
       for (i=basis->load; i>b; --i) {
-        h = monomial_division(hash_pos, basis->eh[i-1][0], ht);
-        if ((h != 0)) {
+        if (basis->red[i] == 0 && check_monomial_division(hash_pos, basis->eh[i-1][0], ht)) {
+          h = get_multiplier(hash_pos, basis->eh[i-1][0], ht);
           hio = i-1;
           ho  = h;
         }

@@ -73,7 +73,7 @@
 #endif
 
 #ifndef DIVMAP_RECALCULATE_COUNTER
-#define DIVMAP_RECALCULATE_COUNTER  100000000
+#define DIVMAP_RECALCULATE_COUNTER  100000
 #endif
 
 
@@ -220,6 +220,7 @@ static inline divm_t generate_divmask(const exp_t *exp, mp_cf4_ht_t *ht)
  */
 static inline void recalculate_divmaps(mp_cf4_ht_t *ht)
 {
+  printf("rc\n");
   /* printf("recalculate: ndv %u | bpv %u \n",ht->ndv, ht->bpv);
    * for (nelts_t i=0; i<32; ++i)
    *   printf("%2u|%2u ", i, ht->divmap[i]);
@@ -275,7 +276,8 @@ static inline void recalculate_divmaps(mp_cf4_ht_t *ht)
   }
 
   /* reset recalculate counter for divmaps */
-  ht->rcdm  = DIVMAP_RECALCULATE_COUNTER;
+  ht->rcdm  = ht->muldm * ht->nv * DIVMAP_RECALCULATE_COUNTER;
+  ht->muldm++;
   
   free(max_exponents);
   free(min_exponents);
@@ -322,7 +324,9 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
     ht->bpv = 1;
   ht->ndv     = ht->nv < (CHAR_BIT * sizeof(divm_t)) ?
     ht->nv : (CHAR_BIT * sizeof(divm_t));
+  /* ht->rcdm    = DIVMAP_RECALCULATE_COUNTER; */
   ht->rcdm    = DIVMAP_RECALCULATE_COUNTER;
+  ht->muldm   = 1;
 #endif
 #if HASH_CHECK
   ht->ctr     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));

@@ -488,6 +488,7 @@ typedef struct mp_cf4_ht_t
   deg_t *divmap;      /*!<  divmap for each divmask caluclations */ 
   divm_t *dm;         /*!<  divmask for monomial */
   uint32_t rcdm;      /*!<  counter when to recalculate divmaps and divmasks */
+  uint32_t muldm;     /*!<  multiplier for divmap recalculation range */
 #endif
 #if HASH_CHECK
   ht_size_t *ctr;     [>!<  counts how often a hash appears <]

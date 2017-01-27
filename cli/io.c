@@ -669,6 +669,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   sort_input_polynomials(basis, ht);
   check_for_same_exponents(basis);
   recalculate_divmaps(ht);
+  ht->rcdm  = 10000;
   free(term);
   free(line);
   fclose(fh);

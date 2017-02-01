@@ -937,6 +937,9 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
  */
 static inline int check_monomial_division_saturated(const hash_t h1, const hash_t h2, const mp_cf4_ht_t *ht)
 {
+  if ((ht->dm[h2] & ~ht->dm[h1])) {
+    return 0;
+  }
   /* do not do the degree check: for saturated polynomials we have not computed
    * the correct degree! */
   nvars_t i;

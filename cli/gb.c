@@ -1765,7 +1765,7 @@ int main(int argc, char *argv[])
 #endif
       if (spd->selu->load > 0) {
         for (nelts_t l=0; l<spd->selu->load; ++l) {
-          sr_t *reducer = poly_to_sparse_matrix_row(spd->selu->mpp+l, CD->ncl+CD->ncr);
+          sr_t *reducer = poly_to_sparse_matrix_row(spd->selu->mpp+l, CD->ncl+CD->ncr, basis);
 #pragma omp parallel for num_threads(nthreads)
           for (nelts_t i=0; i<CD->nr; ++i) {
             if (CD->row[i] != NULL) {
@@ -1977,7 +1977,7 @@ int main(int argc, char *argv[])
     if (reduce_gb == 0) {
       mat_t *mat  = NULL;
       if (keep_A == 1) {
-        mat = generate_gbla_matrix_keep_A(basis, spd, nthreads);
+        mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
         meta_data->mat_rows = mat->AR->nrows+mat->CR->nrows;
         meta_data->mat_cols = mat->AR->ncols+mat->B->ncols;
         if (verbose > 1) {
@@ -1985,7 +1985,7 @@ int main(int argc, char *argv[])
           printf("matrix cols %6u + %6u = %6u\n", mat->AR->ncols, mat->B->ncols, mat->AR->ncols + mat->B->ncols);
         }
       } else {
-        mat = generate_gbla_matrix(basis, spd, nthreads);
+        mat = generate_gbla_matrix(basis, sf, spd, nthreads);
 
         /* if (mat->B->blocks != NULL) {
          *   const uint32_t clB  = (uint32_t) ceil((float)mat->B->ncols / __GBLA_SIMD_BLOCK_SIZE);

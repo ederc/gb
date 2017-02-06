@@ -135,15 +135,20 @@ static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(cons
  *
  * \param preprocessing hash list mon
  */
-static inline void enter_monomial_to_preprocessing_hash_list(const mpp_t mpp, pre_t *mon,
+static inline void enter_monomial_to_preprocessing_hash_list(
+    const hash_t mul,
+    const nelts_t idx,
+    const gb_t *basis,
+    pre_t *mon,
     mp_cf4_ht_t *ht)
 {
   nelts_t i;
-  const hash_t h1 = mpp.mul;
+
+  const hash_t *eh  = basis->eh[idx];
+  const nelts_t nt  = basis->nt[idx];
   
-  for (i=0; i<mpp.nt; ++i) {
-    const hash_t h2 = mpp.eh[i];
-    hash_t pos = check_in_hash_table_product(h1, h2, ht);
+  for (i=0; i<nt; ++i) {
+    hash_t pos = check_in_hash_table_product(mul, eh[i], ht);
     /* only in this case we have this monomial hash for the first time,
      * otherwise it has already been taken care of */
 #if SYMBOL_DEBUG
@@ -862,11 +867,12 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
   nelts_t l     = 0;
   hash_t sf_mul = 0;
   const nelts_t load  = basis->sf[mpp->bi].load;
+  const nelts_t nt  = basis->nt[mpp->bi];
   for (l=0; l<load; ++l) {
     const nelts_t idx = basis->sf[mpp->bi].idx[load-1-l];
     /* we start searching from the end of the list since those elements
      * might be best reduced */
-    if (sf->nt[idx] < 3* mpp->nt && check_monomial_division(mpp->mlm, sf->eh[idx][0], ht)) {
+    if (sf->nt[idx] < 3* nt && check_monomial_division(mpp->mlm, sf->eh[idx][0], ht)) {
       sf_mul = get_multiplier(mpp->mlm, sf->eh[idx][0], ht);
       if (sf_mul != 0) {
 #if SYMBOL_DEBUG
@@ -884,11 +890,13 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
           printf("%u ",ht->exp[sf->eh[basis->sf[mpp->bi].idx[load-1-l]][0]][ii]);
         printf("\n");
 #endif
-
+        mpp->sf   = idx;
         mpp->mul  = sf_mul;
+#if 0
         mpp->nt   = sf->nt[idx];
         mpp->eh   = sf->eh[idx];
         mpp->cf   = sf->cf[idx];
+#endif
         return;
       }
     }
@@ -1063,15 +1071,36 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       /* mon->load++; */
       add_spair_generator_to_selection(selu, basis, lcm, gens[k]);
       j = selu->load-1;
+      /* printf("[u] %u | %u || %u\n", mon->size, mon->load, selu->mpp[j].nt); */
+      if (mon->size-mon->load+1 < basis->nt[selu->mpp[j].bi]) {
+        const nelts_t max = 2*mon->size > basis->nt[selu->mpp[j].bi] ?
+          2*mon->size : basis->nt[selu->mpp[j].bi];
+        adjust_size_of_preprocessing_hash_list(mon, max);
+      }
       /* check for simplification
        * function pointer set correspondingly if simplify option is set or not */
       ht->sf.simplify(&selu->mpp[j], basis, sf);
-      /* printf("[u] %u | %u || %u\n", mon->size, mon->load, selu->mpp[j].nt); */
-      if (mon->size-mon->load+1 < selu->mpp[j].nt) {
-        const nelts_t max = 2*mon->size > selu->mpp[j].nt ? 2*mon->size : selu->mpp[j].nt;
-        adjust_size_of_preprocessing_hash_list(mon, max);
+      /* now add new monomials to preprocessing hash list */
+      if (selu->mpp[selu->load-1].sf > 0) {
+        enter_monomial_to_preprocessing_hash_list(
+            /* sel_upp->mpp[sel_upp->load-1], */
+            selu->mpp[selu->load-1].mul,
+            selu->mpp[selu->load-1].sf,
+            sf,
+            mon,
+            ht);
+      } else {
+        enter_monomial_to_preprocessing_hash_list(
+            /* sel_upp->mpp[sel_upp->load-1], */
+            selu->mpp[selu->load-1].mul,
+            selu->mpp[selu->load-1].bi,
+            basis,
+            mon,
+            ht);
       }
+#if 0
       enter_monomial_to_preprocessing_hash_list(selu->mpp[j], mon, ht);
+#endif
       k++;
       ht->idx[lcm]  = 2;
 #if HASH_CHECK
@@ -1083,15 +1112,36 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     for (l=k; l<load; l++) {
       add_spair_generator_to_selection(sell, basis, lcm, gens[l]);
       j = sell->load-1;
+      /* printf("[l] %u | %u || %u\n", mon->size, mon->load, sell->mpp[j].nt); */
+      if (mon->size-mon->load+1 < basis->nt[sell->mpp[j].bi]) {
+        const nelts_t max = 2*mon->size > basis->nt[sell->mpp[j].bi] ?
+          2*mon->size : basis->nt[sell->mpp[j].bi];
+        adjust_size_of_preprocessing_hash_list(mon, max);
+      }
       /* check for simplification
        * function pointer set correspondingly if simplify option is set or not */
       ht->sf.simplify(&sell->mpp[j], basis, sf);
-      /* printf("[l] %u | %u || %u\n", mon->size, mon->load, sell->mpp[j].nt); */
-      if (mon->size-mon->load+1 < sell->mpp[j].nt) {
-        const nelts_t max = 2*mon->size > sell->mpp[j].nt ? 2*mon->size : sell->mpp[j].nt;
-        adjust_size_of_preprocessing_hash_list(mon, max);
+      /* now add new monomials to preprocessing hash list */
+      if (sell->mpp[sell->load-1].sf > 0) {
+        enter_monomial_to_preprocessing_hash_list(
+            /* sel_upp->mpp[sel_upp->load-1], */
+            sell->mpp[sell->load-1].mul,
+            sell->mpp[sell->load-1].sf,
+            sf,
+            mon,
+            ht);
+      } else {
+        enter_monomial_to_preprocessing_hash_list(
+            /* sel_upp->mpp[sel_upp->load-1], */
+            sell->mpp[sell->load-1].mul,
+            sell->mpp[sell->load-1].bi,
+            basis,
+            mon,
+            ht);
       }
+#if 0
       enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
+#endif
     }
     /* set data for next lcm round */
     load  = 0;

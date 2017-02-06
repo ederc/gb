@@ -297,12 +297,16 @@ typedef struct ps_t
 typedef struct mpp_t
 {
   nelts_t bi;   /*!<  index of polynomial in basis */
+  nelts_t sf;   /*!<  0 if the element is from the basis, 1 if it is from the
+                      simplifier list*/
+#if 0
   hash_t *eh;   /*!<  exponent vector hash, either from basis element or from
                       corresponding simplifier*/
   cf_t *cf;  /*!<  coefficient vector, either from basis element or from
                       corresponding simplifier*/
   nelts_t nt;   /*!<  number of terms, either from basis element or from
                       corresponding simplifier*/
+#endif
   hash_t mul;   /*!<  hash of multiplier */
   hash_t mlm;   /*!<  hash of multiplied leading monomial, needed for faster
                       sorting of rows when generating the gbla matrix */

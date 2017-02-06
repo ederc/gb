@@ -137,24 +137,42 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         if (sel_upp->load == sel_upp->size)
           adjust_size_of_selection(sel_upp, 2*sel_upp->size);
         sel_upp->mpp[sel_upp->load].bi  = hio;
+        sel_upp->mpp[sel_upp->load].sf  = 0;
         sel_upp->mpp[sel_upp->load].mlm = hash_pos;
         sel_upp->mpp[sel_upp->load].mul = ho;
+#if 0
         sel_upp->mpp[sel_upp->load].nt  = basis->nt[hio];
         sel_upp->mpp[sel_upp->load].eh  = basis->eh[hio];
         sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
+#endif
         sel_upp->load++;
 
+        if (mon->size-mon->load+1 < basis->nt[sel_upp->mpp[sel_upp->load-1].bi]) {
+          const nelts_t max = 2*mon->size > basis->nt[sel_upp->mpp[sel_upp->load-1].bi] ?
+            2*mon->size : basis->nt[sel_upp->mpp[sel_upp->load-1].bi];
+          adjust_size_of_preprocessing_hash_list(mon, max);
+        }
         /* function pointer set correspondingly if simplify option is set or not */
         ht->sf.simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
         /* try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf); */
         /* now add new monomials to preprocessing hash list */
-        if (mon->size-mon->load+1 < sel_upp->mpp[sel_upp->load-1].nt) {
-          const nelts_t max = 2*mon->size > sel_upp->mpp[sel_upp->load-1].nt ?
-            2*mon->size : sel_upp->mpp[sel_upp->load-1].nt;
-          adjust_size_of_preprocessing_hash_list(mon, max);
+        if (sel_upp->mpp[sel_upp->load-1].sf > 0) {
+          enter_monomial_to_preprocessing_hash_list(
+              /* sel_upp->mpp[sel_upp->load-1], */
+              sel_upp->mpp[sel_upp->load-1].mul,
+              sel_upp->mpp[sel_upp->load-1].sf,
+              sf,
+              mon,
+              ht);
+        } else {
+          enter_monomial_to_preprocessing_hash_list(
+              /* sel_upp->mpp[sel_upp->load-1], */
+              sel_upp->mpp[sel_upp->load-1].mul,
+              sel_upp->mpp[sel_upp->load-1].bi,
+              basis,
+              mon,
+              ht);
         }
-        enter_monomial_to_preprocessing_hash_list(sel_upp->mpp[sel_upp->load-1],
-            mon, ht);
       }
     }
     idx++;

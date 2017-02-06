@@ -291,8 +291,11 @@ inline void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
   sel->mpp[sel->load].mlm = lcm;
   sel->mpp[sel->load].mul = mul;
   sel->mpp[sel->load].bi  = gen;
+  sel->mpp[sel->load].sf  = 0;
+#if 0
   sel->mpp[sel->load].eh  = basis->eh[gen];
   sel->mpp[sel->load].cf  = basis->cf[gen];
   sel->mpp[sel->load].nt  = basis->nt[gen];
+#endif
   sel->load++;
 }

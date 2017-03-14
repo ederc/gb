@@ -98,6 +98,8 @@ typedef exp_s exp_t;
 typedef uint32_t cf_t;
 typedef re_l_t bf_t;
 
+/* block size */
+typedef uint8_t bs_t;
 
 #define ALIGNT 32
 
@@ -435,6 +437,30 @@ typedef struct smat_t
   ri_t rk;        /*<!  rank of the matrix */
   cf_t mod;       /*!<  modulo/field characteristic */
 } smat_t;
+
+typedef struct mat_gb_block_t
+{
+  cf_t *val;
+  bs_t *pos;
+  bs_t *csz;
+} mat_gb_block_t;
+
+typedef struct mat_gb_meta_data_t
+{
+  ci_t nc_AC;
+  ci_t nc_BD;
+  ci_t nc;
+  ci_t ncb_AC;
+  ci_t ncb_BD;
+  ri_t nr_AB;
+  ri_t nr_CD;
+  ri_t nr;
+  ri_t nrb_AB;
+  ri_t nrb_CD;
+  ri_t rk;
+  bs_t bs;
+  cf_t mod;
+} mat_gb_meta_data_t;
 
 /**
  * \brief Struct keeping all function pointers of functions depending on the

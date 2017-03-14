@@ -34,6 +34,8 @@ void print_help(void)
   printf("    Computes a Groebner basis of the given input ideal.\n");
   printf("\n");
   printf("OPTIONS\n");
+  printf("    -b BS       Block size of matrix tiles\n");
+  printf("                Default: 256 = 2^8.\n");
   printf("    -c HTC      Hash table cache resp. size in log_2: The size is then set\n");
   printf("                to the biggest non-Mersenne prime smaller then 2^(given value).\n");
   printf("                Default: 18.\n");
@@ -88,6 +90,7 @@ int main(int argc, char *argv[])
   int order         = 0;
   long max_spairs   = 0;
   int keep_A        = 0;
+  int block_size    = 256;
   ht_size_t htc     = 15;
   int git_hash      = 0;
   /* generate file name holder if pbms are generated */
@@ -121,8 +124,11 @@ int main(int argc, char *argv[])
 
 	opterr  = 0;
 
-  while ((opt = getopt(argc, argv, "c:ghl:m:no:p:r:s:t:v:")) != -1) {
+  while ((opt = getopt(argc, argv, "b:c:ghl:m:no:p:r:s:t:v:")) != -1) {
     switch (opt) {
+      case 'b':
+        block_size  = (int)strtol(optarg, NULL, 10);
+        break;
       case 'c':
         htc = (ht_size_t)strtol(optarg, NULL, 10);
         break;
@@ -229,6 +235,7 @@ int main(int argc, char *argv[])
     printf("compute reduced basis?      %15d\n", reduce_gb);
     printf("do not reduce A|B in gbla   %15d\n", keep_A);
     printf("limit for handling spairs?  %15ld\n", max_spairs);
+    printf("block size of matrix tiles  %15d\n", block_size);
     printf("use simplify?               %15d\n", simplify);
     printf("generate pbm files?         %15d\n", generate_pbm);
     printf("print resulting basis?      %15d\n", print_gb);
@@ -411,6 +418,28 @@ int main(int argc, char *argv[])
      * FOR TESTING ONLY
      */
 
+    /* new la implementation */
+    if (reduce_gb == 23) {
+      mat_gb_block_t *AB, *CD   = NULL;
+      mat_gb_meta_data_t *meta  = NULL;
+
+      /* generate meta data */
+      meta  = generate_matrix_meta_data(block_size, spd);
+
+      /* generate CD part */
+      CD  = generate_mat_gb_lower(meta, basis, spd, ht);
+
+      if (spd->selu->load > 0) {
+        for (i=0; i<meta->nrb_AB; ++i) {
+          AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
+
+
+      }
+
+      free(AB);
+      free(CD);
+      free(meta);
+    }
     if (reduce_gb == 11) {
       /* in this variant we first interreduce AB, so a good comparison to gbla */
 

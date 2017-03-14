@@ -438,28 +438,34 @@ typedef struct smat_t
   cf_t mod;       /*!<  modulo/field characteristic */
 } smat_t;
 
+/**
+ * len stores the lengths of each row: it starts with 0 and adds up how many
+ * entries are in the row, i.e. len[i] = starting position in pos and val for
+ * row i+1. len[bs] = # elements in block
+ */
 typedef struct mat_gb_block_t
 {
-  cf_t *val;
+  nelts_t *len;
   bs_t *pos;
-  bs_t *csz;
+  cf_t *val;
 } mat_gb_block_t;
 
 typedef struct mat_gb_meta_data_t
 {
-  ci_t nc_AC;
-  ci_t nc_BD;
-  ci_t nc;
-  ci_t ncb_AC;
-  ci_t ncb_BD;
-  ri_t nr_AB;
-  ri_t nr_CD;
-  ri_t nr;
-  ri_t nrb_AB;
-  ri_t nrb_CD;
-  ri_t rk;
-  bs_t bs;
   cf_t mod;
+  nelts_t bs;
+  nelts_t rk;
+  nelts_t nc_AC;
+  nelts_t nc_BD;
+  nelts_t nc;
+  nelts_t ncb;
+  nelts_t ncb_AC;
+  nelts_t ncb_BD;
+  nelts_t nr_AB;
+  nelts_t nr_CD;
+  nelts_t nr;
+  nelts_t nrb_AB;
+  nelts_t nrb_CD;
 } mat_gb_meta_data_t;
 
 /**

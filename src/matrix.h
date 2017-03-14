@@ -4874,6 +4874,212 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
   free(bf);
   return row;
 }
+
+static inline mat_gb_meta_data_t *generate_matrix_meta_data(const int bs,
+    const cf_t mod, const spd_t spd)
+{
+  mat_gb_meta_data_t *mat =
+    (mat_gb_meta_data_t *)malloc(sizeof(mat_gb_meta_data_t));
+
+  mat->mod    = mod;
+  mat->bs     = (nelts_t)bs;
+  mat->nc     = spd->col->load;
+  mat->nr     = spd->selu->load + spd->sell->load;
+  mat->nc_AC  = mat->nr_AB = spd->selu->load;
+  mat->nc_BD  = mat->nc - mat->nc_AC;
+  mat->nr_CD  = spd->sell->load;
+  mat->nrb_AB = (nelts_t) ceil((float)mat->nr_AB/(float)mat->bs);
+  mat->nrb_CD = (nelts_t) ceil((float)mat->nr_CD/(float)mat->bs);
+  mat->ncb_AC = (nelts_t) ceil((float)mat->nc_AC/(float)mat->bs);
+  mat->ncb_BD = (nelts_t) ceil((float)mat->nc_BD/(float)mat->bs);
+  mat->ncb    = mat->ncb_AC + mat->ncb_BD;
+  mat->rk     = mat->nr;
+
+  return mat;
+}
+
+static inline void write_poly_to_matrix(mat_gb_block_t *mat,
+    const mat_gb_meta_data_t *meta, const nelts_t idx,
+    const mpp_t *mpp, const gb_t *basis, const mp_cf4_ht_t *ht)
+{
+  nelts_t i;
+  nelts_t cp;
+  mat_gb_block_t *bl;
+
+  /* update length entries first */
+  for (i=0; i<meta->ncb; ++i)
+    mat[i].len[idx+1] = mat[i].len[idx];
+
+  for (i=0; i<basis->nt[mpp->bi]; ++i) {
+    cp  = ht->idx[find_in_hash_table_product(mpp->mul,
+        basis->eh[mpp->bi][i], ht)];
+
+    if (cp < meta->nc_AC) {
+      bl  = mat[cp / meta->bs];
+    } else {
+      cp  = cp - meta->nc_AC;
+      bl  = mat[meta->ncb_AC + cp / meta->bs];
+    }
+    bl.val[bl.len[idx+1]]  = (cf_t)basis->cf[mpp->bi][i];
+    bl.pos[bl.len[idx+1]]  = cp % meta->bs;
+    bl.len[idx+1]++;
+  }
+}
+
+/* Checks blocks for density: Converts sparse to dense and dense to sparse */
+static inline void adjust_block_row_types(mat_gb_block_t *mat,
+    mat_gb_meta_data_t *meta)
+{
+  nelts_t i,j,k;
+
+  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+  
+  for (i=0; i<meta->cb; ++i) {
+    /* sparse to dense ? */
+    if (mat[i].len != NULL) {
+      if (mat[i].len[meta->bs] > bs_square/2) {
+        cf_t *val = (cf_t *)calloc(bs_square, sizeof(cf_t));
+        for (j=0; j<max; ++j) {
+          for (k=mat[i].len[j]; k<mat[i].len[j+1]; ++k) {
+            val[j][mat[i].pos[k]] = mat[i].val[k];
+          }
+        }
+        free(mat[i].len);
+        mat[i].len  = NULL;
+        free(mat[i].pos);
+        mat[i].pos  = NULL;
+      } else if (mat[i].len[meta->bs] > 0) {
+        mat[i].pos =
+          realloc(mat[i].pos, mat[i].len[meta->bs] * sizeof(bs_t));
+        mat[i].val =
+          realloc(mat[i].val, mat[i].len[meta->bs] * sizeof(cf_t));
+      } else {
+        free(mat[i].len);
+        mat[i].len  = NULL;
+        free(mat[i].pos);
+        mat[i].pos  = NULL;
+        free(mat[i].val);
+        mat[i].val  = NULL;
+      }
+    } else { /* dense to sparse ? */
+      nelts_t ctr = 0;
+      for (j=0; j<bs_square; ++j)
+        if (mat[i].val[j] != 0)
+          ctr++;
+      if (ctr < bs_square/4) {
+        mat[i].len  = (nelts_t *)malloc(ctr * sizeof(nelts_t));
+        mat[i].pos  = (bs_t *)malloc(ctr * sizeof(bs_t));
+        cf_t *val   = (cf_t *)malloc(ctr * sizeof(cf_t));
+
+        ctr = 0;
+        mat[i].len[0] = 0;
+        for (j=0; j<meta->bs; ++j) {
+          mat[i].len[j+1] = mat[i].len[j];
+          for (k=0; k<meta->bs; ++k) {
+            if (mat[i].val[j*meta->bs+k] != 0) {
+              val[ctr]        = mat[i].val[j*meta->bs+k];
+              mat[i].pos[ctr] = k;
+              mat[i].len[j+1]++;
+              ctr++;
+            }
+          }
+        }
+        free(mat[i].val);
+        mat[i].val  = val;
+      }
+    }
+  }
+}
+
+static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
+    const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
+    const gb_t *basis, const mp_cf4_ht_t *ht)
+{
+  nelts_t i, j;
+  
+  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+  mat_gb_block_t *start   = mat + (idx * meta->ncb);
+
+  for (i=0, i<meta->cb; ++i) {
+    start[i].len  = (nelts_t *)calloc((meta->bs + 1), sizeof(nelts_t));
+    start[i].pos  = (bs_t *)malloc(bs_square * sizeof(bs_t));
+    start[i].val  = (cf_t *)malloc(bs_square * sizeof(cf_t));
+  }
+
+  const nelts_t max     =
+    (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - idx*meta->bs;
+  const nelts_t offset  = idx*meta->bs;
+
+  for (i=0; i<max; ++i) {
+    write_poly_to_matrix(start, i, sel->mpp+(i+offset), basis, ht);
+  }
+
+  /* check len entries */
+  if (max < meta->bs) {
+    for (i=0; i<meta->cb; ++i) {
+      for (j=max+1; j<meta->bs; ++j) {
+        start[i].len[j] = start[i].len[max];
+      }
+    }
+  }
+
+  /* check density of blocks */
+  adjust_block_row_types(start, meta);
+}
+
+static inline void invert_first_block(mat_gb_block_t *mat,
+    const mat_gb_meta_data_t *meta)
+{
+  /* sparse */
+  if (mat[0].len != NULL) {
+    for (i=0; i<mat[0].len[meta->bs]; ++i) {
+      inverse_val_new(&(mat[0].val[i]), meta->mod);
+    }
+  } else { /* dense */
+    const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+    for (i=0; i<bs_square; ++i) {
+      inverse_val_new(&(mat[0].val[i]), meta->mod);
+    }
+  }
+}
+
+static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
+    const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
+    const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
+      meta->ncb * sizeof(mat_gb_block_t));
+
+  write_to_mat_gb_row_block(mat, idx, meta, spd->selu, basis, ht);
+
+  invert_first_block(mat);
+
+  return mat;
+}
+
+static inline mat_gb_block_t *generate_mat_gb_lower(
+    const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
+    const mp_cf4_ht_t *ht)
+{
+  mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
+      (mat->nrb_CD * meta->ncb * sizeof(mat_gb_block_t));
+
+  nelts_t i;
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+      for (i=0; i<meta->nrb_CD; ++i) {
+        #pragma omp task
+        write_to_mat_gb_row_block(mat, i, meta, spd->sell, basis, ht);
+      }
+    }
+  }
+
+  return mat;
+}
+
+
 /**
  * \brief Reduces gbla matrix generated by symbolic preprocessing data. Stores
  * reduced D in mat->DR in dense row format. This computation is completely done

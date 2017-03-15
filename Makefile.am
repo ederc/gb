@@ -23,7 +23,8 @@ libgb_la_SOURCES = \
 	src/poly.h	src/poly.c \
 	src/spair.h src/spair.c	\
 	src/symbol.h src/symbol.c	\
-	src/matrix.h src/matrix.c
+	src/matrix.h src/matrix.c \
+	src/la.h src/la.c
 
 BUILT_SOURCES = config.h
 
@@ -35,7 +36,8 @@ pkgincludesub_HEADERS = \
 	src/poly.h \
 	src/spair.h	\
 	src/symbol.h	\
-	src/matrix.h
+	src/matrix.h	\
+	src/la.h
 
 nodist_pkgincludesub_HEADERS = config.h
 

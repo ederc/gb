@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
         nelts_t i;
         for (i=0; i<meta->nrb_AB; ++i) {
           AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
-          update_upper_row_block(AB, meta);
+          update_upper_row_block(AB, meta, nthreads);
 
           /* TODO: needs freeing routines */
           free(AB);

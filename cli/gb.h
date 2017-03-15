@@ -37,6 +37,7 @@
 #include <src/spair.h>
 #include <src/symbol.h>
 #include <src/matrix.h>
+#include <src/la.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0

@@ -4876,7 +4876,7 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
 }
 
 static inline mat_gb_meta_data_t *generate_matrix_meta_data(const int bs,
-    const cf_t mod, const spd_t spd)
+    const cf_t mod, const spd_t *spd)
 {
   mat_gb_meta_data_t *mat =
     (mat_gb_meta_data_t *)malloc(sizeof(mat_gb_meta_data_t));
@@ -4915,33 +4915,33 @@ static inline void write_poly_to_matrix(mat_gb_block_t *mat,
         basis->eh[mpp->bi][i], ht)];
 
     if (cp < meta->nc_AC) {
-      bl  = mat[cp / meta->bs];
+      bl  = mat + (cp / meta->bs);
     } else {
       cp  = cp - meta->nc_AC;
-      bl  = mat[meta->ncb_AC + cp / meta->bs];
+      bl  = mat + (meta->ncb_AC + cp / meta->bs);
     }
-    bl.val[bl.len[idx+1]]  = (cf_t)basis->cf[mpp->bi][i];
-    bl.pos[bl.len[idx+1]]  = cp % meta->bs;
-    bl.len[idx+1]++;
+    bl->val[bl->len[idx+1]] = (cf_t)basis->cf[mpp->bi][i];
+    bl->pos[bl->len[idx+1]] = (bs_t)(cp % meta->bs);
+    bl->len[idx+1]++;
   }
 }
 
 /* Checks blocks for density: Converts sparse to dense and dense to sparse */
 static inline void adjust_block_row_types(mat_gb_block_t *mat,
-    mat_gb_meta_data_t *meta)
+    const mat_gb_meta_data_t *meta)
 {
   nelts_t i,j,k;
 
   const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
   
-  for (i=0; i<meta->cb; ++i) {
+  for (i=0; i<meta->ncb; ++i) {
     /* sparse to dense ? */
     if (mat[i].len != NULL) {
       if (mat[i].len[meta->bs] > bs_square/2) {
         cf_t *val = (cf_t *)calloc(bs_square, sizeof(cf_t));
-        for (j=0; j<max; ++j) {
+        for (j=0; j<meta->bs; ++j) {
           for (k=mat[i].len[j]; k<mat[i].len[j+1]; ++k) {
-            val[j][mat[i].pos[k]] = mat[i].val[k];
+            val[j*meta->bs+mat[i].pos[k]] = mat[i].val[k];
           }
         }
         free(mat[i].len);
@@ -4978,7 +4978,7 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
           for (k=0; k<meta->bs; ++k) {
             if (mat[i].val[j*meta->bs+k] != 0) {
               val[ctr]        = mat[i].val[j*meta->bs+k];
-              mat[i].pos[ctr] = k;
+              mat[i].pos[ctr] = (bs_t)k;
               mat[i].len[j+1]++;
               ctr++;
             }
@@ -4991,6 +4991,42 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
   }
 }
 
+static inline void write_to_mat_gb_row_block_inverted_order(
+    mat_gb_block_t *mat, const mat_gb_meta_data_t *meta, const nelts_t idx,
+    const sel_t *sel, const gb_t *basis, const mp_cf4_ht_t *ht)
+{
+  nelts_t i, j;
+  
+  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+  mat_gb_block_t *start   = mat + (idx * meta->ncb);
+
+  for (i=0; i<meta->ncb; ++i) {
+    start[i].len  = (nelts_t *)calloc((meta->bs + 1), sizeof(nelts_t));
+    start[i].pos  = (bs_t *)malloc(bs_square * sizeof(bs_t));
+    start[i].val  = (cf_t *)malloc(bs_square * sizeof(cf_t));
+  }
+
+  const nelts_t max     =
+    (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - idx*meta->bs;
+  const nelts_t offset  = idx*meta->bs;
+
+  for (i=max; i>0; --i) {
+    write_poly_to_matrix(start, meta, i-1, sel->mpp+(i-1+offset), basis, ht);
+  }
+
+  /* check len entries */
+  if (max < meta->bs) {
+    for (i=0; i<meta->ncb; ++i) {
+      for (j=max+1; j<meta->bs; ++j) {
+        start[i].len[j] = start[i].len[max];
+      }
+    }
+  }
+
+  /* check density of blocks */
+  adjust_block_row_types(start, meta);
+}
+
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
     const gb_t *basis, const mp_cf4_ht_t *ht)
@@ -5000,7 +5036,7 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
   const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
   mat_gb_block_t *start   = mat + (idx * meta->ncb);
 
-  for (i=0, i<meta->cb; ++i) {
+  for (i=0; i<meta->ncb; ++i) {
     start[i].len  = (nelts_t *)calloc((meta->bs + 1), sizeof(nelts_t));
     start[i].pos  = (bs_t *)malloc(bs_square * sizeof(bs_t));
     start[i].val  = (cf_t *)malloc(bs_square * sizeof(cf_t));
@@ -5011,12 +5047,12 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
   const nelts_t offset  = idx*meta->bs;
 
   for (i=0; i<max; ++i) {
-    write_poly_to_matrix(start, i, sel->mpp+(i+offset), basis, ht);
+    write_poly_to_matrix(start, meta, i, sel->mpp+(i+offset), basis, ht);
   }
 
   /* check len entries */
   if (max < meta->bs) {
-    for (i=0; i<meta->cb; ++i) {
+    for (i=0; i<meta->ncb; ++i) {
       for (j=max+1; j<meta->bs; ++j) {
         start[i].len[j] = start[i].len[max];
       }
@@ -5030,6 +5066,8 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
 static inline void invert_first_block(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta)
 {
+  nelts_t i;
+
   /* sparse */
   if (mat[0].len != NULL) {
     for (i=0; i<mat[0].len[meta->bs]; ++i) {
@@ -5050,19 +5088,23 @@ static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       meta->ncb * sizeof(mat_gb_block_t));
 
-  write_to_mat_gb_row_block(mat, idx, meta, spd->selu, basis, ht);
+  /* note the inverted row order in each block: we make the first block the
+   * unit matrix block, thus we have to reduce rows with smaller column
+   * pivot entries by rows with higher column pivot. */
+  write_to_mat_gb_row_block_inverted_order(mat, meta, idx, spd->selu,
+      basis, ht);
 
-  invert_first_block(mat);
+  invert_first_block(mat, meta);
 
   return mat;
 }
 
 static inline mat_gb_block_t *generate_mat_gb_lower(
     const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
-    const mp_cf4_ht_t *ht)
+    const mp_cf4_ht_t *ht, const int t)
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
-      (mat->nrb_CD * meta->ncb * sizeof(mat_gb_block_t));
+      (meta->nrb_CD * meta->ncb * sizeof(mat_gb_block_t)));
 
   nelts_t i;
   #pragma omp parallel num_threads(t)
@@ -5071,7 +5113,7 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
     {
       for (i=0; i<meta->nrb_CD; ++i) {
         #pragma omp task
-        write_to_mat_gb_row_block(mat, i, meta, spd->sell, basis, ht);
+        write_to_mat_gb_row_block(mat, meta, i, spd->sell, basis, ht);
       }
     }
   }

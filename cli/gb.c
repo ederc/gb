@@ -424,19 +424,21 @@ int main(int argc, char *argv[])
       mat_gb_meta_data_t *meta  = NULL;
 
       /* generate meta data */
-      meta  = generate_matrix_meta_data(block_size, spd);
+      meta  = generate_matrix_meta_data(block_size, basis->mod, spd);
 
       /* generate CD part */
-      CD  = generate_mat_gb_lower(meta, basis, spd, ht);
+      CD  = generate_mat_gb_lower(meta, basis, spd, ht, nthreads);
 
       if (spd->selu->load > 0) {
+        nelts_t i;
         for (i=0; i<meta->nrb_AB; ++i) {
           AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
+          update_upper_row_block(AB, meta);
 
-
+          /* TODO: needs freeing routines */
+          free(AB);
+        }
       }
-
-      free(AB);
       free(CD);
       free(meta);
     }

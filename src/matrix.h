@@ -4967,7 +4967,7 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
         if (mat[i].val[j] != 0)
           ctr++;
       if (ctr < bs_square/4) {
-        mat[i].len  = (nelts_t *)malloc(ctr * sizeof(nelts_t));
+        mat[i].len  = (nelts_t *)malloc((meta->bs+1) * sizeof(nelts_t));
         mat[i].pos  = (bs_t *)malloc(ctr * sizeof(bs_t));
         cf_t *val   = (cf_t *)malloc(ctr * sizeof(cf_t));
 

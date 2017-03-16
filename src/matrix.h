@@ -4948,11 +4948,13 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
         mat[i].len  = NULL;
         free(mat[i].pos);
         mat[i].pos  = NULL;
+        return;
       } else if (mat[i].len[meta->bs] > 0) {
         mat[i].pos =
           realloc(mat[i].pos, mat[i].len[meta->bs] * sizeof(bs_t));
         mat[i].val =
           realloc(mat[i].val, mat[i].len[meta->bs] * sizeof(cf_t));
+        return;
       } else {
         free(mat[i].len);
         mat[i].len  = NULL;
@@ -4960,12 +4962,22 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
         mat[i].pos  = NULL;
         free(mat[i].val);
         mat[i].val  = NULL;
+        return;
       }
     } else { /* dense to sparse ? */
       nelts_t ctr = 0;
       for (j=0; j<bs_square; ++j)
         if (mat[i].val[j] != 0)
           ctr++;
+      if (ctr == 0) {
+        free(mat[i].len);
+        mat[i].len  = NULL;
+        free(mat[i].pos);
+        mat[i].pos  = NULL;
+        free(mat[i].val);
+        mat[i].val  = NULL;
+        return;
+      }
       if (ctr < bs_square/4) {
         mat[i].len  = (nelts_t *)malloc((meta->bs+1) * sizeof(nelts_t));
         mat[i].pos  = (bs_t *)malloc(ctr * sizeof(bs_t));
@@ -4986,6 +4998,7 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
         }
         free(mat[i].val);
         mat[i].val  = val;
+        return;
       }
     }
   }

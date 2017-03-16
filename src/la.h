@@ -196,10 +196,14 @@ static inline void update_single_block_sparse(mat_gb_block_t *mat,
 static inline void update_single_block(mat_gb_block_t *mat,
     const nelts_t idx, const mat_gb_meta_data_t *meta)
 {
-  if (mat[idx].len != NULL)
+  if (mat[idx].len != NULL) {
     update_single_block_sparse(mat, idx, meta);
-  else
-    update_single_block_dense(mat, idx, meta);
+  } else {
+    if (mat[idx].val != NULL)
+      update_single_block_dense(mat, idx, meta);
+    else
+      return;
+  }
 }
 
 static inline void update_upper_row_block(mat_gb_block_t *mat,
@@ -207,14 +211,14 @@ static inline void update_upper_row_block(mat_gb_block_t *mat,
 {
   nelts_t i;
 
-  #pragma omp parallel num_threads(t)
+#pragma omp parallel num_threads(t)
   {
-    #pragma omp single nowait
+#pragma omp single nowait
     {
       /* the first block is used for updated the remaining ones,
        * i.e. we start at block index i=1 */
       for (i=1; i<meta->ncb_AC; ++i) {
-        #pragma omp task
+#pragma omp task
         update_single_block(mat, i, meta);
       }
     }
@@ -223,5 +227,42 @@ static inline void update_upper_row_block(mat_gb_block_t *mat,
   adjust_block_row_types(mat, meta);
 }
 
+static inline void update_lower_block_by_upper_block(mat_gb_block_t *l,
+    const mat_gb_block_t *u, const nelts_t rbi, const nelts_t cbi,
+    const mat_gb_meta_data_t *meta)
+{
+}
 
+static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
+    const mat_gb_block_t *u, const mat_gb_meta_data_t *meta, const int t)
+{
+  nelts_t i, j;
+
+#pragma omp parallel num_threads(t)
+  {
+#pragma omp single nowait
+    {
+      /* the first block is used for updated the remaining ones,
+       * i.e. we start at block index i=1 */
+      for (i=0; i<meta->nrb_CD; ++i) {
+        for (j=1; j<meta->ncb_AC; ++j) {
+#pragma omp task
+          {
+            update_lower_block_by_upper_block(l, u, i, j, meta);
+          }
+        }
+      }
+    }
+#pragma omp single nowait
+    {
+      for (i=0; i<meta->nrb_CD; ++i) {
+#pragma omp task
+        {
+          /* check density of blocks */
+          adjust_block_row_types(l+i*meta->ncb_AC, meta);
+        }
+      }
+    }
+  }
+}
 #endif

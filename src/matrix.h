@@ -5040,6 +5040,19 @@ static inline void write_to_mat_gb_row_block_inverted_order(
   adjust_block_row_types(start, meta);
 }
 
+static inline mat_gb_block_t *initialize_mat_gb_block(
+    const mat_gb_meta_data_t *meta)
+{
+  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+  mat_gb_block_t *bl      = (mat_gb_block_t *)malloc(sizeof(mat_gb_block_t));
+
+  bl->len  = (nelts_t *)calloc((meta->bs + 1), sizeof(nelts_t));
+  bl->pos  = (bs_t *)malloc(bs_square * sizeof(bs_t));
+  bl->val  = (cf_t *)malloc(bs_square * sizeof(cf_t));
+
+  return bl;
+}
+
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
     const gb_t *basis, const mp_cf4_ht_t *ht)

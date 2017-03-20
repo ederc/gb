@@ -238,3 +238,76 @@ ri_t reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
 
   return rank_D;
 }
+
+static inline void write_sparse_compact_row(src_t **rows,
+    const mat_gb_block_t *om, const nelts_t idx,
+    const mat_gb_meta_data_t *meta)
+{
+  const nelts_t max = meta->bs < meta->nr_CD - idx*meta->bs ?
+    meta->bs : meta->nr_CD - idx*meta->bs;
+
+  nelts_t i, j, k;
+  nelts_t ctr;
+
+  for (i=0; i<max; ++i) {
+    src_t *row  = (src_t *)malloc((2*meta->nc_BD+1) * sizeof(src_t));
+    /* go only over D part, C is already zero */
+    ctr = 1;
+    for (j=meta->ncb_AC; j<meta->ncb; ++j) {
+      printf("j %u\n", j);
+      if (om[j].len != NULL) {
+        printf("drin?");
+        for (k=om[j].len[i]; k<om[j].len[i+1]; ++k) {
+          row[ctr]  = (src_t)om[j].pos[k] + (j-meta->ncb_AC)*meta->bs + meta->nc_AC;
+          row[ctr+1]  = om[j].val[k];
+          printf("%u | %u || ", row[ctr+1], row[ctr]);
+          ctr = ctr+2;
+        }
+      }
+      printf("\n");
+    }
+    if (ctr>1) {
+      row[0]  = ctr;
+      row = realloc(row, ctr * sizeof(src_t));
+      rows[i + idx*meta->bs] = row;
+      if (row[2] != 1) {
+        normalize_row_c(row, meta->mod);
+      }  
+    } else {
+      free(row);
+      row = NULL;
+      rows[i + idx*meta->bs] = row;
+    }
+  }
+}
+
+smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,
+    const mat_gb_meta_data_t *meta, const int t)
+{
+  nelts_t i, ctr;
+
+  smc_t *nm = initialize_sparse_compact_matrix(meta->nr_CD, meta->nc_AC,
+      meta->nc_BD, meta->mod);
+
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+    /* fill the upper part AB */
+    for (i=0; i<nm->nr; i=i+meta->bs) {
+      #pragma omp task
+      {
+        /* printf("constructs row %u\n",i); */
+        write_sparse_compact_row(nm->row, om, i, meta);
+      }
+    }
+    }
+  }
+  ctr = 0;
+  for (i=0; i<nm->nr; ++i)
+    if (nm->row[i] != NULL)
+      ctr++;
+  nm->rk  = ctr;
+
+  return nm;
+}

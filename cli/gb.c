@@ -429,21 +429,94 @@ int main(int argc, char *argv[])
       /* generate CD part */
       CD  = generate_mat_gb_lower(meta, basis, spd, ht, nthreads);
 
+      meta_data->mat_rows = spd->selu->load + spd->sell->load;
+      meta_data->mat_cols = meta->nc_AC + meta->nc_BD;
+      if (verbose > 0)
+        t_generating_gbla_matrix  +=  walltime(t_load_start);
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      if (verbose > 1) {
+        printf("matrix rows %6u \n", meta_data->mat_rows);
+        printf("matrix cols %6u \n", meta_data->mat_cols);
+      }
+      if (verbose == 1) {
+        printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+            steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+        fflush(stdout);
+      }
+
       if (spd->selu->load > 0) {
         nelts_t i;
         for (i=0; i<meta->nrb_AB; ++i) {
           AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
 
-          update_upper_row_block(AB, meta, nthreads);
+          /* possibly the first block of A is already the unit matrix, then it is
+           * just an empty block and we do not need to update AB at all */
+          if (AB[0].len != NULL)
+            update_upper_row_block(AB, meta, nthreads);
 
-          update_lower_by_upper_row_block(CD, AB, meta, nthreads);
+          printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*****~~~~~~~~~~~~~~~~~~~\n");
+          update_lower_by_upper_row_block(CD, AB, i, meta, nthreads);
 
           /* TODO: needs freeing routines */
           free(AB);
         }
       }
+      smc_t *D  = convert_mat_gb_to_smc_format(CD, meta, nthreads);
+        printf("rank of D %u | %u\n", D->rk, D->nr);
+#if newred
+        printf("--D BEGINNING--\n");
+        for (int ii=0; ii<D->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (D->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=1; jj<D->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",D->row[ii][jj+1],D->row[ii][jj]);
+            }
+            printf("\n");
+          }
+        }
+#endif
       free(CD);
       free(meta);
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<D->nr; ++i) {
+        if (D->row[i] != NULL) {
+          D->row[ctr] = D->row[i];
+          ctr++;
+        }
+      }
+      D->nr  = ctr;
+      D->rk  = ctr;
+      if (D->rk > 1)
+        reduce_lower_rows_c(D, D->ncl, nthreads);
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1 && steps > 0)
+        printf("%4u new %4u zero ", D->rk, spd->sell->load-D->rk);
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
+
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      done  = update_basis_new(basis, ps, spd, D, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (spd->sell->load - D->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<D->rk; ++k) {
+        free(D->row[k]);
+      }
+      free(D->row);
+      free(D);
+      CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
     }
     if (reduce_gb == 11) {
       /* in this variant we first interreduce AB, so a good comparison to gbla */
@@ -677,7 +750,7 @@ int main(int argc, char *argv[])
       CD = generate_sparse_compact_matrix_test(basis, spd->sell,
           spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
           nthreads);
-#if 0
+#if 1
         printf("--CD 1--\n");
         for (int ii=0; ii<CD->nr; ++ii) {
           printf("row[%u] ",ii);
@@ -685,7 +758,7 @@ int main(int argc, char *argv[])
             printf("NULL\n");
           else {
             for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
-              printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+              printf("%u at %u | ",CD->row[ii][jj+1],CD->row[ii][jj]);
             }
             printf("\n");
           }
@@ -714,6 +787,20 @@ int main(int argc, char *argv[])
         AB = generate_sparse_compact_matrix_offset_test(basis, spd->selu,
             spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
             nthreads);
+#if 0
+        printf("--AB 1--\n");
+        for (int ii=0; ii<AB->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (AB->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=2; jj<AB->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",AB->row[ii][jj+1],AB->row[ii][jj]);
+            }
+            printf("\n");
+          }
+        }
+#endif
 #if COL_CHECK
         uint32_t *appears  = (uint32_t *)calloc(spd->col->nlm, sizeof(uint32_t));
         for (int ii=0; ii<AB->nr; ++ii) {
@@ -781,7 +868,7 @@ int main(int argc, char *argv[])
             printf("NULL\n");
           else {
             for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
-              printf("%u at %u | ",CD->row[ii][jj],CD->row[ii][jj+1]);
+              printf("%u at %u | ",CD->row[ii][jj+1],CD->row[ii][jj]);
             }
             printf("\n");
           }
@@ -789,6 +876,7 @@ int main(int argc, char *argv[])
 #endif
       CD->nr  = ctr;
       CD->rk  = ctr;
+        printf("rank of CD %u | %u\n", CD->rk, CD->nr);
       if (CD->rk > 1)
         reduce_lower_rows_c(CD, CD->ncl, nthreads);
       if (verbose > 0)

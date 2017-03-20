@@ -448,6 +448,7 @@ typedef struct mat_gb_block_t
   nelts_t *len;
   bs_t *pos;
   cf_t *val;
+  nelts_t nr;
 } mat_gb_block_t;
 
 typedef struct mat_gb_meta_data_t

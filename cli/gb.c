@@ -458,11 +458,8 @@ int main(int argc, char *argv[])
           printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*****~~~~~~~~~~~~~~~~~~~\n");
           update_lower_by_upper_row_block(CD, AB, i, meta, nthreads);
 
-          for (j=0; j<meta->ncb; ++j) {
-            free(AB[j].len);
-            free(AB[j].val);
-            free(AB[j].pos);
-          }
+          for (j=0; j<meta->ncb; ++j)
+            free_mat_gb_block(AB+j);
           free(AB);
         }
       }
@@ -483,13 +480,9 @@ int main(int argc, char *argv[])
       }
 #endif
       nelts_t j, k;
-      for (j=0; j<meta->nrb_CD; ++j) {
-        for (k=0; k<meta->ncb; ++k) {
-          free(CD[j*meta->ncb+k].len);
-          free(CD[j*meta->ncb+k].pos);
-          free(CD[j*meta->ncb+k].val);
-        }
-      }
+      for (j=0; j<meta->nrb_CD; ++j)
+        for (k=0; k<meta->ncb; ++k)
+          free_mat_gb_block(CD+j*meta->ncb+k);
       free(CD);
       free(meta);
 

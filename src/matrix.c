@@ -240,11 +240,13 @@ ri_t reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
 }
 
 static inline void write_sparse_compact_row(src_t **rows,
-    const mat_gb_block_t *om, const nelts_t idx,
+    const mat_gb_block_t *old_mat, const nelts_t idx,
     const mat_gb_meta_data_t *meta)
 {
   const nelts_t max = meta->bs < meta->nr_CD - idx*meta->bs ?
     meta->bs : meta->nr_CD - idx*meta->bs;
+
+  const mat_gb_block_t *om  = old_mat+idx*meta->ncb;
 
   nelts_t i, j, k;
   nelts_t ctr;
@@ -289,18 +291,17 @@ smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,
   smc_t *nm = initialize_sparse_compact_matrix(meta->nr_CD, meta->nc_AC,
       meta->nc_BD, meta->mod);
 
-  #pragma omp parallel num_threads(t)
+#pragma omp parallel num_threads(t)
   {
-    #pragma omp single nowait
+#pragma omp single nowait
     {
-    /* fill the upper part AB */
-    for (i=0; i<nm->nr; i=i+meta->bs) {
-      #pragma omp task
-      {
-        /* printf("constructs row %u\n",i); */
-        write_sparse_compact_row(nm->row, om, i, meta);
+      for (i=0; i<nm->nr; i=i+meta->bs) {
+#pragma omp task
+        {
+          /* printf("constructs row %u\n",i); */
+          write_sparse_compact_row(nm->row, om, i, meta);
+        }
       }
-    }
     }
   }
   ctr = 0;

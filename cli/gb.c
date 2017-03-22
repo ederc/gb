@@ -446,7 +446,7 @@ int main(int argc, char *argv[])
       }
 
       if (spd->selu->load > 0) {
-        nelts_t i;
+        nelts_t i, j;
         for (i=0; i<meta->nrb_AB; ++i) {
           AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
 
@@ -458,28 +458,42 @@ int main(int argc, char *argv[])
           printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*****~~~~~~~~~~~~~~~~~~~\n");
           update_lower_by_upper_row_block(CD, AB, i, meta, nthreads);
 
-          /* TODO: needs freeing routines */
+          for (j=0; j<meta->ncb; ++j) {
+            free(AB[j].len);
+            free(AB[j].val);
+            free(AB[j].pos);
+          }
           free(AB);
         }
       }
       smc_t *D  = convert_mat_gb_to_smc_format(CD, meta, nthreads);
         printf("rank of D %u | %u\n", D->rk, D->nr);
 #if newred
-        printf("--D BEGINNING--\n");
-        for (int ii=0; ii<D->nr; ++ii) {
-          printf("row[%u] ",ii);
-          if (D->row[ii] == NULL)
-            printf("NULL\n");
-          else {
-            for (int jj=1; jj<D->row[ii][0]; jj += 2) {
-              printf("%u at %u | ",D->row[ii][jj+1],D->row[ii][jj]);
-            }
-            printf("\n");
+      printf("--D BEGINNING--\n");
+      for (int ii=0; ii<D->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (D->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<D->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",D->row[ii][jj+1],D->row[ii][jj]);
           }
+          printf("\n");
         }
+      }
 #endif
+      nelts_t j, k;
+      for (j=0; j<meta->nrb_CD; ++j) {
+        for (k=0; k<meta->ncb; ++k) {
+          free(CD[j*meta->ncb+k].len);
+          free(CD[j*meta->ncb+k].pos);
+          free(CD[j*meta->ncb+k].val);
+        }
+      }
       free(CD);
       free(meta);
+
+      /* get rank of D */
       nelts_t ctr = 0;
       for (nelts_t i=0; i<D->nr; ++i) {
         if (D->row[i] != NULL) {

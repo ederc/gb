@@ -4925,24 +4925,25 @@ static inline void write_poly_to_matrix(mat_gb_block_t *mat,
 
   printf("mpp->mul %lu | bi %u | nt %u\n", mpp->mul, mpp->bi, basis->nt[mpp->bi]);
   for (i=start; i<basis->nt[mpp->bi]; ++i) {
+    /* printf("i %u\n", i); */
     cp  = ht->idx[find_in_hash_table_product(mpp->mul,
         basis->eh[mpp->bi][i], ht)];
 
     if (cp < meta->nc_AC) {
-      printf("block %u\n", cp /meta->bs);
-      printf("C ");
+      /* printf("block %u\n", cp /meta->bs);
+       * printf("C "); */
       bl  = mat + (cp / meta->bs);
     } else {
       cp  = cp - meta->nc_AC;
       bl  = mat + (meta->ncb_AC + cp / meta->bs);
-      printf("block %u\n", meta->ncb_AC + cp /meta->bs);
-      printf("D ");
+      /* printf("block %u\n", meta->ncb_AC + cp /meta->bs);
+       * printf("D "); */
     }
-    printf("coeff %u\n", basis->cf[mpp->bi][i]);
+    /* printf("coeff %u\n", basis->cf[mpp->bi][i]); */
     bl->val[bl->len[idx+1]] = (cf_t)basis->cf[mpp->bi][i];
     bl->pos[bl->len[idx+1]] = (bs_t)(cp % meta->bs);
-    printf("idx+1 %u bl->val[%u] = %u | bl->pos[%u] = %u\n", idx+1,
-     bl->len[idx+1],bl->val[bl->len[idx+1]],bl->len[idx+1],bl->pos[bl->len[idx+1]]);
+    /* printf("idx+1 %u bl->val[%u] = %u | bl->pos[%u] = %u\n", idx+1,
+     *  bl->len[idx+1],bl->val[bl->len[idx+1]],bl->len[idx+1],bl->pos[bl->len[idx+1]]); */
     bl->len[idx+1]++;
   }
 }
@@ -5035,12 +5036,12 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
   const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
   
   for (i=0; i<meta->ncb; ++i) {
-    printf("i %u\n", i);
+    /* printf("i %u\n", i); */
     /* sparse to dense ? */
     if (mat[i].len != NULL) {
-      printf("%u len %u\n", i, mat[i].len[mat[i].nr]);
+      /* printf("%u len %u\n", i, mat[i].len[mat[i].nr]); */
       if (mat[i].len[mat[i].nr] > 0) {
-        printf("len %u\n", mat[i].len[mat[i].nr]);
+        /* printf("len %u\n", mat[i].len[mat[i].nr]); */
         mat[i].pos =
           realloc(mat[i].pos, mat[i].len[mat[i].nr] * sizeof(bs_t));
         mat[i].val =
@@ -5086,16 +5087,18 @@ static inline void write_to_mat_gb_row_block_inverted_order(
     mat_gb_block_t *mat, const mat_gb_meta_data_t *meta, const nelts_t idx,
     const sel_t *sel, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
-  nelts_t i, j;
+  nelts_t i;
   
-  mat_gb_block_t *start = mat + (idx * meta->ncb);
-  mat_gb_block_t *iter  = start;
+  /* mat_gb_block_t *start = mat + (idx * meta->ncb); */
+  mat_gb_block_t *start = mat;
+  printf("idx %u | ncb %u\n", idx, meta->ncb);
 
   const nelts_t offset  = idx*meta->bs;
   const nelts_t max     =
     (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
 
   for (i=0; i<meta->ncb; ++i) {
+    printf("block allocation %u / %u\n",i, meta->ncb);
     initialize_mat_gb_block(start+i, meta, max);
   }
 
@@ -5113,64 +5116,62 @@ static inline void write_to_mat_gb_row_block_inverted_order(
    *     }
    *   }
    * } */
-  printf("-------------------before--------------------------------\n");
-  for (int ii=0; ii<meta->ncb; ++ii) {
-    if (start[ii].len != NULL) {
-      for (int jj=0; jj<start[ii].nr; ++jj)
-        printf("%u ", start[ii].len[jj]);
-      printf("\n");
-      printf("startlen %p\n", start[ii].len);
-      printf("startpos %p\n", start[ii].pos);
-      printf("startval %p\n", start[ii].val);
-      printf("nc_AC %u\n", meta->nc_AC);
-      printf("start[%u].val[0] = %u\n", ii, start[ii].val[0]);
-    }
-  }
-  printf("----------------------------------------------------\n");
+  /* printf("-------------------before--------------------------------\n"); */
+  /* for (int ii=0; ii<meta->ncb; ++ii) {
+   *   if (start[ii].len != NULL) {
+   *     for (int jj=0; jj<start[ii].nr; ++jj)
+   *       printf("%u ", start[ii].len[jj]);
+   *     printf("\n");
+   *     printf("startlen %p\n", start[ii].len);
+   *     printf("startpos %p\n", start[ii].pos);
+   *     printf("startval %p\n", start[ii].val);
+   *     printf("nc_AC %u\n", meta->nc_AC);
+   *     printf("start[%u].val[0] = %u\n", ii, start[ii].val[0]);
+   *   }
+   * } */
+  /* printf("----------------------------------------------------\n"); */
 
   /* check density of blocks */
   adjust_block_row_types(start, meta);
-  printf("-------------------after--------------------------------\n");
-  for (int ii=0; ii<meta->ncb; ++ii) {
-    if (start[ii].len != NULL) {
-      for (int jj=0; jj<start[ii].nr; ++jj)
-        printf("%u ", start[ii].len[jj]);
-      printf("\n");
-      printf("startlen %p\n", start[ii].len);
-      printf("startpos %p\n", start[ii].pos);
-      printf("startval %p\n", start[ii].val);
-      printf("nc_AC %u\n", meta->nc_AC);
-      printf("start[%u].val[0] = %u || %u\n", ii, start[ii].val[0], start[ii].nr);
-    }
-  }
-  printf("----------------------------------------------------\n");
+  /* printf("-------------------after--------------------------------\n"); */
+  /* for (int ii=0; ii<meta->ncb; ++ii) {
+   *   if (start[ii].len != NULL) {
+   *     for (int jj=0; jj<start[ii].nr; ++jj)
+   *       printf("%u ", start[ii].len[jj]);
+   *     printf("\n");
+   *     printf("startlen %p\n", start[ii].len);
+   *     printf("startpos %p\n", start[ii].pos);
+   *     printf("startval %p\n", start[ii].val);
+   *     printf("nc_AC %u\n", meta->nc_AC);
+   *     printf("start[%u].val[0] = %u || %u\n", ii, start[ii].val[0], start[ii].nr);
+   *   }
+   * } */
+  /* printf("----------------------------------------------------\n"); */
 }
 
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
     const gb_t *basis, const mp_cf4_ht_t *ht)
 {
-  nelts_t i, j;
+  nelts_t i;
   
   mat_gb_block_t *start   = mat + (idx * meta->ncb);
-  mat_gb_block_t *iter    = start;
 
   const nelts_t offset  = idx*meta->bs;
   const nelts_t max     =
     (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
 
-  printf("MAX == %u | %u | %u\n", max, sel->load, offset);
+  /* printf("MAX == %u | %u | %u\n", max, sel->load, offset); */
   for (i=0; i<meta->ncb; ++i) {
-    iter  = start + i;
-    printf("iter %p | start %p\n", iter, start);
+    /* printf("iter %p | start %p\n", iter, start); */
     initialize_mat_gb_block(start+i, meta, max);
-    printf("%u . %p | %p\n",i, iter, iter->val);
+    /* printf("%u . %p | %p\n",i, iter, iter->val); */
   }
 
 
   for (i=0; i<max; ++i) {
     write_poly_to_matrix(start, meta, i, 0, sel->mpp+(i+offset), basis, ht);
-    printf("!!!\n");
+    /* printf("!!!\n"); */
   }
 
   /* check len entries */
@@ -5218,6 +5219,9 @@ static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       meta->ncb * sizeof(mat_gb_block_t));
+  printf("ncb %u\n", meta->ncb);
+  printf("idx %u\n", idx);
+  printf("selu load %u\n", spd->selu->load);
 
   /* note the inverted row order in each block: we make the first block the
    * unit matrix block, thus we have to reduce rows with smaller column
@@ -5225,35 +5229,35 @@ static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
   write_to_mat_gb_row_block_inverted_order(mat, meta, idx, spd->selu,
       basis, ht);
 
-  printf("----------------------------------------------------\n");
-  for (int ii=0; ii<meta->ncb; ++ii) {
-    if (mat[ii].len != NULL) {
-      for (int jj=0; jj<mat[ii].nr; ++jj)
-        printf("%u ", mat[ii].len[jj]);
-      printf("\n");
-      printf("matlen %p\n", mat[ii].len);
-      printf("matpos %p\n", mat[ii].pos);
-      printf("matval %p\n", mat[ii].val);
-      printf("nc_AC %u\n", meta->nc_AC);
-      printf("mat[%u].val[0] = %u\n", ii, mat[ii].val[0]);
-    }
-  }
-  printf("----------------------------------------------------\n");
-  /* invert_first_block(mat, meta); */
-  printf("----------------------------------------------------\n");
-  for (int ii=0; ii<meta->ncb; ++ii) {
-    if (mat[ii].len != NULL) {
-      for (int jj=0; jj<mat[ii].nr; ++jj)
-        printf("%u ", mat[ii].len[jj]);
-      printf("\n");
-      printf("matlen %p\n", mat[ii].len);
-      printf("matpos %p\n", mat[ii].pos);
-      printf("matval %p\n", mat[ii].val);
-      printf("nc_AC %u\n", meta->nc_AC);
-      printf("mat[%u].val[0] = %u\n", ii, mat[ii].val[0]);
-    }
-  }
-  printf("----------------------------------------------------\n");
+  /* printf("----------------------------------------------------\n");
+   * for (int ii=0; ii<meta->ncb; ++ii) {
+   *   if (mat[ii].len != NULL) {
+   *     for (int jj=0; jj<mat[ii].nr; ++jj)
+   *       printf("%u ", mat[ii].len[jj]);
+   *     printf("\n");
+   *     printf("matlen %p\n", mat[ii].len);
+   *     printf("matpos %p\n", mat[ii].pos);
+   *     printf("matval %p\n", mat[ii].val);
+   *     printf("nc_AC %u\n", meta->nc_AC);
+   *     printf("mat[%u].val[0] = %u\n", ii, mat[ii].val[0]);
+   *   }
+   * }
+   * printf("----------------------------------------------------\n");
+   * invert_first_block(mat, meta);
+   * printf("----------------------------------------------------\n");
+   * for (int ii=0; ii<meta->ncb; ++ii) {
+   *   if (mat[ii].len != NULL) {
+   *     for (int jj=0; jj<mat[ii].nr; ++jj)
+   *       printf("%u ", mat[ii].len[jj]);
+   *     printf("\n");
+   *     printf("matlen %p\n", mat[ii].len);
+   *     printf("matpos %p\n", mat[ii].pos);
+   *     printf("matval %p\n", mat[ii].val);
+   *     printf("nc_AC %u\n", meta->nc_AC);
+   *     printf("mat[%u].val[0] = %u\n", ii, mat[ii].val[0]);
+   *   }
+   * }
+   * printf("----------------------------------------------------\n"); */
 
   return mat;
 }
@@ -5264,8 +5268,9 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       (meta->nrb_CD * meta->ncb * sizeof(mat_gb_block_t)));
+  printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD);
 
-  printf("meta %u\n", meta->nrb_CD);
+  /* printf("meta %u\n", meta->nrb_CD); */
   nelts_t i;
   #pragma omp parallel num_threads(t)
   {
@@ -5278,10 +5283,10 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
     }
   }
 
-  printf("%p\n", mat[0].len);
-  printf("%p\n", mat[0].pos);
-  printf("%p\n", mat[0].val);
-  printf("nr %u\n", mat[0].nr);
+  /* printf("%p\n", mat[0].len);
+   * printf("%p\n", mat[0].pos);
+   * printf("%p\n", mat[0].val);
+   * printf("nr %u\n", mat[0].nr); */
   return mat;
 }
 

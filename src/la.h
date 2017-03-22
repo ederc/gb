@@ -189,12 +189,13 @@ static inline void update_single_block_sparse(mat_gb_block_t *mat,
     load_dense_row_for_update_from_sparse(dr, i, ubl, meta);
 
     /* find corresponding row and multiplier */
-    printf("UPDATE ROW %u\n", i);
+    /* printf("UPDATE ROW %u\n", i); */
     update_dense_row(dr, i, nbl, fbl, meta);
 
     /* write updated row to new storage holders */
     write_updated_row_to_sparse_format(nbl, dr, i, meta);
   }
+  free(dr);
 
   set_updated_block(&ubl, nbl);
 }
@@ -217,8 +218,8 @@ static inline void update_upper_row_block(mat_gb_block_t *mat,
 {
   nelts_t i;
 
-  printf("mat %p\n", mat);
-  printf("ncb %u\n", meta->ncb);
+  /* printf("mat %p\n", mat);
+   * printf("ncb %u\n", meta->ncb); */
 #pragma omp parallel num_threads(t)
   {
 #pragma omp single nowait
@@ -261,11 +262,13 @@ static inline void sparse_update_lower_block_by_upper_block(mat_gb_block_t *l,
     write_updated_row_to_sparse_format(nbl, dr, i, meta);
   }
 
-  printf("nbl len ");
-  for (i=0; i<nbl->nr; ++i)
-    printf("%u ",nbl->len[i]);
-  printf("\n");
+  /* printf("nbl len ");
+   * for (i=0; i<nbl->nr; ++i)
+   *   printf("%u ",nbl->len[i]);
+   * printf("\n"); */
   set_updated_block(&ubl, nbl);
+  
+  free(dr);
 }
 
 static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
@@ -283,17 +286,17 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
       for (i=0; i<meta->nrb_CD; ++i) {
         /* need to look at the first block in each row in
          * order to decide which algorithm to be chosen */
-        printf("NEXT REDUCTION STEP %p %u\n", l[i*meta->ncb+shift].len, i);
+        /* printf("NEXT REDUCTION STEP %p %u\n", l[i*meta->ncb+shift].len, i); */
         if (l[i*meta->ncb+shift].len != NULL) {
           for (j=shift+1; j<meta->ncb; ++j) {
-            printf("we reduce j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]);
+            /* printf("we reduce j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
             if (u[j].len != NULL) {
 #pragma omp task
               {
                 sparse_update_lower_block_by_upper_block(l, u, i, shift, j, meta);
               }
             }
-            printf("reduced j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]);
+            /* printf("reduced j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
           }
         } else {
           continue;
@@ -303,9 +306,9 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
   }
     /* remove the first block in each block row */
     for (i=0; i<meta->nrb_CD; ++i) {
-      printf("len before %u * %u + %u || %p\n", i, meta->ncb, shift, l[i*meta->ncb+shift].len);
+      /* printf("len before %u * %u + %u || %p\n", i, meta->ncb, shift, l[i*meta->ncb+shift].len); */
       free_mat_gb_block(l+i*meta->ncb+shift);
-      printf("len after %p\n", l[i*meta->ncb+shift].len);
+      /* printf("len after %p\n", l[i*meta->ncb+shift].len); */
     }
 
 /* at the moment we only work with sparse blocks */

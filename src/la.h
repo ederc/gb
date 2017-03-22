@@ -253,8 +253,6 @@ static inline void sparse_update_lower_block_by_upper_block(mat_gb_block_t *l,
 
   for (i=0; i<ubl->nr; ++i) {
     /* load dense row to be updated */
-    printf("idx %u - %p\n", i, ubl->len);
-    printf("%u -- %u\n", ubl->len[i], ubl->len[i+1]);
     load_dense_row_for_update_from_sparse(dr, i, ubl, meta);
 
     /* find corresponding row and multiplier */
@@ -295,7 +293,7 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
             if (u[j].len != NULL) {
 #pragma omp task
               {
-                sparse_update_lower_block_by_upper_block(l, u, i, shift, j, meta);
+                sparse_update_lower_block_by_upper_block(l, u, shift, i, j, meta);
               }
             }
             /* printf("reduced j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */

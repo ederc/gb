@@ -219,8 +219,6 @@ static inline void update_single_block(mat_gb_block_t *mat,
 static inline void update_upper_row_block(mat_gb_block_t *mat,
     const nelts_t shift, const mat_gb_meta_data_t *meta, const int t)
 {
-  nelts_t i;
-
   /* printf("mat %p\n", mat);
    * printf("ncb %u\n", meta->ncb); */
 #pragma omp parallel num_threads(t)
@@ -230,7 +228,7 @@ static inline void update_upper_row_block(mat_gb_block_t *mat,
       /* the first block is used for updated the remaining ones,
        * i.e. we start at block index i=shift+1 */
       /* printf("shift %u +1 < %u ncb?\n", shift, meta->ncb); */
-      for (i=shift+1; i<meta->ncb; ++i) {
+      for (nelts_t i=shift+1; i<meta->ncb; ++i) {
 #pragma omp task
         update_single_block(mat, shift, i, meta);
       }
@@ -281,20 +279,18 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
     const mat_gb_block_t *u, const nelts_t shift,
     const mat_gb_meta_data_t *meta, const int t)
 {
-  nelts_t i, j;
-
 #pragma omp parallel num_threads(t)
   {
 #pragma omp single nowait
     {
       /* the first block is used for updated the remaining ones,
        * i.e. we start at block index i=1 */
-      for (i=0; i<meta->nrb_CD; ++i) {
+      for (nelts_t i=0; i<meta->nrb_CD; ++i) {
         /* need to look at the first block in each row in
          * order to decide which algorithm to be chosen */
         /* printf("NEXT REDUCTION STEP %p %u\n", l[i*meta->ncb+shift].len, i); */
         if (l[i*meta->ncb+shift].len != NULL) {
-          for (j=shift+1; j<meta->ncb; ++j) {
+          for (nelts_t j=shift+1; j<meta->ncb; ++j) {
             /* printf("we reduce j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
             if (u[j].len != NULL) {
 #pragma omp task
@@ -311,7 +307,7 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
     }
   }
     /* remove the first block in each block row */
-    for (i=0; i<meta->nrb_CD; ++i) {
+    for (nelts_t i=0; i<meta->nrb_CD; ++i) {
       /* printf("len before %u * %u + %u || %p\n", i, meta->ncb, shift, l[i*meta->ncb+shift].len); */
       free_mat_gb_block(l+i*meta->ncb+shift);
       /* printf("len after %p\n", l[i*meta->ncb+shift].len); */
@@ -323,7 +319,7 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
   {
 #pragma omp single nowait
     {
-      for (i=0; i<meta->nrb_CD; ++i) {
+      for (nelts_t i=0; i<meta->nrb_CD; ++i) {
 #pragma omp task
         {
           /* check density of blocks */

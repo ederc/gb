@@ -5268,12 +5268,11 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
   /* printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD); */
 
   /* printf("meta %u\n", meta->nrb_CD); */
-  nelts_t i;
   #pragma omp parallel num_threads(t)
   {
     #pragma omp single nowait
     {
-      for (i=0; i<meta->nrb_CD; ++i) {
+      for (nelts_t i=0; i<meta->nrb_CD; ++i) {
         #pragma omp task
         write_to_mat_gb_row_block(mat, meta, i, spd->sell, basis, ht);
       }

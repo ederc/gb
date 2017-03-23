@@ -286,8 +286,6 @@ static inline void write_sparse_compact_row(src_t **rows,
 smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,
     const mat_gb_meta_data_t *meta, const int t)
 {
-  nelts_t i, ctr;
-
   smc_t *nm = initialize_sparse_compact_matrix(meta->nr_CD, meta->nc_AC,
       meta->nc_BD, meta->mod);
 
@@ -295,7 +293,7 @@ smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,
   {
 #pragma omp single nowait
     {
-      for (i=0; i<nm->nr; i=i+meta->bs) {
+      for (nelts_t i=0; i<nm->nr; i=i+meta->bs) {
 #pragma omp task
         {
           /* printf("constructs row %u\n",i); */
@@ -304,8 +302,8 @@ smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,
       }
     }
   }
-  ctr = 0;
-  for (i=0; i<nm->nr; ++i)
+  nelts_t ctr = 0;
+  for (nelts_t i=0; i<nm->nr; ++i)
     if (nm->row[i] != NULL)
       ctr++;
   nm->rk  = ctr;

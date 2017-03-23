@@ -76,8 +76,10 @@ static inline void load_dense_row_for_update_from_sparse(bf_t *dr,
 
   memset(dr, 0, meta->bs * sizeof(bf_t));
 
-  for (i=bl->len[idx]; i<bl->len[idx+1]; ++i)
-    dr[bl->pos[i]]  = (bf_t)bl->val[i];
+  if (bl->len != NULL) {
+    for (i=bl->len[idx]; i<bl->len[idx+1]; ++i)
+      dr[bl->pos[i]]  = (bf_t)bl->val[i];
+  }
 }
 
 static inline void write_updated_row_to_sparse_format(mat_gb_block_t *bl,
@@ -168,12 +170,12 @@ static inline void update_single_block_dense(mat_gb_block_t *mat,
 }
 
 static inline void update_single_block_sparse(mat_gb_block_t *mat,
-    const nelts_t idx, const mat_gb_meta_data_t *meta)
+    const nelts_t shift, const nelts_t idx, const mat_gb_meta_data_t *meta)
 {
   nelts_t i;
 
   /* first block used as lookup table for updates */
-  const mat_gb_block_t *fbl  = mat;
+  const mat_gb_block_t *fbl  = mat+shift;
   /* block to be updated */
   mat_gb_block_t *ubl  = mat+idx;
   /* row to be updated in dense format */
@@ -201,10 +203,11 @@ static inline void update_single_block_sparse(mat_gb_block_t *mat,
 }
 
 static inline void update_single_block(mat_gb_block_t *mat,
-    const nelts_t idx, const mat_gb_meta_data_t *meta)
+    const nelts_t shift, const nelts_t idx, const mat_gb_meta_data_t *meta)
 {
+  /* printf("in %u || %u\n", idx, shift); */
   if (mat[idx].len != NULL) {
-    update_single_block_sparse(mat, idx, meta);
+    update_single_block_sparse(mat, shift, idx, meta);
   } else {
     if (mat[idx].val != NULL)
       update_single_block_dense(mat, idx, meta);
@@ -214,7 +217,7 @@ static inline void update_single_block(mat_gb_block_t *mat,
 }
 
 static inline void update_upper_row_block(mat_gb_block_t *mat,
-    const mat_gb_meta_data_t *meta, const int t)
+    const nelts_t shift, const mat_gb_meta_data_t *meta, const int t)
 {
   nelts_t i;
 
@@ -225,10 +228,11 @@ static inline void update_upper_row_block(mat_gb_block_t *mat,
 #pragma omp single nowait
     {
       /* the first block is used for updated the remaining ones,
-       * i.e. we start at block index i=1 */
-      for (i=1; i<meta->ncb; ++i) {
+       * i.e. we start at block index i=shift+1 */
+      /* printf("shift %u +1 < %u ncb?\n", shift, meta->ncb); */
+      for (i=shift+1; i<meta->ncb; ++i) {
 #pragma omp task
-        update_single_block(mat, i, meta);
+        update_single_block(mat, shift, i, meta);
       }
     }
   }
@@ -245,6 +249,8 @@ static inline void sparse_update_lower_block_by_upper_block(mat_gb_block_t *l,
   /* first multiplier block used as lookup table for updates */
   const mat_gb_block_t *mbl  = l + rbi*meta->ncb+shift;
   /* block to be updated */
+  /* printf("rbi %u | cbi %u | ncb %u | nrb %u | shift %u\n",
+   *     rbi, cbi, meta->ncb, meta->nrb_CD, shift); */
   mat_gb_block_t *ubl  = l + rbi*meta->ncb+cbi;
   /* row to be updated in dense format */
   bf_t *dr  = (bf_t *)malloc(meta->bs * sizeof(bf_t));

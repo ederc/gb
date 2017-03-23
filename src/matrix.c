@@ -243,10 +243,10 @@ static inline void write_sparse_compact_row(src_t **rows,
     const mat_gb_block_t *old_mat, const nelts_t idx,
     const mat_gb_meta_data_t *meta)
 {
-  const nelts_t max = meta->bs < meta->nr_CD - idx*meta->bs ?
-    meta->bs : meta->nr_CD - idx*meta->bs;
+  const nelts_t max = meta->bs < meta->nr_CD - idx ?
+    meta->bs : meta->nr_CD - idx;
 
-  const mat_gb_block_t *om  = old_mat+idx*meta->ncb;
+  const mat_gb_block_t *om  = old_mat+(idx/meta->bs)*meta->ncb;
 
   nelts_t i, j, k;
   nelts_t ctr;
@@ -256,29 +256,29 @@ static inline void write_sparse_compact_row(src_t **rows,
     /* go only over D part, C is already zero */
     ctr = 1;
     for (j=meta->ncb_AC; j<meta->ncb; ++j) {
-      printf("j %u\n", j);
+      /* printf("j %u\n", j); */
       if (om[j].len != NULL) {
-        printf("drin?");
+        /* printf("drin?"); */
         for (k=om[j].len[i]; k<om[j].len[i+1]; ++k) {
           row[ctr]  = (src_t)om[j].pos[k] + (j-meta->ncb_AC)*meta->bs + meta->nc_AC;
           row[ctr+1]  = om[j].val[k];
-          printf("%u | %u || ", row[ctr+1], row[ctr]);
+          /* printf("%u | %u || ", row[ctr+1], row[ctr]); */
           ctr = ctr+2;
         }
       }
-      printf("\n");
+      /* printf("\n"); */
     }
     if (ctr>1) {
       row[0]  = ctr;
       row = realloc(row, ctr * sizeof(src_t));
-      rows[i + idx*meta->bs] = row;
+      rows[i + idx] = row;
       if (row[2] != 1) {
         normalize_row_c(row, meta->mod);
       }  
     } else {
       free(row);
       row = NULL;
-      rows[i + idx*meta->bs] = row;
+      rows[i + idx] = row;
     }
   }
 }

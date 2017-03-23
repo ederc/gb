@@ -398,12 +398,12 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
       check_new_element_for_redundancy(spd->col->hpos[fc], basis, ht) != 0) {
     return -1;
   }
-/* #if POLY_DEBUG */
+#if POLY_DEBUG
   printf("new lm from row (basis element %u): ", basis->load);
   for (int ii=0; ii<ht->nv; ++ii)
     printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
-/* #endif */
+#endif
 
   /* if not redundandant */
   nelts_t i;
@@ -428,22 +428,22 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
        * spd->col->nlm since DR is on the righthand side of the matrix */
       basis->eh[basis->load][ctr] = spd->col->hpos[row[i]];
       /* basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i]; */
-/* #if POLY_DEBUG */
+#if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
     for (int ii=0; ii<ht->nv; ++ii)
       printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
     printf("  ");
-/* #endif */
+#endif
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
       ctr++;
     /* } */
   }
-/* #if POLY_DEBUG */
+#if POLY_DEBUG
   printf("\n");
   printf("deg: %u\n", deg);
   printf("# terms = 1 + %u\n",ctr-1);
-/* #endif */
+#endif
   basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;
   basis->red[basis->load] = 0;

@@ -452,10 +452,9 @@ int main(int argc, char *argv[])
 
           /* possibly the first block of A is already the unit matrix, then it is
            * just an empty block and we do not need to update AB at all */
-          if (AB[0].len != NULL)
-            update_upper_row_block(AB, meta, nthreads);
+          if (AB[i].len != NULL)
+            update_upper_row_block(AB, i, meta, nthreads);
 
-          printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*****~~~~~~~~~~~~~~~~~~~\n");
           update_lower_by_upper_row_block(CD, AB, i, meta, nthreads);
 
           for (j=0; j<meta->ncb; ++j)
@@ -464,7 +463,6 @@ int main(int argc, char *argv[])
         }
       }
       smc_t *D  = convert_mat_gb_to_smc_format(CD, meta, nthreads);
-        printf("rank of D %u | %u\n", D->rk, D->nr);
 #if newred
       printf("--D BEGINNING--\n");
       for (int ii=0; ii<D->nr; ++ii) {
@@ -757,7 +755,7 @@ int main(int argc, char *argv[])
       CD = generate_sparse_compact_matrix_test(basis, spd->sell,
           spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
           nthreads);
-#if 1
+#if 0
         printf("--CD 1--\n");
         for (int ii=0; ii<CD->nr; ++ii) {
           printf("row[%u] ",ii);
@@ -787,7 +785,7 @@ int main(int argc, char *argv[])
         if (columns[ii] != 0)
           colctr++;
       }
-      printf("\n\nCD %6u / %6u cols | %4.2f %\n", colctr, spd->col->nlm,
+     /* printf("\n\nCD %6u / %6u cols | %4.2f %\n", colctr, spd->col->nlm, */
           (float)colctr / (float)spd->col->nlm);
 #endif
       if (spd->selu->load > 0) {
@@ -827,7 +825,7 @@ int main(int argc, char *argv[])
             }
           }
         }
-        printf("AB %6u / %6u rows | %4.2f %\n\n",ac, AB->nr, (float)ac/(float)AB->nr);
+        /* printf("AB %6u / %6u rows | %4.2f %\n\n",ac, AB->nr, (float)ac/(float)AB->nr); */
         free(appears);
 #endif
         meta_data->mat_rows = spd->selu->load + spd->sell->load;
@@ -883,7 +881,7 @@ int main(int argc, char *argv[])
 #endif
       CD->nr  = ctr;
       CD->rk  = ctr;
-        printf("rank of CD %u | %u\n", CD->rk, CD->nr);
+      /* printf("rank of CD %u | %u\n", CD->rk, CD->nr); */
       if (CD->rk > 1)
         reduce_lower_rows_c(CD, CD->ncl, nthreads);
       if (verbose > 0)

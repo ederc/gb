@@ -103,7 +103,6 @@ static inline ri_t get_number_of_row_blocks(const sel_t *sel, const nelts_t bs)
  * \param modulur
  */
 static inline void inverse_val_new(cf_t *x, const cf_t modulus) {
-  printf("modulus %u\n", modulus);
   assert(*x);
   if ( *x == 1 ) return ;
   assert((int32_t)modulus > 0);
@@ -124,7 +123,6 @@ static inline void inverse_val_new(cf_t *x, const cf_t modulus) {
   if (u1 < 0) {
     u1  +=  (int32_t)modulus;
     /* check_inverse(*x,u1,modulus); */
-  printf("u1 %d\n", u1);
     *x  =   (cf_t)u1;
     return;
   }
@@ -132,12 +130,10 @@ static inline void inverse_val_new(cf_t *x, const cf_t modulus) {
     u1  -=  (int32_t)modulus;
     /* check_inverse(*x,u1,modulus); */
     *x  =   (cf_t) u1;
-  printf("u1 %d\n", u1);
     return;
   }
   /* check_inverse(*x,u1,modulus); */
   *x  = (cf_t)u1;
-  printf("u1 %d\n", u1);
   return;
 }
 
@@ -4923,21 +4919,21 @@ static inline void write_poly_to_matrix(mat_gb_block_t *mat,
     mat[i].len[idx+1] = mat[i].len[idx];
   }
 
-  printf("mpp->mul %lu | bi %u | nt %u\n", mpp->mul, mpp->bi, basis->nt[mpp->bi]);
+  /* printf("mpp->mul %lu | bi %u | nt %u\n", mpp->mul, mpp->bi, basis->nt[mpp->bi]); */
   for (i=start; i<basis->nt[mpp->bi]; ++i) {
     /* printf("i %u\n", i); */
     cp  = ht->idx[find_in_hash_table_product(mpp->mul,
         basis->eh[mpp->bi][i], ht)];
 
     if (cp < meta->nc_AC) {
-      /* printf("block %u\n", cp /meta->bs);
-       * printf("C "); */
+      /* printf("C ");
+       * printf("block %u\n", cp /meta->bs); */
       bl  = mat + (cp / meta->bs);
     } else {
       cp  = cp - meta->nc_AC;
       bl  = mat + (meta->ncb_AC + cp / meta->bs);
-      /* printf("block %u\n", meta->ncb_AC + cp /meta->bs);
-       * printf("D "); */
+      /* printf("D ");
+       * printf("block %u\n", meta->ncb_AC + cp /meta->bs); */
     }
     /* printf("coeff %u\n", basis->cf[mpp->bi][i]); */
     bl->val[bl->len[idx+1]] = (cf_t)basis->cf[mpp->bi][i];
@@ -5091,21 +5087,21 @@ static inline void write_to_mat_gb_row_block_inverted_order(
   
   /* mat_gb_block_t *start = mat + (idx * meta->ncb); */
   mat_gb_block_t *start = mat;
-  printf("idx %u | ncb %u\n", idx, meta->ncb);
+  /* printf("idx %u | ncb %u\n", idx, meta->ncb); */
 
   const nelts_t offset  = idx*meta->bs;
   const nelts_t max     =
     (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
 
   for (i=0; i<meta->ncb; ++i) {
-    printf("block allocation %u / %u\n",i, meta->ncb);
+    /* printf("block allocation %u / %u\n",i, meta->ncb); */
     initialize_mat_gb_block(start+i, meta, max);
   }
 
   for (i=max; i>0; --i) {
-    printf("max %u | i %u | offset %u\n", max, i, offset);
+    /* printf("max %u | i %u | offset %u\n", max, i, offset); */
     write_poly_to_matrix(start, meta, max-i, 1, sel->mpp+(i-1+offset), basis, ht);
-    printf("---\n");
+    /* printf("---\n"); */
   }
 
   /* check len entries */
@@ -5195,11 +5191,11 @@ static inline void invert_first_block(mat_gb_block_t *mat,
   /* sparse */
   if (mat[0].len != NULL) {
     for (i=0; i<meta->bs; ++i) {
-      printf("i %u / %u | %u\n", i, meta->bs, mat[0].len[i]);
+      /* printf("i %u / %u | %u\n", i, meta->bs, mat[0].len[i]); */
       if (mat[0].len[i]<mat[0].len[i+1]) {
-        printf("val %u", mat[0].val[mat[0].len[i]]);
+        /* printf("val %u", mat[0].val[mat[0].len[i]]); */
         mat[0].val[mat[0].len[i]] = meta->mod - mat[0].val[mat[0].len[i]];
-        printf(" --> inverted %u\n", mat[0].val[mat[0].len[i]]);
+        /* printf(" --> inverted %u\n", mat[0].val[mat[0].len[i]]); */
       }
     }
     /* for (i=0; i<mat[0].len[meta->bs]; ++i) {
@@ -5219,9 +5215,10 @@ static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       meta->ncb * sizeof(mat_gb_block_t));
-  printf("ncb %u\n", meta->ncb);
-  printf("idx %u\n", idx);
-  printf("selu load %u\n", spd->selu->load);
+  /* printf("ncb %u\n", meta->ncb);
+   * printf("idx %u\n", idx);
+   * printf("selu load %u\n", spd->selu->load);
+   * printf("sell load %u\n", spd->sell->load); */
 
   /* note the inverted row order in each block: we make the first block the
    * unit matrix block, thus we have to reduce rows with smaller column
@@ -5268,7 +5265,7 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       (meta->nrb_CD * meta->ncb * sizeof(mat_gb_block_t)));
-  printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD);
+  /* printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD); */
 
   /* printf("meta %u\n", meta->nrb_CD); */
   nelts_t i;

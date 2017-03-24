@@ -116,7 +116,43 @@ static inline void set_updated_block(mat_gb_block_t **bl, mat_gb_block_t* new_bl
   free(new_bl);
 }
 
-static inline void update_dense_row(bf_t *dr, const nelts_t idx,
+static inline void update_dense_row_dense(bf_t *dr, const nelts_t idx,
+    const mat_gb_block_t *bl, const mat_gb_block_t *mbl,
+    const mat_gb_meta_data_t *meta)
+{
+  nelts_t i, j;
+
+  /* printf("bl->val %p\n", bl->val);
+   * for (nelts_t k=0; k< meta->bs; ++k) {
+   *   printf("%p -- ",bl->val+(k*meta->bs));
+   *   for (nelts_t l=0; l< meta->bs; ++l) {
+   *     printf("%u ", bl->val[k*meta->bs+l]);
+   *   }
+   *   printf("\n");
+   * }
+   * printf("\n"); */
+
+  for (i=mbl->len[idx]; i<mbl->len[idx+1]; ++i) {
+    const bf_t mul    = (bf_t)meta->mod - mbl->val[i];
+    const nelts_t ri  = bl->nr -1 - mbl->pos[i];
+    const cf_t *red   = bl->val+(ri*meta->bs);
+    /* printf("red %p\n",red);
+     * printf("ROW INDEX %u = %u - %u\n", ri, bl->nr, mbl->pos[i]); */
+
+    for (j=0; j<meta->bs; ++j) {
+      /* printf("j %u | pos[j] %u | val[j] %u\n", j, bl->pos[j], bl->val[j]);
+       * printf("%lu --> + %u * %u ====> ", dr[bl->pos[j]], mul, bl->val[j]); */
+      /* printf("j %u\n", j);
+       * printf("dr %lu\n", dr[j]);
+       * printf("mul %lu\n", mul);
+       * printf("red %u\n", red[j]); */
+      dr[j] +=  mul * red[j];
+      /* printf("%lu\n", dr[bl->pos[j]]); */
+    }
+  }
+}
+
+static inline void update_dense_row_sparse(bf_t *dr, const nelts_t idx,
     const mat_gb_block_t *bl, const mat_gb_block_t *mbl,
     const mat_gb_meta_data_t *meta)
 {
@@ -139,12 +175,12 @@ static inline void update_dense_row(bf_t *dr, const nelts_t idx,
 }
 
 static inline void update_single_block_dense(mat_gb_block_t *mat,
-    const nelts_t idx, const mat_gb_meta_data_t *meta)
+    const nelts_t shift, const nelts_t idx, const mat_gb_meta_data_t *meta)
 {
   nelts_t i;
 
   /* first block used as lookup table for updates */
-  const mat_gb_block_t *fbl  = mat;
+  const mat_gb_block_t *fbl  = mat+shift;
   /* block to be updated */
   mat_gb_block_t *ubl  = mat+idx;
   /* row to be updated in dense format */
@@ -160,7 +196,7 @@ static inline void update_single_block_dense(mat_gb_block_t *mat,
     load_dense_row_for_update_from_dense(dr, i, ubl, meta);
 
     /* find corresponding row and multiplier */
-    update_dense_row(dr, i, nbl, fbl, meta);
+    update_dense_row_sparse(dr, i, nbl, fbl, meta);
 
     /* write updated row to new storage holders */
     write_updated_row_to_sparse_format(nbl, dr, i, meta);
@@ -192,7 +228,7 @@ static inline void update_single_block_sparse(mat_gb_block_t *mat,
 
     /* find corresponding row and multiplier */
     /* printf("UPDATE ROW %u\n", i); */
-    update_dense_row(dr, i, nbl, fbl, meta);
+    update_dense_row_sparse(dr, i, nbl, fbl, meta);
 
     /* write updated row to new storage holders */
     write_updated_row_to_sparse_format(nbl, dr, i, meta);
@@ -210,7 +246,7 @@ static inline void update_single_block(mat_gb_block_t *mat,
     update_single_block_sparse(mat, shift, idx, meta);
   } else {
     if (mat[idx].val != NULL)
-      update_single_block_dense(mat, idx, meta);
+      update_single_block_dense(mat, shift, idx, meta);
     else
       return;
   }
@@ -235,7 +271,7 @@ static inline void update_upper_row_block(mat_gb_block_t *mat,
     }
   }
   /* check density of blocks */
-  adjust_block_row_types(mat, meta);
+  adjust_block_row_types_including_dense(mat, meta);
 }
 
 static inline void sparse_update_lower_block_by_upper_block(mat_gb_block_t *l,
@@ -260,7 +296,13 @@ static inline void sparse_update_lower_block_by_upper_block(mat_gb_block_t *l,
     load_dense_row_for_update_from_sparse(dr, i, ubl, meta);
 
     /* find corresponding row and multiplier */
-    update_dense_row(dr, i, u+cbi, mbl, meta);
+
+    /* we know already that u[cbi] is not the empty block,
+     * so it is either sparse or dense */
+    if (u[cbi].len != NULL)
+      update_dense_row_sparse(dr, i, u+cbi, mbl, meta);
+    else
+      update_dense_row_dense(dr, i, u+cbi, mbl, meta);
 
     /* write updated row to new storage holders */
     write_updated_row_to_sparse_format(nbl, dr, i, meta);
@@ -292,7 +334,7 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
         if (l[i*meta->ncb+shift].len != NULL) {
           for (nelts_t j=shift+1; j<meta->ncb; ++j) {
             /* printf("we reduce j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
-            if (u[j].len != NULL) {
+            if (u[j].val != NULL) {
 #pragma omp task
               {
                 sparse_update_lower_block_by_upper_block(l, u, shift, i, j, meta);
@@ -314,7 +356,7 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
     }
 
 /* at the moment we only work with sparse blocks */
-#if 1 
+#if 1
 #pragma omp parallel num_threads(t)
   {
 #pragma omp single nowait
@@ -327,7 +369,7 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
         }
       }
     }
-#endif
   }
+#endif
 }
 #endif

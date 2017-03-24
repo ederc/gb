@@ -4697,6 +4697,14 @@ static inline src_t *reduce_lower_by_upper_rows_offset_c(src_t *row, const smc_t
   free(bf);
   return row;
 }
+
+static inline void reduce_many_lower_by_upper_rows_offset_c(src_t **rows, 
+    const nelts_t nr, const smc_t *pivs)
+{
+  for (nelts_t i=0; i<nr; ++i)
+    rows[i] = reduce_lower_by_upper_rows_offset_c(rows[i], pivs);
+}
+
 static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
 {
   if (row[1] >= pivs->ncl)
@@ -5024,6 +5032,51 @@ static inline void write_poly_to_matrix(mat_gb_block_t *mat,
  *   }
  * } */
 
+static inline void adjust_block_row_types_including_dense(
+    mat_gb_block_t *mat, const mat_gb_meta_data_t *meta)
+{
+  nelts_t i,j,k;
+
+  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+  
+  for (i=0; i<meta->ncb; ++i) {
+    /* printf("i %u\n", i); */
+    /* sparse to dense ? */
+    if (mat[i].len != NULL) {
+      /* printf("%u len %u\n", i, mat[i].len[mat[i].nr]); */
+      if (mat[i].len[mat[i].nr] > 0) {
+        if (mat[i].len[mat[i].nr] > bs_square/2) {
+          cf_t *val = (cf_t *)calloc(bs_square, sizeof(cf_t));
+          for (j=0; j<mat[i].nr; ++j) {
+            for (k=mat[i].len[j]; k<mat[i].len[j+1]; ++k) {
+              val[j*meta->bs+mat[i].pos[k]]  = mat[i].val[k];
+            }
+          }
+          free(mat[i].len);
+          mat[i].len  = NULL;
+          free(mat[i].pos);
+          mat[i].pos  = NULL;
+          free(mat[i].val);
+          mat[i].val  = val;
+        } else {
+          /* printf("len %u\n", mat[i].len[mat[i].nr]); */
+          mat[i].pos =
+            realloc(mat[i].pos, mat[i].len[mat[i].nr] * sizeof(bs_t));
+          mat[i].val =
+            realloc(mat[i].val, mat[i].len[mat[i].nr] * sizeof(cf_t));
+        }
+      } else {
+        free(mat[i].len);
+        mat[i].len  = NULL;
+        free(mat[i].pos);
+        mat[i].pos  = NULL;
+        free(mat[i].val);
+        mat[i].val  = NULL;
+      }
+    }
+  }
+}
+
 static inline void adjust_block_row_types(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta)
 {
@@ -5145,6 +5198,19 @@ static inline void write_to_mat_gb_row_block_inverted_order(
   /* printf("----------------------------------------------------\n"); */
 }
 
+static inline void write_to_src_mat_row_block(src_t **mat,
+    const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
+    const gb_t *basis, const mp_cf4_ht_t *ht)
+{
+  const nelts_t offset  = idx*meta->bs;
+  const nelts_t max     =
+    (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
+  src_t **row   = mat + offset;
+
+  poly_to_sparse_compact_matrix_row_test(sel->mpp+(idx+offset), meta->nc_AC,
+      meta->nc, max, basis, row);
+}
+
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
     const gb_t *basis, const mp_cf4_ht_t *ht)
@@ -5209,6 +5275,22 @@ static inline void invert_first_block(mat_gb_block_t *mat,
   }
 }
 
+static inline src_t **generate_src_mat_upper_row_block(
+    const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
+    const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  const nelts_t offset  = idx*meta->bs;
+  const nelts_t max     =
+    (idx+1)*meta->bs < spd->selu->load ?
+    meta->bs : spd->selu->load - offset;
+
+  src_t **mat  = (src_t **)malloc(max * sizeof(src_t *));
+
+  poly_to_sparse_compact_matrix_row_test(spd->selu->mpp+(idx+offset),
+      meta->nc_AC, meta->nc, max, basis, mat);
+
+  return mat;
+}
 static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
     const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
     const spd_t *spd, const mp_cf4_ht_t *ht)
@@ -5275,6 +5357,33 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
       for (nelts_t i=0; i<meta->nrb_CD; ++i) {
         #pragma omp task
         write_to_mat_gb_row_block(mat, meta, i, spd->sell, basis, ht);
+      }
+    }
+  }
+
+  /* printf("%p\n", mat[0].len);
+   * printf("%p\n", mat[0].pos);
+   * printf("%p\n", mat[0].val);
+   * printf("nr %u\n", mat[0].nr); */
+  return mat;
+}
+
+static inline src_t **generate_src_mat_lower(
+    const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
+    const mp_cf4_ht_t *ht, const int t)
+{
+  src_t **mat  = (src_t **)malloc(
+      (meta->nr_CD * sizeof(src_t *)));
+  /* printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD); */
+
+  /* printf("meta %u\n", meta->nrb_CD); */
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+      for (nelts_t i=0; i<meta->nrb_CD; ++i) {
+        #pragma omp task
+        write_to_src_mat_row_block(mat, meta, i, spd->sell, basis, ht);
       }
     }
   }

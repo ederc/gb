@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
   struct timeval t_load_start;
   struct timeval t_complete;
   double t_linear_algebra         = 0;
+  double t_linear_algebra_local   = 0;
   double t_symbolic_preprocessing = 0;
   double t_sorting_columns        = 0;
   double t_generating_gbla_matrix = 0;
@@ -547,6 +548,8 @@ int main(int argc, char *argv[])
     if (reduce_gb == 23) {
       mat_gb_block_t *AB, *CD   = NULL;
       mat_gb_meta_data_t *meta  = NULL;
+      if (verbose > 0)
+        t_linear_algebra_local  = 0;
 
       /* generate meta data */
       meta  = generate_matrix_meta_data(block_size, basis->mod, spd);
@@ -586,7 +589,7 @@ int main(int argc, char *argv[])
 
           update_lower_by_upper_row_block(CD, AB, i, meta, nthreads);
           if (verbose > 0) {
-            t_linear_algebra  +=  walltime(t_load_start);
+            t_linear_algebra_local  +=  walltime(t_load_start);
             gettimeofday(&t_load_start, NULL);
           }
 
@@ -629,12 +632,14 @@ int main(int argc, char *argv[])
       D->rk  = ctr;
       if (D->rk > 1)
         reduce_lower_rows_c(D, D->ncl, nthreads);
-      if (verbose > 0)
-        t_linear_algebra  +=  walltime(t_load_start);
-      if (verbose == 1 && steps > 0)
+      if (verbose > 0) {
+        t_linear_algebra_local  +=  walltime(t_load_start);
+        t_linear_algebra        +=  t_linear_algebra_local;
+      }
+      if (verbose == 1 && steps > 0) {
         printf("%4u new %4u zero ", D->rk, spd->sell->load-D->rk);
-        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
-
+        printf("%9.3f sec\n", t_linear_algebra_local / (1000000));
+      }
       if (verbose > 0)
         gettimeofday(&t_load_start, NULL);
       done  = update_basis_new(basis, ps, spd, D, ht);
@@ -995,6 +1000,124 @@ int main(int argc, char *argv[])
       if (verbose == 1 && steps > 1)
         printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk);
       printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
+
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      done  = update_basis_new(basis, ps, spd, CD, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (init_rk_CD - CD->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<CD->rk; ++k) {
+        free(CD->row[k]);
+      }
+      free(CD->row);
+      free(CD);
+      CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
+    if (reduce_gb == 123) {
+      /* we generate the matrix in the following shape:
+      * AB = already known lead terms resp. pivots
+      * --
+      * CD = new data, new lead terms to be computed
+      *
+      * genearte upper matrix, i.e. already known pivots */
+      nelts_t init_rk_CD  = 0;
+      smc_t *AB = NULL, *CD = NULL;
+      /* genearte lower matrix, i.e. unkown pivots */
+      CD = generate_sparse_compact_matrix_test(basis, spd->sell,
+          spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+          nthreads);
+#if 0
+        printf("--CD 1--\n");
+        for (int ii=0; ii<CD->nr; ++ii) {
+          printf("row[%u] ",ii);
+          if (CD->row[ii] == NULL)
+            printf("NULL\n");
+          else {
+            for (int jj=1; jj<CD->row[ii][0]; jj += 2) {
+              printf("%u at %u | ",CD->row[ii][jj+1],CD->row[ii][jj]);
+            }
+            printf("\n");
+          }
+        }
+#endif
+      meta_data->mat_rows = spd->selu->load + spd->sell->load;
+      meta_data->mat_cols = CD->ncl + CD->ncr;
+
+      init_rk_CD  = CD->nr;
+      if (spd->selu->load > 0) {
+        for (nelts_t k=0; k<spd->selu->load; k=k+block_size) {
+          const nelts_t nr = block_size < spd->selu->load - k ? 
+            block_size : spd->selu->load-k;
+          /* printf("sl %u | k %u | nr %u\n", spd->selu->load, k, nr); */
+          AB = generate_sparse_compact_matrix_offset_block(basis, spd->selu,
+              k, nr, spd->col->nlm, spd->col->load-spd->col->nlm);
+        /* printf("--AB %u--\n", k);
+         * for (int ii=0; ii<AB->nr; ++ii) {
+         *   printf("row[%u] ",ii);
+         *   if (AB->row[ii] == NULL)
+         *     printf("NULL\n");
+         *   else {
+         *     for (int jj=2; jj<AB->row[ii][0]; jj += 2) {
+         *       printf("%u at %u | ",AB->row[ii][jj+1],AB->row[ii][jj]);
+         *     }
+         *     printf("\n");
+         *   }
+         * } */
+
+#pragma omp parallel for num_threads(nthreads)
+          for (nelts_t i=0; i<CD->nr; ++i) {
+            CD->row[i]  = reduce_lower_by_upper_rows_offset_c_block(CD->row[i], AB, k);
+          }
+          for (nelts_t k=0; k<AB->nr; ++k) {
+            free(AB->row[k]);
+          }
+          free(AB->row);
+          free(AB);
+          AB  = NULL;
+        }
+
+        if (verbose > 0)
+          t_generating_gbla_matrix  +=  walltime(t_load_start);
+        if (verbose > 0)
+          gettimeofday(&t_load_start, NULL);
+        if (verbose > 1) {
+          printf("matrix rows %6u \n", meta_data->mat_rows);
+          printf("matrix cols %6u \n", meta_data->mat_cols);
+        }
+        if (verbose == 1) {
+          printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+              steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+          fflush(stdout);
+        }
+      }
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<CD->nr; ++i) {
+        if (CD->row[i] != NULL) {
+          CD->row[ctr] = CD->row[i];
+          if (CD->row[ctr][2] != 1)
+            CD->row[ctr] = normalize_row_c(CD->row[ctr], CD->mod);
+          ctr++;
+        }
+      }
+      CD->nr  = ctr;
+      CD->rk  = ctr;
+      /* printf("rank of CD %u | %u\n", CD->rk, CD->nr); */
+      if (CD->rk > 1)
+        reduce_lower_rows_c(CD, CD->ncl, nthreads);
+      if (verbose > 0)
+        t_linear_algebra  +=  walltime(t_load_start);
+      if (verbose == 1 && steps > 1)
+        printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk);
+        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
 
       if (verbose > 0)
         gettimeofday(&t_load_start, NULL);

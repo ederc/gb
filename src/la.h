@@ -139,14 +139,21 @@ static inline void update_dense_row_dense(bf_t *dr, const nelts_t idx,
     /* printf("red %p\n",red);
      * printf("ROW INDEX %u = %u - %u\n", ri, bl->nr, mbl->pos[i]); */
 
-    for (j=0; j<meta->bs; ++j) {
+    for (j=0; j<meta->bs; j=j+8) {
       /* printf("j %u | pos[j] %u | val[j] %u\n", j, bl->pos[j], bl->val[j]);
        * printf("%lu --> + %u * %u ====> ", dr[bl->pos[j]], mul, bl->val[j]); */
       /* printf("j %u\n", j);
        * printf("dr %lu\n", dr[j]);
        * printf("mul %lu\n", mul);
        * printf("red %u\n", red[j]); */
-      dr[j] +=  mul * red[j];
+      dr[j]   +=  mul * red[j];
+      dr[j+1] +=  mul * red[j+1];
+      dr[j+2] +=  mul * red[j+2];
+      dr[j+3] +=  mul * red[j+3];
+      dr[j+4] +=  mul * red[j+4];
+      dr[j+5] +=  mul * red[j+5];
+      dr[j+6] +=  mul * red[j+6];
+      dr[j+7] +=  mul * red[j+7];
       /* printf("%lu\n", dr[bl->pos[j]]); */
     }
   }
@@ -161,14 +168,18 @@ static inline void update_dense_row_sparse(bf_t *dr, const nelts_t idx,
   for (i=mbl->len[idx]; i<mbl->len[idx+1]; ++i) {
     const bf_t mul    = (bf_t)meta->mod - mbl->val[i];
     const nelts_t ri  = bl->nr -1 - mbl->pos[i];
-/*     printf("ROW INDEX %u = %u - %u\n", ri, bl->nr, mbl->pos[i]);
- *
- *     printf("bl->len %p\n", bl->len);
- *     printf("bl->len[%u] %u\n", ri, bl->len[ri]); */
-    for (j=bl->len[ri]; j<bl->len[ri+1]; ++j) {
+    const nelts_t shift = (bl->len[ri+1]-bl->len[ri]) % 4;
+    /* printf("bl->len[ri] %u | bl->len[ri+1] %u | shift %u\n",
+     *     bl->len[ri], bl->len[ri+1], shift); */
+    for (j=bl->len[ri]; j<bl->len[ri]+shift; ++j)
+      dr[bl->pos[j]] +=  mul * bl->val[j];
+    for (j; j<bl->len[ri+1]; j=j+4) {
+      dr[bl->pos[j]]    +=  mul * bl->val[j];
+      dr[bl->pos[j+1]]  +=  mul * bl->val[j+1];
+      dr[bl->pos[j+2]]  +=  mul * bl->val[j+2];
+      dr[bl->pos[j+3]]  +=  mul * bl->val[j+3];
       /* printf("j %u | pos[j] %u | val[j] %u\n", j, bl->pos[j], bl->val[j]);
        * printf("%lu --> + %u * %u ====> ", dr[bl->pos[j]], mul, bl->val[j]); */
-      dr[bl->pos[j]] +=  mul * bl->val[j];
       /* printf("%lu\n", dr[bl->pos[j]]); */
     }
   }
@@ -271,7 +282,8 @@ static inline void update_upper_row_block(mat_gb_block_t *mat,
     }
   }
   /* check density of blocks */
-  adjust_block_row_types_including_dense(mat, meta);
+  adjust_block_row_types(mat, meta);
+  /* adjust_block_row_types_including_dense(mat, meta); */
 }
 
 static inline void sparse_update_lower_block_by_upper_block(mat_gb_block_t *l,

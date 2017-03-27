@@ -99,7 +99,7 @@ typedef uint32_t cf_t;
 typedef re_l_t bf_t;
 
 /* block size */
-typedef uint8_t bs_t;
+typedef uint16_t bs_t;
 
 #define ALIGNT 32
 

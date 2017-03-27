@@ -171,8 +171,9 @@ static inline void update_dense_row_sparse(bf_t *dr, const nelts_t idx,
     const nelts_t shift = (bl->len[ri+1]-bl->len[ri]) % 4;
     /* printf("bl->len[ri] %u | bl->len[ri+1] %u | shift %u\n",
      *     bl->len[ri], bl->len[ri+1], shift); */
-    for (j=bl->len[ri]; j<bl->len[ri]+shift; ++j)
+    for (j=bl->len[ri]; j<bl->len[ri]+shift; ++j) {
       dr[bl->pos[j]] +=  mul * bl->val[j];
+    }
     for (j; j<bl->len[ri+1]; j=j+4) {
       dr[bl->pos[j]]    +=  mul * bl->val[j];
       dr[bl->pos[j+1]]  +=  mul * bl->val[j+1];
@@ -339,19 +340,22 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
     {
       /* the first block is used for updated the remaining ones,
        * i.e. we start at block index i=1 */
-      for (nelts_t i=0; i<meta->nrb_CD; ++i) {
-        /* need to look at the first block in each row in
-         * order to decide which algorithm to be chosen */
-        /* printf("NEXT REDUCTION STEP %p %u\n", l[i*meta->ncb+shift].len, i); */
-        if (l[i*meta->ncb+shift].len != NULL) {
-          for (nelts_t j=shift+1; j<meta->ncb; ++j) {
-            /* printf("we reduce j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
-            if (u[j].val != NULL) {
+          for (nelts_t i=0; i<meta->nrb_CD; ++i) {
+            /* need to look at the first block in each row in
+            * order to decide which algorithm to be chosen */
+            /* printf("NEXT REDUCTION STEP %p %u\n", l[i*meta->ncb+shift].len, i); */
+            if (l[i*meta->ncb+shift].len != NULL) {
+      for (nelts_t j=shift+1; j<meta->ncb; ++j) {
+        /* printf("we reduce j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
+        if (u[j].val != NULL) {
 #pragma omp task
               {
                 sparse_update_lower_block_by_upper_block(l, u, shift, i, j, meta);
               }
             }
+            /* else {
+             *   printf("lower block NULL\n");
+             * } */
             /* printf("reduced j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
           }
         } else {
@@ -377,6 +381,7 @@ static inline void update_lower_by_upper_row_block(mat_gb_block_t *l,
 #pragma omp task
         {
           /* check density of blocks */
+          /* printf("adjusting C|D blocks\n"); */
           adjust_block_row_types(l+i*meta->ncb, meta);
         }
       }

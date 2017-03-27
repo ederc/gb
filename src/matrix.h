@@ -5233,6 +5233,8 @@ static inline void adjust_block_row_types(mat_gb_block_t *mat,
     if (mat[i].len != NULL) {
       /* printf("%u len %u\n", i, mat[i].len[mat[i].nr]); */
       if (mat[i].len[mat[i].nr] > 0) {
+        /* if (mat[i].len[mat[i].nr] > bs_square/2)
+         *   printf("DENSE\n"); */
         /* printf("len %u\n", mat[i].len[mat[i].nr]); */
         mat[i].pos =
           realloc(mat[i].pos, mat[i].len[mat[i].nr] * sizeof(bs_t));

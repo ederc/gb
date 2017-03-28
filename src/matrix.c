@@ -239,6 +239,60 @@ ri_t reduce_gbla_matrix_keep_A(mat_t *mat, int verbose, int nthreads)
   return rank_D;
 }
 
+static inline void write_sparse_compact_row_offset(src_t **rows,
+    const mat_gb_block_t **old_mat, const nelts_t idx,
+    const mat_gb_meta_data_t *meta)
+{
+  const nelts_t max = meta->bs < meta->nr_AB - idx ?
+    meta->bs : meta->nr_AB - idx;
+
+  const mat_gb_block_t *om  = old_mat[idx/meta->bs];
+
+  nelts_t i, j, k;
+  nelts_t ctr;
+
+  /* printf("om[0].nr %u\n", om[0].nr); */
+  const nelts_t start = idx/meta->bs + 1;
+  for (i=0; i<max; ++i) {
+    src_t *row  = (src_t *)malloc((2*meta->nc+1) * sizeof(src_t));
+    /* go only over D part, C is already zero */
+    ctr = 2;
+    row[ctr]    = idx+max-i-1;
+    row[ctr+1]  = 1;
+    ctr = ctr+2;
+    for (j=start; j<meta->ncb_AC; ++j) {
+      if (om[j].len != NULL) {
+        /* printf("drin?"); */
+        for (k=om[j].len[i]; k<om[j].len[i+1]; ++k) {
+          row[ctr]    = (src_t)om[j].pos[k] + j*meta->bs;
+          row[ctr+1]  = om[j].val[k];
+          /* printf("%u | %u || ", row[ctr+1], row[ctr]); */
+          ctr = ctr+2;
+        }
+      }
+      /* printf("\n"); */
+    }
+    for (j=meta->ncb_AC; j<meta->ncb; ++j) {
+      /* printf("2j %u\n", j); */
+      if (om[j].len != NULL) {
+        /* printf("drin?"); */
+        for (k=om[j].len[i]; k<om[j].len[i+1]; ++k) {
+          row[ctr]    = (src_t)om[j].pos[k] + (j-meta->ncb_AC)*meta->bs + meta->nc_AC;
+          row[ctr+1]  = om[j].val[k];
+          /* printf("%u | %u || ", row[ctr+1], row[ctr]); */
+          ctr = ctr+2;
+        }
+      }
+      /* printf("\n"); */
+    }
+    /* there is always at least a leading 1 in such a row */
+    row[0]  = ctr;
+    row[1]  = ((ctr-2)/2) % 2 + 1;
+    row = realloc(row, ctr * sizeof(src_t));
+    rows[idx+max-i-1] = row;
+  }
+}
+
 static inline void write_sparse_compact_row(src_t **rows,
     const mat_gb_block_t *old_mat, const nelts_t idx,
     const mat_gb_meta_data_t *meta)
@@ -281,6 +335,28 @@ static inline void write_sparse_compact_row(src_t **rows,
       rows[i + idx] = row;
     }
   }
+}
+
+smc_t *convert_mat_gb_to_smc_offset_format(const mat_gb_block_t **om,
+    const mat_gb_meta_data_t *meta, const int t)
+{
+  smc_t *nm = initialize_sparse_compact_matrix(meta->nr_AB, meta->nc_AC,
+      meta->nc_BD, meta->mod);
+
+#pragma omp parallel num_threads(t)
+  {
+#pragma omp single nowait
+    {
+      for (nelts_t i=0; i<nm->nr; i=i+meta->bs) {
+#pragma omp task
+        {
+          write_sparse_compact_row_offset(nm->row, om, i, meta);
+        }
+      }
+    }
+  }
+
+  return nm;
 }
 
 smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,

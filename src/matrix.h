@@ -3340,6 +3340,15 @@ static inline src_t *normalize_row_c(src_t *row, const cf_t mod)
   return row;
 }
 
+static inline int cmp_sparse_rows_by_lead_column_offset_c(const void *a,
+    const void *b)
+{
+  const src_t *ra  = *((src_t **)a);
+  const src_t *rb  = *((src_t **)b);
+
+  return (int)ra[2] - (int)rb[2];
+}
+
 static inline int cmp_sparse_rows_by_lead_column_c(const void *a,
     const void *b)
 {
@@ -3349,6 +3358,108 @@ static inline int cmp_sparse_rows_by_lead_column_c(const void *a,
   return (int)ra[1] - (int)rb[1];
 }
 
+static inline void interreduce_pivots_offset_c(src_t **pivs, const nelts_t rk,
+    const nelts_t ncl, const nelts_t ncr, const cf_t mod)
+{
+
+  /* printf("rank %u\n", rk); */
+  const nelts_t nc  = ncl + ncr;
+  nelts_t j;
+
+  /* store row in dense format using bf_t data type for delayed modulus
+   * computations */
+  bf_t *bf  = NULL;
+  for (nelts_t k=0; k<rk; ++k) {
+    const nelts_t idx   = rk-k-1;
+    const nelts_t shift = pivs[idx][2];
+    /* printf("k %u -- shift %u\n", k, shift); */
+    bf = realloc(bf, (nc-shift) * sizeof(bf_t));
+    bf_t *bft = bf-shift;
+    memset(bf, 0, (nc-shift)*sizeof(bf_t));
+    for (nelts_t j=2; j<pivs[idx][0]; j=j+2) {
+      /*
+      printf("pivs[%u] = %p\n", idx, pivs[idx]);
+      printf("shift %u | nc-shift %u\n", shift, nc-shift);
+      printf("rk %u | k %u\n", rk, k);
+      printf("nc %u | j %u\n", nc, j);
+      printf("sz %u\n", pivs[idx][0]);
+      printf("%u\n", pivs[idx][j]);
+      printf("%u\n", pivs[idx][j+1]);
+      */
+      bft[pivs[idx][j]]  = (bf_t)pivs[idx][j+1];
+    }
+    free(pivs[idx]);
+    
+    /* loop over all other pivots and reduce if possible */
+    for (nelts_t l=0; l<k; ++l) {
+      const nelts_t plc = pivs[rk-l-1][2];
+      /* printf("rk-l-1 %u | plc %u\n", rk-l-1,plc); */
+      if (bft[plc] != 0) {
+        const src_t *red = pivs[rk-l-1];
+        const bf_t mul = (bf_t)(mod) - bft[plc]; /* it is already reduced modulo mod */
+        /* loop unrolling by 2, test length in advance and probably add the useless
+         * reduction on the pivot entry in order to get a even loop length */
+#if 0
+        j = j & 1 ? 3 : 1;
+        for (; j<red[0]; j+=4) {
+          bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+          bft[red[j+2]] +=  (bf_t)(mul) * red[j+3];
+        }
+        /* due to above loop unrolling we cannot be sure if we have set the old
+         * pivot entry to zero */
+#else
+        /*
+        const nelts_t mod8  = j % 8;
+        for (j=1; j<2*mod8; j=j+2) {
+          bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+        }
+        for (; j<red[0]; j+=16) {
+          bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+          bft[red[j+2]] +=  (bf_t)(mul) * red[j+3];
+          bft[red[j+4]] +=  (bf_t)(mul) * red[j+5];
+          bft[red[j+6]] +=  (bf_t)(mul) * red[j+7];
+          bft[red[j+8]] +=  (bf_t)(mul) * red[j+9];
+          bft[red[j+10]] +=  (bf_t)(mul) * red[j+11];
+          bft[red[j+12]] +=  (bf_t)(mul) * red[j+13];
+          bft[red[j+14]] +=  (bf_t)(mul) * red[j+15];
+        }
+        */
+        for (j=2; j<2*red[1]; j=j+2)
+          bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+        /* for (; j<red[0]; j+=8) { */
+        for (; j<red[0]; j+=4) {
+          bft[red[j]]   +=  (bf_t)(mul) * red[j+1];
+          bft[red[j+2]] +=  (bf_t)(mul) * red[j+3];
+          /* bft[red[j+4]] +=  (bf_t)(mul) * red[j+5];
+           * bft[red[j+6]] +=  (bf_t)(mul) * red[j+7]; */
+        }
+#endif
+        bft[plc] = 0;
+      }
+    }
+    /* write pivot back to sparse representation */
+    pivs[idx]    = (src_t *)malloc((2*(nc-shift)+2)*sizeof(src_t));
+    nelts_t ctr = 2;
+    for (j=0; j<nc-shift; ++j) {
+      bf[j] = bf[j] % mod;
+      if (bf[j] != 0) {
+        pivs[idx][ctr] = j+shift;
+        pivs[idx][ctr+1] = (src_t)bf[j];
+        ctr +=  2;
+      }
+    } 
+    /* fix memory */
+    pivs[idx][0]  = ctr;
+    pivs[idx][1]  = ((ctr-2)/2) % 2 +1;
+    /*
+    printf("rk %u -- k %u \n", rk, k);
+    printf("sz %u \n",pivs[idx][0]);
+    printf("%p\n",pivs[idx]);
+    */
+    pivs[idx]    = realloc(pivs[idx], pivs[idx][0]*sizeof(src_t));
+  }
+  free(bf);
+}
 static inline void interreduce_pivots_c(src_t **pivs, const nelts_t rk,
     const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
@@ -3646,6 +3757,47 @@ static inline void compute_new_pivots_c(src_t *row, src_t **pivs,
       return;
     done  = __sync_bool_compare_and_swap(&pivs[row[1]-ncl], NULL, row);
   } while (!done);
+}
+
+static inline void interreduce_upper_rows_offset_c(smc_t *mat, const nelts_t shift,
+    const int nthreads)
+{
+#if newred
+  printf("mat %p, mat->row %p, mat->row[0] %p\n", mat, mat->row, mat->row[0]);
+  printf("mat->nr %u\n", mat->nr);
+#endif
+  /* sort rows by lead columns */
+  qsort(mat->row, mat->nr, sizeof(src_t **), cmp_sparse_rows_by_lead_column_offset_c);
+  /* initialize holder for pivots that we find during the reduction */
+  src_t **pivs = (src_t **)malloc(mat->rk * sizeof(src_t *));
+  for (nelts_t i=0; i<mat->rk; ++i) {
+    pivs[i] = NULL;
+  }
+  nelts_t j = 0;
+  for (nelts_t i=0; i<mat->rk; ++i) {
+    /* printf("row[%u][2] = %u | shift = %u\n", i, mat->row[i][2], shift); */
+    if (!pivs[mat->row[i][2]-shift]) {
+      pivs[mat->row[i][2]-shift] = mat->row[i];
+    } else {
+      mat->row[j++] = mat->row[i];
+    }
+  }
+#if newred
+  printf("FINAL PIVOTS:\n");
+  for (nelts_t i=0; i<mat->rk; ++i) {
+    printf("piv[%u] (%p)",i, pivs[i]);
+    if (pivs[i] == NULL)
+      printf("NULL\n");
+    else {
+      for (int jj=2; jj<pivs[i][0]; jj = jj+2) {
+        printf("%u at %u | ",pivs[i][jj+1],pivs[i][jj]);
+      }
+      printf("\n");
+    }
+  }
+#endif
+  interreduce_pivots_offset_c(mat->row, mat->rk, mat->ncl, mat->ncr, mat->mod);
+  free(pivs);
 }
 
 static inline void reduce_lower_rows_c(smc_t *mat, const nelts_t shift, const int nthreads)
@@ -5357,18 +5509,17 @@ static inline void write_to_src_mat_row_block(src_t **mat,
 }
 
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
-    const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
-    const gb_t *basis, const mp_cf4_ht_t *ht)
+    const mat_gb_meta_data_t *meta, const nelts_t idx, const nelts_t ci,
+    const sel_t *sel, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
   nelts_t i;
   
-  mat_gb_block_t *start   = mat + (idx * meta->ncb);
+  mat_gb_block_t *start   = mat + (ci * meta->ncb);
 
   const nelts_t offset  = idx*meta->bs;
   const nelts_t max     =
     (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
 
-  /* printf("MAX == %u | %u | %u\n", max, sel->load, offset); */
   for (i=0; i<meta->ncb; ++i) {
     /* printf("iter %p | start %p\n", iter, start); */
     initialize_mat_gb_block(start+i, meta, max);
@@ -5382,13 +5533,13 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
   }
 
   /* check len entries */
-  /* if (max < meta->bs) {
-   *   for (i=0; i<meta->ncb; ++i) {
-   *     for (j=max+1; j<meta->bs+1; ++j) {
-   *       start[i].len[j] = start[i].len[max];
-   *     }
-   *   }
-   * } */
+  if (max < meta->bs) {
+    for (i=0; i<meta->ncb; ++i) {
+      for (nelts_t j=max+1; j<meta->bs+1; ++j) {
+        start[i].len[j] = start[i].len[max];
+      }
+    }
+  }
 
   /* check density of blocks */
   adjust_block_row_types(start, meta);
@@ -5486,6 +5637,18 @@ static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
   return mat;
 }
 
+static inline mat_gb_block_t *generate_mat_gb_row_block(
+    const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
+    const spd_t *spd, const mp_cf4_ht_t *ht)
+{
+  mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
+      meta->ncb * sizeof(mat_gb_block_t));
+
+  write_to_mat_gb_row_block(mat, meta, idx, 0, spd->selu, basis, ht);
+
+  return mat;
+}
+
 static inline mat_gb_block_t *generate_mat_gb_lower(
     const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
     const mp_cf4_ht_t *ht, const int t)
@@ -5501,7 +5664,7 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
     {
       for (nelts_t i=0; i<meta->nrb_CD; ++i) {
         #pragma omp task
-        write_to_mat_gb_row_block(mat, meta, i, spd->sell, basis, ht);
+        write_to_mat_gb_row_block(mat, meta, i, i, spd->sell, basis, ht);
       }
     }
   }

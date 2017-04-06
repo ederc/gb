@@ -564,7 +564,7 @@ int main(int argc, char *argv[])
     }
 #endif
     /* new la implementation */
-    if (reduce_gb == 23) {
+    if (reduce_gb == 27) {
       mat_gb_block_t *AB, *CD   = NULL;
       mat_gb_meta_data_t *meta  = NULL;
       if (verbose > 0)
@@ -601,12 +601,136 @@ int main(int argc, char *argv[])
             gettimeofday(&t_load_start, NULL);
           }
 
+          /* we do not update AB in this variant. so we directly reduce CD with the AB block */
+          /* if (AB[i].len != NULL)
+           *   update_upper_row_block(AB, i, meta, nthreads); */
+
+          update_lower_by_upper_row_block(CD, AB, i, meta, nthreads);
+          if (verbose > 0) {
+            t_linear_algebra_local  +=  walltime(t_load_start);
+            gettimeofday(&t_load_start, NULL);
+          }
+
+          for (j=0; j<meta->ncb; ++j)
+            free_mat_gb_block(AB+j);
+          free(AB);
+        }
+      }
+      smc_t *D  = convert_mat_gb_to_smc_format(CD, meta, nthreads);
+#if newred
+      printf("--D BEGINNING--\n");
+      for (int ii=0; ii<D->nr; ++ii) {
+        printf("row[%u] ",ii);
+        if (D->row[ii] == NULL)
+          printf("NULL\n");
+        else {
+          for (int jj=1; jj<D->row[ii][0]; jj += 2) {
+            printf("%u at %u | ",D->row[ii][jj+1],D->row[ii][jj]);
+          }
+          printf("\n");
+        }
+      }
+#endif
+      nelts_t j, k;
+      for (j=0; j<meta->nrb_CD; ++j)
+        for (k=0; k<meta->ncb; ++k)
+          free_mat_gb_block(CD+j*meta->ncb+k);
+      free(CD);
+      free(meta);
+
+      /* get rank of D */
+      nelts_t ctr = 0;
+      for (nelts_t i=0; i<D->nr; ++i) {
+        if (D->row[i] != NULL) {
+          D->row[ctr] = D->row[i];
+          ctr++;
+        }
+      }
+      D->nr  = ctr;
+      D->rk  = ctr;
+      if (D->rk > 1)
+        reduce_lower_rows_c(D, D->ncl, nthreads);
+      if (verbose > 0) {
+        t_linear_algebra_local  +=  walltime(t_load_start);
+        t_linear_algebra        +=  t_linear_algebra_local;
+      }
+      if (verbose == 1 && steps > 0) {
+        printf("%4u new %4u zero ", D->rk, spd->sell->load-D->rk);
+        printf("%9.3f sec\n", t_linear_algebra_local / (1000000));
+      }
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      done  = update_basis_new(basis, ps, spd, D, ht);
+      if (verbose > 0) {
+        n_zero_reductions +=  (spd->sell->load - D->rk);
+      }
+      free_symbolic_preprocessing_data(&spd);
+      clear_hash_table_idx(ht);
+      for (nelts_t k=0; k<D->rk; ++k) {
+        free(D->row[k]);
+      }
+      free(D->row);
+      free(D);
+      CD  = NULL;
+      if (verbose > 0)
+        t_update_pairs  +=  walltime(t_load_start);
+      if (done) {
+        basis->has_unit = 1;
+        break;
+      }
+    }
+    if (reduce_gb == 23) {
+      mat_gb_block_t *AB, *CD   = NULL;
+      mat_gb_meta_data_t *meta  = NULL;
+      if (verbose > 0)
+        t_linear_algebra_local  = 0;
+
+      /* generate meta data */
+      meta  = generate_matrix_meta_data(block_size, basis->mod, spd);
+
+      /* generate CD part */
+      CD  = generate_mat_gb_lower(meta, basis, spd, ht, nthreads);
+
+      meta_data->mat_rows = spd->selu->load + spd->sell->load;
+      meta_data->mat_cols = meta->nc_AC + meta->nc_BD;
+      if (verbose > 0)
+        t_generating_gbla_matrix  +=  walltime(t_load_start);
+      if (verbose > 0)
+        gettimeofday(&t_load_start, NULL);
+      if (verbose > 1) {
+        printf("matrix rows %6u \n", meta_data->mat_rows);
+        printf("matrix cols %6u \n", meta_data->mat_cols);
+      }
+      if (verbose == 1) {
+        printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+            steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+        fflush(stdout);
+      }
+
+      if (spd->selu->load > 0) {
+        nelts_t i, j;
+        for (i=0; i<meta->nrb_AB; ++i) {
+#define OLD 0
+#if OLD
+          AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
+#else
+          AB  = generate_mat_gb_row_block(i, meta, basis, spd, ht);
+#endif
+          if (verbose > 0) {
+            t_generating_gbla_matrix  +=  walltime(t_load_start);
+            gettimeofday(&t_load_start, NULL);
+          }
+
           /* possibly the first block of A is already the unit matrix, then it is
            * just an empty block and we do not need to update AB at all */
+#if OLD
           if (AB[i].len != NULL)
             update_upper_row_block(AB, i, meta, nthreads);
 
           update_lower_by_upper_row_block(CD, AB, i, meta, nthreads);
+#else
+          update_lower_by_upper_row_block_not_prereduced(CD, AB, i, meta, nthreads);
+#endif
           if (verbose > 0) {
             t_linear_algebra_local  +=  walltime(t_load_start);
             gettimeofday(&t_load_start, NULL);
@@ -1105,10 +1229,25 @@ int main(int argc, char *argv[])
          *     printf("\n");
          *   }
          * } */
+        /* interreduce_upper_rows_offset_c(AB, k,  nthreads); */
+        /* printf("--AB %u--\n", k);
+         * for (int ii=0; ii<AB->nr; ++ii) {
+         *   printf("row[%u] ",ii);
+         *   if (AB->row[ii] == NULL)
+         *     printf("NULL\n");
+         *   else {
+         *     for (int jj=2; jj<AB->row[ii][0]; jj += 2) {
+         *       printf("%u at %u | ",AB->row[ii][jj+1],AB->row[ii][jj]);
+         *     }
+         *     printf("\n");
+         *   }
+         * } */
 
 #pragma omp parallel for num_threads(nthreads)
           for (nelts_t i=0; i<CD->nr; ++i) {
-            CD->row[i]  = reduce_lower_by_upper_rows_offset_c_block(CD->row[i], AB, k);
+            /* printf("CD->row[%u] = %p\n", i, CD->row[i]); */
+            if (CD->row[i]  != NULL)
+              CD->row[i]  = reduce_lower_by_upper_rows_offset_c_block(CD->row[i], AB, k);
           }
           for (nelts_t k=0; k<AB->nr; ++k) {
             free(AB->row[k]);
@@ -1150,7 +1289,7 @@ int main(int argc, char *argv[])
         t_linear_algebra  +=  walltime(t_load_start);
       if (verbose == 1 && steps > 1)
         printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk);
-        printf("%9.3f sec\n", walltime(t_load_start) / (1000000));
+        printf("%9.3f sec\n", t_linear_algebra / (1000000));
 
       if (verbose > 0)
         gettimeofday(&t_load_start, NULL);

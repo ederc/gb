@@ -5186,6 +5186,17 @@ static inline mat_gb_meta_data_t *generate_matrix_meta_data(const int bs,
 
   mat->mod    = mod;
   mat->bs     = (nelts_t)bs;
+
+#define ADAPTIVE_BLOCK_SIZE 1
+
+#if ADAPTIVE_BLOCK_SIZE
+  if (spd->selu->load < mat->bs) {
+    mat->bs = spd->selu->load > 0 ? spd->selu->load : spd->col->load;
+  } else {
+    nelts_t factor  = spd->selu->load / mat->bs + 1;
+    mat->bs = spd->selu->load / factor;
+  }
+#endif
   mat->nc     = spd->col->load;
   mat->nr     = spd->selu->load + spd->sell->load;
   mat->nc_AC  = mat->nr_AB = spd->selu->load;

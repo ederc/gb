@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
     /* printf("%lu\n", dimension); */
 
     if (reduce_gb == 666) {
-      if (density < 0.01)
+      if (density < 0.01 || spd->sell->load < 200)
         reduce_gb_101(basis, spd, density, ps, block_size, verbose, nthreads);
       else
         reduce_gb_23(basis, spd, density, ps, block_size, verbose, nthreads);
@@ -2720,6 +2720,7 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd,
   meta  = generate_matrix_meta_data(block_size, basis->mod, spd);
 
   /* generate CD part */
+  /* printf("gen CD block %u\n", spd->sell->load); */
   CD  = generate_mat_gb_lower(meta, basis, spd, ht, nthreads);
 
   meta_data->mat_rows = spd->selu->load + spd->sell->load;
@@ -2745,6 +2746,7 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd,
 #if OLD
       AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
 #else
+      /* printf("gen AB block\n"); */
       AB  = generate_mat_gb_row_block(i, meta, basis, spd, ht);
 #endif
       if (verbose > 0) {

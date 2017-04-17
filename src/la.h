@@ -84,6 +84,25 @@ static inline void load_dense_block_from_sparse(bf_t *db,
   }
 }
 
+static inline void load_dense_row_for_update(bf_t *dr,
+    const nelts_t idx, const mat_gb_block_t *bl,
+    const mat_gb_meta_data_t *meta)
+{
+  nelts_t i;
+
+  memset(dr, 0, meta->bs * sizeof(bf_t));
+
+  if (bl->len != NULL) {
+    for (i=bl->len[idx]; i<bl->len[idx+1]; ++i)
+      dr[bl->pos[i]]  = (bf_t)bl->val[i];
+  } else {
+    if (bl->val != NULL) {
+      for (i=0; i<meta->bs; ++i)
+        dr[i]  = (bf_t)bl->val[idx*meta->bs+i];
+    }
+  }
+}
+
 static inline void load_dense_row_for_update_from_sparse(bf_t *dr,
     const nelts_t idx, const mat_gb_block_t *bl,
     const mat_gb_meta_data_t *meta)
@@ -148,16 +167,26 @@ static inline void update_dense_row_dense(bf_t *dr, const nelts_t idx,
    * }
    * printf("\n"); */
 
+  /* printf("val %p, pos %p\n", mbl->val, mbl->pos); */
+  /* printf("idx %u\n", idx);
+   * for (int ii=0; ii<meta->bs; ++ii)
+   *   printf("%lu ",dr[ii]);
+   * printf("\n"); */
   for (i=mbl->len[idx]; i<mbl->len[idx+1]; ++i) {
     const bf_t mul    = (bf_t)meta->mod - mbl->val[i];
-    const nelts_t ri  = bl->nr -1 - mbl->pos[i];
+    const nelts_t ri  = mbl->pos[i];
+    /* const nelts_t ri  = bl->nr -1 - mbl->pos[i]; */
     const cf_t *red   = bl->val+(ri*meta->bs);
-    /* printf("red %p\n",red);
-     * printf("ROW INDEX %u = %u - %u\n", ri, bl->nr, mbl->pos[i]); */
-
+/*     printf("red %p\n",red);
+ *     printf("ROW INDEX %u = %u - %u\n", ri, bl->nr, mbl->pos[i]);
+ *
+ *     printf("RED1: ");
+ *     for (j=0; j<meta->bs; j++) {
+ *       printf("%u ", red[j]);
+ *     }
+ *     printf("\n");
+ *     printf("BS %u\n", meta->bs); */
     for (j=0; j<meta->bs; j=j+8) {
-      /* printf("j %u | pos[j] %u | val[j] %u\n", j, bl->pos[j], bl->val[j]);
-       * printf("%lu --> + %u * %u ====> ", dr[bl->pos[j]], mul, bl->val[j]); */
       /* printf("j %u\n", j);
        * printf("dr %lu\n", dr[j]);
        * printf("mul %lu\n", mul);
@@ -172,6 +201,10 @@ static inline void update_dense_row_dense(bf_t *dr, const nelts_t idx,
       dr[j+7] +=  mul * red[j+7];
       /* printf("%lu\n", dr[bl->pos[j]]); */
     }
+  /*   printf("ri %u\n", ri);
+   * for (int ii=0; ii<meta->bs; ++ii)
+   *   printf("%lu ",dr[ii]);
+   * printf("\n"); */
   }
 }
 
@@ -185,7 +218,8 @@ static inline void update_dense_block_sparse(bf_t *db,
     for (j=mbl->len[i]; j<mbl->len[i+1]; ++j) {
       const bf_t mul    = (bf_t)meta->mod - mbl->val[j];
       /* printf("mul %u\n", mul); */
-      const nelts_t ri  = bl->nr -1 - mbl->pos[j];
+      const nelts_t ri  = mbl->pos[j];
+      /* const nelts_t ri  = bl->nr -1 - mbl->pos[j]; */
       const nelts_t shift = (bl->len[ri+1]-bl->len[ri]) % 4;
       /* printf("bl->len[ri] %u | bl->len[ri+1] %u | shift %u\n",
        *    bl->len[ri], bl->len[ri+1], shift); */
@@ -231,9 +265,9 @@ static inline void update_dense_block_sparse_self(bf_t *db,
         db[i*meta->bs + bl->pos[k+3]]  +=  mul * bl->val[k+3];
       }
     }
-    for (int ii=0; ii<meta->bs; ++ii)
-      printf("%lu ",db[i*meta->bs+ii]);
-    printf("\n");
+    /* for (int ii=0; ii<meta->bs; ++ii)
+     *   printf("%lu ",db[i*meta->bs+ii]);
+     * printf("\n"); */
 
     write_updated_row_to_sparse_format(bl, db+i*meta->bs, i, meta);
   }
@@ -245,6 +279,10 @@ static inline void update_dense_row_sparse(bf_t *dr, const nelts_t idx,
 {
   nelts_t i, j;
 
+  /* printf("idx %u\n", idx);
+   * for (int ii=0; ii<meta->bs; ++ii)
+   *   printf("%lu ",dr[ii]);
+   * printf("\n"); */
   for (i=mbl->len[idx]; i<mbl->len[idx+1]; ++i) {
     const bf_t mul    = (bf_t)meta->mod - mbl->val[i];
       /* printf("mul %u\n", mul); */
@@ -265,10 +303,11 @@ static inline void update_dense_row_sparse(bf_t *dr, const nelts_t idx,
        * printf("%lu --> + %u * %u ====> ", dr[bl->pos[j]], mul, bl->val[j]); */
       /* printf("%lu\n", dr[bl->pos[j]]); */
     }
-  }
-  /* for (int ii=0; ii<meta->bs; ++ii)
+  /*   printf("ri %u\n", ri);
+   * for (int ii=0; ii<meta->bs; ++ii)
    *   printf("%lu ",dr[ii]);
    * printf("\n"); */
+  }
 }
 
 static inline void update_single_block_dense(mat_gb_block_t *mat,
@@ -463,9 +502,11 @@ static inline void sparse_update_lower_block_by_upper_block(mat_gb_block_t *l,
 
   mat_gb_block_t *nbl = generate_mat_gb_block(meta, ubl->nr);
 
+  /* printf("cbi %u | rbi %u\n", cbi, rbi); */
   for (i=0; i<ubl->nr; ++i) {
     /* load dense row to be updated */
-    load_dense_row_for_update_from_sparse(dr, i, ubl, meta);
+    load_dense_row_for_update(dr, i, ubl, meta);
+    /* load_dense_row_for_update_from_sparse(dr, i, ubl, meta); */
 
     /* find corresponding row and multiplier */
 
@@ -510,8 +551,15 @@ static inline void compute_multiples_in_first_block(bf_t *dr,
         const bf_t mul  = (bf_t)meta->mod - dr[i];
         /* printf("mul %u\n", mul); */
         const nelts_t ri  = i;
-        for (j=bl->len[ri]+1; j<bl->len[ri+1]; ++j) {
+        const nelts_t shift = (bl->len[ri+1]-bl->len[ri]-1) % 4;
+        for (j=bl->len[ri]+1; j<bl->len[ri]+shift+1; ++j) {
           dr[bl->pos[j]] +=  mul * bl->val[j];
+        }
+        for (; j<bl->len[ri+1]; j=j+4) {
+          dr[bl->pos[j]] +=  mul * bl->val[j];
+          dr[bl->pos[j+1]] +=  mul * bl->val[j+1];
+          dr[bl->pos[j+2]] +=  mul * bl->val[j+2];
+          dr[bl->pos[j+3]] +=  mul * bl->val[j+3];
         }
       }
     }
@@ -539,7 +587,8 @@ static inline void sparse_update_first_block_by_upper_block(mat_gb_block_t *l,
 
   for (i=0; i<ubl->nr; ++i) {
     /* load dense row to be updated */
-    load_dense_row_for_update_from_sparse(dr, i, ubl, meta);
+    load_dense_row_for_update(dr, i, ubl, meta);
+    /* load_dense_row_for_update_from_sparse(dr, i, ubl, meta); */
 
     /* find corresponding row and multiplier */
 
@@ -571,7 +620,7 @@ static inline void update_lower_by_upper_row_block_not_prereduced(
         /* need to look at the first block in each row in
         * order to decide which algorithm to be chosen */
         /* printf("NEXT REDUCTION STEP %p %u\n", l[i*meta->ncb+shift].len, i); */
-        if (l[i*meta->ncb+shift].len != NULL) {
+        if (l[i*meta->ncb+shift].val != NULL) {
           sparse_update_first_block_by_upper_block(l, u, shift, i, meta);
           for (nelts_t j=shift+1; j<meta->ncb; ++j) {
             /* printf("we reduce j %u of length %u\n", j, l[i*meta->ncb+j].len[l[i*meta->ncb+j].nr]); */
@@ -611,7 +660,8 @@ static inline void update_lower_by_upper_row_block_not_prereduced(
         {
           /* check density of blocks */
           /* printf("adjusting C|D blocks\n"); */
-          adjust_block_row_types(l+i*meta->ncb, meta);
+          /* adjust_block_row_types(l+i*meta->ncb, meta); */
+          adjust_block_row_types_including_dense(l+i*meta->ncb, meta);
         }
       }
     }

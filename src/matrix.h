@@ -5196,6 +5196,10 @@ static inline mat_gb_meta_data_t *generate_matrix_meta_data(const int bs,
     nelts_t factor  = spd->selu->load / mat->bs + 1;
     mat->bs = spd->selu->load / factor;
   }
+  /* make block size a multiple of 8 */
+  mat->bs +=  (8 - mat->bs % 8);
+  /* printf("%u\n",mat->bs); */
+
 #endif
   mat->nc     = spd->col->load;
   mat->nr     = spd->selu->load + spd->sell->load;
@@ -5352,6 +5356,7 @@ static inline void adjust_block_row_types_including_dense(
       /* printf("%u len %u\n", i, mat[i].len[mat[i].nr]); */
       if (mat[i].len[mat[i].nr] > 0) {
         if (mat[i].len[mat[i].nr] > bs_square/2) {
+          /* printf("make dense\n"); */
           cf_t *val = (cf_t *)calloc(bs_square, sizeof(cf_t));
           for (j=0; j<mat[i].nr; ++j) {
             for (k=mat[i].len[j]; k<mat[i].len[j+1]; ++k) {
@@ -5364,12 +5369,20 @@ static inline void adjust_block_row_types_including_dense(
           mat[i].pos  = NULL;
           free(mat[i].val);
           mat[i].val  = val;
+          /* for (nelts_t ii=0; ii<meta->bs; ++ii) {
+           *   for (nelts_t jj=0; jj<meta->bs; ++jj) {
+           *     printf("%u ",mat[i].val[ii*meta->bs+jj]);
+           *   }
+           *   printf("\n");
+           * } */
+          continue;
         } else {
           /* printf("len %u\n", mat[i].len[mat[i].nr]); */
           mat[i].pos =
             realloc(mat[i].pos, mat[i].len[mat[i].nr] * sizeof(bs_t));
           mat[i].val =
             realloc(mat[i].val, mat[i].len[mat[i].nr] * sizeof(cf_t));
+          continue;
         }
       } else {
         free(mat[i].len);
@@ -5378,6 +5391,7 @@ static inline void adjust_block_row_types_including_dense(
         mat[i].pos  = NULL;
         free(mat[i].val);
         mat[i].val  = NULL;
+        continue;
       }
     }
   }
@@ -5553,7 +5567,8 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
   }
 
   /* check density of blocks */
-  adjust_block_row_types(start, meta);
+  /* adjust_block_row_types(start, meta); */
+  adjust_block_row_types_including_dense(start, meta);
 }
 
 static inline void invert_first_block(mat_gb_block_t *mat,

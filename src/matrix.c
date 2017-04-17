@@ -310,6 +310,7 @@ static inline void write_sparse_compact_row(src_t **rows,
     /* go only over D part, C is already zero */
     ctr = 1;
     for (j=meta->ncb_AC; j<meta->ncb; ++j) {
+      /* printf("j %u | len %p | val %p\n", j, om[j].len, om[j].val); */
       /* printf("j %u\n", j); */
       if (om[j].len != NULL) {
         /* printf("drin?"); */
@@ -318,6 +319,17 @@ static inline void write_sparse_compact_row(src_t **rows,
           row[ctr+1]  = om[j].val[k];
           /* printf("%u | %u || ", row[ctr+1], row[ctr]); */
           ctr = ctr+2;
+        }
+      } else {
+        if (om[j].val != NULL) {
+          for (k=0; k<meta->bs; ++k) {
+            if (om[j].val[i*meta->bs+k] != 0) {
+              row[ctr]  = (src_t)k + (j-meta->ncb_AC)*meta->bs + meta->nc_AC;
+              row[ctr+1]  = om[j].val[i*meta->bs+k];
+              /* printf("%u | %u || ", row[ctr+1], row[ctr]); */
+              ctr = ctr+2;
+            }
+          }
         }
       }
       /* printf("\n"); */

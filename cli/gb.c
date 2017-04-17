@@ -2814,8 +2814,8 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd,
   if (verbose == 1 && steps > 0) {
     printf("%4u new %4u zero ", D->rk, spd->sell->load-D->rk);
     printf("%9.3f sec ", t_linear_algebra_local / (1000000));
-    printf("%6u bs ", meta->bs);
-    printf("%6.3f%% d\n", density);
+    printf("%6.3f%% d ", density);
+    printf("%6u bs\n", meta->bs);
   }
   free(meta);
   if (verbose > 0)
@@ -2955,9 +2955,9 @@ void reduce_gb_101(gb_t *basis, const spd_t *spd,
     free(AB);
     AB  = NULL;
   }
-  if (verbose == 1 && steps > 0) {
-    printf("%9.3f sec ", walltime(t_load_start) / (1000000));
-  }
+  /* if (verbose == 1 && steps > 0) {
+   *   printf("%9.3f sec ", walltime(t_load_start) / (1000000));
+   * } */
 #if COL_CHECK
   free(columns);
 #endif

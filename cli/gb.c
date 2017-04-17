@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
     /* printf("%lu\n", dimension); */
 
     if (reduce_gb == 666) {
-      if (density < 0.01 || spd->sell->load < 200)
+      if (density < 0.01 || spd->sell->load < 40)
         reduce_gb_101(basis, spd, density, ps, block_size, verbose, nthreads);
       else
         reduce_gb_23(basis, spd, density, ps, block_size, verbose, nthreads);

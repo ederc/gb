@@ -5458,7 +5458,7 @@ static inline void write_to_mat_gb_row_block_inverted_order(
     mat_gb_block_t *mat, const mat_gb_meta_data_t *meta, const nelts_t idx,
     const sel_t *sel, const gb_t *basis, const mp_cf4_ht_t *ht)
 {
-  nelts_t i;
+  nelts_t i, j;
   
   /* mat_gb_block_t *start = mat + (idx * meta->ncb); */
   mat_gb_block_t *start = mat;
@@ -5475,20 +5475,21 @@ static inline void write_to_mat_gb_row_block_inverted_order(
 
   for (i=max; i>0; --i) {
     /* printf("max %u | i %u | offset %u\n", max, i, offset); */
+    /* leaves out lead term 1, thus starts at position "1" (3rd parameter) */
     write_poly_to_matrix(start, meta, max-i, 1, sel->mpp+(i-1+offset), basis, ht);
     /* printf("---\n"); */
   }
 
   /* check len entries */
-  /* if (max < meta->bs) {
-   *   for (i=0; i<meta->ncb; ++i) {
-   *     for (j=max+1; j<meta->bs+1; ++j) {
-   *       start[i].len[j] = start[i].len[max];
-   *     }
-   *   }
-   * } */
-  /* printf("-------------------before--------------------------------\n"); */
-  /* for (int ii=0; ii<meta->ncb; ++ii) {
+  if (max < meta->bs) {
+    for (i=0; i<meta->ncb; ++i) {
+      for (j=max+1; j<meta->bs+1; ++j) {
+        start[i].len[j] = start[i].len[max];
+      }
+    }
+  }
+  /* printf("-------------------before--------------------------------\n");
+   * for (int ii=0; ii<meta->ncb; ++ii) {
    *   if (start[ii].len != NULL) {
    *     for (int jj=0; jj<start[ii].nr; ++jj)
    *       printf("%u ", start[ii].len[jj]);
@@ -5499,8 +5500,8 @@ static inline void write_to_mat_gb_row_block_inverted_order(
    *     printf("nc_AC %u\n", meta->nc_AC);
    *     printf("start[%u].val[0] = %u\n", ii, start[ii].val[0]);
    *   }
-   * } */
-  /* printf("----------------------------------------------------\n"); */
+   * }
+   * printf("----------------------------------------------------\n"); */
 
   /* check density of blocks */
   adjust_block_row_types(start, meta);
@@ -5644,8 +5645,8 @@ static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
    *   }
    * }
    * printf("----------------------------------------------------\n"); */
-  /* invert_first_block(mat, meta); */
-  /* printf("----------------------------------------------------\n");
+  /* invert_first_block(mat, meta);
+   * printf("----------------------------------------------------\n");
    * for (int ii=0; ii<meta->ncb; ++ii) {
    *   if (mat[ii].len != NULL) {
    *     for (int jj=0; jj<mat[ii].nr; ++jj)

@@ -277,11 +277,17 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
 void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
     const mp_cf4_ht_t *ht);
 
-void reduce_gb_23(gb_t *basis, const spd_t *spd,
-    const double density, const ps_t *ps, const nelts_t block_size,
-    const int verbose, const int nthreads);
+/* directly reduces C|D with A|B */
+void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads);
 
-void reduce_gb_101(gb_t *basis, const spd_t *spd,
-    const double density, const ps_t *ps, const nelts_t block_size,
-    const int verbose, const int nthreads);
+/* first computes A^-1B then reduces C|D */
+void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads);
+
+void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads);
 #endif

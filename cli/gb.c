@@ -438,6 +438,10 @@ int main(int argc, char *argv[])
     double density      = (double)terms / (double)dimension;
     /* printf("%lu\n", dimension); */
 
+    if (reduce_gb == 25) {
+      reduce_gb_24(basis, spd, density, ps, block_size, verbose, nthreads);
+    }
+
     if (reduce_gb == 666) {
       if (density < 0.01 || spd->sell->load < 40)
         reduce_gb_101(basis, spd, density, ps, block_size, verbose, nthreads);
@@ -2707,9 +2711,9 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
   return done;
 }
 
-void reduce_gb_23(gb_t *basis, const spd_t *spd,
-    const double density, const ps_t *ps, const nelts_t block_size,
-    const int verbose, const int nthreads)
+void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads)
 {
   mat_gb_block_t *AB, *CD   = NULL;
   mat_gb_meta_data_t *meta  = NULL;
@@ -2839,9 +2843,140 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd,
   }
 }
 
-void reduce_gb_101(gb_t *basis, const spd_t *spd,
-    const double density, const ps_t *ps, const nelts_t block_size,
-    const int verbose, const int nthreads)
+void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads)
+{
+  nelts_t i, j, k;
+  mat_gb_block_t **AB       = NULL;
+  mat_gb_block_t *CD        = NULL;
+  mat_gb_meta_data_t *meta  = NULL;
+  if (verbose > 0)
+    t_linear_algebra_local  = 0;
+
+  /* generate meta data */
+  meta  = generate_matrix_meta_data(block_size, basis->mod, spd);
+
+  meta_data->mat_rows = spd->selu->load + spd->sell->load;
+  meta_data->mat_cols = meta->nc_AC + meta->nc_BD;
+  if (verbose > 0)
+    t_generating_gbla_matrix  +=  walltime(t_load_start);
+  if (verbose > 0)
+    gettimeofday(&t_load_start, NULL);
+  if (verbose > 1) {
+    printf("matrix rows %6u \n", meta_data->mat_rows);
+    printf("matrix cols %6u \n", meta_data->mat_cols);
+  }
+  if (verbose == 1) {
+    printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+        steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+    fflush(stdout);
+  }
+
+  if (spd->selu->load > 0) {
+    /* generate AB */
+    AB  = (mat_gb_block_t **)malloc(meta->nrb_AB * sizeof(mat_gb_block_t *));
+    for (i=0; i<meta->nrb_AB; ++i) {
+      AB[i]  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
+    }
+    if (verbose > 0) {
+      t_generating_gbla_matrix  +=  walltime(t_load_start);
+      gettimeofday(&t_load_start, NULL);
+    }
+    /* compute A^-1 B */
+    reduce_upper_part(AB, meta, nthreads);
+  }
+
+  /* generate CD part */
+  /* printf("gen CD block %u\n", spd->sell->load); */
+  CD  = generate_mat_gb_lower(meta, basis, spd, ht, nthreads);
+
+  /* possibly the first block of A is already the unit matrix, then it is
+    * just an empty block and we do not need to update AB at all */
+  /* update_lower_by_upper_row_block(CD, AB[i], i, meta, nthreads); */
+  if (verbose > 0) {
+    t_linear_algebra_local  +=  walltime(t_load_start);
+    gettimeofday(&t_load_start, NULL);
+  }
+
+  if (AB != NULL) {
+    update_lower_by_reduced_upper_row_block(CD, AB, meta, nthreads);
+    for (i=0; j<meta->nrb_AB; ++i) {
+      for (j=0; j<meta->ncb; ++j) {
+        free_mat_gb_block(AB[i]+j);
+      }
+    }
+    free(AB);
+    AB  = NULL;
+  }
+
+  smc_t *D  = convert_mat_gb_to_smc_format(CD, meta, nthreads);
+#if newred
+  printf("--D BEGINNING--\n");
+  for (int ii=0; ii<D->nr; ++ii) {
+    printf("row[%u] ",ii);
+    if (D->row[ii] == NULL)
+      printf("NULL\n");
+    else {
+      for (int jj=1; jj<D->row[ii][0]; jj += 2) {
+        printf("%u at %u | ",D->row[ii][jj+1],D->row[ii][jj]);
+      }
+      printf("\n");
+    }
+  }
+#endif
+  for (j=0; j<meta->nrb_CD; ++j)
+    for (k=0; k<meta->ncb; ++k)
+      free_mat_gb_block(CD+j*meta->ncb+k);
+  free(CD);
+
+  /* get rank of D */
+  nelts_t ctr = 0;
+  for (nelts_t i=0; i<D->nr; ++i) {
+    if (D->row[i] != NULL) {
+      D->row[ctr] = D->row[i];
+      ctr++;
+    }
+  }
+  D->nr  = ctr;
+  D->rk  = ctr;
+  if (D->rk > 1)
+    reduce_lower_rows_c(D, D->ncl, nthreads);
+  if (verbose > 0) {
+    t_linear_algebra_local  +=  walltime(t_load_start);
+    t_linear_algebra        +=  t_linear_algebra_local;
+  }
+  if (verbose == 1 && steps > 0) {
+    printf("%4u new %4u zero ", D->rk, spd->sell->load-D->rk);
+    printf("%9.3f sec ", t_linear_algebra_local / (1000000));
+    printf("%6.3f%% d ", density);
+    printf("%6u bs\n", meta->bs);
+  }
+  free(meta);
+  if (verbose > 0)
+    gettimeofday(&t_load_start, NULL);
+  int done  = update_basis_new(basis, ps, spd, D, ht);
+  if (verbose > 0) {
+    n_zero_reductions +=  (spd->sell->load - D->rk);
+  }
+  free_symbolic_preprocessing_data(&spd);
+  clear_hash_table_idx(ht);
+  for (nelts_t k=0; k<D->rk; ++k) {
+    free(D->row[k]);
+  }
+  free(D->row);
+  free(D);
+  CD  = NULL;
+  if (verbose > 0)
+    t_update_pairs  +=  walltime(t_load_start);
+  if (done) {
+    basis->has_unit = 1;
+  }
+}
+
+void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads)
 {
   /* we generate the matrix in the following shape:
    * AB = already known lead terms resp. pivots

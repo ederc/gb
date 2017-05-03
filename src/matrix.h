@@ -5342,6 +5342,86 @@ static inline void write_poly_to_matrix(mat_gb_block_t *mat,
  *   }
  * } */
 
+static inline void adjust_block_row_types_including_dense_righthand(
+    mat_gb_block_t *mat, const mat_gb_meta_data_t *meta)
+{
+  nelts_t i,j,k;
+
+  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+  
+  /* lefthand side, always kept sparse */
+  for (i=0; i<meta->ncb_AC; ++i) {
+    /* printf("i %u\n", i); */
+    /* sparse to dense ? */
+    if (mat[i].len != NULL) {
+      /* printf("%u len %u\n", i, mat[i].len[mat[i].nr]); */
+      if (mat[i].len[mat[i].nr] > 0) {
+        /* if (mat[i].len[mat[i].nr] > bs_square/2)
+         *   printf("DENSE\n"); */
+        /* printf("len %u\n", mat[i].len[mat[i].nr]); */
+        mat[i].pos =
+          realloc(mat[i].pos, mat[i].len[mat[i].nr] * sizeof(bs_t));
+        mat[i].val =
+          realloc(mat[i].val, mat[i].len[mat[i].nr] * sizeof(cf_t));
+      } else {
+        free(mat[i].len);
+        mat[i].len  = NULL;
+        free(mat[i].pos);
+        mat[i].pos  = NULL;
+        free(mat[i].val);
+        mat[i].val  = NULL;
+      }
+    }
+  }
+  /* righthand side, probably to be shifted to dense format */
+  for (i=meta->ncb_AC; i<meta->ncb; ++i) {
+    /* printf("i %u\n", i); */
+    /* sparse to dense ? */
+    if (mat[i].len != NULL) {
+      /* printf("%u len %u\n", i, mat[i].len[mat[i].nr]); */
+      if (mat[i].len[mat[i].nr] > 0) {
+        if (mat[i].len[mat[i].nr] > bs_square/2) {
+          /* printf("make dense\n"); */
+          cf_t *val = (cf_t *)calloc(bs_square, sizeof(cf_t));
+          for (j=0; j<mat[i].nr; ++j) {
+            for (k=mat[i].len[j]; k<mat[i].len[j+1]; ++k) {
+              val[j*meta->bs+mat[i].pos[k]]  = mat[i].val[k];
+            }
+          }
+          free(mat[i].len);
+          mat[i].len  = NULL;
+          free(mat[i].pos);
+          mat[i].pos  = NULL;
+          free(mat[i].val);
+          mat[i].val  = val;
+          /* for (nelts_t ii=0; ii<meta->bs; ++ii) {
+           *   for (nelts_t jj=0; jj<meta->bs; ++jj) {
+           *     printf("%u ",mat[i].val[ii*meta->bs+jj]);
+           *   }
+           *   printf("\n");
+           * } */
+          continue;
+        } else {
+          /* printf("len %u\n", mat[i].len[mat[i].nr]); */
+          mat[i].pos =
+            realloc(mat[i].pos, mat[i].len[mat[i].nr] * sizeof(bs_t));
+          mat[i].val =
+            realloc(mat[i].val, mat[i].len[mat[i].nr] * sizeof(cf_t));
+          continue;
+        }
+      } else {
+        free(mat[i].len);
+        mat[i].len  = NULL;
+        free(mat[i].pos);
+        mat[i].pos  = NULL;
+        free(mat[i].val);
+        mat[i].val  = NULL;
+        continue;
+      }
+    }
+  }
+}
+
 static inline void adjust_block_row_types_including_dense(
     mat_gb_block_t *mat, const mat_gb_meta_data_t *meta)
 {
@@ -5488,37 +5568,10 @@ static inline void write_to_mat_gb_row_block_inverted_order(
       }
     }
   }
-  /* printf("-------------------before--------------------------------\n");
-   * for (int ii=0; ii<meta->ncb; ++ii) {
-   *   if (start[ii].len != NULL) {
-   *     for (int jj=0; jj<start[ii].nr; ++jj)
-   *       printf("%u ", start[ii].len[jj]);
-   *     printf("\n");
-   *     printf("startlen %p\n", start[ii].len);
-   *     printf("startpos %p\n", start[ii].pos);
-   *     printf("startval %p\n", start[ii].val);
-   *     printf("nc_AC %u\n", meta->nc_AC);
-   *     printf("start[%u].val[0] = %u\n", ii, start[ii].val[0]);
-   *   }
-   * }
-   * printf("----------------------------------------------------\n"); */
 
   /* check density of blocks */
+  /* initially we keep them sparsely represented */
   adjust_block_row_types(start, meta);
-  /* printf("-------------------after--------------------------------\n"); */
-  /* for (int ii=0; ii<meta->ncb; ++ii) {
-   *   if (start[ii].len != NULL) {
-   *     for (int jj=0; jj<start[ii].nr; ++jj)
-   *       printf("%u ", start[ii].len[jj]);
-   *     printf("\n");
-   *     printf("startlen %p\n", start[ii].len);
-   *     printf("startpos %p\n", start[ii].pos);
-   *     printf("startval %p\n", start[ii].val);
-   *     printf("nc_AC %u\n", meta->nc_AC);
-   *     printf("start[%u].val[0] = %u || %u\n", ii, start[ii].val[0], start[ii].nr);
-   *   }
-   * } */
-  /* printf("----------------------------------------------------\n"); */
 }
 
 static inline void write_to_src_mat_row_block(src_t **mat,
@@ -5567,9 +5620,9 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
     }
   }
 
-  /* check density of blocks */
-  /* adjust_block_row_types(start, meta); */
-  adjust_block_row_types_including_dense(start, meta);
+  /* initially we keep them sparsely represented */
+  adjust_block_row_types(start, meta);
+  /* adjust_block_row_types_including_dense(start, meta); */
 }
 
 static inline void invert_first_block(mat_gb_block_t *mat,

@@ -3125,10 +3125,11 @@ void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
     reduce_lower_rows_c(CD, CD->ncl, nthreads);
   if (verbose > 0)
     t_linear_algebra  +=  walltime(t_load_start);
-  if (verbose == 1 && steps > 1)
+  if (verbose == 1 && steps > 0) {
     printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk);
-  printf("%9.3f sec ", walltime(t_load_start) / (1000000));
-  printf("%6.3f%% d\n", density);
+    printf("%9.3f sec ", walltime(t_load_start) / (1000000));
+    printf("%6.3f%% d\n", density);
+  }
 
   if (verbose > 0)
     gettimeofday(&t_load_start, NULL);

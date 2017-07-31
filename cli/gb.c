@@ -3202,7 +3202,11 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
   /* rows per block */
   const nelts_t rpb = (spd->sell->load / nb) + rem;
 
-#pragma omp parallel num_threads(nthreads)
+  /* global dense random row for checking after all blocks are done */
+  bf_t *drg = (bf_t *)calloc(nc, sizeof(bf_t));
+
+  again:
+#pragma omp parallel num_threads(nthreads) shared(drg)
 {
   src_t *mul        = (src_t *)malloc(rpb * sizeof(src_t));
   bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
@@ -3254,6 +3258,15 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
         }
       }
       block_done:
+
+      /* fill global dense row for final check at the end */
+      for (size_t j = 0; j < nrbl; ++j)
+        mul[j]  = (src_t) rand() % basis->mod;
+      for (size_t j = 0; j < nrbl; ++j)
+        for (size_t k = 2; k < bl[j][1]; k = k+2)
+          drg[bl[j][k]]  +=  (bf_t) mul[j] * bl[j][k+1];
+
+      /* free local data */
       for (size_t j = 0; j < nrbl; ++j)
         free(bl[j]);
       free(bl);
@@ -3263,24 +3276,29 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
   free(dr);
 }
 
-  bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
+  /* do final check, go back if check fails */
+  src_t *fc  = reduce_dense_row_by_known_pivots(
+      drg, pivs, spd->col->load, basis->mod);
+
+  if (fc != NULL)
+    goto again;
+
   /* interreduce new pivs */
   for (size_t i = spd->selu->load; i < nc; ++i) {
     if (pivs[i] != NULL) {
-      memset(dr, 0, nc * sizeof(bf_t));
+      memset(drg, 0, nc * sizeof(bf_t));
       for (size_t k = 2; k < pivs[i][1]; k = k+2)
-        dr[pivs[i][k]]  +=  (bf_t) pivs[i][k+1];
+        drg[pivs[i][k]]  +=  (bf_t) pivs[i][k+1];
       free(pivs[i]);
       pivs[i] = NULL;
       np  = reduce_dense_row_by_known_pivots(
-          dr, pivs, spd->col->load, basis->mod);
+          drg, pivs, spd->col->load, basis->mod);
       pivs[i] = np;
     }
   }
 
-/*   free(dr);
- *   free(mul);
- *  */
+  free(drg);
+
   if (verbose > 0)
     t_linear_algebra  +=  walltime(t_load_start);
   if (verbose == 1 && steps > 0) {

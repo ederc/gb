@@ -443,6 +443,10 @@ int main(int argc, char *argv[])
     }
 
     if (reduce_gb == 222) {
+      /* if (density < 0.004 || spd->sell->load < 40)
+       *   reduce_gb_101(basis, spd, density, ps, block_size, verbose, nthreads);
+       * else
+       *   reduce_gb_222(basis, spd, density, ps, block_size, verbose, nthreads); */
       reduce_gb_222(basis, spd, density, ps, block_size, verbose, nthreads);
     }
     if (reduce_gb == 666) {
@@ -3192,8 +3196,8 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     add_poly_to_pivs(pivs, i, basis, spd->selu);
 
   /* number of blocks */
-  const nelts_t nb  = (nelts_t)(floor(sqrt(spd->sell->load/4))) > 0 ?
-  (nelts_t)(floor(sqrt(spd->sell->load/4))) : (nelts_t)(floor(sqrt(spd->sell->load))) ;
+  const nelts_t nb  = (nelts_t)(floor(sqrt(spd->sell->load/2))) > 0 ?
+  (nelts_t)(floor(sqrt(spd->sell->load/2))) : (nelts_t)(floor(sqrt(spd->sell->load))) ;
   nelts_t rem       = (spd->sell->load % nb == 0) ? 0 : 1;
   /* rows per block */
   const nelts_t rpb = (spd->sell->load / nb) + rem;

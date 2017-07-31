@@ -3198,11 +3198,11 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
   /* rows per block */
   const nelts_t rpb = (spd->sell->load / nb) + rem;
 
-#pragma omp parallel shared(pivs) num_threads(nthreads)
+#pragma omp parallel num_threads(nthreads)
 {
   src_t *mul        = (src_t *)malloc(rpb * sizeof(src_t));
   bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
-#pragma omp parallel for
+#pragma omp parallel for num_threads(nthreads)
   for (size_t i = 0; i < nb; ++i) {
     /* printf("block %u / %u || %u\n", i, nb, spd->sell->load); */
     nelts_t nbl   = spd->sell->load > (i+1)*rpb ? (i+1)*rpb : spd->sell->load;

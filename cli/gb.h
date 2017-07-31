@@ -178,6 +178,34 @@ static inline int update_simplifiers_new(gb_t *basis, gb_t *sf, spd_t *spd, cons
   return 0;
 }
 
+static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
+    spd_t *spd, const src_t **pivs, const nelts_t nc, const mp_cf4_ht_t *ht)
+{
+  int res;
+  for (size_t i = 0; i < nc; ++i) {
+    /* only add new elements */
+    if (pivs[nc-i-1] != NULL && pivs[nc-i-1][0] == 0) {
+      res = add_new_element_to_basis_all_pivs(basis, pivs[nc-i-1], spd, ht);
+      /* if hash value 0 is new lead monomial we are done, since we have found a
+       * unit in the basis, i.e. basis = { 1 } */
+      if (res == -1)
+        continue;
+      if (res == 0)
+        return 1;
+      /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
+      update_pair_set(ps, basis, basis->load-1);
+      /* printf("psl after: %u\n", ps->load); */
+      /* if elements are homogeneous we compute by degree, thus no redundancy can
+       * appear */
+      if (basis->hom == 0)
+        track_redundant_elements_in_basis(basis, ht);
+    }
+  }
+  /* track load of basis at the end of this step */
+  basis->load_ls  = basis->load;
+  return 0;
+}
+
 static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const smc_t *mat,
     const mp_cf4_ht_t *ht)
 {
@@ -288,6 +316,12 @@ void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
     const int nthreads);
 
 void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads);
+
+/* first version of probabilistic f4, cf. "An Algorithm For Splitting Polynomial
+ * Systems Based on F4" by Monagan & Pearce */
+void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     const ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);
 #endif

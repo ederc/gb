@@ -2226,6 +2226,45 @@ static inline smc_t *generate_sparse_compact_matrix_pos_val(const gb_t *basis,
   return mat;
 }
 
+static inline void add_poly_to_block(src_t **pivs, const size_t ri,
+    const nelts_t idx, const gb_t *basis, const sel_t* sel)
+{
+  const mpp_t *mpp  = sel->mpp+ri;
+  const nelts_t nt  = basis->nt[mpp->bi];
+  const hash_t *eh  = basis->eh[mpp->bi];
+  const cf_t *cf    = basis->cf[mpp->bi];
+
+  pivs[idx]         = (src_t *)malloc((2*nt+2) * sizeof(src_t));
+
+  pivs[idx][0]      = mpp->bi;
+  pivs[idx][1]      = 2 * nt + 2; /* bi + length + pos/val */
+
+  for (nelts_t i = 0; i < nt; ++i) {
+    pivs[idx][2*i+2]  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
+    pivs[idx][2*i+3]  = cf[i];
+  }
+}
+
+static inline void add_poly_to_pivs(src_t **pivs, const size_t ri,
+    const gb_t *basis, const sel_t* sel)
+{
+  const mpp_t *mpp  = sel->mpp+ri;
+  const nelts_t nt  = basis->nt[mpp->bi];
+  const hash_t *eh  = basis->eh[mpp->bi];
+  const cf_t *cf    = basis->cf[mpp->bi];
+  const nelts_t idx = ht->idx[find_in_hash_table_product(mpp->mul, eh[0], ht)];
+
+  pivs[idx]         = (src_t *)malloc((2*nt+2) * sizeof(src_t));
+
+  pivs[idx][0]      = mpp->bi;
+  pivs[idx][1]      = 2 * nt + 2; /* bi + length + pos/val */
+
+  for (nelts_t i = 0; i < nt; ++i) {
+    pivs[idx][2*i+2]  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
+    pivs[idx][2*i+3]  = cf[i];
+  }
+}
+
 static inline smc_t *generate_sparse_compact_matrix_new(const gb_t *basis,
     const sel_t *sel, const nelts_t nr, const nelts_t ncl,
     const nelts_t ncr, const int nthreads)
@@ -3319,6 +3358,27 @@ static inline sr_t *reduce_lower_by_upper_rows(sr_t *row, const smat_t *pivs)
 
   return row;
 }
+static inline src_t *normalize_new_pivot(src_t *row, const cf_t mod)
+{
+  nelts_t i;
+
+  cf_t inv  = row[3];
+  inverse_val_new(&inv, mod);
+  const cf_t cinv = inv;
+
+  i = (row[1]-2)/2;
+  i = i & 1 ? 5 : 3;
+  while (i<row[1]) {
+    row[i]   = (src_t)MODP((bf_t)(row[i]) * cinv, mod);
+    row[i+2] = (src_t)MODP((bf_t)(row[i+2]) * cinv, mod);
+    i +=  4;
+  }
+  /* possibly not set in the unrolled loop above */
+  row[3] = 1;
+
+  return row;
+}
+
 static inline src_t *normalize_row_c(src_t *row, const cf_t mod)
 {
   nelts_t i;
@@ -3460,6 +3520,8 @@ static inline void interreduce_pivots_offset_c(src_t **pivs, const nelts_t rk,
   }
   free(bf);
 }
+
+
 static inline void interreduce_pivots_c(src_t **pivs, const nelts_t rk,
     const nelts_t ncl, const nelts_t ncr, const cf_t mod)
 {
@@ -4633,6 +4695,69 @@ static inline smc_t *reduce_upper_rows_c(smc_t *pivs)
   }
   return pivs;
 }
+
+static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
+    const src_t **pivs, const nelts_t nc, const mod_t mod)
+{
+  size_t i, j;
+  nelts_t lc, k  = 0;
+  for (i = 0; i < nc; ++i) {
+    if (dr[i] != 0)
+      dr[i]  = dr[i] % mod;
+    if (dr[i] == 0)
+      continue;
+    /* printf("i %u | pivs[%u] %p\n", i, i, pivs[i]); */
+    if (pivs[i] == NULL) {
+      if (k == 0)
+        lc  = i;
+      ++k;
+      continue;
+    }
+    
+    /* reduce dense row with found pivot row */
+    const bf_t mul = (bf_t)(mod) - dr[i]; /* it is already reduced modulo mod */
+    
+    dr[i]  = 0;
+    for (j = 4; j < pivs[i][1]; j = j+2)
+      dr[pivs[i][j]]  +=  (bf_t)mul * pivs[i][j+1];
+
+    /* get new pivot element in dense row */
+    for (j = i+1; j < nc; ++j) {
+      if (dr[j] != 0)
+        dr[j] = dr[j] % mod;
+      if (dr[j] != 0)
+        break;
+    }
+    /* zero reduction of dense row */
+    /* if (j == nc)
+     *   return NULL; */
+  }
+  if (k == 0)
+    return NULL;
+
+  /* dense row is not reduced to zero, thus we have found a new pivot row */
+  src_t *row = (src_t *)malloc((2*nc+2)*sizeof(src_t));
+  nelts_t ctr = 2;
+  for (j = 0; j < nc; ++j) {
+    if (dr[j] != 0) {
+      dr[j] = dr[j] % mod;
+      if (dr[j] != 0) {
+        row[ctr++] = j;
+        row[ctr++] = (src_t)dr[j];
+      }
+    }
+  } 
+  /* fix memory */
+  row[0]  = 0;
+  row[1]  = ctr;
+  row     = realloc(row, row[1]*sizeof(src_t));
+
+  if (row[3] != 1)
+    row = normalize_new_pivot(row, mod);
+
+  return row;
+}
+
 static inline src_t *reduce_lower_by_upper_rows_offset_true_columns(src_t *row, const smc_t * pivs, const gb_t *basis)
 {
   /* printf("row %p | lc %u\n", row, row[1]); */

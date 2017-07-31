@@ -113,6 +113,9 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
 int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
     const spd_t *spd, const mp_cf4_ht_t *ht);
 
+int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
+    const spd_t *spd, const mp_cf4_ht_t *ht);
+
 /**
  * \brief Adds new element from reduced B part of gbla matrix to simplifier list.
  *

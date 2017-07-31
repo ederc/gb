@@ -3199,6 +3199,8 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
 
 #pragma omp parallel shared(pivs)
 {
+#pragma omp single nowait
+{
   src_t *mul        = (src_t *)malloc(rpb * sizeof(src_t));
   bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
 #pragma omp parallel for num_threads(nthreads)
@@ -3256,6 +3258,7 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
   }
   free(mul);
   free(dr);
+}
 }
 
   bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));

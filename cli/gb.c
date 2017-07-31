@@ -3214,7 +3214,7 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
       /* printf("rows: "); */
       for (size_t j = i*rpb; j < nbl; ++j) {
         /* printf("%u ", j); */
-        add_poly_to_block(bl, j, ctr, basis, spd->sell);
+        add_poly_to_block(bl, spd->sell->load-1-j, ctr, basis, spd->sell);
         ctr++;
       }
       /* printf("\n"); */

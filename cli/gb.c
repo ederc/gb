@@ -3192,13 +3192,16 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     add_poly_to_pivs(pivs, i, basis, spd->selu);
 
   /* number of blocks */
-  const nelts_t nb  = (nelts_t)(floor(sqrt(spd->sell->load))); 
+  const nelts_t nb  = (nelts_t)(floor(sqrt(spd->sell->load/1))) > 0 ? (nelts_t)(floor(sqrt(spd->sell->load/1))) : (nelts_t)(floor(sqrt(spd->sell->load))) ;
   nelts_t rem       = (spd->sell->load % nb == 0) ? 0 : 1;
   /* rows per block */
   const nelts_t rpb = (spd->sell->load / nb) + rem;
+
+#pragma omp parallel shared(pivs)
+{
   src_t *mul        = (src_t *)malloc(rpb * sizeof(src_t));
   bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
-
+#pragma omp parallel for num_threads(nthreads)
   for (size_t i = 0; i < nb; ++i) {
     /* printf("block %u / %u || %u\n", i, nb, spd->sell->load); */
     nelts_t nbl   = spd->sell->load > (i+1)*rpb ? (i+1)*rpb : spd->sell->load;
@@ -3250,8 +3253,12 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
         free(bl[j]);
       free(bl);
     }
-  }    
+  }
+  free(mul);
+  free(dr);
+}
 
+  bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
   /* interreduce new pivs */
   for (size_t i = spd->selu->load; i < nc; ++i) {
     if (pivs[i] != NULL) {
@@ -3266,14 +3273,15 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     }
   }
 
-  free(dr);
-  free(mul);
-
+/*   free(dr);
+ *   free(mul);
+ *  */
   if (verbose > 0)
     t_linear_algebra  +=  walltime(t_load_start);
   if (verbose == 1 && steps > 0) {
     /* TODO */
     /* printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk); */
+    printf("%5u nb ", nb);
     printf("%9.3f sec ", walltime(t_load_start) / (1000000));
     printf("%6.3f%% d\n", density);
   }

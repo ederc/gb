@@ -36,7 +36,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
   /* check if limit for spair handling is set */
   if (basis->max_sel != 0) {
-    nsel  = nsel < basis->max_sel ? nsel : basis->max_sel;
+    while (nsel > basis->max_sel)
+      nsel  = nsel / 2;
+    /* nsel  = nsel < basis->max_sel ? nsel : nsebasis->max_sel; */
     /* try to keep all spairs of same lcm together */
     while (nsel != ps->load && ps->pairs[nsel-1]->lcm == ps->pairs[nsel]->lcm)
       nsel++;

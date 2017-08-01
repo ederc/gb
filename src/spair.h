@@ -132,6 +132,10 @@ spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basi
  */
 void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx);
 
+/* updates many pairs at once starting from the first index fidx
+ * up to the current basis->load */
+void update_pair_set_many(ps_t *ps, const gb_t *basis, const nelts_t fidx);
+
 /**
  * \brief Gebauer-Moeller checks for product and chain criterion
  *

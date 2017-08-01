@@ -265,22 +265,7 @@ static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
     */
     return memcmp(expb,expa, sizeof(exp_t) * ht->nv);
   } else {
-    /* both have the same lcms and are not detected by the product criterion,
-     * then we break ties by the overall number of terms */
-    if (spa->nt != spb->nt) {
-      if (spa->nt < spb->nt) {
-        return -1;
-      } else {
-        if (spa->nt != spb->nt) {
-          return 1;
-        } else {
-          if (spa->gen1 < spb->gen1 || spa->gen2 < spb->gen2) {
-            return -1;
-          }
-        }
-      }
-    }
-          return 0;
+    return 0;
   }
 }
 
@@ -327,22 +312,7 @@ static inline int cmp_spairs_by_deg_lex(const void *a, const void *b)
     */
     return memcmp(expa,expb, sizeof(exp_t) * ht->nv);
   } else {
-    /* both have the same lcms and are not detected by the product criterion,
-     * then we break ties by the overall number of terms */
-    if (spa->nt != spb->nt) {
-      if (spa->nt < spb->nt) {
-        return -1;
-      } else {
-        if (spa->nt != spb->nt) {
-          return 1;
-        } else {
-          if (spa->gen1 < spb->gen1 || spa->gen2 < spb->gen2) {
-            return -1;
-          }
-        }
-      }
-    }
-          return 0;
+    return 0;
   }
 }
 

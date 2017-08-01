@@ -903,70 +903,6 @@ static inline void try_to_simplify(mpp_t *mpp, const gb_t *basis, const gb_t *sf
   }
 }
 
-/**
- * \brief Checks the given spair sp if it consists of generators that are
- * possible duplicates interpreted as rows of the to be constructed matrix. This
- * means if the spair has an already known lcm and a generator is already stored
- * in the corresponding list of duplicates. If such a duplicate is found the
- * generator index in the spair is set to zero such that it is no longer
- * considered in the symbolic preprocessing. If the lcm of the spair is a new
- * one, the duplicates list is reset. Thus both parameters are possibly updated.
- *
- * \param duplicates list duplicates
- *
- * \param spair sp
- */
-static inline void mark_duplicates(dup_t *duplicates, spair_t *sp)
-{
-  nelts_t k = 0;
-  /* so pair is not redundant */
-  if (sp->lcm == duplicates->lcm) {
-    /* check gen1 */
-    for (k=0; k<duplicates->load; ++k) {
-      if (duplicates->idx[k] == sp->gen1) {
-        sp->gen1  = 0;
-        goto next_loop;
-      }
-    }
-    /* add gen1 */
-    duplicates->idx[duplicates->load++]  = sp->gen1;
-    /* check gen2 */
-next_loop:
-    for (k=0; k<duplicates->load; ++k) {
-      if (duplicates->idx[k] == sp->gen2) {
-        sp->gen2  = 0;
-        return;
-      }
-    }
-    /* add gen2 */
-    duplicates->idx[duplicates->load++]  = sp->gen2;
-  } else { /* reset duplicates list */
-    duplicates->lcm   = sp->lcm;
-    duplicates->load  = 0;
-    memset(duplicates->idx, 0, duplicates->size*sizeof(nelts_t));
-    duplicates->idx[duplicates->load++] = sp->gen1;
-    duplicates->idx[duplicates->load++] = sp->gen2;
-  }
-}
-
-/**
- * \brief Initializes a list for storing duplicates. The list's size is based on
- * the number of spairs selected in this step of the algorithm.
- *
- * \param number of spairs selected n_spairs_selected
- *
- * \return duplicated list
- */
-static inline dup_t *init_duplicates_list(const nelts_t n_pairs_selected)
-{
-  dup_t *duplicates = (dup_t *)malloc(sizeof(dup_t));
-  /* allocating space for all generators of all selected pairs in order not
-   * having to reallocate memory */
-  duplicates->idx   = (nelts_t *)malloc(2 * n_pairs_selected * sizeof(nelts_t));
-  duplicates->lcm   = 0;
-  duplicates->size  = 2 * n_pairs_selected;
-  return duplicates;
-}
 
 /**
  * \brief Selects pairs due to the sorting and selection done by the previous
@@ -1018,7 +954,6 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   }
 #endif
 
-#if 1
   /* for each lcm we first detect which elements have to be added to the
    * symbolic preprocessing step, i.e. we remove duplicates */
   i = 0;
@@ -1150,104 +1085,6 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 
   free(gens);
 
-#else
-  nelts_t i, j, k;
-  spair_t *sp = NULL;
-
-  /* keep a list for duplicates, i.e. for each lcm appearing we keep a list of
-   * corresponding polynomials. if a polynomial is appearing again with the same
-   * lcm, this would lead to a duplicate row and we can remove it, i.e. set the
-   * corresponding gen1 or gen2 entry to 0. */
-  dup_t *duplicates = init_duplicates_list(nsel);
-
-  for (i=0; i<nsel; ++i) {
-    /* remove duplicates if lcms and the first generators are the same */
-    sp  = ps->pairs[i];
-    /* we remove pairs that are redundant in the sense that a new basis element
-     * has made an older one redundant. thus we only need to keep the one pair
-     * that consists of the new basis element and the element that is redundant
-     * due to it. */
-    /*
-    if ((basis->red[sp->gen1] > 0 && basis->red[sp->gen1] != sp->gen2) || basis->red[sp->gen2] > 0) {
-      meta_data->sel_pairs--;
-      continue;
-    }
-    */
-    /* mark generators of sp that would give duplicate rows in the matrix */
-    mark_duplicates(duplicates, sp);
-    /* We have to distinguish between usual spairs and spairs consisting of one
-    * initial input element: The latter ones have only 1 generator (gen2 has
-    * the generator, gen1 is zero) and the
-    * corresponding lead monomial is not part of the basis. Thus we cannot set
-    * ht->idx[*] = 2 for these. The whole data for these special spairs is in
-    * basis before basis->st, whereas the data of the usual spairs is
-    * completely in basis starting at position basis->st.
-    *
-    * gen2 is only 0 if it might be a duplicate, see above */
-    /*
-     * sp->gen2 > sp->gen1 when constructing new spairs. so if sp->gen2 != 0
-     * then we must have sp->gen2 - sp->gen1 > 0.
-     * sp->gen2 - sp->gen1 = 0 can only hold if sp->gen2 = sp>gen1 = 0, so the
-     * whole spair is useless
-     * if sp->gen2 - sp->gen1 < 0 then sp->gen2 = 0 and sp->gen1 > 0.
-     */
-
-    if (sp->gen2 != 0) {
-      add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen2);
-      printf("gen %u || lcm %lu || sell %u\n", sp->gen2, sp->lcm, sell->load-1);
-      j = sell->load-1;
-
-      /* check for simplification
-       * function pointer set correspondingly if simplify option is set or not */
-      ht->sf.simplify(&sell->mpp[j], basis, sf);
-
-      enter_monomial_to_preprocessing_hash_list(sell->mpp[j], mon, ht);
-    }
-    /* now we distinguish cases for gen1 */
-    if (sp->gen1 != 0) {
-      /* first generator for upper part of gbla matrix if there is no other pair
-       * with the same lcm */
-      if (ht->idx[sp->lcm] == 1) {
-        /* mon->hpos[mon->load]  = sp->lcm; */
-        ht->idx[sp->lcm]      = 2;
-#if SYMBOL_DEBUG
-      printf("hpos[%u] = %u\n", mon->load, mon->hpos[mon->load]);
-      for (int ii=0; ii<ht->nv; ++ii)
-        printf("%u ", ht->exp[sp->lcm][ii]);
-      printf("\n");
-#endif
-        mon->nlm++;
-        /* mon->load++; */
-        if (mon->load == mon->size)
-          adjust_size_of_preprocessing_hash_list(mon, 2*mon->size);
-
-        add_spair_generator_to_selection(selu, basis, sp->lcm, sp->gen1);
-      printf("gen %u || lcm %lu || selu %u\n", sp->gen1, sp->lcm, selu->load-1);
-        j = selu->load-1;
-        /* check for simplification
-         * function pointer set correspondingly if simplify option is set or not */
-        ht->sf.simplify(&selu->mpp[j], basis, sf);
-        enter_monomial_to_preprocessing_hash_list(selu->mpp[j],
-            mon, ht);
-      } else {
-        add_spair_generator_to_selection(sell, basis, sp->lcm, sp->gen1);
-      printf("gen %u || lcm %lu || sell %u\n", sp->gen1, sp->lcm, sell->load-1);
-        j = sell->load-1;
-        /* check for simplification
-         * function pointer set correspondingly if simplify option is set or not */
-        ht->sf.simplify(&sell->mpp[j], basis, sf);
-        enter_monomial_to_preprocessing_hash_list(sell->mpp[j],
-            mon, ht);
-      }
-    }
-    /* remove the selected pair from the pair set */
-    /* free(sp); */
-  }
-
-  /* free duplicates list */
-  free(duplicates->idx);
-  free(duplicates);
-#endif
   /* adjust pair set after removing the bunch of selected pairs */
   k = 0;
   for (i=0; i<nsel; ++i)

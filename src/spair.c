@@ -126,9 +126,11 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   /* first step: remove elements already in ps due to chain criterion with new
    * pairs in new_pairs */
   for (i=0; i<load; ++i) {
-    if ((basis->red[ps->pairs[i]->gen2] != 0) ||
-        (basis->red[ps->pairs[i]->gen1] != 0 && basis->red[ps->pairs[i]->gen1] != ps->pairs[i]->gen2)
+    if ((basis->red[ps->pairs[i]->gen1] != 0 && basis->red[ps->pairs[i]->gen1] != ps->pairs[i]->gen2)
        )
+    /* if ((basis->red[ps->pairs[i]->gen2] != 0) ||
+     *     (basis->red[ps->pairs[i]->gen1] != 0 && basis->red[ps->pairs[i]->gen1] != ps->pairs[i]->gen2)
+     *    ) */
       ps->pairs[i]->crit  = CHAIN_CRIT;
   }
   for (i=0; i<load; ++i) {
@@ -273,7 +275,6 @@ inline spair_t *generate_input_element_spair(const nelts_t gen2, const gb_t *bas
   sp->gen1  = gen2;
   sp->gen2  = gen2;
   sp->lcm   = basis->eh[gen2][0];
-  sp->nt    = basis->nt[gen2];
   sp->deg   = ht->deg[sp->lcm];
   sp->crit  = NO_CRIT;
 
@@ -287,8 +288,8 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   /* we have to fix the positions where the new basis element is put (gen2),
    * since we are trying to remove as much as possible useless elements in
    * select_pairs(). if we would dynamically adjust the positioning (as done in
-   * the below commented out code) we could no longer track this correctly.
-   * sp->gen1  = gen2;
+   * the below commented out code) we could no longer track this correctly. */
+  /* sp->gen1  = gen2;
    * sp->gen2  = gen1; */
 
   if (basis->nt[gen1] < basis->nt[gen2]) {
@@ -300,7 +301,6 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
   }
 
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
-  sp->nt    = basis->nt[gen1] + basis->nt[gen2];
   sp->deg   = ht->deg[sp->lcm];
   
   /* if one of the generators is redundant we can stop already here and mark it

@@ -277,7 +277,6 @@ typedef struct spair_t
   nelts_t gen2;     /*!<  index to second generator */
   deg_t deg;        /*!<  degree of S-pair */
   hash_t lcm;       /*!<  hash of lcm of the lead terms of gen1 and gen2 */
-  nelts_t nt;       /*!<  sum of number of terms of both generators */
   criteria_t crit;  /*!<  tracker if product and chain criterion applies */
 } spair_t;
 

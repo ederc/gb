@@ -3195,15 +3195,55 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
   for (size_t i = 0; i < spd->selu->load; ++i)
     add_poly_to_pivs(pivs, i, basis, spd->selu);
 
+  /* global dense random row for checking after all blocks are done */
+  bf_t *drg = (bf_t *)calloc(nc, sizeof(bf_t));
+
+  /* for (size_t i = 0; i < nc; ++i) {
+   *   if (pivs[i] != NULL) {
+   *     for (size_t j = 2; j < pivs[i][1]; j = j+2) {
+   *       printf("%5u %5u  ", pivs[i][j], pivs[i][j+1]);
+   *     }
+   *     printf("\n");
+   *   } else {
+   *     printf("--\n");
+   *   }
+   * } */
+#define REDUCE_AB_FIRST 0
+#if REDUCE_AB_FIRST
+  /* interreduce new pivs */
+  for (size_t i = 0; i < spd->selu->load; ++i) {
+    /* printf("i %u", i); */
+    if (pivs[i] != NULL) {
+      memset(drg, 0, nc * sizeof(bf_t));
+      for (size_t k = 2; k < pivs[i][1]; k = k+2)
+        drg[pivs[i][k]]  +=  (bf_t) pivs[i][k+1];
+      free(pivs[i]);
+      pivs[i] = NULL;
+      np  = reduce_dense_row_by_known_pivots(
+          drg, pivs, nc, basis->mod);
+      /* printf(" np %p\n", np); */
+      np[0] = i;
+      pivs[i] = np;
+    }
+  }
+#endif
+  /* printf("interreduced:\n");
+   * for (size_t i = 0; i < nc; ++i) {
+   *   if (pivs[i] != NULL) {
+   *     for (size_t j = 2; j < pivs[i][1]; j = j+2) {
+   *       printf("%5u %5u  ", pivs[i][j], pivs[i][j+1]);
+   *     }
+   *     printf("\n");
+   *   } else {
+   *     printf("--\n");
+   *   }
+   * } */
   /* number of blocks */
   const nelts_t nb  = (nelts_t)(floor(sqrt(spd->sell->load/2))) > 0 ?
   (nelts_t)(floor(sqrt(spd->sell->load/2))) : (nelts_t)(floor(sqrt(spd->sell->load))) ;
   nelts_t rem       = (spd->sell->load % nb == 0) ? 0 : 1;
   /* rows per block */
   const nelts_t rpb = (spd->sell->load / nb) + rem;
-
-  /* global dense random row for checking after all blocks are done */
-  bf_t *drg = (bf_t *)calloc(nc, sizeof(bf_t));
 
   again:
 #pragma omp parallel num_threads(nthreads) shared(drg)
@@ -3225,6 +3265,10 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
         add_poly_to_block(bl, spd->sell->load-1-j, ctr, basis, spd->sell);
         ctr++;
       }
+      /* for (size_t j = 0; j < ctr; ++j) {
+       *     printf("%u  ", bl[j][2]);
+       * }
+       * printf("\n"); */
       /* printf("\n"); */
 
       while (1) {
@@ -3284,16 +3328,17 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     goto again;
 
   /* interreduce new pivs */
-  for (size_t i = spd->selu->load; i < nc; ++i) {
-    if (pivs[i] != NULL) {
+  for (size_t i = nc; i > spd->selu->load; --i) {
+  /* for (size_t i = spd->selu->load; i < nc; ++i) { */
+    if (pivs[i-1] != NULL) {
       memset(drg, 0, nc * sizeof(bf_t));
-      for (size_t k = 2; k < pivs[i][1]; k = k+2)
-        drg[pivs[i][k]]  +=  (bf_t) pivs[i][k+1];
-      free(pivs[i]);
-      pivs[i] = NULL;
+      for (size_t k = 2; k < pivs[i-1][1]; k = k+2)
+        drg[pivs[i-1][k]]  +=  (bf_t) pivs[i-1][k+1];
+      free(pivs[i-1]);
+      pivs[i-1] = NULL;
       np  = reduce_dense_row_by_known_pivots(
-          drg, pivs, spd->col->load, basis->mod);
-      pivs[i] = np;
+          drg, pivs, nc, basis->mod);
+      pivs[i-1] = np;
     }
   }
 

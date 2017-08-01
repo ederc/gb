@@ -126,22 +126,27 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   /* first step: remove elements already in ps due to chain criterion with new
    * pairs in new_pairs */
   for (i=0; i<load; ++i) {
+#if 0
     if ((basis->red[ps->pairs[i]->gen1] != 0 && basis->red[ps->pairs[i]->gen1] != ps->pairs[i]->gen2)
        )
-    /* if ((basis->red[ps->pairs[i]->gen2] != 0) ||
-     *     (basis->red[ps->pairs[i]->gen1] != 0 && basis->red[ps->pairs[i]->gen1] != ps->pairs[i]->gen2)
-     *    ) */
+#else
+    if ((basis->red[ps->pairs[i]->gen2] != 0) ||
+        (basis->red[ps->pairs[i]->gen1] != 0 && basis->red[ps->pairs[i]->gen1] != ps->pairs[i]->gen2)
+       )
+#endif
       ps->pairs[i]->crit  = CHAIN_CRIT;
   }
   for (i=0; i<load; ++i) {
     /* do not check on initial spairs */
-    if (ps->pairs[i]->crit == NO_CRIT && ps->pairs[i]->gen1 != ps->pairs[i]->gen2) {
+    if (ps->pairs[i]->crit == NO_CRIT) {
+    /* if (ps->pairs[i]->crit == NO_CRIT && ps->pairs[i]->gen1 != ps->pairs[i]->gen2) { */
       /* See note on gb_t in src/types.h why we adjust position by -basis->st. */
       pos1  = ps->pairs[i]->gen1 - basis->st;
       pos2  = ps->pairs[i]->gen2 - basis->st;
-      if (ps->pairs[i]->lcm != ps->pairs[ps->load+pos1]->lcm &&
-          ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm &&
-          check_monomial_division(ps->pairs[i]->lcm, hash, ht) != 0) {
+      if (check_monomial_division(ps->pairs[i]->lcm, hash, ht) != 0 &&
+          ps->pairs[i]->lcm != ps->pairs[ps->load+pos1]->lcm &&
+          ps->pairs[i]->lcm != ps->pairs[ps->load+pos2]->lcm
+          ) {
         ps->pairs[i]->crit  = CHAIN_CRIT;
 #if SPAIR_DEBUG
         printf("CC for (%u,%u)\n",pos1+1, pos2+1);
@@ -289,16 +294,16 @@ inline spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_
    * since we are trying to remove as much as possible useless elements in
    * select_pairs(). if we would dynamically adjust the positioning (as done in
    * the below commented out code) we could no longer track this correctly. */
-  /* sp->gen1  = gen2;
-   * sp->gen2  = gen1; */
+  sp->gen1  = gen2;
+  sp->gen2  = gen1;
 
-  if (basis->nt[gen1] < basis->nt[gen2]) {
-    sp->gen1  = gen1;
-    sp->gen2  = gen2;
-  } else {
-    sp->gen1  = gen2;
-    sp->gen2  = gen1;
-  }
+  /* if (basis->nt[gen1] < basis->nt[gen2]) {
+   *   sp->gen1  = gen1;
+   *   sp->gen2  = gen2;
+   * } else {
+   *   sp->gen1  = gen2;
+   *   sp->gen2  = gen1;
+   * } */
 
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
   sp->deg   = ht->deg[sp->lcm];

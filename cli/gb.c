@@ -286,6 +286,8 @@ int main(int argc, char *argv[])
   /* initialize spair set */
   ps_t *ps = initialize_pair_set(basis);
 
+  printf("still available? %p\n", ps->pairs);
+
   if (verbose > 0)
     t_update_pairs  +=  walltime(t_load_start);
 

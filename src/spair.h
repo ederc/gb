@@ -102,7 +102,7 @@ static inline void free_pair_set(ps_t **ps_in)
  *
  * \return generated spair
  */
-spair_t *generate_input_element_spair(const nelts_t gen1, const gb_t *input,
+void generate_input_element_spair(ps_t *ps, const nelts_t gen1, const gb_t *input,
     mp_cf4_ht_t *ht);
 
 /**
@@ -118,8 +118,8 @@ spair_t *generate_input_element_spair(const nelts_t gen1, const gb_t *input,
  *
  * \return generated spair
  */
-spair_t *generate_spair(const nelts_t gen1, const nelts_t gen2, const gb_t *basis,
-    mp_cf4_ht_t *ht);
+void generate_spair(ps_t *ps, const nelts_t gen1, const nelts_t gen2,
+    const gb_t *basis, mp_cf4_ht_t *ht);
 
 /**
  * \brief Updates pair set including Gebauer-Moeller criteria checks
@@ -233,8 +233,8 @@ static inline void free_selection(sel_t **sel_in)
  */
 static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
 {
-  const spair_t *spa  = *((spair_t **)a);
-  const spair_t *spb  = *((spair_t **)b);
+  const spair_t *spa  = ((spair_t *)a);
+  const spair_t *spb  = ((spair_t *)b);
 #if SPAIR_DEBUG
   printf("GEN %u | %u || %u | %u\n",spa->gen1, spa->gen2, spb->gen1, spb->gen2);
   printf("LCM %lu | %lu\n",spa->lcm, spb->lcm);
@@ -339,7 +339,7 @@ static inline void sort_pair_set_by_lcm_deg_lex(ps_t *ps)
  */
 static inline void sort_pair_set_by_lcm_grevlex(ps_t *ps)
 {
-  qsort(ps->pairs, ps->load, sizeof(ps), cmp_spairs_by_grevlex);
+  qsort(ps->pairs, ps->load, sizeof(spair_t), cmp_spairs_by_grevlex);
 }
 
 /**
@@ -359,11 +359,11 @@ static inline nelts_t get_pairs_by_minimal_degree_lex(ps_t *ps)
   sort_pair_set_by_lcm_deg_lex(ps);
 
   nelts_t i   = 0;
-  deg_t dmin  = ps->pairs[0]->deg;
+  deg_t dmin  = ps->pairs[0].deg;
 
   /* we assume here that the pair set is already sorted by degree of the lcms
    * (in particular, we assume grevlex ordering) */
-  while (i < ps->load && ps->pairs[i]->deg == dmin)
+  while (i < ps->load && ps->pairs[i].deg == dmin)
     i++;
 
   return i;
@@ -386,12 +386,12 @@ static inline nelts_t get_pairs_by_minimal_degree_grevlex(ps_t *ps)
   /* sort pair set by lcms */
   sort_pair_set_by_lcm_grevlex(ps);
 
-  deg_t dmin  = ps->pairs[0]->deg;
+  deg_t dmin  = ps->pairs[0].deg;
   nelts_t i   = 0;
 
   /* we assume here that the pair set is already sorted by degree of the lcms
    * (in particular, we assume grevlex ordering) */
-  while (i < ps->load && ps->pairs[i]->deg == dmin)
+  while (i < ps->load && ps->pairs[i].deg == dmin)
     i++;
 
   return i;

@@ -40,22 +40,22 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       nsel  = nsel / 2;
     /* nsel  = nsel < basis->max_sel ? nsel : nsebasis->max_sel; */
     /* try to keep all spairs of same lcm together */
-    while (nsel != ps->load && ps->pairs[nsel-1]->lcm == ps->pairs[nsel]->lcm)
+    while (nsel != ps->load && ps->pairs[nsel-1].lcm == ps->pairs[nsel].lcm)
       nsel++;
   }
   
   meta_data->sel_pairs  = nsel;
-  meta_data->curr_deg   = ps->pairs[0]->deg;
+  meta_data->curr_deg   = ps->pairs[0].deg;
 
   /* list of monomials that appear in the matrix */
-  pre_t *mon      = init_preprocessing_hash_list(10*nsel*basis->nt[ps->pairs[0]->gen2]);
+  pre_t *mon      = init_preprocessing_hash_list(10*nsel*basis->nt[ps->pairs[0].gen2]);
   /* the lower part of the gbla matrix resp. the selection is fixed:
    * those are just the second generators of the spairs, thus we need nsel
    * places. */
   sel_t *sel_low  = init_selection(5*nsel);
   sel_t *sel_upp  = init_selection(5*nsel);
-  sel_upp->deg    = ps->pairs[0]->deg;
-  sel_low->deg    = ps->pairs[0]->deg;
+  sel_upp->deg    = ps->pairs[0].deg;
+  sel_low->deg    = ps->pairs[0].deg;
   /* list of polynomials and their multipliers */
   select_pairs(ps, sel_upp, sel_low, mon, basis, sf, nsel);
 

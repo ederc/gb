@@ -961,27 +961,38 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   nelts_t *gens = (nelts_t *)malloc(2 * nsel * sizeof(nelts_t));
   nelts_t load  = 0;
   while (i<nsel) {
-    lcm   = ps->pairs[i]->lcm;
+    lcm     = ps->pairs[i].lcm;
+    gens[0] = ps->pairs[i].gen1;
     j = i;
-    while (j<nsel && ps->pairs[j]->lcm == lcm) {
+    while (j<nsel && ps->pairs[j].lcm == lcm) {
       /* check first generator */
       for (k=0; k<load; ++k) {
-        if (ps->pairs[j]->gen1 == gens[k]) {
+        if (ps->pairs[j].gen1 == gens[k]) {
           break;
         }
       }
       if (k == load) {
-        gens[load]  = ps->pairs[j]->gen1;
+        if (basis->nt[gens[0]] > basis->nt[ps->pairs[j].gen1]) {
+          gens[load]  = gens[0];
+          gens[0]     = ps->pairs[j].gen1;
+        } else {
+          gens[load]  = ps->pairs[j].gen1;
+        }
         load++;
       }
       /* check second generator */
       for (k=0; k<load; ++k) {
-        if (ps->pairs[j]->gen2 == gens[k]) {
+        if (ps->pairs[j].gen2 == gens[k]) {
           break;
         }
       }
       if (k == load) {
-        gens[load]  = ps->pairs[j]->gen2;
+        if (basis->nt[gens[0]] > basis->nt[ps->pairs[j].gen2]) {
+          gens[load]  = gens[0];
+          gens[0]     = ps->pairs[j].gen2;
+        } else {
+          gens[load]  = ps->pairs[j].gen2;
+        }
         load++;
       }
       j++;
@@ -1087,8 +1098,8 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
 
   /* adjust pair set after removing the bunch of selected pairs */
   k = 0;
-  for (i=0; i<nsel; ++i)
-    free(ps->pairs[i]);
+  /* for (i=0; i<nsel; ++i)
+   *   free(ps->pairs[i]); */
   for (i=nsel; i<ps->load; ++i) {
     ps->pairs[k] = ps->pairs[i];
     k++;

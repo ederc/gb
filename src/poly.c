@@ -408,8 +408,8 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
   /* if not redundandant */
   nelts_t i;
 
-  if (basis->load == basis->size)
-    enlarge_basis(basis, 2*basis->size);
+  /* if (basis->load == basis->size)
+   *   enlarge_basis(basis, 2*basis->size); */
 
   /* nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead; */
   /* use shorter names in here */

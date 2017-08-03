@@ -182,6 +182,9 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
     spd_t *spd, const src_t **pivs, const nelts_t nc, const mp_cf4_ht_t *ht)
 {
   int res;
+  if (basis->size < (nc-spd->selu->load) + basis->load)
+    enlarge_basis(basis, (nc-spd->selu->load) + basis->load);
+
   for (size_t i = nc; i > spd->selu->load; --i) {
     if (pivs[i-1] != NULL && pivs[i-1][0] == 0) {
       res = add_new_element_to_basis_all_pivs(basis, pivs[i-1], spd, ht);

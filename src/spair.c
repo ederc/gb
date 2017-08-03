@@ -167,8 +167,8 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
     if (ps->pairs[i].crit != NO_CRIT)
       continue;
     for (j=load; j<i; ++j) {
-      if (ps->pairs[j].crit != NO_CRIT) /* smaller lcm eliminated j */
-        continue;
+      /* if (ps->pairs[j].crit != NO_CRIT) [> smaller lcm eliminated j <]
+       *   continue; */
       /* if (ps->pairs[i]->lcm == ps->pairs[j]->lcm) { */
       if (check_monomial_division(ps->pairs[i].lcm, ps->pairs[j].lcm, ht) != 0 &&
           ps->pairs[i].lcm != ps->pairs[j].lcm

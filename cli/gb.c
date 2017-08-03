@@ -286,8 +286,6 @@ int main(int argc, char *argv[])
   /* initialize spair set */
   ps_t *ps = initialize_pair_set(basis);
 
-  printf("still available? %p\n", ps->pairs);
-
   if (verbose > 0)
     t_update_pairs  +=  walltime(t_load_start);
 
@@ -2807,6 +2805,7 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
     for (k=0; k<meta->ncb; ++k)
       free_mat_gb_block(CD+j*meta->ncb+k);
   free(CD);
+  clear_hash_table_idx(ht);
 
   /* get rank of D */
   nelts_t ctr = 0;
@@ -2838,7 +2837,6 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
     n_zero_reductions +=  (spd->sell->load - D->rk);
   }
   free_symbolic_preprocessing_data(&spd);
-  clear_hash_table_idx(ht);
   for (nelts_t k=0; k<D->rk; ++k) {
     free(D->row[k]);
   }
@@ -3099,6 +3097,7 @@ void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
     free(AB);
     AB  = NULL;
   }
+  clear_hash_table_idx(ht);
   /* if (verbose == 1 && steps > 0) {
    *   printf("%9.3f sec ", walltime(t_load_start) / (1000000));
    * } */
@@ -3147,7 +3146,6 @@ void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
     n_zero_reductions +=  (init_rk_CD - CD->rk);
   }
   free_symbolic_preprocessing_data(&spd);
-  clear_hash_table_idx(ht);
   for (nelts_t k=0; k<CD->rk; ++k) {
     free(CD->row[k]);
   }
@@ -3345,6 +3343,7 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
   }
 
   free(drg);
+  clear_hash_table_idx(ht);
 
   if (verbose > 0)
     t_linear_algebra  +=  walltime(t_load_start);
@@ -3367,7 +3366,6 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
   free(pivs);
   pivs  = NULL;
   free_symbolic_preprocessing_data(&spd);
-  clear_hash_table_idx(ht);
   if (verbose > 0)
     t_update_pairs  +=  walltime(t_load_start);
 

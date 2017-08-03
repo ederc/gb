@@ -30,7 +30,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   /* clears hash table index: there we store during symbolic preprocessing a 2
    * if it is a lead monomial and 1 if it is not a lead monomial. all other
    * entries keep 0, thus they are not part of this reduction step */
-  clear_hash_table_idx(ht);
+
+  /* clear_hash_table_idx(ht); */
 
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
 

@@ -999,7 +999,7 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, mp_cf4_ht_
  */
 static inline void clear_hash_table_idx(mp_cf4_ht_t *ht)
 {
-  memset(ht->idx, 0, ht->sz * sizeof(ht_size_t));
+  memset(ht->idx, 0, ht->load * sizeof(ht_size_t));
   /* memset(ht->ctr, 0, ht->sz * sizeof(ht_size_t)); */
 }
 #endif /* GB_HASH_TABLE_H */

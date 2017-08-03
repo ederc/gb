@@ -960,6 +960,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   hash_t lcm    = 0;
   nelts_t *gens = (nelts_t *)malloc(2 * nsel * sizeof(nelts_t));
   nelts_t load  = 0;
+  nelts_t tmp, min_nt_pos;
   while (i<nsel) {
     lcm     = ps->pairs[i].lcm;
     gens[0] = ps->pairs[i].gen1;
@@ -972,12 +973,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         }
       }
       if (k == load) {
-        if (basis->nt[gens[0]] > basis->nt[ps->pairs[j].gen1]) {
-          gens[load]  = gens[0];
-          gens[0]     = ps->pairs[j].gen1;
-        } else {
-          gens[load]  = ps->pairs[j].gen1;
-        }
+        gens[load]  = ps->pairs[j].gen1;
         load++;
       }
       /* check second generator */
@@ -987,16 +983,29 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
         }
       }
       if (k == load) {
-        if (basis->nt[gens[0]] > basis->nt[ps->pairs[j].gen2]) {
-          gens[load]  = gens[0];
-          gens[0]     = ps->pairs[j].gen2;
-        } else {
-          gens[load]  = ps->pairs[j].gen2;
-        }
+        gens[load]  = ps->pairs[j].gen2;
         load++;
       }
       j++;
     }
+
+    /* TODO:
+     * does it really makes sense to sort the elements such that the known pivot
+     * is the corresponding sparsest row? or is the benefit from this not enough
+     * to compensate the drawback of searching for the element? */
+#if 1
+    /* put generator with minimal number of terms on first position, i.e.
+     * sparsest row of given lcm is used as known pivot */
+    min_nt_pos  = 0;
+    for (nelts_t l = 1; l < load; ++l) {
+      if (basis->nt[gens[min_nt_pos]] > basis->nt[gens[l]])
+        min_nt_pos  = l;
+    }
+    /* put generator with minimal number of terms on first position */
+    tmp               = gens[0];
+    gens[0]           = gens[min_nt_pos];
+    gens[min_nt_pos]  = tmp;
+#endif
     i     = j;
     /* now we have handled all poairs of the given lcm, we add them to the
      * symbolic preprocessing step in the following */

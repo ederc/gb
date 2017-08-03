@@ -64,7 +64,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
    * new elements to mon */
   idx = 0;
   nelts_t hio;
-  hash_t h, ho;
+  /* hash_t h, ho; */
   while (idx < mon->load) {
     /* printf("mon_load %u\n", mon->load); */
     hash_pos  = mon->hpos[idx];
@@ -75,8 +75,13 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
       /* takes last element in basis and test for division, goes down until we
        * reach the last known divisor last_div */
       hio = 0;
-      ho  = 0;
-      i   = last_div == 0 ? basis->st : last_div;
+      /* ho  = 0; */
+      if (last_div > 0 && basis->red[last_div] == 0) {
+        hio = last_div;
+        goto done;
+      }
+      i   = last_div == 0 ? basis->st : last_div+1;
+
 #if 1
       /* max value for an unsigned data type in order to ensure that the first
        * polynomial is taken */
@@ -101,7 +106,6 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
           /* if ((h != 0)) { */
             hio = i;
             /* nto = basis->nt[i]; */
-            ho  = h;
             break;
           /* } */
         }
@@ -123,7 +127,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 #endif
       if (hio > 0) {
         done:
-        ho = get_multiplier(hash_pos, basis->eh[hio][0], ht);
+        /* ho = get_multiplier(hash_pos, basis->eh[hio][0], ht); */
         mon->nlm++;
         /* printf("this is the reducer finally taken %3u\n",hio); */
         /* if (ht->div[hash_pos] != hio)
@@ -142,7 +146,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         sel_upp->mpp[sel_upp->load].bi  = hio;
         sel_upp->mpp[sel_upp->load].sf  = 0;
         sel_upp->mpp[sel_upp->load].mlm = hash_pos;
-        sel_upp->mpp[sel_upp->load].mul = ho;
+        sel_upp->mpp[sel_upp->load].mul = get_multiplier(hash_pos, basis->eh[hio][0], ht);
 #if 0
         sel_upp->mpp[sel_upp->load].nt  = basis->nt[hio];
         sel_upp->mpp[sel_upp->load].eh  = basis->eh[hio];
@@ -155,6 +159,8 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
             2*mon->size : basis->nt[sel_upp->mpp[sel_upp->load-1].bi];
           adjust_size_of_preprocessing_hash_list(mon, max);
         }
+#define SIMPLIFY  1
+#if SIMPLIFY
         /* function pointer set correspondingly if simplify option is set or not */
         ht->sf.simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
         /* try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf); */
@@ -176,6 +182,15 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
               mon,
               ht);
         }
+#else
+        enter_monomial_to_preprocessing_hash_list(
+            /* sel_upp->mpp[sel_upp->load-1], */
+            sel_upp->mpp[sel_upp->load-1].mul,
+            sel_upp->mpp[sel_upp->load-1].bi,
+            basis,
+            mon,
+            ht);
+#endif
       }
     }
     idx++;

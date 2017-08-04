@@ -72,7 +72,8 @@ typedef uint32_t nelts_t;
 typedef uint32_t ht_size_t;
 
 /* hash table entry size */
-typedef uint64_t hash_t;
+typedef uint32_t hash_t;
+/* typedef uint64_t hash_t; */
 /* typedef unsigned long hash_t; */
 
 /* degree size */

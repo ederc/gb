@@ -3328,9 +3328,11 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     goto again;
 
   /* interreduce new pivs */
+  nelts_t nnr = 0; /* number of new rows */
   for (size_t i = nc; i > spd->selu->load; --i) {
   /* for (size_t i = spd->selu->load; i < nc; ++i) { */
     if (pivs[i-1] != NULL) {
+      ++nnr;
       memset(drg, 0, nc * sizeof(bf_t));
       for (size_t k = 2; k < pivs[i-1][1]; k = k+2)
         drg[pivs[i-1][k]]  +=  (bf_t) pivs[i-1][k+1];
@@ -3351,8 +3353,9 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     /* TODO */
     /* printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk); */
     printf("%5u nb ", nb);
+    printf("%6u new %6u zero ", nnr, spd->sell->load - nnr);
     printf("%9.3f sec ", walltime(t_load_start) / (1000000));
-    printf("%6.3f%% d\n", density);
+    printf("%7.3f%% d\n", density);
   }
   if (verbose > 0)
     gettimeofday(&t_load_start, NULL);

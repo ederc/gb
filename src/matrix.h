@@ -4717,17 +4717,22 @@ static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
     /* reduce dense row with found pivot row */
     const bf_t mul = (bf_t)(mod) - dr[i]; /* it is already reduced modulo mod */
     
+    j = (pivs[i][1] - 2) / 2;
+    j = (j & 1) ? 4 : 2;
+    /* printf("j %u | pivs[%u][1] %u\n", j, i, pivs[i][1]); */
+    for (; j < pivs[i][1]; j = j+4) {
+      dr[pivs[i][j]]    +=  (bf_t)mul * pivs[i][j+1];
+      dr[pivs[i][j+2]]  +=  (bf_t)mul * pivs[i][j+3];
+    }
     dr[i]  = 0;
-    for (j = 4; j < pivs[i][1]; j = j+2)
-      dr[pivs[i][j]]  +=  (bf_t)mul * pivs[i][j+1];
 
     /* get new pivot element in dense row */
-    for (j = i+1; j < nc; ++j) {
-      if (dr[j] != 0)
-        dr[j] = dr[j] % mod;
-      if (dr[j] != 0)
-        break;
-    }
+    /* for (j = i+1; j < nc; ++j) {
+     *   if (dr[j] != 0)
+     *     dr[j] = dr[j] % mod;
+     *   if (dr[j] != 0)
+     *     break;
+     * } */
     /* zero reduction of dense row */
     /* if (j == nc)
      *   return NULL; */

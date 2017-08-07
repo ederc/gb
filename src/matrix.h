@@ -5730,15 +5730,12 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
     (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
 
   for (i=0; i<meta->ncb; ++i) {
-    /* printf("iter %p | start %p\n", iter, start); */
     initialize_mat_gb_block(start+i, meta, max);
-    /* printf("%u . %p | %p\n",i, iter, iter->val); */
   }
 
 
   for (i=0; i<max; ++i) {
     write_poly_to_matrix(start, meta, i, 0, sel->mpp+(i+offset), basis, ht);
-    /* printf("!!!\n"); */
   }
 
   /* check len entries */
@@ -5797,6 +5794,7 @@ static inline src_t **generate_src_mat_upper_row_block(
 
   return mat;
 }
+
 static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
     const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
     const spd_t *spd, const mp_cf4_ht_t *ht)
@@ -5856,6 +5854,28 @@ static inline mat_gb_block_t *generate_mat_gb_row_block(
 
   write_to_mat_gb_row_block(mat, meta, idx, 0, spd->selu, basis, ht);
 
+  return mat;
+}
+
+static inline mat_gb_block_t *generate_mat_gb_upper(
+    const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
+    const mp_cf4_ht_t *ht, const int t)
+{
+  mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
+      (meta->nrb_AB * meta->ncb * sizeof(mat_gb_block_t)));
+  /* printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD); */
+
+  /* printf("meta %u\n", meta->nrb_CD); */
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+      for (nelts_t i=0; i<meta->nrb_AB; ++i) {
+        #pragma omp task
+        write_to_mat_gb_row_block(mat, meta, i, i, spd->selu, basis, ht);
+      }
+    }
+  }
   return mat;
 }
 

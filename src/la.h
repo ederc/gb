@@ -1138,6 +1138,46 @@ static inline void reduce_upper_column_block(mat_gb_block_t **l,
   }
 }
 
+static inline void update_lower_by_unreduced_upper_row_block(mat_gb_block_t *l,
+    const mat_gb_block_t *u, const mat_gb_meta_data_t *meta, const int t)
+{
+#pragma omp parallel num_threads(t)
+  {
+#pragma omp single nowait
+    {
+      /* loop over row blocks in CD */
+      for (nelts_t i = 0; i < meta->nrb_CD; ++i) {
+#pragma omp task
+        {
+          /* multiply with all previously updated blocks from A multiplied by C */
+          for (nelts_t j = 0; j < meta->ncb_AC; ++j) {
+            for (nelts_t k = 0; k < j; ++k) {
+              if (u[k*meta->ncb + j].val != NULL && l[k+i*meta->ncb].val != NULL) {
+                sparse_update_lower_block_by_upper_block(l, u+k*meta->ncb, k, i, j, meta);
+              }
+            }
+            /* finally update block computing needed multiples for updating D later on */
+            if (l[j + i*meta->ncb].val != 0) {
+              sparse_update_first_block_by_upper_block(l, u+j*meta->ncb, j, i, meta);
+            }
+          }
+          /* now update D */
+          for (nelts_t j = meta->ncb_AC; j < meta->ncb; ++j) {
+            for (nelts_t k = 0; k < meta->nrb_AB; ++k) {
+              if (u[k*meta->ncb + j].val != NULL && l[k+i*meta->ncb].val != NULL) {
+                sparse_update_lower_block_by_upper_block(l, u+k*meta->ncb, k, i, j, meta);
+              }
+            }
+          }
+          /* free_mat_gb_block(l + j + i * meta->ncb); */
+          adjust_block_row_types_including_dense_righthand(l + i * meta->ncb, meta);
+        }
+#pragma omp taskwait
+      }
+    }
+  }
+}
+
 static inline void update_lower_by_reduced_upper_row_block(mat_gb_block_t *l,
     const mat_gb_block_t **u, const mat_gb_meta_data_t *meta, const int t)
 {

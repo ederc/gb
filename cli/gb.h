@@ -319,6 +319,12 @@ void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
     const ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);
 
+/* constructs A|B completely (unlike _23) but does directly reduce
+ * C|D (unlike _24) */
+void reduce_gb_25(gb_t *basis, const spd_t *spd, const double density,
+    const ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads);
+
 void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
     const ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);

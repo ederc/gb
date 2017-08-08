@@ -84,6 +84,30 @@ static inline void load_dense_block_from_sparse(bf_t *db,
   }
 }
 
+static inline void load_dense_block_for_update_full(bf_t *db,
+    const mat_gb_block_t *bl, const mat_gb_meta_data_t *meta)
+{
+  nelts_t i, j;
+
+  memset(db, 0, meta->bs * meta->bs *sizeof(bf_t));
+
+  if (bl->len != NULL) {
+    for (i = 0; i < bl->nr; ++i) {
+      for (j=bl->len[i]; j<bl->len[i+1]; ++j) {
+        db[bl->pos[j] + i*meta->bs]  = (bf_t)bl->val[j];
+      }
+    }
+  } else {
+    if (bl->val == NULL)
+      return;
+    for (i = 0; i < bl->nr; ++i) {
+      for (j=0; j<meta->bs; ++j) {
+        db[j + i*meta->bs]  = (bf_t)bl->val[j + i*meta->bs];
+      }
+    }
+  }
+}
+
 static inline void load_dense_block_for_update(bf_t *db,
     const mat_gb_block_t *bl, const mat_gb_meta_data_t *meta)
 {
@@ -136,6 +160,32 @@ static inline void load_dense_row_for_update_from_sparse(bf_t *dr,
   if (bl->len != NULL) {
     for (i=bl->len[idx]; i<bl->len[idx+1]; ++i)
       dr[bl->pos[i]]  = (bf_t)bl->val[i];
+  }
+}
+
+static inline void write_updated_block_to_sparse_format_directly(mat_gb_block_t *bl,
+    const bf_t *db, const nelts_t lr, const mat_gb_meta_data_t *meta)
+{
+  nelts_t i, j;
+  bf_t tmp;
+
+  free(bl->len);
+  bl->len = (nelts_t *)calloc((meta->bs+1), sizeof(nelts_t));
+  bl->pos = realloc(bl->pos, meta->bs*meta->bs * sizeof(bs_t));
+  bl->val= realloc(bl->val, meta->bs*meta->bs * sizeof(cf_t));
+
+  for (i = 0; i < lr; ++i) {
+    bl->len[i+1]  = bl->len[i];
+    for (j = 0; j < meta->bs; ++j) {
+      if (db[j + i*meta->bs] != 0) {
+        tmp = db[j + i*meta->bs] % meta->mod;
+        if (tmp != 0) {
+          bl->pos[bl->len[i+1]] = (bs_t)j;
+          bl->val[bl->len[i+1]] = (cf_t)tmp;
+          bl->len[i+1]++;
+        }
+      }
+    }
   }
 }
 
@@ -986,6 +1036,53 @@ static inline void sparse_update_D_blocks_by_B_blocks(
   adjust_block_row_types_including_dense_righthand(l + rbi*meta->ncb, meta);
 }
 
+static inline void compute_multiples_in_first_block_at_once(bf_t *db,
+    const mat_gb_block_t *bl, const mat_gb_meta_data_t *meta)
+{
+  nelts_t i, j, k, l;
+
+  /* printf("bl->nr %u | bl->len[1] %u\n", bl->nr, bl->len[1]);
+   * printf("\n ---------------start------------------------------\n");
+   * for (i=0; i<bl->nr; ++i) {
+   *   for (j=bl->len[i]; j<bl->len[i+1]; ++j) {
+   *   printf("%u at %u | ", bl->val[j], bl->pos[j]);
+   *   }
+   *   printf("\n");
+   * }
+   * printf("\n- -\n");
+   * for (i=0; i<bl->nr; ++i)
+   *   printf("%lu ", dr[i]);
+   * printf("\n"); */
+  for (l = 0; l < meta->bs; ++l) {
+    for (i=0; i<bl->nr; ++i) {
+      /* printf("%u / %u -- %lu\n", i, bl->nr, dr[i]); */
+      if (db[i+l*meta->bs] != 0) {
+        db[i+l*meta->bs] = db[i+l*meta->bs] % meta->mod;
+        if (db[i+l*meta->bs] != 0) {
+          const bf_t mul  = (bf_t)meta->mod - db[i+l*meta->bs];
+          /* printf("mul %u\n", mul); */
+          const nelts_t ri  = i;
+          const nelts_t shift = (bl->len[ri+1]-bl->len[ri]-1) % 4;
+          for (j=bl->len[ri]+1; j<bl->len[ri]+shift+1; ++j) {
+            db[bl->pos[j]+l*meta->bs] +=  mul * bl->val[j];
+          }
+          for (; j<bl->len[ri+1]; j=j+4) {
+            db[bl->pos[j]+l*meta->bs] +=  mul * bl->val[j];
+            db[bl->pos[j+1]+l*meta->bs] +=  mul * bl->val[j+1];
+            db[bl->pos[j+2]+l*meta->bs] +=  mul * bl->val[j+2];
+            db[bl->pos[j+3]+l*meta->bs] +=  mul * bl->val[j+3];
+          }
+        }
+      }
+    }
+  }
+  /* printf("\n- -\n");
+   * for (int ii=0; ii<bl->nr; ++ii)
+   *   printf("%lu ", dr[ii]);
+   * printf("\n");
+   * }
+   * printf("-----------------done----------------------------\n"); */
+}
 static inline void compute_multiples_in_first_block(bf_t *dr,
     const mat_gb_block_t *bl, const mat_gb_meta_data_t *meta)
 {
@@ -1149,28 +1246,44 @@ static inline void update_lower_by_unreduced_upper_row_block(mat_gb_block_t *l,
       for (nelts_t i = 0; i < meta->nrb_CD; ++i) {
 #pragma omp task
         {
+          /* allocate memory for a dense block:
+           * always the block to be updated */
+          bf_t *db  = (bf_t *)malloc(meta->bs * meta->bs * sizeof(bf_t));
+
           /* multiply with all previously updated blocks from A multiplied by C */
           for (nelts_t j = 0; j < meta->ncb_AC; ++j) {
+            load_dense_block_for_update_full(db, l+j+i*meta->ncb, meta);
             for (nelts_t k = 0; k < j; ++k) {
               if (u[k*meta->ncb + j].val != NULL && l[k+i*meta->ncb].val != NULL) {
-                sparse_update_lower_block_by_upper_block(l, u+k*meta->ncb, k, i, j, meta);
+                update_dense_block_sparse(db, u + k*meta->ncb + j,
+                    l + i*meta->ncb + k, meta->bs, meta);
+                /* sparse_update_lower_block_by_upper_block(l, u+k*meta->ncb, k, i, j, meta); */
               }
             }
             /* finally update block computing needed multiples for updating D later on */
-            if (l[j + i*meta->ncb].val != 0) {
-              sparse_update_first_block_by_upper_block(l, u+j*meta->ncb, j, i, meta);
-            }
+            compute_multiples_in_first_block_at_once(db, u+j*meta->ncb + j, meta);
+            write_updated_block_to_sparse_format_directly(l+j+i*meta->ncb,
+                db, l[j+i*meta->ncb].nr, meta);
+            /* set_updated_block_no_delete(l+j+i*meta->ncb, nbl); */
           }
+
           /* now update D */
           for (nelts_t j = meta->ncb_AC; j < meta->ncb; ++j) {
+            load_dense_block_for_update_full(db, l+j+i*meta->ncb, meta);
             for (nelts_t k = 0; k < meta->nrb_AB; ++k) {
               if (u[k*meta->ncb + j].val != NULL && l[k+i*meta->ncb].val != NULL) {
-                sparse_update_lower_block_by_upper_block(l, u+k*meta->ncb, k, i, j, meta);
+                update_dense_block_sparse(db, u + k*meta->ncb + j,
+                    l + i*meta->ncb + k, meta->bs, meta);
+                /* sparse_update_lower_block_by_upper_block(l, u+k*meta->ncb, k, i, j, meta); */
               }
             }
+            write_updated_block_to_sparse_format_directly(l+j+i*meta->ncb,
+                db, l[j+i*meta->ncb].nr, meta);
           }
           /* free_mat_gb_block(l + j + i * meta->ncb); */
           adjust_block_row_types_including_dense_righthand(l + i * meta->ncb, meta);
+
+          free(db);
         }
 #pragma omp taskwait
       }

@@ -306,6 +306,7 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   /* for easier divisibility checks we start at index 1. If the divisibility
    * check routines return 0, there is no division. */
   ht->load    = 1;
+  ht->probe   = (uint16_t *)calloc(ht->sz, sizeof(uint16_t));
   ht->lut     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
   ht->val     = (hash_t *)calloc(ht->sz, sizeof(hash_t));
   ht->deg     = (deg_t *)calloc(ht->sz, sizeof(deg_t));
@@ -388,6 +389,7 @@ static inline void enlarge_hash_table(ht_t *ht)
 #if HASH_DEBUG
   printf("enlarging hash table: %10u --> %10u\n", old_sz, ht->sz);
 #endif
+  ht->probe = realloc(ht->probe, ht->sz * sizeof(uint16_t));
   ht->lut   = realloc(ht->lut, ht->sz * sizeof(ht_size_t));
   ht->val   = realloc(ht->val, ht->sz * sizeof(hash_t));
   ht->deg   = realloc(ht->deg, ht->sz * sizeof(deg_t));
@@ -431,6 +433,7 @@ static inline void free_hash_table(ht_t **ht_in)
 
     hash_t i;
 
+    free(ht->probe);
     free(ht->lut);
     free(ht->val);
     free(ht->rand);
@@ -498,14 +501,15 @@ static inline hash_t get_hash(const exp_t *exp, const ht_t *ht)
  * \return position of hash of exp in table
  */
 static inline hash_t insert_in_hash_table(const hash_t hash,
-    const ht_size_t pos,  ht_t *ht)
+    const ht_size_t pos, const uint16_t probe,  ht_t *ht)
 {
 /* the new exponent is already stored in ht->exp[ht->load] and also
  * ht->deg[ht->load] is already set
  *
  * ht->div and ht->idx are already initialized with 0, so nothing to do there */
-  ht->val[ht->load] = hash;
-  ht->lut[pos]      = ht->load;
+  ht->probe[ht->load] = probe;
+  ht->val[ht->load]   = hash;
+  ht->lut[pos]        = ht->load;
   if (ht->rcdm == 0)
     recalculate_divmaps(ht);
   ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
@@ -551,13 +555,14 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  * \return position of hash of exp in table
  */
 static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
-    const hash_t hash, const ht_size_t pos,  ht_t *ht)
+    const hash_t hash, const ht_size_t pos, const uint16_t probe, ht_t *ht)
 {
 
   /* ht->div and ht->idx are already initialized with 0, so nothing to do there */
-  ht->deg[ht->load] = ht->deg[mon_1] + ht->deg[mon_2];
-  ht->val[ht->load] = hash;
-  ht->lut[pos]      = ht->load;
+  ht->probe[ht->load] = probe;
+  ht->deg[ht->load]   = ht->deg[mon_1] + ht->deg[mon_2];
+  ht->val[ht->load]   = hash;
+  ht->lut[pos]        = ht->load;
   if (ht->rcdm == 0)
     recalculate_divmaps(ht);
   ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
@@ -622,7 +627,7 @@ static inline hash_t check_in_hash_table(ht_t *ht)
   /* first check directly */
   tmp_l = ht->lut[tmp_h];
   if (tmp_l == 0)
-    return insert_in_hash_table(hash, tmp_h, ht);
+    return insert_in_hash_table(hash, tmp_h, 0, ht);
   if (ht->val[tmp_l] == hash) {
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
       return tmp_l;
@@ -646,7 +651,7 @@ static inline hash_t check_in_hash_table(ht_t *ht)
   }
   /* at this point we know that we do not have the hash value of exp in the
    * table, so we have to insert it */
-  return insert_in_hash_table(hash, tmp_h, ht);
+  return insert_in_hash_table(hash, tmp_h, i, ht);
 }
 
 /**
@@ -753,7 +758,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   /* first check directly */
   tmp_l = ht->lut[tmp_h];
   if (tmp_l == 0)
-    return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
+    return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, 0, ht);
   if (ht->val[tmp_l] == hash) {
     if (memcmp(ht->exp[ht->load], ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
       return tmp_l;
@@ -772,7 +777,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   }
   /* at this point we know that we do not have the hash value of exp in the
    * table, so we have to insert it */
-  return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, ht);
+  return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, i, ht);
 }
 
 /**

@@ -976,7 +976,7 @@ static inline void reset_buffer(dbr_t *dbr, const nelts_t ncb, const bi_t bs)
  */
 static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t nt,
     const hash_t *eh, const cf_t *cf, const nelts_t fr, const bi_t bs,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   nelts_t j, tmp;
   /* hash position and column position */
@@ -1078,7 +1078,7 @@ static inline void store_in_buffer(dbr_t *dbr, const hash_t mul, const nelts_t n
 
 static inline void store_in_matrix_direct(sb_fl_t *A, dbm_fl_t *B, const hash_t mul, const nelts_t nt,
     const hash_t *eh, const cf_t *cf, const nelts_t fr, const nelts_t rbi,  const bi_t rib, const bi_t bs,
-    const cf_t mod, const mp_cf4_ht_t *ht)
+    const cf_t mod, const ht_t *ht)
 {
   int j = (int)(nt-1);
   /* hash position and column position */
@@ -1144,7 +1144,7 @@ static inline void store_in_matrix_direct(sb_fl_t *A, dbm_fl_t *B, const hash_t 
  */
 static inline void store_in_buffer_new(dbr_t *dbr, const bi_t rib,  const hash_t mul, const nelts_t nt,
     const hash_t *eh, const cf_t *cf, const nelts_t fbr, const nelts_t fr, const bi_t bs,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   nelts_t j, tmp;
   /* hash position and column position */
@@ -5355,7 +5355,7 @@ static inline mat_gb_meta_data_t *generate_matrix_meta_data(const int bs,
  * the generation of CD is done via "start=0". */
 static inline void write_poly_to_matrix(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const nelts_t start,
-    const mpp_t *mpp, const gb_t *basis, const mp_cf4_ht_t *ht)
+    const mpp_t *mpp, const gb_t *basis, const ht_t *ht)
 {
   nelts_t i;
   nelts_t cp;
@@ -5666,7 +5666,7 @@ static inline void initialize_mat_gb_block(mat_gb_block_t *bl,
 
 static inline void write_to_mat_gb_row_block_inverted_order(
     mat_gb_block_t *mat, const mat_gb_meta_data_t *meta, const nelts_t idx,
-    const sel_t *sel, const gb_t *basis, const mp_cf4_ht_t *ht)
+    const sel_t *sel, const gb_t *basis, const ht_t *ht)
 {
   nelts_t i, j;
   
@@ -5706,7 +5706,7 @@ static inline void write_to_mat_gb_row_block_inverted_order(
 
 static inline void write_to_src_mat_row_block(src_t **mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
-    const gb_t *basis, const mp_cf4_ht_t *ht)
+    const gb_t *basis, const ht_t *ht)
 {
   const nelts_t offset  = idx*meta->bs;
   const nelts_t max     =
@@ -5719,7 +5719,7 @@ static inline void write_to_src_mat_row_block(src_t **mat,
 
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const nelts_t ci,
-    const sel_t *sel, const gb_t *basis, const mp_cf4_ht_t *ht)
+    const sel_t *sel, const gb_t *basis, const ht_t *ht)
 {
   nelts_t i;
   
@@ -5780,7 +5780,7 @@ static inline void invert_first_block(mat_gb_block_t *mat,
 
 static inline src_t **generate_src_mat_upper_row_block(
     const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
-    const spd_t *spd, const mp_cf4_ht_t *ht)
+    const spd_t *spd, const ht_t *ht)
 {
   const nelts_t offset  = idx*meta->bs;
   const nelts_t max     =
@@ -5797,7 +5797,7 @@ static inline src_t **generate_src_mat_upper_row_block(
 
 static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
     const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
-    const spd_t *spd, const mp_cf4_ht_t *ht)
+    const spd_t *spd, const ht_t *ht)
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       meta->ncb * sizeof(mat_gb_block_t));
@@ -5847,7 +5847,7 @@ static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
 
 static inline mat_gb_block_t *generate_mat_gb_row_block(
     const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
-    const spd_t *spd, const mp_cf4_ht_t *ht)
+    const spd_t *spd, const ht_t *ht)
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       meta->ncb * sizeof(mat_gb_block_t));
@@ -5859,7 +5859,7 @@ static inline mat_gb_block_t *generate_mat_gb_row_block(
 
 static inline mat_gb_block_t *generate_mat_gb_upper(
     const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
-    const mp_cf4_ht_t *ht, const int t)
+    const ht_t *ht, const int t)
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       (meta->nrb_AB * meta->ncb * sizeof(mat_gb_block_t)));
@@ -5881,7 +5881,7 @@ static inline mat_gb_block_t *generate_mat_gb_upper(
 
 static inline mat_gb_block_t *generate_mat_gb_lower(
     const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
-    const mp_cf4_ht_t *ht, const int t)
+    const ht_t *ht, const int t)
 {
   mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
       (meta->nrb_CD * meta->ncb * sizeof(mat_gb_block_t)));
@@ -5908,7 +5908,7 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
 
 static inline src_t **generate_src_mat_lower(
     const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
-    const mp_cf4_ht_t *ht, const int t)
+    const ht_t *ht, const int t)
 {
   src_t **mat  = (src_t **)malloc(
       (meta->nr_CD * sizeof(src_t *)));

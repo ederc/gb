@@ -150,7 +150,7 @@ nvars_t get_nvars(const char *fn);
  *
  * \param hash table ht
  */
-void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht);
+void sort_input_polynomials(gb_t *basis, const ht_t *ht);
 
 /**
  * \brief Checks if any polynomial in basis has terms with the same exponent. It
@@ -175,7 +175,7 @@ void check_for_same_exponents(gb_t *basis);
  *
  * \param hash table ht
  */
-void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht);
+void homogenize_input_polynomials(gb_t *basis, ht_t *ht);
 
 /**
  * \brief Loads input file and intializes input data structure
@@ -207,7 +207,7 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht);
  * \return initial state of input
  */
 gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
-    mp_cf4_ht_t *ht, const int simplify, const long max_spairs,
+    ht_t *ht, const int simplify, const long max_spairs,
     const int vb);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
@@ -264,7 +264,7 @@ void get_term(const char *line, char **prev_pos,
  *
  * \param hash table ht
  */
-void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht);
+void store_exponent(const char *term, const gb_t *basis, ht_t *ht);
 
 /**
  * \brief Returns number of terms in polynomial represented by a line in a text

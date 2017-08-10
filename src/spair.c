@@ -279,7 +279,7 @@ inline void enlarge_pair_set(ps_t *ps, const nelts_t new_size)
   ps->size  = new_size;
 }
 
-inline void generate_input_element_spair(ps_t *ps, const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
+inline void generate_input_element_spair(ps_t *ps, const nelts_t gen2, const gb_t *basis, ht_t *ht)
 {
   /* spair_t *sp = (spair_t *)malloc(sizeof(spair_t)); */
   /* sp->gen1  = 0; */
@@ -296,7 +296,7 @@ inline void generate_input_element_spair(ps_t *ps, const nelts_t gen2, const gb_
 
 
 inline void generate_spair(ps_t *ps, const nelts_t gen1,
-    const nelts_t gen2, const gb_t *basis, mp_cf4_ht_t *ht)
+    const nelts_t gen2, const gb_t *basis, ht_t *ht)
 {
   spair_t *sp = ps->pairs + ps->load + gen2 - basis->st;
   /* we have to fix the positions where the new basis element is put (gen2),

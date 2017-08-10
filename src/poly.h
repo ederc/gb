@@ -105,16 +105,16 @@ gb_t *initialize_simplifier_list(const gb_t *basis);
  * -1:  the new element is not added to the basis since it is redundant
  */
 int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
-    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+    const nelts_t ri, const spd_t *spd, const ht_t *ht);
 
 int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
-    const spd_t *spd, const mp_cf4_ht_t *ht);
+    const spd_t *spd, const ht_t *ht);
 
 int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
-    const spd_t *spd, const mp_cf4_ht_t *ht);
+    const spd_t *spd, const ht_t *ht);
 
 int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
-    const spd_t *spd, const mp_cf4_ht_t *ht);
+    const spd_t *spd, const ht_t *ht);
 
 /**
  * \brief Adds new element from reduced B part of gbla matrix to simplifier list.
@@ -137,10 +137,10 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
  * \param hash table ht
  */
 void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
-    const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+    const dm_t *B, const nelts_t ri, const spd_t *spd, const ht_t *ht);
 
 int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
-    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht);
+    const nelts_t ri, const spd_t *spd, const ht_t *ht);
 
 /**
  * \brief Frees dynamically allocated memory from simplifier list. Sets the list
@@ -255,7 +255,7 @@ static inline void initialize_simplifier_link(gb_t *basis)
  *
  * \param intermediate groebner basis basis
  */
-static inline void track_redundant_elements_in_basis(gb_t *basis, const mp_cf4_ht_t *ht)
+static inline void track_redundant_elements_in_basis(gb_t *basis, const ht_t *ht)
 {
   nelts_t i;
   /* check for redundancy of other elements in basis */
@@ -286,7 +286,7 @@ static inline void track_redundant_elements_in_basis(gb_t *basis, const mp_cf4_h
  * \return 0 if not redundant, =/= 0 else
  */
 static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basis,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   /* check for redundancy of other elements in basis */
   for (nelts_t i=basis->load_ls; i<basis->load; ++i) {

@@ -2514,7 +2514,7 @@ int main(int argc, char *argv[])
 }
 
 void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   if (spd->col->nlm != 0) {
     ri_t i;
@@ -2555,7 +2555,7 @@ void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
 }
 
 int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
-    spd_t *spd, mat_t *mat, const mp_cf4_ht_t *ht,  const ri_t rankDR,
+    spd_t *spd, mat_t *mat, const ht_t *ht,  const ri_t rankDR,
     const int nthreads)
 {
   int done;

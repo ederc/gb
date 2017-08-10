@@ -80,7 +80,7 @@
 /***************************
  * OUR HASH TABLE IS GLOBAL
  **************************/
-extern mp_cf4_ht_t *ht;
+extern ht_t *ht;
 
 /* global variables used as random seeds, initialized to max unsigned values
  * depending on available wordsize of the machine */
@@ -153,7 +153,7 @@ static inline uint32_t pseudo_random_generator(uint32_t random_seed)
  *
  * \param hash table ht
  */
-static inline void set_random_seed(mp_cf4_ht_t *ht)
+static inline void set_random_seed(ht_t *ht)
 {
   hash_t i;
 
@@ -188,7 +188,7 @@ uint32_t random_seed  = 2463534242;
  * \return divmask of exp
  */
 #if 1
-static inline divm_t generate_divmask(const exp_t *exp, mp_cf4_ht_t *ht)
+static inline divm_t generate_divmask(const exp_t *exp, ht_t *ht)
 {
   /* for (nelts_t i=0; i<32; ++i)
    *   printf("%2u|%2u ", i, ht->divmap[i]);
@@ -218,7 +218,7 @@ static inline divm_t generate_divmask(const exp_t *exp, mp_cf4_ht_t *ht)
  *
  * \param hash table ht
  */
-static inline void recalculate_divmaps(mp_cf4_ht_t *ht)
+static inline void recalculate_divmaps(ht_t *ht)
 {
   /* printf("recalculate: ndv %u | bpv %u \n",ht->ndv, ht->bpv);
    * for (nelts_t i=0; i<32; ++i)
@@ -292,12 +292,12 @@ static inline void recalculate_divmaps(mp_cf4_ht_t *ht)
  *
  * \return hash table
  */
-static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
+static inline ht_t *init_hash_table(const ht_size_t ht_si,
     const nvars_t nv)
 {
   hash_t i;
 
-  mp_cf4_ht_t *ht = (mp_cf4_ht_t *)malloc(sizeof(mp_cf4_ht_t));
+  ht_t *ht = (ht_t *)malloc(sizeof(ht_t));
 
   /* global table data */
   ht->sz    = (ht_size_t)(pow(2,ht_si));
@@ -349,7 +349,7 @@ static inline mp_cf4_ht_t *init_hash_table(const ht_size_t ht_si,
  *
  * \param hash table hash_table
  */
-static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos, mp_cf4_ht_t *ht)
+static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos, ht_t *ht)
 {
   ht_size_t i;
   ht_size_t tmp_h;
@@ -378,7 +378,7 @@ static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos
  *
  * \param hash table ht
  */
-static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
+static inline void enlarge_hash_table(ht_t *ht)
 {
   ht_size_t i;
   hash_t hash;
@@ -424,9 +424,9 @@ static inline void enlarge_hash_table(mp_cf4_ht_t *ht)
  *
  * \param hash table ht
  */
-static inline void free_hash_table(mp_cf4_ht_t **ht_in)
+static inline void free_hash_table(ht_t **ht_in)
 {
-  mp_cf4_ht_t *ht = *ht_in;
+  ht_t *ht = *ht_in;
   if (ht) {
 
     hash_t i;
@@ -464,7 +464,7 @@ static inline void free_hash_table(mp_cf4_ht_t **ht_in)
  *
  * \return hash value
  */
-static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
+static inline hash_t get_hash(const exp_t *exp, const ht_t *ht)
 {
   nvars_t i;
   hash_t hash  = ht->rand[0] * exp[0];
@@ -498,7 +498,7 @@ static inline hash_t get_hash(const exp_t *exp, const mp_cf4_ht_t *ht)
  * \return position of hash of exp in table
  */
 static inline hash_t insert_in_hash_table(const hash_t hash,
-    const ht_size_t pos,  mp_cf4_ht_t *ht)
+    const ht_size_t pos,  ht_t *ht)
 {
 /* the new exponent is already stored in ht->exp[ht->load] and also
  * ht->deg[ht->load] is already set
@@ -551,7 +551,7 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  * \return position of hash of exp in table
  */
 static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
-    const hash_t hash, const ht_size_t pos,  mp_cf4_ht_t *ht)
+    const hash_t hash, const ht_size_t pos,  ht_t *ht)
 {
 
   /* ht->div and ht->idx are already initialized with 0, so nothing to do there */
@@ -607,7 +607,7 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
  *
  * \return position of hash of exp in table
  */
-static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
+static inline hash_t check_in_hash_table(ht_t *ht)
 {
   nvars_t i;
   /* element to be checked, intermediately stored in the first free position of
@@ -670,7 +670,7 @@ static inline hash_t check_in_hash_table(mp_cf4_ht_t *ht)
  * \return position of hash of exp in table
  */
 static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   ht_size_t i;
   hash_t hash;
@@ -733,7 +733,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
  * \return position of hash of exp in table
  */
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
-    mp_cf4_ht_t *ht)
+    ht_t *ht)
 {
   ht_size_t i;
   hash_t hash;
@@ -787,7 +787,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
  *
  * \return position of lcm of generators h1 and h2 in hash table ht
  */
-static inline hash_t get_lcm(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
+static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   nvars_t i;
   exp_t *lcm, *e1, *e2;
@@ -818,7 +818,7 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
  *
  * \return hash position of multiplier or 0
  */
-static inline hash_t monomial_division(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
+static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   if ((ht->dm[h2] & ~ht->dm[h1])) {
 #if COUNT_DIV_HITS
@@ -878,7 +878,7 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, mp_cf4_
  *
  * \return 0 if not divisible, 1 if divisible
  */
-static inline int check_monomial_division(const hash_t h1, const hash_t h2, const mp_cf4_ht_t *ht)
+static inline int check_monomial_division(const hash_t h1, const hash_t h2, const ht_t *ht)
 {
   if ((ht->dm[h2] & ~ht->dm[h1])) {
 #if COUNT_DIV_HITS
@@ -935,7 +935,7 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
  * \return 0 if not divisible, 1 if divisible (w.r.t to all variables besides
  * the last one)
  */
-static inline int check_monomial_division_saturated(const hash_t h1, const hash_t h2, const mp_cf4_ht_t *ht)
+static inline int check_monomial_division_saturated(const hash_t h1, const hash_t h2, const ht_t *ht)
 {
   if ((ht->dm[h2] & ~ht->dm[h1])) {
     return 0;
@@ -974,7 +974,7 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
  *
  * \return hash position of multiplier 
  */
-static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, mp_cf4_ht_t *ht)
+static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   nvars_t i;
   exp_t *e  = ht->exp[ht->load];
@@ -997,7 +997,7 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, mp_cf4_ht_
  *
  * \param hash table ht
  */
-static inline void clear_hash_table_idx(mp_cf4_ht_t *ht)
+static inline void clear_hash_table_idx(ht_t *ht)
 {
   memset(ht->idx, 0, ht->load * sizeof(ht_size_t));
   /* memset(ht->ctr, 0, ht->sz * sizeof(ht_size_t)); */

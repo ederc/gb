@@ -103,7 +103,7 @@ static inline void free_pair_set(ps_t **ps_in)
  * \return generated spair
  */
 void generate_input_element_spair(ps_t *ps, const nelts_t gen1, const gb_t *input,
-    mp_cf4_ht_t *ht);
+    ht_t *ht);
 
 /**
  * \brief Generates spair given by gen1 and gen2
@@ -119,7 +119,7 @@ void generate_input_element_spair(ps_t *ps, const nelts_t gen1, const gb_t *inpu
  * \return generated spair
  */
 void generate_spair(ps_t *ps, const nelts_t gen1, const nelts_t gen2,
-    const gb_t *basis, mp_cf4_ht_t *ht);
+    const gb_t *basis, ht_t *ht);
 
 /**
  * \brief Updates pair set including Gebauer-Moeller criteria checks

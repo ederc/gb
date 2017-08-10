@@ -68,7 +68,7 @@ void print_help(void);
  *
  * \param intermediate groebner basis basis
  */
-static inline void set_simplify_functions(mp_cf4_ht_t *ht, const gb_t *basis)
+static inline void set_simplify_functions(ht_t *ht, const gb_t *basis)
 {
   switch (basis->sl) {
     /* graded reverse lexicographical order */
@@ -92,7 +92,7 @@ static inline void set_simplify_functions(mp_cf4_ht_t *ht, const gb_t *basis)
  *
  * \param hash table ht
  */
-static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *ht, const ord_t ord)
+static inline void set_sort_functions_depending_on_monomial_order(ht_t *ht, const ord_t ord)
 {
   switch (ord) {
     /* graded reverse lexicographical order */
@@ -141,7 +141,7 @@ static inline void set_sort_functions_depending_on_monomial_order(mp_cf4_ht_t *h
  * then the computation is done; else it returns 0.
  */
 static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
-    const mp_cf4_ht_t *ht,  const ri_t rankDR)
+    const ht_t *ht,  const ri_t rankDR)
 {
   ri_t i;
   int res;
@@ -168,7 +168,7 @@ static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *m
 }
 
 static inline int update_simplifiers_new(gb_t *basis, gb_t *sf, spd_t *spd, const smc_t *mat,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   ri_t i;
   for (i=0; i<mat->rk; ++i) {
@@ -179,7 +179,7 @@ static inline int update_simplifiers_new(gb_t *basis, gb_t *sf, spd_t *spd, cons
 }
 
 static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
-    spd_t *spd, const src_t **pivs, const nelts_t nc, const mp_cf4_ht_t *ht)
+    spd_t *spd, const src_t **pivs, const nelts_t nc, const ht_t *ht)
 {
   int res;
   if (basis->size < (nc-spd->selu->load) + basis->load)
@@ -211,7 +211,7 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
 }
 
 static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const smc_t *mat,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   ri_t i;
   int res;
@@ -238,7 +238,7 @@ static inline int update_basis_new(gb_t *basis, ps_t *ps, spd_t *spd, const smc_
 }
 
 static inline int update_basis_new_new(gb_t *basis, ps_t *ps, spd_t *spd, const smat_t *mat,
-    const mp_cf4_ht_t *ht)
+    const ht_t *ht)
 {
   ri_t i;
   int res;
@@ -289,7 +289,7 @@ static inline int update_basis_new_new(gb_t *basis, ps_t *ps, spd_t *spd, const 
  * then the computation is done; else it returns 0.
  */
 int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
-    spd_t *spd, mat_t *mat, const mp_cf4_ht_t *ht,  const ri_t rankDR,
+    spd_t *spd, mat_t *mat, const ht_t *ht,  const ri_t rankDR,
     const int nthreads);
 
 /**
@@ -307,7 +307,7 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
  * \param hash table ht
  */
 void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
-    const mp_cf4_ht_t *ht);
+    const ht_t *ht);
 
 /* directly reduces C|D with A|B */
 void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,

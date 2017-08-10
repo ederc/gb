@@ -35,9 +35,4 @@
  * _mm256_cmpgt_epi8 (-1 if true, 0 if false)
  ***************************************************************************************/
 /** extern declaration in src/hash.h */
-mp_cf4_ht_t *ht;
-
-/********************************************************************************
- * FOLLOWING HASH TABLE IMPLEMENTATION IS COPIED FROM COMPACT F4 IMPLEMENTATION 
- * BY MONAGAN AND PIERCE (see PASCO 2015)
- *******************************************************************************/
+ht_t *ht;

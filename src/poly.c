@@ -127,7 +127,7 @@ inline gb_t *initialize_simplifier_list(const gb_t *basis)
 }
 
 void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
-    const dm_t *B, const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
+    const dm_t *B, const nelts_t ri, const spd_t *spd, const ht_t *ht)
 {
   nelts_t i;
 
@@ -218,7 +218,7 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
 }
 
 int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
-    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
+    const nelts_t ri, const spd_t *spd, const ht_t *ht)
 {
 #if POLY_DEBUG
   printf("new lm from row (simplifier element %u): ", sf->load);
@@ -291,7 +291,7 @@ int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
 }
 
 int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
-    const spd_t *spd, const mp_cf4_ht_t *ht)
+    const spd_t *spd, const ht_t *ht)
 {
   /* get position of lead term in this row */
   const nelts_t fc  = row->pos[0];
@@ -378,7 +378,7 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
 }
 
 int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
-    const spd_t *spd, const mp_cf4_ht_t *ht)
+    const spd_t *spd, const ht_t *ht)
 {
   /* get position of lead term in this row */
   const nelts_t fc  = row[2];
@@ -466,7 +466,7 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
 }
 
 int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
-    const spd_t *spd, const mp_cf4_ht_t *ht)
+    const spd_t *spd, const ht_t *ht)
 {
   /* get position of lead term in this row */
   const nelts_t fc  = row[1];
@@ -554,7 +554,7 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
 }
 
 int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
-    const nelts_t ri, const spd_t *spd, const mp_cf4_ht_t *ht)
+    const nelts_t ri, const spd_t *spd, const ht_t *ht)
 {
   /* get position of lead term in this row */
   const nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;

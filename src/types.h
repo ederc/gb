@@ -495,14 +495,15 @@ typedef struct simplify_t
 } simplify_t;
 
 /**
- * \brief Hash table as defined by Monagan and Pearce in compact F4
- * implementation (see PASCO 2015)
+ * \brief Hash table using linear probing combined with Robin Hood hashing
+ * (cf. https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf, Robin Hood
+ * Hashing by Pedro Celis, 1986
  *
  * \note We start with the first element at index 1, not at index 0. Thus we can
  * optimize divisibility checks (if index 0 is returned we have not found any
  * divisor). See also procedure init_hash_table().
  */
-typedef struct mp_cf4_ht_t
+typedef struct ht_t
 {
   /* size and load counters */
   nvars_t nv;         /*!<  number of variables*/
@@ -519,14 +520,12 @@ typedef struct mp_cf4_ht_t
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/
   nelts_t *div;       /*!<  latest element from gb checked for its leading
                             term dividing corresponding monomial in hash table*/
-#if 1
   nelts_t bpv;        /*!<  bits per variable in divmask */
   nelts_t ndv;        /*!<  number of divmask variables */
   deg_t *divmap;      /*!<  divmap for each divmask caluclations */ 
   divm_t *dm;         /*!<  divmask for monomial */
   uint32_t rcdm;      /*!<  counter when to recalculate divmaps and divmasks */
   uint32_t muldm;     /*!<  multiplier for divmap recalculation range */
-#endif
 #if HASH_CHECK
   ht_size_t *ctr;     [>!<  counts how often a hash appears <]
 #endif
@@ -535,7 +534,7 @@ typedef struct mp_cf4_ht_t
                             preprocessing*/
   sort_t sort;        /*!<  sort functions pointers */
   simplify_t sf;      /*!<  simplify function pointers */
-} mp_cf4_ht_t;
+} ht_t;
 
 /**
  * \brief Dense row structure for buffering nonzero elements when generating

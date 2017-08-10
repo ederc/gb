@@ -174,7 +174,7 @@ inline nelts_t get_number_of_terms(const char *line)
 
   return nterms;
 }
-inline void store_exponent(const char *term, const gb_t *basis, mp_cf4_ht_t *ht)
+inline void store_exponent(const char *term, const gb_t *basis, ht_t *ht)
 {
   nvars_t k;
   /** first we have to fill the buffers with zeroes */
@@ -383,7 +383,7 @@ void check_for_same_exponents(gb_t *basis)
   free(sort_eh);
 }
 
-void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
+void sort_input_polynomials(gb_t *basis, const ht_t *ht)
 {
   cf_t *tmp_cf;
   hash_t *tmp_eh;
@@ -448,7 +448,7 @@ void sort_input_polynomials(gb_t *basis, const mp_cf4_ht_t *ht)
   free(pos_set);
 }
 
-void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
+void homogenize_input_polynomials(gb_t *basis, ht_t *ht) {
   nelts_t i, j;
   /** make sure that hash table is big enough */
   if (2*basis->load > ht->sz)
@@ -469,7 +469,7 @@ void homogenize_input_polynomials(gb_t *basis, mp_cf4_ht_t *ht) {
 }
 
 gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
-    mp_cf4_ht_t *ht, const int simplify, const long max_spairs,
+    ht_t *ht, const int simplify, const long max_spairs,
     const int vb)
 {
   int64_t fl;

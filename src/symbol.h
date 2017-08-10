@@ -140,7 +140,7 @@ static inline void enter_monomial_to_preprocessing_hash_list(
     const nelts_t idx,
     const gb_t *basis,
     pre_t *mon,
-    mp_cf4_ht_t *ht)
+    ht_t *ht)
 {
   nelts_t i;
 
@@ -721,7 +721,7 @@ static inline void sort_presorted_columns_by_grevlex_invert_left_side(spd_t *spd
  *
  * \param symbolic preprocessing data spd
  */
-static inline void set_column_index_in_hash_table(mp_cf4_ht_t *ht, const spd_t *spd)
+static inline void set_column_index_in_hash_table(ht_t *ht, const spd_t *spd)
 {
   nelts_t i;
 

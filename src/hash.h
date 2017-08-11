@@ -374,6 +374,30 @@ static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos
   }
 }
 
+static inline void insert_while_enlarging_new(const hash_t hash, const ht_size_t pos, ht_t *ht)
+{
+  ht_size_t i;
+  ht_size_t tmp_h;
+  tmp_h = (ht_size_t)(hash & (ht->sz-1));
+  /* printf("hash %u --> %u\n", hash, tmp_h); */
+
+  for (i=0; i<ht->sz; ++i) {
+    tmp_h = (tmp_h+i) & (ht->sz-1);
+    if (ht->lut[tmp_h] != 0) {
+      continue;
+    } else {
+      ht->lut[tmp_h]  = pos;
+#if HASH_DEBUG
+      for (int i=0; i<ht->nv; ++i)
+        printf("%u ",ht->exp[pos][i]);
+      printf(" ||| ");
+      printf("%11u | %11u | %5u\n",hash, pos, ht->deg[pos]);
+#endif
+    }
+    return;
+  }
+}
+
 /**
  * \brief Enlarges hash table to next prime number size
  *
@@ -386,9 +410,9 @@ static inline void enlarge_hash_table(ht_t *ht)
 
   const ht_size_t old_sz  = ht->sz;
   ht->sz  = 2*ht->sz;
-#if HASH_DEBUG
+/* #if HASH_DEBUG */
   printf("enlarging hash table: %10u --> %10u\n", old_sz, ht->sz);
-#endif
+/* #endif */
   ht->probe = realloc(ht->probe, ht->sz * sizeof(uint16_t));
   ht->lut   = realloc(ht->lut, ht->sz * sizeof(ht_size_t));
   ht->val   = realloc(ht->val, ht->sz * sizeof(hash_t));
@@ -406,6 +430,7 @@ static inline void enlarge_hash_table(ht_t *ht)
 #if HASH_CHECK
   memset(ht->ctr+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
 #endif
+  memset(ht->probe+old_sz, 0, (ht->sz-old_sz) * sizeof(uint16_t));
   memset(ht->lut+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
   memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
   ht->exp   = realloc(ht->exp, ht->sz * sizeof(exp_t *));
@@ -612,6 +637,98 @@ static inline hash_t insert_in_hash_table_product(const hash_t mon_1, const hash
  *
  * \return position of hash of exp in table
  */
+static inline hash_t check_in_hash_table_new(ht_t *ht)
+{
+  nvars_t i;
+
+  exp_t *exp        = ht->exp[ht->load];
+  hash_t hash       = get_hash(exp, ht);
+  ht_size_t elt;
+  ht_size_t pos;         /* temporary lookup table value */
+  hash_t ret  = 0;
+  
+  elt = hash;
+  for (i=0; i<ht->sz; ++i) {
+    pos = (hash+i) & (ht->sz-1);
+    elt = ht->lut[pos];
+    if (elt == 0)
+      break;
+    if (ht->val[elt] != hash) {
+      printf("elt %u\n", elt);
+      if (ht->probe[elt] <= i) {
+        printf("swap elt %u | pos %u | hash %u | moved %u\n", elt, pos, hash, ht->val[elt]);
+        /* swap entries */
+        deg_t deg         = ht->deg[elt];
+        ht->deg[elt]      = ht->deg[ht->load];
+        ht->deg[ht->load] = deg;
+
+        nelts_t div       = ht->div[ht->load];
+        ht->div[ht->load] = ht->div[elt];
+        ht->div[elt]      = ht->div[ht->load];
+        
+        ht->probe[ht->load] = ht->probe[elt];
+        ht->probe[elt]      = i;
+        i                   = ht->probe[ht->load];
+
+        exp_t *tmp_exp = malloc(ht->nv * sizeof(exp_t));
+        memcpy(tmp_exp, ht->exp[elt], ht->nv * sizeof(exp_t));
+        memcpy(ht->exp[elt], exp, ht->nv * sizeof(exp_t));
+        memcpy(exp, tmp_exp, ht->nv * sizeof(exp_t));
+        free(tmp_exp);
+
+        ht->val[ht->load] = ht->val[elt];
+        ht->val[elt]      = hash;
+        hash              = ht->val[ht->load];
+        if (ht->rcdm == 0)
+          recalculate_divmaps(ht);
+        ht->dm[elt] = generate_divmask(ht->exp[elt], ht);
+        ht->rcdm--;
+        ht->lut[pos]  = elt;
+
+        if (ret == 0)
+          ret = elt;
+        continue;
+      } else {
+       continue;
+      }
+    }
+    if (memcmp(exp, ht->exp[elt], ht->nv*sizeof(exp_t)) == 0) {
+      /* printf("ret %u\n", elt); */
+      return elt;
+    }
+  }
+  /* at this point we know that we do not have the hash value of exp in the
+   * table, so we have to insert it */
+  printf("now insert %u with %u probes\n", hash, i);
+  ht->probe[ht->load] = i;
+  ht->val[ht->load]   = hash;
+  memcpy(ht->exp[ht->load], exp, ht->nv * sizeof(exp_t));
+  if (ht->rcdm == 0)
+    recalculate_divmaps(ht);
+  ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
+  ht->rcdm--;
+
+  deg_t deg = 0;
+  for (size_t j = 0; j < ht->nv; ++j)
+    deg +=  exp[j];
+  ht->deg[ht->load] = deg;
+  ht->lut[pos]      = ht->load;
+  ht->load++;
+
+  /* we need to keep one place open in ht->exp since the next element to be
+   * checked against the hash table will be intermediately stored there */
+  if (ht->load >= ht->sz)
+    enlarge_hash_table(ht);
+  
+  if (ret != 0) {
+    /* printf("ret %u -- %u\n", ret, ht->val[ret]); */
+    return ret;
+  } else {
+    /* printf("ret %u\n", ht->load-1); */
+    return ht->load-1;
+  }
+}
+
 static inline hash_t check_in_hash_table(ht_t *ht)
 {
   nvars_t i;
@@ -619,18 +736,23 @@ static inline hash_t check_in_hash_table(ht_t *ht)
    * ht->exp */
 
   exp_t *exp  = ht->exp[ht->load];
-  hash_t hash = get_hash(exp, ht);
+  hash_t hash = ht->val[ht->load];
   ht_size_t tmp_h;
   ht_size_t tmp_l;         /* temporary lookup table value */
+  ht_size_t pos;
   tmp_h = (ht_size_t)(hash & (ht->sz-1));
 
   /* first check directly */
   tmp_l = ht->lut[tmp_h];
-  if (tmp_l == 0)
+  if (tmp_l == 0) {
+    /* printf("ret %u\n", ht->load); */
     return insert_in_hash_table(hash, tmp_h, 0, ht);
+  }
   if (ht->val[tmp_l] == hash) {
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
+      /* printf("ret %u\n", tmp_l); */
       return tmp_l;
+    }
   }
 #if HASH_DEBUG
   for (i=0; i<ht->nv; ++i)
@@ -640,18 +762,23 @@ static inline hash_t check_in_hash_table(ht_t *ht)
 
   /* remaining checks with probing */
   for (i=1; i<ht->sz; ++i) {
-    tmp_h = (tmp_h+i) & (ht->sz-1);
+    tmp_h = (hash+i) & (ht->sz-1);
+    /* tmp_h = (tmp_h+i) & (ht->sz-1); */
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
     if (ht->val[tmp_l] != hash)
-      continue;
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+       continue;
+    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
+      /* printf("ret %u\n", tmp_l); */
       return tmp_l;
+    }
   }
   /* at this point we know that we do not have the hash value of exp in the
    * table, so we have to insert it */
-  return insert_in_hash_table(hash, tmp_h, i, ht);
+  hash_t ret =  insert_in_hash_table(hash, tmp_h, i, ht);
+  /* printf("ret %u\n", ret); */
+  return ret;
 }
 
 /**
@@ -680,35 +807,18 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   ht_size_t i;
   hash_t hash;
   exp_t exp[ht->nv];
-  exp[0] = (exp_t)(ht->exp[mon_1][0] + ht->exp[mon_2][0]);
-  i = ht->nv & 1 ? 1 : 0;
-  for (; i<ht->nv; i=i+2) {
+  for (i = 0; i < ht->nv; ++i) {
     exp[i]    = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
-    exp[i+1]  = (exp_t)(ht->exp[mon_1][i+1] + ht->exp[mon_2][i+1]);
   }
-  for (i=0; i<ht->nv; ++i)
-    exp[i] = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
   /* hash value of the product is the sum of the hash values in our setting */
   hash   = ht->val[mon_1] + ht->val[mon_2];
   ht_size_t tmp_h;
   ht_size_t tmp_l;         /* temporary lookup table value */
-  tmp_h = (ht_size_t)(hash & (ht->sz-1));
-  
-  /* first check directly */
-  tmp_l = ht->lut[tmp_h];
-  if (tmp_l == 0)
-    return 0;
-  if (ht->val[tmp_l] == hash) {
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
-      return tmp_l;
-  }
 
-  /* remaining checks with probing */
-  for (i=1; i<ht->sz; ++i) {
-    tmp_h = (tmp_h+i) & (ht->sz-1);
+  for (i=0; i<ht->sz; ++i) {
+    /* tmp_h = (tmp_h+i) & (ht->sz-1); */
+    tmp_h = (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
-    if (tmp_l == 0)
-      break;
     if (ht->val[tmp_l] != hash)
       continue;
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
@@ -716,6 +826,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   }
   return 0;
 }
+
 
 /**
  * \brief Checks if the product of the given two monomial exponents is already
@@ -740,6 +851,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     ht_t *ht)
 {
+#if 0
   ht_size_t i;
   hash_t hash;
   ht->exp[ht->load][0] = (exp_t)(ht->exp[mon_1][0] + ht->exp[mon_2][0]);
@@ -766,7 +878,8 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
 
   /* remaining checks with probing */
   for (i=1; i<ht->sz; ++i) {
-    tmp_h = (tmp_h+i) & (ht->sz-1);
+    /* tmp_h = (tmp_h+i) & (ht->sz-1); */
+    tmp_h = (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0)
       break;
@@ -778,6 +891,29 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   /* at this point we know that we do not have the hash value of exp in the
    * table, so we have to insert it */
   return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, i, ht);
+#else
+  ht_size_t i;
+  for (i = 0; i < ht->nv; ++i) {
+    ht->exp[ht->load][i]  = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+  }
+  ht->deg[ht->load] = ht->deg[mon_1] + ht->deg[mon_2];
+  ht->val[ht->load] = ht->val[mon_1] + ht->val[mon_2];
+
+  return check_in_hash_table(ht);
+#endif
+}
+
+static inline hash_t check_in_hash_table_product_new(const hash_t mon_1, const hash_t mon_2,
+    ht_t *ht)
+{
+  ht_size_t i;
+  hash_t hash;
+  for (i = 0; i < ht->nv; ++i) {
+    ht->exp[ht->load][i]  = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+  }
+  ht->deg[ht->load] = ht->deg[mon_1] + ht->deg[mon_2];
+
+  return check_in_hash_table_new(ht);
 }
 
 /**
@@ -805,8 +941,11 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
 
   for (i=0; i<ht->nv; ++i) {
     deg +=  lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
+    /* printf("%u ", lcm[i]); */
   }
+  /* printf(" -- "); */
   ht->deg[ht->load] = deg;
+  ht->val[ht->load] = get_hash(lcm, ht);
   return check_in_hash_table(ht);
 }
 
@@ -864,6 +1003,8 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
     e[i+1]  = (exp_t)(e1[i+1] - e2[i+1]);
   }
   ht->deg[ht->load] = ht->deg[h1] - ht->deg[h2];
+  ht->val[ht->load] = ht->val[h1] - ht->val[h2];
+  /* ht->val[ht->load] = get_hash(lcm, ht); */
   return check_in_hash_table(ht);
 }
 
@@ -994,6 +1135,7 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
     e[i+1]  = (exp_t)(e1[i+1] - e2[i+1]);
   }
   ht->deg[ht->load] = ht->deg[h1] - ht->deg[h2];
+  ht->val[ht->load] = ht->val[h1] - ht->val[h2];
   return check_in_hash_table(ht);
 }
 

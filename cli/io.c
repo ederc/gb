@@ -462,6 +462,7 @@ void homogenize_input_polynomials(gb_t *basis, ht_t *ht) {
       ht->exp[ht->load][ht->nv-1] = (exp_t)(basis->deg[i] -  ht->deg[basis->eh[i][j]]);
       /** add new exponent hash to table */
       ht->deg[ht->load] = basis->deg[i];
+      ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
       basis->eh[i][j] = check_in_hash_table(ht);
     }
   }
@@ -608,6 +609,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       store_exponent(term, basis, ht);
       /** hash exponent and store degree */
       max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
+      ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
       basis->eh[i][0] = check_in_hash_table(ht);
 #if IO_DEBUG
       printf("cf[%lu] = %u | eh[%lu][%u] = %lu --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
@@ -637,6 +639,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
         store_exponent(term, basis, ht);
         /** hash exponent and store degree */
         max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
+      ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
         basis->eh[i][j] = check_in_hash_table(ht);
 #if IO_DEBUG
         printf("cf[%lu] = %u | eh[%lu][%lu] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);

@@ -731,22 +731,19 @@ static inline hash_t check_in_hash_table_new(ht_t *ht)
 
 static inline hash_t check_in_hash_table(ht_t *ht)
 {
-  nvars_t i;
-  /* element to be checked, intermediately stored in the first free position of
-   * ht->exp */
-
-  exp_t *exp  = ht->exp[ht->load];
   hash_t hash = ht->val[ht->load];
+
   ht_size_t tmp_h;
   ht_size_t tmp_l;         /* temporary lookup table value */
   ht_size_t pos;
+  nvars_t i;
+  exp_t *exp  = ht->exp[ht->load];
 
   /* remaining checks with probing */
   for (i = 0; i < ht->sz;  ++i) {
     tmp_h = (hash+i) & (ht->sz-1);
-    /* tmp_h = (tmp_h+i) & (ht->sz-1); */
     tmp_l = ht->lut[tmp_h];
-    if (tmp_l == 0)
+    if (tmp_l == 0 && tmp_h != 0)
       break;
     if (ht->val[tmp_l] != hash)
        continue;

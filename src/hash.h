@@ -740,28 +740,9 @@ static inline hash_t check_in_hash_table(ht_t *ht)
   ht_size_t tmp_h;
   ht_size_t tmp_l;         /* temporary lookup table value */
   ht_size_t pos;
-  tmp_h = (ht_size_t)(hash & (ht->sz-1));
-
-  /* first check directly */
-  tmp_l = ht->lut[tmp_h];
-  if (tmp_l == 0) {
-    /* printf("ret %u\n", ht->load); */
-    return insert_in_hash_table(hash, tmp_h, 0, ht);
-  }
-  if (ht->val[tmp_l] == hash) {
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
-      /* printf("ret %u\n", tmp_l); */
-      return tmp_l;
-    }
-  }
-#if HASH_DEBUG
-  for (i=0; i<ht->nv; ++i)
-    printf("%u ",exp[i]);
-  printf("\nhash = %u\n",hash);
-#endif
 
   /* remaining checks with probing */
-  for (i=1; i<ht->sz; ++i) {
+  for (i = 0; i < ht->sz;  ++i) {
     tmp_h = (hash+i) & (ht->sz-1);
     /* tmp_h = (tmp_h+i) & (ht->sz-1); */
     tmp_l = ht->lut[tmp_h];
@@ -851,47 +832,6 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     ht_t *ht)
 {
-#if 0
-  ht_size_t i;
-  hash_t hash;
-  ht->exp[ht->load][0] = (exp_t)(ht->exp[mon_1][0] + ht->exp[mon_2][0]);
-  i = ht->nv & 1 ? 1 : 0;
-  for (; i<ht->nv; i=i+2) {
-    ht->exp[ht->load][i]    = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
-    ht->exp[ht->load][i+1]  = (exp_t)(ht->exp[mon_1][i+1] + ht->exp[mon_2][i+1]);
-  }
-  /* hash = get_hash(ht->exp[ht->load], ht);
-   * hash value of the product is the sum of the hash values in our setting */
-  hash   = ht->val[mon_1] + ht->val[mon_2];
-  ht_size_t tmp_h;
-  ht_size_t tmp_l;         /* temporary lookup table value */
-  tmp_h = (ht_size_t)(hash & (ht->sz-1));
-
-  /* first check directly */
-  tmp_l = ht->lut[tmp_h];
-  if (tmp_l == 0)
-    return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, 0, ht);
-  if (ht->val[tmp_l] == hash) {
-    if (memcmp(ht->exp[ht->load], ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
-      return tmp_l;
-  }
-
-  /* remaining checks with probing */
-  for (i=1; i<ht->sz; ++i) {
-    /* tmp_h = (tmp_h+i) & (ht->sz-1); */
-    tmp_h = (hash+i) & (ht->sz-1);
-    tmp_l = ht->lut[tmp_h];
-    if (tmp_l == 0)
-      break;
-    if (ht->val[tmp_l] != hash)
-      continue;
-    if (memcmp(ht->exp[ht->load], ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
-      return tmp_l;
-  }
-  /* at this point we know that we do not have the hash value of exp in the
-   * table, so we have to insert it */
-  return insert_in_hash_table_product(mon_1, mon_2, hash, tmp_h, i, ht);
-#else
   ht_size_t i;
   for (i = 0; i < ht->nv; ++i) {
     ht->exp[ht->load][i]  = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
@@ -900,7 +840,6 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   ht->val[ht->load] = ht->val[mon_1] + ht->val[mon_2];
 
   return check_in_hash_table(ht);
-#endif
 }
 
 static inline hash_t check_in_hash_table_product_new(const hash_t mon_1, const hash_t mon_2,

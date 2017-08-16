@@ -2477,6 +2477,7 @@ int main(int argc, char *argv[])
     printf("Size of basis                     %9u\n", basis->fl);
     printf("criteria applications (total)     %9u\n", meta_data->ncrit_total);
     printf("Number of zero reductions         %9lu\n", n_zero_reductions);
+    printf("Number of hashed elements         %9lu\n", ht->load);
     printf("---------------------------------------------------------------------------\n");
     if (verbose > 2)
       print_mem_usage();
@@ -3337,6 +3338,9 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
 
   if (verbose > 0)
     t_linear_algebra  +=  walltime(t_load_start);
+  if (verbose > 0) {
+    n_zero_reductions += spd->sell->load - nnr;
+  }
   if (verbose == 1 && steps > 0) {
     /* TODO */
     /* printf("%4u new %4u zero ", CD->rk, init_rk_CD-CD->rk); */

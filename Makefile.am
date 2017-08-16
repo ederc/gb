@@ -24,6 +24,8 @@ libgb_la_SOURCES = \
 	src/spair.h src/spair.c	\
 	src/symbol.h src/symbol.c	\
 	src/matrix.h src/matrix.c \
+	src/gbla-matrix.h src/gbla-matrix.c \
+	src/gbla-elimination.h src/gbla-elimination.c \
 	src/la.h src/la.c
 
 BUILT_SOURCES = config.h
@@ -37,6 +39,8 @@ pkgincludesub_HEADERS = \
 	src/spair.h	\
 	src/symbol.h	\
 	src/matrix.h	\
+	src/gbla-matrix.h	\
+	src/gbla-elimination.h	\
 	src/la.h
 
 nodist_pkgincludesub_HEADERS = config.h

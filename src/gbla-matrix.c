@@ -13,7 +13,7 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "matrix.h"
+#include "gbla-matrix.h"
 
 #define NOT_DENSE_COPYING 0
 

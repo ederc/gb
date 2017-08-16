@@ -23,12 +23,14 @@
 #ifndef GBLA_ELIMINATION_H
 #define GBLA_ELIMINATION_H
 
+#include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
 #include <x86intrin.h>
 #include "../config.h"
-#include "mapping.h"
-#include "matrix.h"
+/* #include "mapping.h" */
+#include "types.h"
+#include "gbla-matrix.h"
 #if GBLA_WITH_FFLAS
 #include "../draft/echelon.h"
 #endif

@@ -13,7 +13,7 @@
  * along with gbla . If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "elimination.h"
+#include "gbla-elimination.h"
 
 #ifndef min
 #define min(a,b) \
@@ -6644,6 +6644,7 @@ mli_t get_head_multiline_hybrid(const ml_t *m,
 
 /* HEADER STUFF PUT HERE */
 
+#if 0
 void init_fl_map_sizes(uint32_t col_size, uint32_t row_size, map_fl_t *map) {
   /*  initialize map arrays and */
   /*  set initial values to __GBLA_MINUS_ONE_8 */
@@ -6690,6 +6691,7 @@ void init_fl_map(sm_t *M, map_fl_t *map) {
   map->npri = (ri_t *)malloc(max_length * sizeof(ri_t));
   memset(map->npri, __GBLA_MINUS_ONE_8, M->nrows * sizeof(ri_t));
 }
+#endif
 
 void realloc_rows_ml(sm_fl_ml_t *A, const mli_t mli,
     const bi_t init_buffer_A, mli_t *buffer_A) {

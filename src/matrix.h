@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <math.h>
 #include <omp.h>
-#include <gbla/src/elimination.h>
+#include "gbla-elimination.h"
 #include <cli/io.h>
 #include <config.h>
 #include "types.h"

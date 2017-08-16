@@ -922,7 +922,6 @@ typedef struct ht_t
   ht_size_t load;     /*!<  load of hash table*/
   ht_size_t sz;       /*!<  hash table size*/
   /* data and arrays for storage */
-  uint16_t  *probe;   /*!<  number of probes needed for this hash table element */
   ht_size_t *lut;     /*!<  lookup table between hash value and position in
                             exponent array*/
   hash_t *val;        /*!<  array of hash values*/

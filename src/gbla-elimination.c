@@ -3343,12 +3343,12 @@ int elim_fl_C_sparse_dense_keep_A(sm_fl_t *C, sm_fl_t **A_in, const mod_t modulu
     const int nthrds)
 {
   sm_fl_t *A= *A_in;
-  int i;
-  const int rlC  = (int)C->nrows;
+  unsigned int i;
+  const unsigned int rlC  = (unsigned int)C->nrows;
   
   // TRY 10 LINES AT ONCE
   if (rlC > 5000) {
-      int mod10 = 0, mod6 = 0, mod4 = 0, mod2 = 0;
+      unsigned int mod10 = 0, mod6 = 0, mod4 = 0, mod2 = 0;
     if (rlC > 9)
       mod2  = mod4  = mod6  = mod10  = rlC - rlC % 10;
     if (rlC-mod10 > 5)
@@ -3397,7 +3397,7 @@ int elim_fl_C_sparse_dense_keep_A(sm_fl_t *C, sm_fl_t **A_in, const mod_t modulu
   } else {
     // TRY 6 LINES AT ONCE
     if (rlC > 3000) {
-      int mod6 = 0, mod4 = 0, mod2 = 0;
+      unsigned int mod6 = 0, mod4 = 0, mod2 = 0;
       if (rlC > 5)
         mod2  = mod4  = mod6  = rlC - -rlC % 6;
       if (rlC-mod6 > 3)
@@ -3436,7 +3436,7 @@ int elim_fl_C_sparse_dense_keep_A(sm_fl_t *C, sm_fl_t **A_in, const mod_t modulu
       }
     } else {
     // TRY 4 LINES AT ONCE
-      int mod4 = 0, mod2 = 0;
+      unsigned int mod4 = 0, mod2 = 0;
       if (rlC > 3)
         mod2  = mod4  = rlC - rlC % 4;
       if (rlC-mod4 > 1)
@@ -5560,7 +5560,7 @@ void sparse_scal_mul_sub_2_rows_vect_array(
     dense_val2[idx] +=  Av2_col2 * v2__;
   }
 #else
-  for (i=0; i<__GBLA_ROUND_DOWN(N, __GBLA_LOOP_UNROLL_SMALL) ; i+=__GBLA_LOOP_UNROLL_SMALL) {
+  for (i=0; i<__GBLA_ROUND_DOWN(N, (unsigned int)__GBLA_LOOP_UNROLL_SMALL) ; i+=__GBLA_LOOP_UNROLL_SMALL) {
     for (j=0; j<__GBLA_LOOP_UNROLL_SMALL; ++j) {
       idx   = p_idx[i+j];
       v1__  = p_val[2*(i+j)];
@@ -6184,7 +6184,7 @@ void sparse_scal_mul_sub_2_rows_vect_array_multiline(
 #endif
   }
 #else
-  for (i=0; i<__GBLA_ROUND_DOWN(N, __GBLA_LOOP_UNROLL_SMALL) ; i+=__GBLA_LOOP_UNROLL_SMALL) {
+  for (i=0; i<__GBLA_ROUND_DOWN(N, (unsigned int)__GBLA_LOOP_UNROLL_SMALL) ; i+=__GBLA_LOOP_UNROLL_SMALL) {
     for (j=0; j<__GBLA_LOOP_UNROLL_SMALL; ++j) {
       idx   = p_idx[i+j];
       v1__  = p_val[2*(i+j)];
@@ -6693,24 +6693,6 @@ void init_fl_map(sm_t *M, map_fl_t *map) {
 }
 #endif
 
-void realloc_rows_ml(sm_fl_ml_t *A, const mli_t mli,
-    const bi_t init_buffer_A, mli_t *buffer_A) {
-  *buffer_A +=  init_buffer_A;
-  A->ml[mli].idx = (mli_t*) realloc(A->ml[mli].idx, (*buffer_A) * sizeof(mli_t));
-  A->ml[mli].val = (re_t*)  realloc(A->ml[mli].val, 2 * (*buffer_A) * sizeof(re_t));
-}
-
-void realloc_block_rows(sbm_fl_t *A, const ri_t rbi, const ci_t bir,
-    const bi_t lib, const bi_t init_buffer_A, bi_t *buffer_A) {
-  *buffer_A +=  init_buffer_A;
-  A->blocks[rbi][bir][lib].idx = realloc(
-      A->blocks[rbi][bir][lib].idx,
-      (*buffer_A) * sizeof(bi_t));
-  A->blocks[rbi][bir][lib].val = realloc(
-      A->blocks[rbi][bir][lib].val,
-      2 * (*buffer_A) * sizeof(re_t));
-}
-
 void swap_block_data(sbm_fl_t *A, const ci_t clA, const bi_t rbi,
     const bi_t cvb) {
   uint32_t i ;
@@ -6792,60 +6774,6 @@ void swap_block_data(sbm_fl_t *A, const ci_t clA, const bi_t rbi,
       A->blocks[rbi][i] = NULL;
     }
   }
-}
-
-void insert_row_data_ml_1_1(sm_fl_ml_t *A, const sm_t *M,
-    const mli_t mli, const ci_t eil, const ci_t bi1, const ci_t i1) {
-  A->ml[mli].idx[A->ml[mli].sz]       = eil;
-  A->ml[mli].val[2*A->ml[mli].sz]     = M->rows[bi1][i1];
-  A->ml[mli].val[(2*A->ml[mli].sz)+1] = 0;
-  A->ml[mli].sz++;
-}
-
-void insert_row_data_ml_1_2(sm_fl_ml_t *A, const sm_t *M,
-    const mli_t mli, const ci_t eil, const ci_t bi2, const ci_t i2) {
-  /* printf("sz %d -- %d\n", A->ml[mli].sz, eil); */
-  A->ml[mli].idx[A->ml[mli].sz]       = eil;
-  A->ml[mli].val[2*A->ml[mli].sz]     = 0;
-  A->ml[mli].val[(2*A->ml[mli].sz)+1] = M->rows[bi2][i2];
-  A->ml[mli].sz++;
-}
-
-void insert_row_data_ml_2(sm_fl_ml_t *A, const sm_t *M,
-    const mli_t mli, const ci_t eil, const ci_t bi1, const ci_t i1,
-    const ci_t bi2, const ci_t i2) {
-  A->ml[mli].idx[A->ml[mli].sz]       = eil;
-  A->ml[mli].val[2*A->ml[mli].sz]     = M->rows[bi1][i1];
-  A->ml[mli].val[(2*A->ml[mli].sz)+1] = M->rows[bi2][i2];
-  A->ml[mli].sz++;
-}
-
-
-void insert_block_row_data_ml_1_1(sbm_fl_t *A, const sm_t *M,
-    const bi_t rbi, const bi_t bir, const bi_t lib, const bi_t eil,
-    const ci_t bi1, const ci_t i1) {
-  A->blocks[rbi][bir][lib].idx[A->blocks[rbi][bir][lib].sz]       = eil;
-  A->blocks[rbi][bir][lib].val[2*A->blocks[rbi][bir][lib].sz]     = M->rows[bi1][i1];
-  A->blocks[rbi][bir][lib].val[(2*A->blocks[rbi][bir][lib].sz)+1] = 0;
-  A->blocks[rbi][bir][lib].sz++;
-}
-
-void insert_block_row_data_ml_1_2(sbm_fl_t *A, const sm_t *M,
-    const bi_t rbi, const bi_t bir, const bi_t lib, const bi_t eil,
-    const ci_t bi2, const ci_t i2) {
-  A->blocks[rbi][bir][lib].idx[A->blocks[rbi][bir][lib].sz]       = eil;
-  A->blocks[rbi][bir][lib].val[2*A->blocks[rbi][bir][lib].sz]     = 0;
-  A->blocks[rbi][bir][lib].val[(2*A->blocks[rbi][bir][lib].sz)+1] = M->rows[bi2][i2];
-  A->blocks[rbi][bir][lib].sz++;
-}
-
-void insert_block_row_data_ml_2(sbm_fl_t *A, const sm_t *M,
-    const bi_t rbi, const bi_t bir, const bi_t lib, const bi_t eil,
-    const ci_t bi1, const ci_t i1, const ci_t bi2, const ci_t i2) {
-  A->blocks[rbi][bir][lib].idx[A->blocks[rbi][bir][lib].sz]       = eil;
-  A->blocks[rbi][bir][lib].val[2*A->blocks[rbi][bir][lib].sz]     = M->rows[bi1][i1];
-  A->blocks[rbi][bir][lib].val[(2*A->blocks[rbi][bir][lib].sz)+1] = M->rows[bi2][i2];
-  A->blocks[rbi][bir][lib].sz++;
 }
 
 

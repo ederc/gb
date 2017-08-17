@@ -5801,6 +5801,81 @@ static inline void push_row_to_waiting_list(wl_t *waiting_global, const ri_t row
 #endif
 }
 
+static inline void realloc_rows_ml(sm_fl_ml_t *A, const mli_t mli,
+    const bi_t init_buffer_A, mli_t *buffer_A) {
+  *buffer_A +=  init_buffer_A;
+  A->ml[mli].idx = (mli_t*) realloc(A->ml[mli].idx, (*buffer_A) * sizeof(mli_t));
+  A->ml[mli].val = (re_t*)  realloc(A->ml[mli].val, 2 * (*buffer_A) * sizeof(re_t));
+}
+
+static inline void realloc_block_rows(sbm_fl_t *A, const ri_t rbi, const ci_t bir,
+    const bi_t lib, const bi_t init_buffer_A, bi_t *buffer_A) {
+  *buffer_A +=  init_buffer_A;
+  A->blocks[rbi][bir][lib].idx = realloc(
+      A->blocks[rbi][bir][lib].idx,
+      (*buffer_A) * sizeof(bi_t));
+  A->blocks[rbi][bir][lib].val = realloc(
+      A->blocks[rbi][bir][lib].val,
+      2 * (*buffer_A) * sizeof(re_t));
+}
+
+static inline void insert_row_data_ml_1_1(sm_fl_ml_t *A, const sm_t *M,
+    const mli_t mli, const ci_t eil, const ci_t bi1, const ci_t i1) {
+  A->ml[mli].idx[A->ml[mli].sz]       = eil;
+  A->ml[mli].val[2*A->ml[mli].sz]     = M->rows[bi1][i1];
+  A->ml[mli].val[(2*A->ml[mli].sz)+1] = 0;
+  A->ml[mli].sz++;
+}
+
+static inline void insert_row_data_ml_1_2(sm_fl_ml_t *A, const sm_t *M,
+    const mli_t mli, const ci_t eil, const ci_t bi2, const ci_t i2) {
+  /* printf("sz %d -- %d\n", A->ml[mli].sz, eil); */
+  A->ml[mli].idx[A->ml[mli].sz]       = eil;
+  A->ml[mli].val[2*A->ml[mli].sz]     = 0;
+  A->ml[mli].val[(2*A->ml[mli].sz)+1] = M->rows[bi2][i2];
+  A->ml[mli].sz++;
+}
+
+static inline void insert_row_data_ml_2(sm_fl_ml_t *A, const sm_t *M,
+    const mli_t mli, const ci_t eil, const ci_t bi1, const ci_t i1,
+    const ci_t bi2, const ci_t i2) {
+  A->ml[mli].idx[A->ml[mli].sz]       = eil;
+  A->ml[mli].val[2*A->ml[mli].sz]     = M->rows[bi1][i1];
+  A->ml[mli].val[(2*A->ml[mli].sz)+1] = M->rows[bi2][i2];
+  A->ml[mli].sz++;
+}
+
+
+static inline void insert_block_row_data_ml_1_1(sbm_fl_t *A, const sm_t *M,
+    const bi_t rbi, const bi_t bir, const bi_t lib, const bi_t eil,
+    const ci_t bi1, const ci_t i1) {
+  A->blocks[rbi][bir][lib].idx[A->blocks[rbi][bir][lib].sz]       = eil;
+  A->blocks[rbi][bir][lib].val[2*A->blocks[rbi][bir][lib].sz]     = M->rows[bi1][i1];
+  A->blocks[rbi][bir][lib].val[(2*A->blocks[rbi][bir][lib].sz)+1] = 0;
+  A->blocks[rbi][bir][lib].sz++;
+}
+
+static inline void insert_block_row_data_ml_1_2(sbm_fl_t *A, const sm_t *M,
+    const bi_t rbi, const bi_t bir, const bi_t lib, const bi_t eil,
+    const ci_t bi2, const ci_t i2) {
+  A->blocks[rbi][bir][lib].idx[A->blocks[rbi][bir][lib].sz]       = eil;
+  A->blocks[rbi][bir][lib].val[2*A->blocks[rbi][bir][lib].sz]     = 0;
+  A->blocks[rbi][bir][lib].val[(2*A->blocks[rbi][bir][lib].sz)+1] = M->rows[bi2][i2];
+  A->blocks[rbi][bir][lib].sz++;
+}
+
+static inline void insert_block_row_data_ml_2(sbm_fl_t *A, const sm_t *M,
+    const bi_t rbi, const bi_t bir, const bi_t lib, const bi_t eil,
+    const ci_t bi1, const ci_t i1, const ci_t bi2, const ci_t i2) {
+  A->blocks[rbi][bir][lib].idx[A->blocks[rbi][bir][lib].sz]       = eil;
+  A->blocks[rbi][bir][lib].val[2*A->blocks[rbi][bir][lib].sz]     = M->rows[bi1][i1];
+  A->blocks[rbi][bir][lib].val[(2*A->blocks[rbi][bir][lib].sz)+1] = M->rows[bi2][i2];
+  A->blocks[rbi][bir][lib].sz++;
+}
+
+
+void swap_block_data(sbm_fl_t *A, const ci_t clA, const bi_t rbi,
+    const bi_t cvb);
 /**
  * \brief Restores the two dense arrays in a multiline row in D after
  * echelonizing the corresponding multiline row

@@ -17,6 +17,9 @@
 
 
 #include "gb.h"
+#define COL_CHECK 0
+#define OLD 0
+#define REDUCE_AB_FIRST 0
 
 /* extern declaration in src/types.h */
 info_t *meta_data;
@@ -91,19 +94,19 @@ int steps = 0;
 
 int main(int argc, char *argv[])
 {
-  const char *fn    = NULL;
-  int verbose       = 0;
-  int nthreads      = 1;
-  int reduce_gb     = 0;
-  int simplify      = 0;
-  int generate_pbm  = 0;
-  int print_gb      = 0;
-  int order         = 0;
-  long max_spairs   = 0;
-  int keep_A        = 0;
-  int block_size    = 256;
-  ht_size_t htc     = 15;
-  int git_hash      = 0;
+  const char *fn      = NULL;
+  int verbose         = 0;
+  int nthreads        = 1;
+  int reduce_gb       = 0;
+  int simplify        = 0;
+  int generate_pbm    = 0;
+  int print_gb        = 0;
+  int order           = 0;
+  long max_spairs     = 0;
+  int keep_A          = 0;
+  nelts_t block_size  = 256;
+  ht_size_t htc       = 15;
+  int git_hash        = 0;
   /* generate file name holder if pbms are generated */
   char *pbm_dir = NULL;
   char pbm_fn[400];
@@ -128,7 +131,7 @@ int main(int argc, char *argv[])
   while ((opt = getopt(argc, argv, "b:c:ghl:m:no:p:r:s:t:v:")) != -1) {
     switch (opt) {
       case 'b':
-        block_size  = (int)strtol(optarg, NULL, 10);
+        block_size  = (nelts_t)strtol(optarg, NULL, 10);
         break;
       case 'c':
         htc = (ht_size_t)strtol(optarg, NULL, 10);
@@ -868,8 +871,8 @@ int main(int argc, char *argv[])
               steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load, meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
           fflush(stdout);
         }
-        const nelts_t chunk = CD->nr / nthreads;
-        const nelts_t leftover  = CD->nr % nthreads;
+        const nelts_t chunk = CD->nr / (ri_t)nthreads;
+        const nelts_t leftover  = CD->nr % (ri_t)nthreads;
 #pragma omp parallel num_threads(nthreads)
         {
 #pragma omp single nowait
@@ -1096,7 +1099,6 @@ int main(int argc, char *argv[])
           spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
           nthreads);
       /* check appearing columns in CD */
-#define COL_CHECK 0
 #if COL_CHECK
       uint32_t *columns  = (uint32_t *)calloc(spd->col->nlm, sizeof(uint32_t));
       for (int ii=0; ii<CD->nr; ++ii) {
@@ -2459,7 +2461,8 @@ int main(int argc, char *argv[])
     printf("Size of basis                     %9u\n", basis->fl);
     printf("criteria applications (total)     %9u\n", meta_data->ncrit_total);
     printf("Number of zero reductions         %9lu\n", n_zero_reductions);
-    printf("Number of hashed elements         %9lu\n", ht->load);
+    printf("Number of hashed elements         %9u (<= 2^%u) of 2^%u\n", ht->load,
+        (unsigned int)(ceil(log(ht->load) / log(2))), (unsigned int)(log(ht->sz) / log(2)));
     printf("---------------------------------------------------------------------------\n");
     if (verbose > 2)
       print_mem_usage();
@@ -2599,7 +2602,6 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
   if (spd->selu->load > 0) {
     nelts_t i, j;
     for (i=0; i<meta->nrb_AB; ++i) {
-#define OLD 0
 #if OLD
       AB  = generate_mat_gb_upper_row_block(i, meta, basis, spd, ht);
 #else
@@ -2981,7 +2983,6 @@ void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
 #endif
   init_rk_CD  = CD->nr;
   /* check appearing columns in CD */
-#define COL_CHECK 0
 #if COL_CHECK
   uint32_t *columns  = (uint32_t *)calloc(spd->col->nlm, sizeof(uint32_t));
   for (int ii=0; ii<CD->nr; ++ii) {
@@ -3173,7 +3174,6 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
    *     printf("--\n");
    *   }
    * } */
-#define REDUCE_AB_FIRST 0
 #if REDUCE_AB_FIRST
   /* interreduce new pivs */
   for (size_t i = 0; i < spd->selu->load; ++i) {

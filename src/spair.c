@@ -185,64 +185,29 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
     }
   }
 
-#if 1
-  for (i=ps->load; i<cur_len; ++i) {
+  for (i=(int)ps->load; i<cur_len; ++i) {
     switch (ps->pairs[i].crit) {
       case CHAIN_CRIT:
         continue;
       case PROD_CRIT:
-        for (j=ps->load; j<cur_len; ++j) {
+        for (j=(int)ps->load; j<cur_len; ++j) {
           if (ps->pairs[j].lcm == ps->pairs[i].lcm) {
             ps->pairs[j].crit  = CHAIN_CRIT;
           }
         }
+        continue;
       case NO_CRIT:
-        for (j=i-1; j>ps->load-1; --j) {
+        for (j=i-1; j>(int)(ps->load-1); --j) {
           if (ps->pairs[j].lcm == ps->pairs[i].lcm) {
             ps->pairs[i].crit  = CHAIN_CRIT;
             break;
           }
         }
+        continue;
       default:
         break;
     }
   }
-#else
-  /* third step: remove new pairs that still have the same lcm */
-  hash_t lcm    = ps->pairs[ps->load]->lcm;
-  int start = (int)ps->load;
-  int end   = 0;
-  i         = start+1;
-  while (i<cur_len) {
-    while (i<cur_len && lcm == ps->pairs[i]->lcm)
-      ++i;
-    end = i;
-    if (end-start>1) {
-      /* if we have a PROD_CRIT element we can remove all others, otherwise we
-       * have to keep at least the first one: we set start to start+1, if we
-       * find a PROD_CRIT element we decrement start again and then we remove
-       * NO_CRIT elements with the same lcm */
-      start++;
-      for (i=start; i<end; ++i) {
-        if (ps->pairs[i]->crit == PROD_CRIT) {
-          start--;
-          break;
-        }
-      }
-      for (i=start; i<end; ++i)
-        if (ps->pairs[i]->crit == NO_CRIT) {
-          ps->pairs[i]->crit  = CHAIN_CRIT;
-          break;
-        }
-    }
-    if (end == cur_len)
-      break;
-    lcm   = ps->pairs[end]->lcm;
-    start = end;
-    i     = start+1;
-    continue;
-  }
-#endif
 }
 
 inline nelts_t remove_detected_pairs(ps_t *ps, const nelts_t ctr)

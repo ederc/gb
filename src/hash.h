@@ -84,44 +84,6 @@ extern ht_t *ht;
 
 /* global variables used as random seeds, initialized to max unsigned values
  * depending on available wordsize of the machine */
-#if SIZEOF_INT_P==8
-/**
- * \brief Generates pseudo random numbers using xorshifts using global defined
- * random_seed variable
- *
- * \return some pseudo random number
- */
-static inline uint64_t pseudo_random_generator(uint64_t random_seed)
-{
-  /*
-  random_seed ^=  (random_seed << 3);
-  random_seed ^=  (random_seed << 11);
-  random_seed ^=  (random_seed << 7);
-  */
-#if 1
-  random_seed = (uint64_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL);
-  return random_seed;
-#else
-  uint64_t r = random_seed;
-  for (int i=0; i<64; i += 30) {
-    r = r*(RAND_MAX + (uint64_t)1) + rand();
-  }
-  return r;
-#endif
-}
-
-/*
-static inline uint32_t pseudo_random_generator(uint32_t random_seed)
-{
-  random_seed = (uint32_t) ((1103515245 * ((unsigned int)random_seed) + 12345) & 0x7fffffffUL);
-  return random_seed;
-  random_seed = 36969*(random_seed & 65535) + (random_seed >> 16);
-  random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
-  return (random_seed << 16) + random_seed;
-}
-*/
-
-#elif SIZEOF_INT_P==4
 /**
  * \brief Generates pseudo random numbers using xorshifts using global defined
  * random_seed variable
@@ -130,19 +92,18 @@ static inline uint32_t pseudo_random_generator(uint32_t random_seed)
  */
 static inline uint32_t pseudo_random_generator(uint32_t random_seed)
 {
-  /*
-  random_seed ^=  (random_seed << 11);
-  random_seed ^=  (random_seed << 13);
-  random_seed ^=  (random_seed << 18);
-
-  return random_seed;
-  */
-  random_seed = 36969*(random_seed & 65535) * (random_seed >> 16);
-  random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
-  return (random_seed << 16) * random_seed;
+/*   random_seed ^=  (random_seed << 13);
+ *   random_seed ^=  (random_seed << 17);
+ *   random_seed ^=  (random_seed << 5);
+ *
+ *   return random_seed; */
+  /* return (uint32_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL); */
+  return (uint32_t) ((110351523 * ((uint64_t)random_seed) + 54321) & 0x7fffffffUL);
+  /* return random_seed; */
+  /* random_seed = 36969*(random_seed & 65535) * (random_seed >> 16);
+   * random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
+   * return (random_seed << 16) * random_seed; */
 }
-
-#endif
 
 /********************************************************************************
  * FOLLOWING HASH TABLE IMPLEMENTATION IS COPIED FROM COMPACT F4 IMPLEMENTATION 
@@ -157,25 +118,13 @@ static inline void set_random_seed(ht_t *ht)
 {
   hash_t i;
 
-#if SIZEOF_INT_P==8
-/* uint64_t random_seed  = 88172645463325252LL;
- * uint64_t random_seed  = 2463534242;
- * uint64_t random_seed  = 0xF1FF3FAFFFCFF6F7; */
-uint64_t random_seed  = 2463534243;
-  /* use random_seed, no zero values are allowed */
-  for (i=0; i<ht->nv; ++i) {
-    random_seed = pseudo_random_generator(random_seed);
-    ht->rand[i] = random_seed | 1;
-  }
-#elif SIZEOF_INT_P==4
-uint32_t random_seed  = 2463534242;
+  uint32_t random_seed  = 2463534242;
 /* uint32_t random_seed  = 0xFFFFFFFF; */
   /* use random_seed, no zero values are allowed */
   for (i=0; i<ht->nv; ++i) {
     random_seed = pseudo_random_generator(random_seed);
     ht->rand[i] = random_seed | 1;
   }
-#endif
 }
 
 /**
@@ -351,11 +300,10 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
  */
 static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos, ht_t *ht)
 {
-  ht_size_t i;
-  ht_size_t tmp_h;
+  ht_size_t tmp_h = 0;
 
-  for (i=0; i<ht->sz; ++i) {
-    tmp_h = (hash+i) & (ht->sz-1);
+  for (size_t i=0; i<ht->sz; ++i) {
+    tmp_h = (ht_size_t)(hash+i) & (ht->sz-1);
     if (ht->lut[tmp_h] == 0)
       break;
 #if HASH_DEBUG
@@ -538,15 +486,12 @@ static inline hash_t check_in_hash_table(ht_t *ht)
 {
   hash_t hash = ht->val[ht->load];
 
-  ht_size_t tmp_h;
-  ht_size_t tmp_l;         /* temporary lookup table value */
-  ht_size_t pos;
-  nvars_t i;
+  ht_size_t tmp_h = 0, tmp_l = 0;
   exp_t *exp  = ht->exp[ht->load];
 
   /* remaining checks with probing */
-  for (i = 0; i < ht->sz;  ++i) {
-    tmp_h = (hash+i) & (ht->sz-1);
+  for (size_t i = 0; i < ht->sz;  ++i) {
+    tmp_h = (ht_size_t) (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0 && tmp_h != 0)
       break;

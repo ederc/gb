@@ -1592,7 +1592,7 @@ free(bf);
 }
 
 static inline void poly_to_sparse_compact_matrix_row_offset(const mpp_t *mpp_start,
-    const nelts_t ncl, const nelts_t nc, const nelts_t bs, const gb_t *basis, src_t **rows)
+    const nelts_t nc, const nelts_t bs, const gb_t *basis, src_t **rows)
 {
   src_t *bf = (src_t *)malloc(nc * sizeof(src_t));
 
@@ -1649,9 +1649,8 @@ static inline int cmp_src_tmp(const void *a, const void *b)
   return (int)ra.pos - (int)rb.pos;
 }
 
-static inline void poly_to_sparse_compact_matrix_row_test(const mpp_t *mpp_start,
-    const nelts_t ncl, const nelts_t nc, const nelts_t bs, const gb_t *basis,
-    src_t **rows)
+static inline void poly_to_sparse_compact_matrix_row_test(
+    const mpp_t *mpp_start, const nelts_t bs, const gb_t *basis, src_t **rows)
 {
   for (nelts_t k=0; k<bs; ++k) {
     const mpp_t *mpp  = mpp_start+k;
@@ -1732,8 +1731,7 @@ static inline void poly_to_sparse_compact_matrix_row_offset_true_columns(const m
 }
 
 static inline void poly_to_sparse_compact_matrix_row_offset_test(const mpp_t *mpp_start,
-    const nelts_t ncl, const nelts_t nc, const nelts_t bs, const gb_t *basis,
-    src_t **rows)
+   const nelts_t bs, const gb_t *basis, src_t **rows)
 {
   for (nelts_t k=0; k<bs; ++k) {
     const mpp_t *mpp  = mpp_start+k;
@@ -2018,6 +2016,7 @@ static inline void generate_row_blocks_keep_A(sm_fl_t *A, dbm_fl_t *B, const nel
     reset_buffer(dbr, ncb, bs);
 
     rib = i % bs;
+    mul = sel->mpp[i].mul;
     if (sel->mpp[i].sf == 0) {
       eh  = basis->eh[sel->mpp[i].bi];
       cf  = basis->cf[sel->mpp[i].bi];
@@ -2299,8 +2298,7 @@ static inline smc_t *generate_sparse_compact_matrix_offset_block(const gb_t *bas
 {
   smc_t *mat  = initialize_sparse_compact_matrix(nr, ncl, ncr, basis->mod);
 
-  poly_to_sparse_compact_matrix_row_offset_test(sel->mpp+shift, mat->ncl, mat->ncl + mat->ncr,
-      nr, basis, mat->row);
+  poly_to_sparse_compact_matrix_row_offset_test(sel->mpp+shift, nr, basis, mat->row);
   return mat;
 }
 
@@ -2323,8 +2321,8 @@ static inline smc_t *generate_sparse_compact_matrix_offset_test(const gb_t *basi
         const nelts_t bs  = BLOCK > mat->nr-i ? mat->nr-i : BLOCK;
         /* printf("mat->nr %u | i %u | bs %u\n", mat->nr, i, bs); */
         /* printf("constructs row %u\n",i); */
-        poly_to_sparse_compact_matrix_row_offset_test(sel->mpp+i, mat->ncl, mat->ncl + mat->ncr,
-            bs, basis, mat->row+i);
+        poly_to_sparse_compact_matrix_row_offset_test(
+            sel->mpp+i, bs, basis, mat->row+i);
       }
     }
     }
@@ -2351,7 +2349,7 @@ static inline smc_t *generate_sparse_compact_matrix_test(const gb_t *basis,
         const nelts_t bs  = BLOCK > mat->nr-i ? mat->nr-i : BLOCK;
         /* printf("mat->nr %u | i %u | bs %u\n", mat->nr, i, bs); */
         /* printf("constructs row %u\n",i); */
-        poly_to_sparse_compact_matrix_row_test(sel->mpp+i, mat->ncl, mat->ncl + mat->ncr,
+        poly_to_sparse_compact_matrix_row_test(sel->mpp+i,
             bs, basis, mat->row+i);
       }
     }
@@ -2379,7 +2377,7 @@ static inline smc_t *generate_sparse_compact_matrix_offset(const gb_t *basis,
         const nelts_t bs  = BLOCK > mat->nr-i ? mat->nr-i : BLOCK;
         /* printf("mat->nr %u | i %u | bs %u\n", mat->nr, i, bs); */
         /* printf("constructs row %u\n",i); */
-        poly_to_sparse_compact_matrix_row_offset(sel->mpp+i, mat->ncl, mat->ncl + mat->ncr,
+        poly_to_sparse_compact_matrix_row_offset(sel->mpp+i, mat->ncl + mat->ncr,
             bs, basis, mat->row+i);
       }
     }
@@ -3821,8 +3819,8 @@ static inline void compute_new_pivots_c(src_t *row, src_t **pivs,
   } while (!done);
 }
 
-static inline void interreduce_upper_rows_offset_c(smc_t *mat, const nelts_t shift,
-    const int nthreads)
+static inline void interreduce_upper_rows_offset_c(
+    smc_t *mat, const nelts_t shift)
 {
 #if newred
   printf("mat %p, mat->row %p, mat->row[0] %p\n", mat, mat->row, mat->row[0]);
@@ -4592,7 +4590,7 @@ static inline smc_t *reduce_upper_rows_c(smc_t *pivs)
   
   nelts_t lc, j;
   bf_t mul;
-  for (int rn=pivs->nr-1; rn>-1; --rn) {
+  for (int rn=(int)(pivs->nr-1); rn>-1; --rn) {
     src_t *row  = pivs->row[rn];
     if (row[0] == 1 || row[4] >= ncl)
       continue;
@@ -4697,10 +4695,10 @@ static inline smc_t *reduce_upper_rows_c(smc_t *pivs)
 }
 
 static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
-    const src_t **pivs, const nelts_t nc, const mod_t mod)
+    src_t **pivs, const nelts_t nc, const mod_t mod)
 {
   size_t i, j;
-  nelts_t lc, k  = 0;
+  nelts_t k = 0;
   for (i = 0; i < nc; ++i) {
     if (dr[i] != 0)
       dr[i]  = dr[i] % mod;
@@ -4708,8 +4706,6 @@ static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
       continue;
     /* printf("i %u | pivs[%u] %p\n", i, i, pivs[i]); */
     if (pivs[i] == NULL) {
-      if (k == 0)
-        lc  = i;
       ++k;
       continue;
     }
@@ -4747,7 +4743,7 @@ static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
     if (dr[j] != 0) {
       dr[j] = dr[j] % mod;
       if (dr[j] != 0) {
-        row[ctr++] = j;
+        row[ctr++] = (src_t)j;
         row[ctr++] = (src_t)dr[j];
       }
     }
@@ -4876,7 +4872,6 @@ static inline src_t *reduce_lower_by_upper_rows_offset_c_block(src_t *row, const
   /* printf("row %p | lc %u\n", row, row[1]); */
   const cf_t mod    = pivs->mod;
   const nelts_t nc  = pivs->ncl + pivs->ncr;
-  const nelts_t ncl = pivs->ncl;
   /* lc is the lead column of the row to be reduced */
   nelts_t lc  = row[1];
   nelts_t j;
@@ -5308,8 +5303,8 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
   return row;
 }
 
-static inline mat_gb_meta_data_t *generate_matrix_meta_data(const int bs,
-    const cf_t mod, const spd_t *spd)
+static inline mat_gb_meta_data_t *generate_matrix_meta_data(
+    const nelts_t bs, const cf_t mod, const spd_t *spd)
 {
   mat_gb_meta_data_t *mat =
     (mat_gb_meta_data_t *)malloc(sizeof(mat_gb_meta_data_t));
@@ -5610,19 +5605,10 @@ static inline void adjust_block_row_types_including_dense(
 static inline void adjust_block_row_types(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta)
 {
-  nelts_t i,j,k;
-
-  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
-  
-  for (i=0; i<meta->ncb; ++i) {
-    /* printf("i %u\n", i); */
+  for (size_t i = 0; i < meta->ncb; ++i) {
     /* sparse to dense ? */
     if (mat[i].len != NULL) {
-      /* printf("%u len %u\n", i, mat[i].len[mat[i].nr]); */
       if (mat[i].len[mat[i].nr] > 0) {
-        /* if (mat[i].len[mat[i].nr] > bs_square/2)
-         *   printf("DENSE\n"); */
-        /* printf("len %u\n", mat[i].len[mat[i].nr]); */
         mat[i].pos =
           realloc(mat[i].pos, mat[i].len[mat[i].nr] * sizeof(bs_t));
         mat[i].val =
@@ -5705,16 +5691,16 @@ static inline void write_to_mat_gb_row_block_inverted_order(
 }
 
 static inline void write_to_src_mat_row_block(src_t **mat,
-    const mat_gb_meta_data_t *meta, const nelts_t idx, const sel_t *sel,
-    const gb_t *basis, const ht_t *ht)
+    const mat_gb_meta_data_t *meta, const nelts_t idx,
+    const sel_t *sel, const gb_t *basis)
 {
   const nelts_t offset  = idx*meta->bs;
   const nelts_t max     =
     (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
   src_t **row   = mat + offset;
 
-  poly_to_sparse_compact_matrix_row_test(sel->mpp+(idx+offset), meta->nc_AC,
-      meta->nc, max, basis, row);
+  poly_to_sparse_compact_matrix_row_test(sel->mpp+(idx+offset),
+      max, basis, row);
 }
 
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
@@ -5755,44 +5741,18 @@ static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
 static inline void invert_first_block(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta)
 {
-  nelts_t i;
-
   /* sparse */
   if (mat[0].len != NULL) {
-    for (i=0; i<meta->bs; ++i) {
-      /* printf("i %u / %u | %u\n", i, meta->bs, mat[0].len[i]); */
+    for (size_t i = 0; i < meta->bs; ++i) {
       if (mat[0].len[i]<mat[0].len[i+1]) {
-        /* printf("val %u", mat[0].val[mat[0].len[i]]); */
         mat[0].val[mat[0].len[i]] = meta->mod - mat[0].val[mat[0].len[i]];
-        /* printf(" --> inverted %u\n", mat[0].val[mat[0].len[i]]); */
       }
     }
-    /* for (i=0; i<mat[0].len[meta->bs]; ++i) {
-     *   inverse_val_new(&(mat[0].val[i]), meta->mod);
-     * } */
   } else { /* dense */
-    const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
-    for (i=0; i<meta->bs; ++i) {
+    for (size_t i = 0; i < meta->bs; ++i) {
       mat[0].val[i+i*meta->bs] = meta->mod - mat[0].val[i+i*meta->bs];
     }
   }
-}
-
-static inline src_t **generate_src_mat_upper_row_block(
-    const nelts_t idx, const mat_gb_meta_data_t *meta, const gb_t *basis,
-    const spd_t *spd, const ht_t *ht)
-{
-  const nelts_t offset  = idx*meta->bs;
-  const nelts_t max     =
-    (idx+1)*meta->bs < spd->selu->load ?
-    meta->bs : spd->selu->load - offset;
-
-  src_t **mat  = (src_t **)malloc(max * sizeof(src_t *));
-
-  poly_to_sparse_compact_matrix_row_test(spd->selu->mpp+(idx+offset),
-      meta->nc_AC, meta->nc, max, basis, mat);
-
-  return mat;
 }
 
 static inline mat_gb_block_t *generate_mat_gb_upper_row_block(
@@ -5895,33 +5855,6 @@ static inline mat_gb_block_t *generate_mat_gb_lower(
       for (nelts_t i=0; i<meta->nrb_CD; ++i) {
         #pragma omp task
         write_to_mat_gb_row_block(mat, meta, i, i, spd->sell, basis, ht);
-      }
-    }
-  }
-
-  /* printf("%p\n", mat[0].len);
-   * printf("%p\n", mat[0].pos);
-   * printf("%p\n", mat[0].val);
-   * printf("nr %u\n", mat[0].nr); */
-  return mat;
-}
-
-static inline src_t **generate_src_mat_lower(
-    const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
-    const ht_t *ht, const int t)
-{
-  src_t **mat  = (src_t **)malloc(
-      (meta->nr_CD * sizeof(src_t *)));
-  /* printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD); */
-
-  /* printf("meta %u\n", meta->nrb_CD); */
-  #pragma omp parallel num_threads(t)
-  {
-    #pragma omp single nowait
-    {
-      for (nelts_t i=0; i<meta->nrb_CD; ++i) {
-        #pragma omp task
-        write_to_src_mat_row_block(mat, meta, i, spd->sell, basis, ht);
       }
     }
   }

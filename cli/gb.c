@@ -443,18 +443,14 @@ int main(int argc, char *argv[])
     }
 
     if (reduce_gb == 222) {
-      /* if (density < 0.004 || spd->sell->load < 40)
-       *   reduce_gb_101(basis, spd, density, ps, block_size, verbose, nthreads);
-       * else
-       *   reduce_gb_222(basis, spd, density, ps, block_size, verbose, nthreads); */
-      reduce_gb_222(basis, spd, density, ps, block_size, verbose, nthreads);
+      reduce_gb_222(basis, spd, density, ps, verbose, nthreads);
     }
     if (reduce_gb == 25) {
       reduce_gb_25(basis, spd, density, ps, block_size, verbose, nthreads);
     }
     if (reduce_gb == 666) {
       if (density < 0.01 || spd->sell->load < 40)
-        reduce_gb_101(basis, spd, density, ps, block_size, verbose, nthreads);
+        reduce_gb_101(basis, spd, density, ps, verbose, nthreads);
       else
         reduce_gb_23(basis, spd, density, ps, block_size, verbose, nthreads);
     }
@@ -561,7 +557,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (spd->sell->load - D->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<D->rk; ++k) {
         free(D->row[k]);
@@ -710,7 +705,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -798,7 +792,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (init_rk_CD - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -940,7 +933,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (init_rk_CD - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -1005,7 +997,7 @@ int main(int argc, char *argv[])
          *     printf("\n");
          *   }
          * } */
-        interreduce_upper_rows_offset_c(AB, k,  nthreads);
+        interreduce_upper_rows_offset_c(AB, k);
         /* printf("--AB %u--\n", k);
          * for (int ii=0; ii<AB->nr; ++ii) {
          *   printf("row[%u] ",ii);
@@ -1073,7 +1065,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (init_rk_CD - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -1090,7 +1081,7 @@ int main(int argc, char *argv[])
     }
 
     if (reduce_gb == 101) {
-      reduce_gb_101(basis, spd, density, ps, block_size, verbose, nthreads);
+      reduce_gb_101(basis, spd, density, ps, verbose, nthreads);
     }
     if (reduce_gb == 10) {
       /* we generate the matrix in the following shape:
@@ -1254,7 +1245,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -1381,7 +1371,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -1508,7 +1497,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -1635,7 +1623,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -1767,7 +1754,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -1898,7 +1884,6 @@ int main(int argc, char *argv[])
       if (verbose > 0) {
         n_zero_reductions +=  (CD->nr - CD->rk);
       }
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       for (nelts_t k=0; k<CD->rk; ++k) {
         free(CD->row[k]);
@@ -2027,7 +2012,6 @@ int main(int argc, char *argv[])
       free(CD->row);
       free(CD);
       CD  = NULL;
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       if (verbose > 0)
         t_update_pairs  +=  walltime(t_load_start);
@@ -2146,7 +2130,6 @@ int main(int argc, char *argv[])
       free(CD->row);
       free(CD);
       CD  = NULL;
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       if (verbose > 0)
         t_update_pairs  +=  walltime(t_load_start);
@@ -2273,7 +2256,6 @@ int main(int argc, char *argv[])
       free(CD->row);
       free(CD);
       CD  = NULL;
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
       if (verbose > 0)
         t_update_pairs  +=  walltime(t_load_start);
@@ -2392,7 +2374,6 @@ int main(int argc, char *argv[])
         n_zero_reductions +=  (mat->DR->nrows - mat->DR->rank);
       }
       free_gbla_matrix(&mat);
-      free_symbolic_preprocessing_data(&spd);
       clear_hash_table_idx(ht);
 
       if (verbose > 0)
@@ -2434,6 +2415,7 @@ int main(int argc, char *argv[])
         break;
       }
     }
+    free_symbolic_preprocessing_data(&spd);
   }
 
   /* final basis for possible output data */
@@ -2583,7 +2565,7 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
 }
 
 void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
-    const ps_t *ps, const nelts_t block_size, const int verbose,
+    ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads)
 {
   mat_gb_block_t *AB, *CD   = NULL;
@@ -2700,7 +2682,6 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
   if (verbose > 0) {
     n_zero_reductions +=  (spd->sell->load - D->rk);
   }
-  free_symbolic_preprocessing_data(&spd);
   for (nelts_t k=0; k<D->rk; ++k) {
     free(D->row[k]);
   }
@@ -2715,7 +2696,7 @@ void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
 }
 
 void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
-    const ps_t *ps, const nelts_t block_size, const int verbose,
+    ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads)
 {
   nelts_t i, j, k;
@@ -2830,7 +2811,6 @@ void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
   if (verbose > 0) {
     n_zero_reductions +=  (spd->sell->load - D->rk);
   }
-  free_symbolic_preprocessing_data(&spd);
   clear_hash_table_idx(ht);
   for (nelts_t k=0; k<D->rk; ++k) {
     free(D->row[k]);
@@ -2846,10 +2826,10 @@ void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
 }
 
 void reduce_gb_25(gb_t *basis, const spd_t *spd, const double density,
-    const ps_t *ps, const nelts_t block_size, const int verbose,
+    ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads)
 {
-  nelts_t i, j, k;
+  nelts_t j, k;
   mat_gb_block_t *AB        = NULL;
   mat_gb_block_t *CD        = NULL;
   mat_gb_meta_data_t *meta  = NULL;
@@ -2955,7 +2935,6 @@ void reduce_gb_25(gb_t *basis, const spd_t *spd, const double density,
   if (verbose > 0) {
     n_zero_reductions +=  (spd->sell->load - D->rk);
   }
-  free_symbolic_preprocessing_data(&spd);
   clear_hash_table_idx(ht);
   for (nelts_t k=0; k<D->rk; ++k) {
     free(D->row[k]);
@@ -2971,8 +2950,7 @@ void reduce_gb_25(gb_t *basis, const spd_t *spd, const double density,
 }
 
 void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
-    const ps_t *ps, const nelts_t block_size, const int verbose,
-    const int nthreads)
+    ps_t *ps, const int verbose, const int nthreads)
 {
   /* we generate the matrix in the following shape:
    * AB = already known lead terms resp. pivots
@@ -3134,7 +3112,6 @@ void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
   if (verbose > 0) {
     n_zero_reductions +=  (init_rk_CD - CD->rk);
   }
-  free_symbolic_preprocessing_data(&spd);
   for (nelts_t k=0; k<CD->rk; ++k) {
     free(CD->row[k]);
   }
@@ -3150,10 +3127,9 @@ void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
 }
 
 void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
-    const ps_t *ps, const nelts_t block_size, const int verbose,
-    const int nthreads)
+    ps_t *ps, const int verbose, const int nthreads)
 {
-  srand(time(NULL));   // should only be called once
+  srand((unsigned int)time(NULL));   // should only be called once
   int done;
   const nelts_t nr  = spd->sell->load+spd->selu->load;
   const nelts_t nc  = spd->col->load;
@@ -3242,8 +3218,8 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
 #pragma omp parallel for num_threads(nthreads)
   for (size_t i = 0; i < nb; ++i) {
     /* printf("block %u / %u || %u\n", i, nb, spd->sell->load); */
-    nelts_t nbl   = spd->sell->load > (i+1)*rpb ? (i+1)*rpb : spd->sell->load;
-    nelts_t nrbl  = nbl - i*rpb; 
+    nelts_t nbl   = (nelts_t) (spd->sell->load > (i+1)*rpb ? (i+1)*rpb : spd->sell->load);
+    nelts_t nrbl  = (nelts_t) (nbl - i*rpb); 
     
     if (nrbl != 0) {
       src_t **bl  = (src_t **)malloc(nrbl * sizeof(src_t *));
@@ -3360,7 +3336,6 @@ void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
     free(pivs[i]);
   free(pivs);
   pivs  = NULL;
-  free_symbolic_preprocessing_data(&spd);
   if (verbose > 0)
     t_update_pairs  +=  walltime(t_load_start);
 

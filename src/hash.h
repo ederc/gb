@@ -283,7 +283,7 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   ht->exp     = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
   /* get memory for each exponent */
   for (i=0; i<ht->sz; ++i) {
-    ht->exp[i]  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
   }
   /* use random_seed, no zero values are allowed */
   set_random_seed(ht);
@@ -351,7 +351,7 @@ static inline void enlarge_hash_table(ht_t *ht)
   memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
   ht->exp   = realloc(ht->exp, ht->sz * sizeof(exp_t *));
   for (i=old_sz; i<ht->sz; ++i) {
-    ht->exp[i]  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
   }
   /* re-insert all elements in block */
   memset(ht->lut+1, 0, (ht->sz-1) * sizeof(ht_size_t));
@@ -380,10 +380,8 @@ static inline void free_hash_table(ht_t **ht_in)
     free(ht->deg);
     free(ht->div);
     free(ht->idx);
-#if 1
     free(ht->dm);
     free(ht->divmap);
-#endif
 #if HASH_CHECK
     free(ht->ctr);
 #endif

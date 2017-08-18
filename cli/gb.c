@@ -82,32 +82,33 @@ void print_help(void)
   printf("    -r REDLA    Variant of linear algebra to be used (usually the matrix M\n");
   printf("                is splied to AB (upper part) and CD (lower part)):\n");
   printf("                --------------------------------------------------------------\n");
-  printf("                 0 -> A combination of (4) and (6) depending on the density:\n");
-  printf("                      If the density of the matrix is < 0.01%% or CD has very\n");
-  printf("                      few rows option (6) is used; otherwise (4) is used.\n");
+  printf("                  1 -> GBLA matrices, complete reduction of matrix.\n");
+  printf("                  2 -> GBLA matrices, only reducing CD. (BROKEN)\n");
   printf("                --------------------------------------------------------------\n");
-  printf("                 1 -> GBLA matrices, complete reduction of matrix.\n");
-  printf("                 2 -> GBLA matrices, only reducing CD. (BROKEN)\n");
+  printf("                  3 -> Block implementation, only reducing CD.\n");
+  printf("                  4 -> Block implementation, only reducing CD, constructing\n");
+  printf("                       AB only blockwise depending on block size.\n");
+  printf("                  5 -> Block implementation, complete reduction of matrix.\n");
   printf("                --------------------------------------------------------------\n");
-  printf("                 3 -> Block implementation, only reducing CD.\n");
-  printf("                 4 -> Block implementation, only reducing CD,\n");
-  printf("                      constructing AB only blockwise depending on block size.\n");
-  printf("                 5 -> Block implementation, complete reduction of matrix.\n");
+  printf("                  6 -> Sparse row implementation, ABCD mapping,\n");
+  printf("                       directly reducing CD.\n");
+  printf("                  7 -> Sparse row implementation, ABCD mapping, first\n");
+  printf("                       reducing CD on its own, then reducing via AB\n");
+  printf("                  8 -> Sparse row implementation, ABCD mapping, directly\n");
+  printf("                       reducing CD, using multiline structure for AB.\n");
+  printf("                  9 -> Sparse row implementation, complete reduction\n");
+  printf("                       of matrix.\n");
+  printf("                 10 -> Sparse row implementation, no column remapping,\n");
+  printf("                       directly reducing lower matrix part.\n");
   printf("                --------------------------------------------------------------\n");
-  printf("                 6 -> Sparse row implementation, ABCD mapping,\n");
-  printf("                      directly reducing CD.\n");
-  printf("                 7 -> Sparse row implementation, ABCD mapping, first reducing\n");
-  printf("                      CD on its own, then reducing via AB\n");
-  printf("                 8 -> Sparse row implementation, ABCD mapping,\n");
-  printf("                      directly reducing CD, using multiline structure for AB.\n");
-  printf("                 9 -> Sparse row implementation, complete reduction of matrix.\n");
-  printf("                10 -> Sparse row implementation, no column remapping, directly\n");
-  printf("                      reducing lower matrix part.\n");
+  printf("                 42 -> Probabilistic linear algebra, error probability is\n");
+  printf("                       lower than 1/(characteristic of field). See also the\n");
+  printf("                       paper \"An Algorithm For Splitting Polynomial Systems\n");
+  printf("                       Based on F4\" by Michael Monagan & Roman Pearce.\n");
   printf("                --------------------------------------------------------------\n");
-  printf("                42 -> Probabilistic linear algebra, error probability is lower\n");
-  printf("                      than 1/(characteristic of field). See also the paper\n");
-  printf("                      \"An Algorithm For Splitting Polynomial Systems Based\n");
-  printf("                      on F4\" by Michael Monagan & Roman Pearce.\n");
+  printf("                666 -> A combination of (4) and (6) depending on the density:\n");
+  printf("                       If the density of the matrix is < 0.01%% or CD has very\n");
+  printf("                       few rows option (6) is used; otherwise (4) is used.\n");
   printf("                --------------------------------------------------------------\n");
   printf("                DEFAULT: 0.\n");
   printf("\n");
@@ -147,7 +148,7 @@ int main(int argc, char *argv[])
   const char *fn      = NULL;
   int verbose         = 0;
   int nthreads        = 1;
-  int linear_algebra       = 0;
+  int linear_algebra  = 0;
   int simplify        = 0;
   /* int generate_pbm    = 1; */
   int print_gb        = 0;
@@ -238,8 +239,18 @@ int main(int argc, char *argv[])
     }
   }
 
+  /* if simplification should be done, use GBLA linear algebra */
   if (simplify != 0)
     linear_algebra = 1;
+
+  /* if GBLA linear algebra is used the block size is given by a macro */
+  if (linear_algebra == 1 || linear_algebra == 2)
+    block_size  = __GBLA_SIMD_BLOCK_SIZE;
+
+  /* set block_size to zero if a sparse row implementation is used */
+  if (linear_algebra > 5 && linear_algebra != 666)
+    block_size  = 0;
+
   for (index = optind; index < argc; index++)
     fn = argv[index];
 
@@ -254,6 +265,7 @@ int main(int argc, char *argv[])
 
   /* first get number of variables in order to initialize hash table */
   nvars_t nvars = get_nvars(fn);
+
   /* initialize hash table */
   ht = init_hash_table(htc, nvars);
   set_sort_functions_depending_on_monomial_order(ht, order);
@@ -396,7 +408,7 @@ int main(int argc, char *argv[])
      * symbolic preprocessing:
      * We first sort spd->col via lead and non lead monomials, i.e. ht->idx[i] =
      * 1 or = 2 */
-    if (linear_algebra != 111) {
+    if (linear_algebra != 10) {
       sort_columns_by_lead(spd);
 
       /* next we can sort both parts (we know the number of lead monomials =
@@ -409,12 +421,11 @@ int main(int argc, char *argv[])
        * the order of the left side columns since gbla expects blocks be
        * inverted for a faster reduction of A in the first step of the matrix
        * reduction. */
-      if (keep_A == 1 || linear_algebra > 1)
+      if (linear_algebra > 1)
         ht->sort.sort_presorted_columns(spd, nthreads);
       else
         ht->sort.sort_presorted_columns_invert_left_side(spd, nthreads);
     } else { 
-      /* linear_algebra == 111 */
       if (basis->ord == 0)
         qsort(spd->col->hpos, spd->col->load,
             sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
@@ -435,7 +446,7 @@ int main(int argc, char *argv[])
      * the order of the left side columns since gbla expects blocks be
      * inverted for a faster reduction of A in the first step of the matrix
      * reduction. */
-    if (keep_A == 1)
+    if (linear_algebra == 2)
       sort_selection_by_inverted_column_index(spd, nthreads);
     else
       sort_selection_by_column_index(spd, nthreads);
@@ -456,9 +467,6 @@ int main(int argc, char *argv[])
     }
 #endif
   
-    /* here we only check the density of the matrix, if it is too low we
-     * use only sparse rows (i.e. linear_algebra = 101). else we use a block
-     * version (linear_algebra = 23). */
     uint64_t terms  = 0;
     for (nelts_t i = 0; i < spd->selu->load; ++i) {
       terms +=  basis->nt[spd->selu->mpp[i].bi];
@@ -470,57 +478,80 @@ int main(int argc, char *argv[])
       (uint64_t)(spd->selu->load+spd->sell->load)*spd->col->load;
     double density      = (double)terms / (double)dimension;
 
-    if (linear_algebra == 1) {
-      if (density < 0.01 || spd->sell->load < 40)
-        linear_algebra_sparse_rows_ABCD(basis, spd, density, ps, verbose, nthreads);
-      else
+    /* find corresponding linear algebra implementation */
+    switch (linear_algebra) {
+   
+      case 1:
+        linear_algebra_gbla(basis, sf, spd, density, ps, 
+            0, verbose, nthreads);
+        break;
+
+      case 2:
+        linear_algebra_gbla(basis, sf, spd, density, ps, 
+            1, verbose, nthreads);
+        break;
+
+      case 3:
+        linear_algebra_block_ABCD_reduce_CD_directly(
+            basis, spd, density, ps, block_size, verbose, nthreads);
+        break;
+
+      case 4:
         linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
             basis, spd, density, ps, block_size, verbose, nthreads);
+        break;
+
+      case 5:
+        linear_algebra_block_ABCD_reduce_AB_first(
+            basis, spd, density, ps, block_size, verbose, nthreads);
+        break;
+
+      case 6:
+        linear_algebra_sparse_rows_ABCD(
+            basis, spd, density, ps, verbose, nthreads);
+        break;
+
+      case 7:
+        linear_algebra_sparse_rows_ABCD_reduce_CD_first(
+            basis, spd, density, ps, verbose, nthreads);
+        break;
+
+      case 8:
+        linear_algebra_sparse_rows_ABCD_multiline_AB(
+            basis, spd, density, ps, verbose, nthreads);
+        break;
+
+      case 9:
+        linear_algebra_sparse_rows_ABCD_reduce_AB_first(
+            basis, spd, density, ps, verbose, nthreads);
+        break;
+
+      case 10:
+        linear_algebra_sparse_rows_no_column_mapping(
+            basis, spd, density, ps, verbose, nthreads);
+        break;
+
+      case 42:
+        linear_algebra_probabilistic(
+            basis, spd, density, ps, verbose, nthreads);
+        break;
+
+      case 666:
+        if (density < 0.01 || spd->sell->load < 40) {
+          linear_algebra_sparse_rows_ABCD(
+              basis, spd, density, ps, verbose, nthreads);
+        } else {
+          linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
+              basis, spd, density, ps, block_size, verbose, nthreads);
+        }
+        break;
+
+
+      default:
+        fprintf (stderr,
+            "Unknown linear algebra option.\n");
+        return 1;
     }
-
-    if (linear_algebra == 24)
-      linear_algebra_block_ABCD_reduce_AB_first(
-          basis, spd, density, ps, block_size, verbose, nthreads);
-
-    if (linear_algebra == 222)
-      linear_algebra_probabilistic(basis, spd, density, ps, verbose, nthreads);
-
-    if (linear_algebra == 25)
-      linear_algebra_block_ABCD_reduce_CD_directly(
-          basis, spd, density, ps, block_size, verbose, nthreads);
-
-    if (linear_algebra == 23)
-      linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
-          basis, spd, density, ps, block_size, verbose, nthreads);
-
-    if (linear_algebra == 11)
-      linear_algebra_sparse_rows_ABCD_reduce_AB_first(
-          basis, spd, density, ps, verbose, nthreads);
-
-    if (linear_algebra == 101)
-      linear_algebra_sparse_rows_ABCD(basis, spd, density, ps, verbose, nthreads);
-
-    if (linear_algebra == 111)
-      linear_algebra_sparse_rows_no_column_mapping(
-          basis, spd, density, ps, verbose, nthreads);
-
-    if (linear_algebra == 7)
-      linear_algebra_sparse_rows_ABCD_multiline_AB(
-          basis, spd, density, ps, verbose, nthreads);
-
-    if (linear_algebra == 3)
-      linear_algebra_sparse_rows_ABCD_unoptimized(
-          basis, spd, density, ps, verbose, nthreads);
-
-    if (linear_algebra == 4)
-      linear_algebra_sparse_rows_ABCD_reduce_CD_first(
-          basis, spd, density, ps, verbose, nthreads);
-
-
-    if (linear_algebra == 0)
-      linear_algebra_gbla(basis, sf, spd, density, ps, 
-          keep_A, verbose, nthreads);
-
     free_symbolic_preprocessing_data(&spd);
   }
 
@@ -715,7 +746,7 @@ void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
     n_zero_reductions +=  (spd->sell->load - rankDR);
     printf("%6u new %6u zero ", rankDR, spd->sell->load - rankDR);
     printf("%9.3f sec ", walltime(t_load_start) / (1000000));
-    printf("%7.3f%% d\n", density);
+    printf("%7.3f%% d ", density);
     printf("%6u bs\n", __GBLA_SIMD_BLOCK_SIZE);
     gettimeofday(&t_load_start, NULL);
   }
@@ -910,9 +941,9 @@ void linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
     t_linear_algebra_local  +=  walltime(t_load_start);
     t_linear_algebra        +=  t_linear_algebra_local;
     n_zero_reductions +=  (spd->sell->load - D->rk);
-    printf("%4u new %4u zero ", D->rk, spd->sell->load-D->rk);
+    printf("%6u new %6u zero ", D->rk, spd->sell->load-D->rk);
     printf("%9.3f sec ", t_linear_algebra_local / (1000000));
-    printf("%6.3f%% d ", density);
+    printf("%7.3f%% d ", density);
     printf("%6u bs\n", meta->bs);
     gettimeofday(&t_load_start, NULL);
   }
@@ -1018,9 +1049,9 @@ void linear_algebra_block_ABCD_reduce_AB_first(
     t_linear_algebra_local  +=  walltime(t_load_start);
     t_linear_algebra        +=  t_linear_algebra_local;
     n_zero_reductions +=  (spd->sell->load - D->rk);
-    printf("%4u new %4u zero ", D->rk, spd->sell->load-D->rk);
+    printf("%6u new %6u zero ", D->rk, spd->sell->load - D->rk);
     printf("%9.3f sec ", t_linear_algebra_local / (1000000));
-    printf("%6.3f%% d ", density);
+    printf("%7.3f%% d ", density);
     printf("%6u bs\n", meta->bs);
     gettimeofday(&t_load_start, NULL);
   }
@@ -1123,7 +1154,7 @@ void linear_algebra_block_ABCD_reduce_CD_directly(
     n_zero_reductions +=  (spd->sell->load - D->rk);
     printf("%6u new %6u zero ", D->rk, spd->sell->load - D->rk);
     printf("%9.3f sec ", walltime(t_load_start) / (1000000));
-    printf("%7.3f%% d\n", density);
+    printf("%7.3f%% d ", density);
     printf("%6u bs\n", meta->bs);
     gettimeofday(&t_load_start, NULL);
   }

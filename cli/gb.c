@@ -37,7 +37,6 @@ void print_help(void)
   printf("\n");
   printf("OPTIONS\n");
   printf("    -b BS       Block size of matrix tiles\n");
-  printf("                DEFAULT: 4096 = 2^12.\n");
   printf("                NOTE: This setting does NOT influence the GBLA block size,\n");
   printf("                      i.e. if using GBLA for linear algebra the block size\n");
   printf("                      is set via __GBLA_SIMD_BLOCK_SIZE (see config.h).\n");
@@ -47,6 +46,7 @@ void print_help(void)
   printf("                      For the block linear algebra implementation we use the\n");
   printf("                      given setting as base for adaptively choosing a best\n");
   printf("                      fitting block size depending on the matrix size.\n");
+  printf("                DEFAULT: 4096 = 2^12.\n");
   printf("\n");
   printf("    -c HTC      Hash table cache resp. size in log_2: The size is then set\n");
   printf("                to the biggest non-Mersenne prime smaller then 2^(given value).\n");
@@ -65,31 +65,24 @@ void print_help(void)
   printf("                NOTE: This option is BROKEN at the moment\n");
   printf("\n");
   printf("    -o ORDER    Order w.r.t. which the Groebner basis is computed.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                0 -> Graded/Degree reverse lexicographical order (DRL)\n");
   printf("                1 -> Lexicographical order (LEX)\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                DEFAULT: 0.\n");
   printf("\n");
   printf("    -p PRINT    Prints resulting groebner basis.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                0 -> no printing.\n");
   printf("                1 -> default print out of basis.\n");
   printf("                2 -> Singular format print out of basis.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                DEFAULT: 0.\n");
   printf("\n");
   printf("    -r REDLA    Variant of linear algebra to be used (usually the matrix M\n");
   printf("                is splied to AB (upper part) and CD (lower part)):\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                  1 -> GBLA matrices, complete reduction of matrix.\n");
   printf("                  2 -> GBLA matrices, only reducing CD. (BROKEN)\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                  3 -> Block implementation, only reducing CD.\n");
   printf("                  4 -> Block implementation, only reducing CD, constructing\n");
   printf("                       AB only blockwise depending on block size.\n");
   printf("                  5 -> Block implementation, complete reduction of matrix.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                  6 -> Sparse row implementation, ABCD mapping,\n");
   printf("                       directly reducing CD.\n");
   printf("                  7 -> Sparse row implementation, ABCD mapping, first\n");
@@ -100,24 +93,19 @@ void print_help(void)
   printf("                       of matrix.\n");
   printf("                 10 -> Sparse row implementation, no column remapping,\n");
   printf("                       directly reducing lower matrix part.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                 42 -> Probabilistic linear algebra, error probability is\n");
   printf("                       lower than 1/(characteristic of field). See also the\n");
   printf("                       paper \"An Algorithm For Splitting Polynomial Systems\n");
   printf("                       Based on F4\" by Michael Monagan & Roman Pearce.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                666 -> A combination of (4) and (6) depending on the density:\n");
   printf("                       If the density of the matrix is < 0.01%% or CD has very\n");
   printf("                       few rows option (6) is used; otherwise (4) is used.\n");
-  printf("                --------------------------------------------------------------\n");
-  printf("                DEFAULT: 0.\n");
+  printf("                DEFAULT: 666.\n");
   printf("\n");
   printf("    -s SIMP     Use simplify in F4 algorithm.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                0 -> not simplified.\n");
   printf("                1 -> simplified but B not fully reduced.\n");
   printf("                2 -> simplified and B fully reduced.\n");
-  printf("                --------------------------------------------------------------\n");
   printf("                NOTE: If simplification is enabled the GBLA linear algebra\n");
   printf("                      variant (i.e. option \"-r1\") is used.\n");
   printf("                DEFAULT: 0.\n");
@@ -148,13 +136,12 @@ int main(int argc, char *argv[])
   const char *fn      = NULL;
   int verbose         = 0;
   int nthreads        = 1;
-  int linear_algebra  = 0;
+  int linear_algebra  = 666;
   int simplify        = 0;
   /* int generate_pbm    = 1; */
   int print_gb        = 0;
   int order           = 0;
   long max_spairs     = 0;
-  int keep_A          = 0;
   nelts_t block_size  = 4096;
   ht_size_t htc       = 18;
   int git_hash        = 0;
@@ -196,9 +183,6 @@ int main(int argc, char *argv[])
       case 'm':
         /* pbm_dir       = optarg;
          * generate_pbm  = 1; */
-        break;
-      case 'n':
-        keep_A  = 1;
         break;
       case 'o':
         order  = (int)strtol(optarg, NULL, 10);
@@ -291,7 +275,6 @@ int main(int argc, char *argv[])
     printf("number of threads           %15d\n", nthreads);
     printf("hash table size             %15u (2^%u)\n", ht->sz, htc);
     printf("linear algebra variant      %15d\n", linear_algebra);
-    printf("do not reduce A|B in gbla   %15d\n", keep_A);
     printf("limit for handling spairs?  %15ld\n", max_spairs);
     printf("block size of matrix tiles  %15d\n", block_size);
     printf("use simplify?               %15d\n", simplify);

@@ -321,7 +321,7 @@ void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat,
 /**************************
  * GBLA implementations
  *************************/
-void reduce_gb_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
+void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
     const double density, ps_t *ps, const int keep_A,
     const int verbose, const int nthreads);
 
@@ -329,18 +329,18 @@ void reduce_gb_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
  * New block implementations
  *****************************/
 /* directly reduces C|D with A|B */
-void reduce_gb_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
+void linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);
 
-void reduce_gb_block_ABCD_reduce_CD_directly(
+void linear_algebra_block_ABCD_reduce_CD_directly(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);
 
 /* first computes A^-1B then reduces C|D */
-void reduce_gb_block_ABCD_reduce_AB_first(
+void linear_algebra_block_ABCD_reduce_AB_first(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);
@@ -348,27 +348,27 @@ void reduce_gb_block_ABCD_reduce_AB_first(
 /*++++++****************************
  * New sparse row implementations
  *******++++++*********************/
-void reduce_gb_sparse_rows_ABCD(gb_t *basis, const spd_t *spd,
+void linear_algebra_sparse_rows_ABCD(gb_t *basis, const spd_t *spd,
     const double density, ps_t *ps, const int verbose,
     const int nthreads);
 
-void reduce_gb_sparse_rows_ABCD_unoptimized(
+void linear_algebra_sparse_rows_ABCD_unoptimized(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
 
-void reduce_gb_sparse_rows_ABCD_reduce_CD_first(
+void linear_algebra_sparse_rows_ABCD_reduce_CD_first(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
 
-void reduce_gb_sparse_rows_ABCD_multiline_AB(
+void linear_algebra_sparse_rows_ABCD_multiline_AB(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
 
-void reduce_gb_sparse_rows_ABCD_reduce_AB_first(
+void linear_algebra_sparse_rows_ABCD_reduce_AB_first(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
 
-void reduce_gb_sparse_rows_no_column_mapping(
+void linear_algebra_sparse_rows_no_column_mapping(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
 
@@ -377,7 +377,7 @@ void reduce_gb_sparse_rows_no_column_mapping(
  *******++++++********************/
 /* first version of probabilistic f4, cf. "An Algorithm For Splitting Polynomial
  * Systems Based on F4" by Monagan & Pearce */
-void reduce_gb_probabilistic(gb_t *basis, const spd_t *spd,
+void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
     const double density, ps_t *ps, const int verbose,
     const int nthreads);
 #endif

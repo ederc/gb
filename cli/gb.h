@@ -140,8 +140,8 @@ static inline void set_sort_functions_depending_on_monomial_order(ht_t *ht, cons
  * \return returns 1 if we have added the constant 1 to the groebner basis, i.e.
  * then the computation is done; else it returns 0.
  */
-static inline int update_basis(gb_t *basis, ps_t *ps, spd_t *spd, const mat_t *mat,
-    const ht_t *ht,  const ri_t rankDR)
+static inline int update_basis(gb_t *basis, ps_t *ps, const spd_t *spd,
+    const mat_t *mat, const ht_t *ht,  const ri_t rankDR)
 {
   ri_t i;
   int res;
@@ -237,8 +237,8 @@ static inline int update_basis_new(gb_t *basis, ps_t *ps, const spd_t *spd,
   return 0;
 }
 
-static inline int update_basis_new_new(gb_t *basis, ps_t *ps, spd_t *spd, const smat_t *mat,
-    const ht_t *ht)
+static inline int update_basis_new_new(gb_t *basis, ps_t *ps, const spd_t *spd,
+    const smat_t *mat, const ht_t *ht)
 {
   ri_t i;
   int res;
@@ -264,7 +264,6 @@ static inline int update_basis_new_new(gb_t *basis, ps_t *ps, spd_t *spd, const 
   return 0;
 }
 
-
 /**
  * \brief Updates basis and pair set after reducing current gbla matrix.
  * Moreover, it adds simplifier to simplification list for further optimizations
@@ -289,8 +288,8 @@ static inline int update_basis_new_new(gb_t *basis, ps_t *ps, spd_t *spd, const 
  * then the computation is done; else it returns 0.
  */
 int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
-    spd_t *spd, mat_t *mat, const ht_t *ht,  const ri_t rankDR,
-    const int nthreads);
+    const spd_t *spd, mat_t *mat, const ht_t *ht,
+    const ri_t rankDR, const int nthreads);
 
 /**
  * \brief Adds simplifier elements to sf list for further exchanges as better
@@ -306,30 +305,79 @@ int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
  *
  * \param hash table ht
  */
-void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat, const spd_t *spd,
-    const ht_t *ht);
+void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat,
+    const spd_t *spd, const ht_t *ht);
 
+
+
+/********************************
+ * ||||||||||||||||||||||||||||||
+ * ------------------------------
+ * LINEAR ALGEBRA IMPLEMENTATIONS
+ * ------------------------------
+ * ||||||||||||||||||||||||||||||
+ *******************************/
+
+/**************************
+ * GBLA implementations
+ *************************/
+void reduce_gb_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
+    const double density, ps_t *ps, const int keep_A,
+    const int verbose, const int nthreads);
+
+/******************************
+ * New block implementations
+ *****************************/
 /* directly reduces C|D with A|B */
-void reduce_gb_23(gb_t *basis, const spd_t *spd, const double density,
+void reduce_gb_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
+    gb_t *basis, const spd_t *spd, const double density,
+    ps_t *ps, const nelts_t block_size, const int verbose,
+    const int nthreads);
+
+void reduce_gb_block_ABCD_reduce_CD_directly(
+    gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);
 
 /* first computes A^-1B then reduces C|D */
-void reduce_gb_24(gb_t *basis, const spd_t *spd, const double density,
+void reduce_gb_block_ABCD_reduce_AB_first(
+    gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const nelts_t block_size, const int verbose,
     const int nthreads);
 
-/* constructs A|B completely (unlike _23) but does directly reduce
- * C|D (unlike _24) */
-void reduce_gb_25(gb_t *basis, const spd_t *spd, const double density,
-    ps_t *ps, const nelts_t block_size, const int verbose,
+/*++++++****************************
+ * New sparse row implementations
+ *******++++++*********************/
+void reduce_gb_sparse_rows_ABCD(gb_t *basis, const spd_t *spd,
+    const double density, ps_t *ps, const int verbose,
     const int nthreads);
 
-void reduce_gb_101(gb_t *basis, const spd_t *spd, const double density,
+void reduce_gb_sparse_rows_ABCD_unoptimized(
+    gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
 
+void reduce_gb_sparse_rows_ABCD_reduce_CD_first(
+    gb_t *basis, const spd_t *spd, const double density,
+    ps_t *ps, const int verbose, const int nthreads);
+
+void reduce_gb_sparse_rows_ABCD_multiline_AB(
+    gb_t *basis, const spd_t *spd, const double density,
+    ps_t *ps, const int verbose, const int nthreads);
+
+void reduce_gb_sparse_rows_ABCD_reduce_AB_first(
+    gb_t *basis, const spd_t *spd, const double density,
+    ps_t *ps, const int verbose, const int nthreads);
+
+void reduce_gb_sparse_rows_no_column_mapping(
+    gb_t *basis, const spd_t *spd, const double density,
+    ps_t *ps, const int verbose, const int nthreads);
+
+/*++++++***************************
+ * Probabilistic implementations
+ *******++++++********************/
 /* first version of probabilistic f4, cf. "An Algorithm For Splitting Polynomial
  * Systems Based on F4" by Monagan & Pearce */
-void reduce_gb_222(gb_t *basis, const spd_t *spd, const double density,
-    ps_t *ps, const int verbose, const int nthreads);
+void reduce_gb_probabilistic(gb_t *basis, const spd_t *spd,
+    const double density, ps_t *ps, const int verbose,
+    const int nthreads);
 #endif

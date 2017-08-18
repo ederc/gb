@@ -1602,41 +1602,23 @@ static inline void poly_to_sparse_compact_matrix_row_offset(const mpp_t *mpp_sta
     const nelts_t nt  = basis->nt[mpp->bi];
     const cf_t *cf    = basis->cf[mpp->bi];
     const hash_t *eh  = basis->eh[mpp->bi];
-    /* printf("nt[%u] = %u\n", k, mpp->nt); */
     rows[k]           = (src_t *)malloc((2*nt+2) * sizeof(src_t));
     rows[k][0]        = 2*nt+2;
     rows[k][1]        = nt % 2 + 1; /* stores offset mod 4 */
 
     nelts_t cp; /* column position */
 
-#if newred
-    printf("nc %u\n", nc);
-#endif
-
-#if newred
-    printf("row size = %u\n", row[0]);
-#endif
     for (nelts_t i=0; i<nt; ++i) {
       cp  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
       bf[cp]  = cf[i];
-      /* printf("cp %u | bf[%u] = %u for term %u | hpos %lu\n", cp, cp, bf[cp], i,find_in_hash_table_product(mpp->mul, mpp->eh[i], ht)); */
     }
     nelts_t ctr = 2;
     for (nelts_t i=0; i<nc; ++i) {
       if (bf[i] != 0) {
-        /* printf("write bf[%u] = %u to position %u || cp0 %u\n", i, bf[i], ctr, cp0); */
         rows[k][ctr++]  = i;
         rows[k][ctr++]  = bf[i];
       }
     }
-    /* printf("ctr %u == %u rows[%u][0] ?\n", ctr, rows[k][0], k); */
-#if newred
-    printf("\n");
-    printf("row[0] ===== %u\n", row[0]);
-    for (int ii=1; ii<row[0]; ii += 2)
-      printf("%u ! %u -- ", row[ii+1], row[ii]);
-    printf("\n");
-#endif
   }
   free(bf);
 }
@@ -1738,7 +1720,6 @@ static inline void poly_to_sparse_compact_matrix_row_offset_test(const mpp_t *mp
     const nelts_t nt  = basis->nt[mpp->bi];
     const cf_t *cf    = basis->cf[mpp->bi];
     const hash_t *eh  = basis->eh[mpp->bi];
-    /* printf("nt[%u] = %u\n", k, mpp->nt); */
     src_tmp_t *tmp    = (src_tmp_t *)malloc(nt * sizeof(src_tmp_t));
     rows[k]           = (src_t *)malloc((2*nt+2) * sizeof(src_t));
     rows[k][0]        = 2*nt+2;
@@ -1746,13 +1727,6 @@ static inline void poly_to_sparse_compact_matrix_row_offset_test(const mpp_t *mp
 
     nelts_t cp; /* column position */
 
-#if newred
-    printf("nc %u\n", nc);
-#endif
-
-#if newred
-    printf("row size = %u\n", row[0]);
-#endif
     for (nelts_t i=0; i<nt; ++i) {
       cp  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
       tmp[i].pos  = cp;
@@ -1765,13 +1739,6 @@ static inline void poly_to_sparse_compact_matrix_row_offset_test(const mpp_t *mp
       rows[k][ctr++]  = tmp[i].pos;
       rows[k][ctr++]  = tmp[i].cf;
     }
-#if newred
-    printf("\n");
-    printf("row[0] ===== %u\n", rows[k][0]);
-    for (int ii=1; ii<rows[k][0]; ii += 2)
-      printf("%u ! %u -- ", rows[k][ii+1], rows[k][ii]);
-    printf("\n");
-#endif
     free(tmp);
   }
 }

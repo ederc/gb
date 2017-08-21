@@ -470,7 +470,7 @@ void homogenize_input_polynomials(gb_t *basis, ht_t *ht) {
 }
 
 gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
-    ht_t *ht, const int simplify, const long max_spairs,
+    ht_t *ht, const long max_spairs,
     const int vb)
 {
   int64_t fl;

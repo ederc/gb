@@ -198,8 +198,6 @@ void homogenize_input_polynomials(gb_t *basis, ht_t *ht);
  *
  * \param hash table to store the exponents ht
  *
- * \param should simplifications be used? simplify
- *
  * \param maximal number of spairs handled at once
  *
  * \param level of verbosity vb
@@ -207,8 +205,7 @@ void homogenize_input_polynomials(gb_t *basis, ht_t *ht);
  * \return initial state of input
  */
 gb_t *load_input(const char *fn, const nvars_t nvars, const int ordering,
-    ht_t *ht, const int simplify, const long max_spairs,
-    const int vb);
+    ht_t *ht, const long max_spairs, const int vb);
 
 /*  ========== TIMINGS and MEMORY PRINTING ========== */
 

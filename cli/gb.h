@@ -64,29 +64,6 @@
 void print_help(void);
 
 /**
- * \brief Simplify functions are stored a structure of function pointers in the basis
- *
- * \param intermediate groebner basis basis
- */
-static inline void set_simplify_functions(ht_t *ht, const gb_t *basis)
-{
-  switch (basis->sl) {
-    /* graded reverse lexicographical order */
-    case 0:
-      ht->sf.simplify = no_simplify;
-      break;
-    case 1:
-      ht->sf.simplify = try_to_simplify;
-      break;
-    case 2:
-      ht->sf.simplify = try_to_simplify;
-      break;
-    default:
-      abort ();
-  }
-}
-
-/**
  * \brief Sort functions are stored a structure of function pointers in the hash
  * table. Depening on the chosen monomial order the functions pointers are set.
  *
@@ -164,17 +141,6 @@ static inline int update_basis(gb_t *basis, ps_t *ps, const spd_t *spd,
   }
   /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
-  return 0;
-}
-
-static inline int update_simplifiers_new(gb_t *basis, gb_t *sf, spd_t *spd, const smc_t *mat,
-    const ht_t *ht)
-{
-  ri_t i;
-  for (i=0; i<mat->rk; ++i) {
-    /* add lowest row first, it has the smallest new lead monomial */
-    add_new_element_to_simplifier_new(basis, sf, mat->row[mat->rk-1-i], mat->rk-1-i, spd, ht);
-  }
   return 0;
 }
 
@@ -263,50 +229,6 @@ static inline int update_basis_new_new(gb_t *basis, ps_t *ps, const spd_t *spd,
   basis->load_ls  = basis->load;
   return 0;
 }
-
-/**
- * \brief Updates basis and pair set after reducing current gbla matrix.
- * Moreover, it adds simplifier to simplification list for further optimizations
- * in upcoming symbolic preprocessing steps.
- *
- * \note If nthreads > 1 it tries to update the basis and to add simplifier in
- * parallel.
- *
- * \param intermediate groebner basis basis
- *
- * \param pair set ps
- *
- * \param symbolic preprocessing data structure spd
- *
- * \param already reduced gbla matrix mat
- *
- * \param hash table ht
- *
- * \param rank of reduced D part of gbla matrix rankDR
- *
- * \return returns 1 if we have added the constant 1 to the groebner basis, i.e.
- * then the computation is done; else it returns 0.
- */
-int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
-    const spd_t *spd, mat_t *mat, const ht_t *ht,
-    const ri_t rankDR, const int nthreads);
-
-/**
- * \brief Adds simplifier elements to sf list for further exchanges as better
- * spair generators or reducers during upcoming symbolic preprocessing. For this
- * we use the rows from AB in mat.
- *
- * \param intermediate groebner basis basis
- * \param simplifier list sf
- *
- * \param reduced gbla matrix mat
- *
- * \param symbolic preprocessing data structure spd
- *
- * \param hash table ht
- */
-void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat,
-    const spd_t *spd, const ht_t *ht);
 
 
 

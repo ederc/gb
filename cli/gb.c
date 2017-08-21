@@ -102,14 +102,14 @@ void print_help(void)
   printf("                       few rows option (6) is used; otherwise (4) is used.\n");
   printf("                DEFAULT: 666.\n");
   printf("\n");
-  printf("    -s SIMP     Use simplify in F4 algorithm.\n");
-  printf("                0 -> not simplified.\n");
-  printf("                1 -> simplified but B not fully reduced.\n");
-  printf("                2 -> simplified and B fully reduced.\n");
-  printf("                NOTE: If simplification is enabled the GBLA linear algebra\n");
-  printf("                      variant (i.e. option \"-r1\") is used.\n");
-  printf("                DEFAULT: 0.\n");
-  printf("\n");
+  /* printf("    -s SIMP     Use simplify in F4 algorithm.\n");
+   * printf("                0 -> not simplified.\n");
+   * printf("                1 -> simplified but B not fully reduced.\n");
+   * printf("                2 -> simplified and B fully reduced.\n");
+   * printf("                NOTE: If simplification is enabled the GBLA linear algebra\n");
+   * printf("                      variant (i.e. option \"-r1\") is used.\n");
+   * printf("                DEFAULT: 0.\n");
+   * printf("\n"); */
   printf("    -t THRDS    Number of threads used.\n");
   printf("                DEFAULT: 1.\n");
   printf("\n");
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
   int verbose         = 0;
   int nthreads        = 1;
   int linear_algebra  = 666;
-  int simplify        = 0;
+  /* int simplify        = 0; */
   /* int generate_pbm    = 1; */
   int print_gb        = 0;
   int order           = 0;
@@ -195,11 +195,11 @@ int main(int argc, char *argv[])
       case 'r':
         linear_algebra = (int)strtol(optarg, NULL, 10);
         break;
-      case 's':
-        simplify = (int)strtol(optarg, NULL, 10);
-        if (simplify > 2)
-          simplify = 1;
-        break;
+      /* case 's':
+       *   simplify = (int)strtol(optarg, NULL, 10);
+       *   if (simplify > 2)
+       *     simplify = 1;
+       *   break; */
       case 't':
         nthreads  = (int)strtol(optarg, NULL, 10);
         if (nthreads == 0)
@@ -277,20 +277,13 @@ int main(int argc, char *argv[])
     printf("linear algebra variant      %15d\n", linear_algebra);
     printf("limit for handling spairs?  %15ld\n", max_spairs);
     printf("block size of matrix tiles  %15d\n", block_size);
-    printf("use simplify?               %15d\n", simplify);
+    /* printf("use simplify?               %15d\n", simplify); */
     /* printf("generate pbm files?         %15d\n", generate_pbm); */
     printf("print resulting basis?      %15d\n", print_gb);
     printf("---------------------------------------------------------------------------\n");
   }
   /* input stores input data */
-  gb_t *basis = load_input(fn, nvars, order, ht, simplify, max_spairs, verbose);
-  set_simplify_functions(ht, basis);
-
-  /* global simplifier list */
-  /* generate simplifier list if simplification is enabled */
-  gb_t *sf  = NULL;
-  if (basis->sl > 0)
-    sf = initialize_simplifier_list(basis);
+  gb_t *basis = load_input(fn, nvars, order, ht, max_spairs, verbose;
 
   if (verbose > 0) {
     gettimeofday(&t_load_start, NULL);
@@ -603,8 +596,6 @@ int main(int argc, char *argv[])
   /* free allocated memory */
   free(meta_data);
   free_pair_set(&ps);
-  if (basis->sl > 0)
-    free_simplifier_list(&sf);
   /* if we have found a unit we have allocated memory for the unit */
   if (basis->has_unit == 1) {
     free(fb[0].cf);
@@ -615,74 +606,6 @@ int main(int argc, char *argv[])
   free(fb);
 
   return 0;
-}
-
-void add_simplifier(gb_t *basis, gb_t *sf, mat_t *mat,
-    const spd_t *spd, const ht_t *ht)
-{
-  if (spd->col->nlm != 0) {
-    ri_t i;
-    /* we add the polys to sf, we know that there is one coefficient at col pos i
-     * for row i.
-     * note: we only add these simplifiers if they are not too dense, i.e. at
-     * most twice the size of the original polynomial in the basis. this is a
-     * heuristic and might be bad in some examples, but in most of our tests it
-     * is the fastest choice. */
-    if (mat->sl == 1) {
-      for (i=0; i<mat->BR->nrows; ++i) {
-        if (1+mat->DR->ncols < 2 * basis->nt[spd->selu->mpp[i].bi]) {
-#if 0
-          if (mat->BR->row[i]->init_val != NULL) {
-            copy_to_val(mat->BR, i);
-            reduce_B_by_D(mat->BR, mat->DR, i);
-            add_new_element_to_simplifier_list(basis, sf, mat->BR, i, spd, ht);
-          }
-#else
-          add_new_element_to_simplifier_list(basis, sf, mat->BR, i, spd, ht);
-#endif
-        }
-      }
-    }
-    if (mat->sl > 1) {
-      for (i=0; i<mat->BR->nrows; ++i) {
-        if (1+mat->DR->ncols < 2*basis->nt[spd->selu->mpp[i].bi]) {
-          if (mat->BR->row[i]->init_val != NULL) {
-            copy_to_val(mat->BR, i);
-            reduce_B_by_D(mat->BR, mat->DR, i);
-            add_new_element_to_simplifier_list(basis, sf, mat->BR, i, spd, ht);
-          }
-        }
-      }
-    }
-    free_dense_row_submatrix(&(mat->BR), 1);
-  }
-}
-
-int update_basis_and_add_simplifier(gb_t *basis, gb_t *sf, ps_t *ps,
-    const spd_t *spd, mat_t *mat, const ht_t *ht,
-    const ri_t rankDR, const int nthreads)
-{
-  int done;
-  const int t = 2<nthreads ? 2 : nthreads;
-#pragma omp parallel num_threads(t)
-  {
-    /* update basis and pair set, mark redundant elements in basis */
-#pragma omp single nowait
-    {
-      /* add simplifier, i.e. polynomials corresponding to the rows in AB,
-       * for further computation */
-#pragma omp task
-      {
-        add_simplifier(basis, sf, mat, spd, ht);
-      }
-#pragma omp task
-      {
-        done  = update_basis(basis, ps, spd, mat, ht, rankDR);
-      }
-    }
-    #pragma omp taskwait
-  }
-  return done;
 }
 
 void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
@@ -745,11 +668,7 @@ void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
    * } */
 
   /* add new elements to basis and update pair set */
-  if (basis->sl == 0)
-    done  = update_basis(basis, ps, spd, mat, ht, rankDR);
-  else
-    done  = update_basis_and_add_simplifier(basis, sf, ps,
-        spd, mat, ht, rankDR, nthreads);
+  done  = update_basis(basis, ps, spd, mat, ht, rankDR);
 
   if (verbose > 0) {
     t_update_pairs  +=  walltime(t_load_start);

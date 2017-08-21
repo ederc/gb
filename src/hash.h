@@ -541,7 +541,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   ht_size_t tmp_h;
   ht_size_t tmp_l;         /* temporary lookup table value */
 
-  for (i=0; i<ht->sz; ++i) {
+  for (i = 0; i < ht->sz; ++i) {
     /* tmp_h = (tmp_h+i) & (ht->sz-1); */
     tmp_h = (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
@@ -648,7 +648,7 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
 #endif
     return 0;
   }
-  nvars_t i;
+  nvars_t i = 0;
   exp_t *e, *e1, *e2;
 
   e   = ht->exp[ht->load];

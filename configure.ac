@@ -65,6 +65,7 @@ AC_CHECK_FUNCS([gettimeofday pow memset strchr strstr strtol])
 
 # PKG_CHECK_MODULES(GBLA, gbla >= 0.0.3)
 
+AC_OPENMP
 AX_OPENMP
 AX_CHECK_CL
 AX_COUNT_CPUS

@@ -26,7 +26,9 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
 #include <config.h>
 #include "types.h"
 

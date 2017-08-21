@@ -48,7 +48,9 @@
      /* GCC-compatible compiler, targeting PowerPC with SPE */
      #include <spe.h>
 #endif
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
 #include <config.h>
 #include "types.h"
 

@@ -659,14 +659,9 @@ typedef struct gb_t
   int has_unit;     /*!<  is set to 1 if we have found a unit in the basis */
   nelts_t max_sel;  /*!<  maximal number of spairs handled at once */
   /* element data */
-  nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
   red_t *red;       /*!<  stores if the element is redundant or not*/
-  cf_t **cf;     /*!<  coefficients of input elements*/
-  hash_t **eh;      /*!<  monomial exponent hash*/
-  sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if
-                          simplification is not used */
-  int sl;           /*!<  global simplify level */
+  poly_t **p;       /*!<  polynomial data, i.e. exponent hashes and coefficients */
   /* meta data */
   char **vnames;    /*!<  variable names */
   size_t mtl;       /*!<  maximal length of term (needed for
@@ -704,27 +699,6 @@ typedef struct ps_t
   /* element data */
   spair_t *pairs;   /*!<  pointers of spairs */
 } ps_t;
-
-/**
- * \brief Multiplier-polynomial pair for symbolic preprocessing
- */
-typedef struct mpp_t
-{
-  nelts_t bi;   /*!<  index of polynomial in basis */
-  nelts_t sf;   /*!<  0 if the element is from the basis, 1 if it is from the
-                      simplifier list*/
-#if 0
-  hash_t *eh;   /*!<  exponent vector hash, either from basis element or from
-                      corresponding simplifier*/
-  cf_t *cf;  /*!<  coefficient vector, either from basis element or from
-                      corresponding simplifier*/
-  nelts_t nt;   /*!<  number of terms, either from basis element or from
-                      corresponding simplifier*/
-#endif
-  hash_t mul;   /*!<  hash of multiplier */
-  hash_t mlm;   /*!<  hash of multiplied leading monomial, needed for faster
-                      sorting of rows when generating the gbla matrix */
-} mpp_t;
 
 /**
  * \brief Selection of multiplied elements for next matrix: Those are generators
@@ -801,7 +775,6 @@ typedef struct mat_t
   ri_t rbl;     /*!<  number of row blocks for lower part of gbla matrix */
   ci_t cbl;     /*!<  number of column blocks for left part of gbla matrix */
   ci_t cbr;     /*!<  number of column blocks for right part of gbla matrix */
-  int sl;       /*!<  level of simplify, might be different in different steps of the algorithm */
 } mat_t;
 
 /**
@@ -898,15 +871,6 @@ typedef struct sort_t
 } sort_t;
 
 /**
- * \brief Struct keeping all function pointers of functions depending on the
- * usage of simplify
- */
-typedef struct simplify_t
-{
-  void (*simplify)(mpp_t *mpp, const gb_t *basis, const gb_t *sf);
-} simplify_t;
-
-/**
  * \brief Hash table using linear probing combined with Robin Hood hashing
  * (cf. https://cs.uwaterloo.ca/research/tr/1986/CS-86-14.pdf, Robin Hood
  * Hashing by Pedro Celis, 1986
@@ -945,7 +909,6 @@ typedef struct ht_t
                             monomials already taken care of in symbolic
                             preprocessing*/
   sort_t sort;        /*!<  sort functions pointers */
-  simplify_t sf;      /*!<  simplify function pointers */
 } ht_t;
 
 /**
@@ -963,11 +926,18 @@ typedef struct dbr_t
                      the gbla matrix*/
 } dbr_t;
 
+/**
+ * \brief Polys are just an array of the following struct: First we store the
+ * exponent hash eh, then the coefficient cf. This has two main features:
+ * 1. We can directly transfer the polys to sparse rows, just exchanging the
+ * exponent hash value with the corresponding column index
+ * 2. We use the first struct in the array for storing the number of terms (in
+ * the eh field) and the offset (w.r.t. 4 resp. 8 in the cf field) for loop
+ * unrolling.
+ */
 typedef struct poly_t {
-  cf_t *cf;  /*!<  stores coefficients of polynomial*/
-  hash_t *eh;   /*!<  stores exponent hashes of polynomial*/
-  nelts_t nt;   /*!<  stores number of terms of polynomial*/
-  red_t red;    /*!<  stores if the element is redundant or not*/
+  hash_t *eh; /*!<  stores exponent hashes of polynomial*/
+  cf_t *cf;   /*!<  stores coefficients of polynomial*/
 } poly_t;
 
 typedef struct src_tmp_t

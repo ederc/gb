@@ -544,7 +544,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
 
   /** initialize basis with information from above */
   gb_t *basis = initialize_basis(order, nlines, nvars, vnames, mod,
-      simplify, max_spairs, fl);
+      max_spairs, fl);
 
   char *prev_pos;
   char *term  = (char *)malloc(200 * sizeof(char));
@@ -555,8 +555,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
     * the first position of basis, i.e. index 0 a NULL element.
     * Thus, basis->load is always one bigger than the actual number of elements
     * in the basis. */
-  basis->cf[0]  = NULL;
-  basis->eh[0]  = NULL;
+  basis->p[0]  = NULL;
 
   /** get all remaining lines, i.e. generators */
   int cf_tmp  = 0; /** temp for coefficient value, possibly coeff is negative. */
@@ -565,15 +564,15 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   for (i=1; i<basis->load; ++i) {
     if (fgets(line, max_line_size, fh) != NULL && is_line_empty(line) != 1) {
       /** get number of terms first */
-      nterms        = get_number_of_terms(line);
-      basis->nt[i]  = nterms;
+      nterms          = get_number_of_terms(line);
+      basis->p[i]     = (poly_t *)malloc((2*nterms+2) * sizeof(poly_t));
+      basis->p[i][0]  = 2 * nterms + 2; 
+      basis->p[i][1]  = nterms % 4; 
+
 
 #if IO_DEBUG
       printf("nterms %d\n",nterms);
 #endif
-      /** allocate memory for all terms */
-      basis->cf[i]  = (cf_t *)malloc(nterms * sizeof(cf_t));
-      basis->eh[i]  = (hash_t *)malloc(nterms * sizeof(hash_t));
       prev_pos  = line;
       max_deg   = 0;
       /** next: go through line, term by term
@@ -599,7 +598,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
           iv_tmp  +=  (int)basis->mod;
         }
         iv  = (cf_t)iv_tmp;
-        basis->cf[i][0] = iv;
+        basis->p[i][3] = iv;
         /* normalization is done at the end when sorting the polynomials
          * printf("iv %u\n", iv);
          * inverse_coefficient(&iv, basis->mod);
@@ -610,11 +609,11 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       /** hash exponent and store degree */
       max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
       ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
-      basis->eh[i][0] = check_in_hash_table(ht);
+      basis->p[i][2] = check_in_hash_table(ht);
 #if IO_DEBUG
       printf("cf[%lu] = %u | eh[%lu][%u] = %lu --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
 #endif
-      for (j=1; j<nterms; ++j) {
+      for (j = 4; j < basis->p[i][0]; j = j+2) {
         get_term(line, &prev_pos, &term);
 #if IO_DEBUG
         printf("%s ",term);
@@ -632,15 +631,15 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
           while (cf_tmp < 0) {
             cf_tmp  += (int)basis->mod;
           }
-          basis->cf[i][j] = (cf_t)cf_tmp;
+          basis->p[i][j+1] = (cf_t)cf_tmp;
           /* normalization is done at the end when sorting the polynomials
            * basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod); */
         }
         store_exponent(term, basis, ht);
         /** hash exponent and store degree */
-        max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
-      ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
-        basis->eh[i][j] = check_in_hash_table(ht);
+        max_deg           = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
+        ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
+        basis->p[i][j]    = check_in_hash_table(ht);
 #if IO_DEBUG
         printf("cf[%lu] = %u | eh[%lu][%lu] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
 #endif
@@ -648,7 +647,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       /** if basis->init_hom is 0 then we have already found an inhomogeneous
         * polynomial and the system of polynomials is not homogeneous */
       if (basis->init_hom == 1) {
-        if (ht->deg[basis->eh[i][0]] == ht->deg[basis->eh[i][basis->nt[i]-1]])
+        if (ht->deg[basis->p[i][2]] == ht->deg[basis->p[i][basis->p[i][0]-2]])
           basis->init_hom  = 1;
         else
           basis->init_hom  = 0;

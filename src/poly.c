@@ -22,7 +22,7 @@
 #include "poly.h"
 inline gb_t *initialize_basis(const int order, const int nlines,
     const nvars_t nvars, char **vnames, const mod_t mod,
-    const int simplify, const long max_spairs, const int64_t fl)
+    const long max_spairs, const int64_t fl)
 {
   nvars_t i;
   gb_t *basis = (gb_t *)malloc(sizeof(gb_t));
@@ -52,25 +52,11 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   basis->mod    = mod;
   
   /* allocate memory for elements */
-  basis->nt     = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
   basis->deg    = (deg_t *)malloc(basis->size * sizeof(deg_t));
   basis->red    = (red_t *)malloc(basis->size * sizeof(red_t));
   /* for the zero and the initial elements we set the redundancy value to zero */
   memset(basis->red, 0, basis->st * sizeof(red_t));
-  basis->cf     = (cf_t **)malloc(basis->size * sizeof(cf_t *));
-  basis->eh     = (hash_t **)malloc(basis->size * sizeof(hash_t *));
-  basis->sl     = simplify;
-
-  if (basis->sl > 0) {
-    basis->sf = (sf_t *)malloc(basis->size * sizeof(sf_t));
-    /* initialize dummy values for input polynomials */
-    for (i=0; i<basis->st; ++i) {
-      basis->sf[i].load = basis->sf[i].size = 0;
-      basis->sf[i].idx  = NULL;
-    }
-  } else {
-    basis->sf = NULL;
-  }
+  basis->p      = (poly_t **)malloc(basis->size * sizeof(poly_t *));
 
   /* enter meta information from input file */
   basis->fs   = (double) fl / 1024;
@@ -96,192 +82,6 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   /* now add maximal coefficient length to mtl (max. term length) */
   basis->mtl  +=  COEFFICIENT_CHAR_LENGTH;
   return basis;
-}
-
-inline gb_t *initialize_simplifier_list(const gb_t *basis)
-{
-  gb_t *sf = (gb_t *)malloc(sizeof(gb_t));
-
-  /* get meta data from input */
-  sf->size    = basis->size; /* TODO: This is too small, what is a good factor? */
-  sf->load    = 0;
-  sf->nv      = basis->nv;
-  sf->mod     = basis->mod;
-  sf->vnames  = NULL;
-
-  /* allocate memory for elements */
-  sf->nt  = (nelts_t *)malloc(sf->size * sizeof(nelts_t));
-  sf->deg = (deg_t *)malloc(sf->size * sizeof(deg_t));
-  sf->red = (red_t *)malloc(sf->size * sizeof(red_t));
-  sf->cf  = (cf_t **)malloc(sf->size * sizeof(cf_t *));
-  sf->eh  = (hash_t **)malloc(sf->size * sizeof(hash_t *));
-  sf->sf  = NULL;
-
-  /* initialize element at position 0 to NULL for faster divisibility checks
-   * later on */
-  sf->cf[0]  = NULL;
-  sf->eh[0]  = NULL;
-  sf->load++;
-
-  return sf;
-}
-
-void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
-    const dm_t *B, const nelts_t ri, const spd_t *spd, const ht_t *ht)
-{
-  nelts_t i;
-
-  if (sf->load == sf->size)
-    enlarge_basis(sf, 2*sf->size);
-
-  /* maximal size is B->ncols + 1 (for A) */
-  nelts_t ms  = B->ncols + 1;
-  /* use shorter names in here */
-  sf->cf[sf->load] = (cf_t *)malloc(ms * sizeof(cf_t));
-  sf->eh[sf->load] = (hash_t *)malloc(ms * sizeof(hash_t));
-
-  nelts_t ctr = 0;
-  deg_t deg   = 0;
-
-  /* first we add the term from A */
-  sf->cf[sf->load][ctr] = 1;
-  sf->eh[sf->load][ctr] = spd->col->hpos[ri];
-  deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-    ht->deg[sf->eh[sf->load][ctr]] : deg;
-  ctr++;
-
-#if POLY_DEBUG
-  printf("row %u -- new simplifier lm: ", ri);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[sf->eh[sf->load][0]][ii]);
-  printf(" %u  (%u)\n",ht->val[spd->col->hpos[ri]], spd->col->hpos[ri]);
-  printf("for the basis lm:  ");
-  printf("ri %u -- bi %u\n", ri, spd->selu->mpp[ri].bi);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[basis->eh[spd->selu->mpp[ri].bi][0]][ii]);
-  printf("\n");
-#endif
-  /* now we do B */
-  re_t *values;
-  nelts_t si  = 0;
-  if (basis->sl == 1) {
-    values  = B->row[ri]->init_val;
-  } else {
-    values  = B->row[ri]->piv_val;
-    si      = B->row[ri]->piv_lead;
-  }
-  if (values != NULL) {
-    for (i=si; i<B->ncols; ++i) {
-      if (values[i] != 0) {
-        sf->cf[sf->load][ctr] = values[i];
-        /* note that we have to adjust the position via shifting it by
-         * spd->col->nlm since DR is on the righthand side of the matrix */
-        sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i];
-#if POLY_DEBUG
-        printf("%u|",sf->cf[sf->load][ctr]);
-        for (int ii=0; ii<ht->nv; ++ii)
-          printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
-        printf("  ");
-#endif
-        deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-          ht->deg[sf->eh[sf->load][ctr]] : deg;
-        ctr++;
-      }
-    }
-  }
-#if POLY_DEBUG
-  printf("\n");
-  printf("deg: %u\n", deg);
-#endif
-  sf->nt[sf->load]  = ctr;
-  sf->deg[sf->load] = deg;
-
-
-  /* realloc memory to the correct number of terms */
-  sf->cf[sf->load]  = realloc(sf->cf[sf->load],
-    sf->nt[sf->load] * sizeof(cf_t));
-  sf->eh[sf->load]  = realloc(sf->eh[sf->load],
-      sf->nt[sf->load] * sizeof(hash_t));
-
-#if POLY_DEBUG
-  printf("new simplifier: %u\n",ri);
-  for (int ii=0; ii<sf->nt[sf->load]; ++ii)
-    printf("%lu ", sf->eh[sf->load][ii]);
-  printf("\n");
-#endif
-  sf->load++;
-  /* now we have to link the simplifier with the corresponding element in basis */
-  
-  /* get index of element in basis */
-  link_simplifier_to_basis(basis, sf, spd, ri);
-}
-
-int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
-    const nelts_t ri, const spd_t *spd, const ht_t *ht)
-{
-#if POLY_DEBUG
-  printf("new lm from row (simplifier element %u): ", sf->load);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
-#endif
-
-  /* if not redundandant */
-  nelts_t i;
-
-  if (sf->load == sf->size)
-    enlarge_basis(sf, 2*sf->size);
-
-  /* use shorter names in here */
-  sf->nt[sf->load]  = (row[0]-1)/2;
-  sf->cf[sf->load]  = (cf_t *)malloc(sf->nt[sf->load] * sizeof(cf_t)); 
-  sf->eh[sf->load]  = (hash_t *)malloc(sf->nt[sf->load] * sizeof(hash_t)); 
-  
-  nelts_t ctr = 0;
-  deg_t deg   = 0;
-
-  for (i=1; i<row[0]; i += 2) {
-      sf->cf[sf->load][ctr] = row[i+1];
-      /* note that we have to adjust the position via shifting it by
-       * spd->col->nlm since DR is on the righthand side of the matrix */
-      sf->eh[sf->load][ctr] = spd->col->hpos[row[i]];
-#if POLY_DEBUG
-    printf("%u|",sf->cf[sf->load][ctr]);
-    for (int ii=0; ii<ht->nv; ++ii)
-      printf("%u",ht->exp[sf->eh[sf->load][ctr]][ii]);
-    printf("  ");
-#endif
-      deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
-        ht->deg[sf->eh[sf->load][ctr]] : deg;
-      ctr++;
-  }
-#if POLY_DEBUG
-  printf("\n");
-  printf("deg: %u\n", deg);
-  printf("# terms = 1 + %u\n",ctr-1);
-#endif
-  sf->nt[sf->load]  = ctr;
-  sf->deg[sf->load] = deg;
-  sf->red[sf->load] = 0;
-
-
-  /* realloc memory to the correct number of terms */
-  sf->cf[sf->load]  = realloc(sf->cf[sf->load],
-    sf->nt[sf->load] * sizeof(cf_t));
-  sf->eh[sf->load]  = realloc(sf->eh[sf->load],
-      sf->nt[sf->load] * sizeof(hash_t));
-
-  if (sf->sf != NULL) {
-    sf->sf[sf->load].size = 3;
-    sf->sf[sf->load].load = 0;
-    sf->sf[sf->load].idx  = (nelts_t *)malloc(sf->sf[sf->load].size * sizeof(nelts_t));
-  }
-  sf->load++;
-  
-  /* get index of element in sf */
-  link_simplifier_to_basis(basis, sf, spd, ri);
-
-  return 1;
 }
 
 int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
@@ -356,11 +156,6 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
-  }
   basis->load++;
 
   return 1;
@@ -436,11 +231,6 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
-  }
   basis->load++;
 
   return 1;
@@ -520,11 +310,6 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
-  }
   basis->load++;
 
   return 1;
@@ -606,11 +391,6 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   basis->eh[basis->load]  = realloc(basis->eh[basis->load],
       basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
-  }
   basis->load++;
 
   return 1;

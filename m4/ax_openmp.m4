@@ -109,7 +109,8 @@ done
 []_AC_LANG_PREFIX[]FLAGS=$save[]_AC_LANG_PREFIX[]FLAGS
 ])
 if test "x$ax_cv_[]_AC_LANG_ABBREV[]_openmp" = "xunknown"; then
-  m4_default([$2],:)
+  m4_default([$1], [AC_DEFINE(HAVE_OPENMP,0,[OpenMP not available.])])
+  dnl  m4_default([$2],:)
 else
   if test "x$ax_cv_[]_AC_LANG_ABBREV[]_openmp" != "xnone"; then
     OPENMP_[]_AC_LANG_PREFIX[]FLAGS=$ax_cv_[]_AC_LANG_ABBREV[]_openmp

@@ -153,7 +153,6 @@ void add_new_element_to_simplifier_list(gb_t *basis, gb_t *sf,
 #if POLY_DEBUG
   printf("row %u -- new simplifier lm: ", ri);
   for (int ii=0; ii<ht->nv; ++ii)
-    /* printf("%u ",ht->exp[spd->col->hpos[ri]][ii]); */
     printf("%u ",ht->exp[sf->eh[sf->load][0]][ii]);
   printf(" %u  (%u)\n",ht->val[spd->col->hpos[ri]], spd->col->hpos[ri]);
   printf("for the basis lm:  ");
@@ -233,7 +232,6 @@ int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
   if (sf->load == sf->size)
     enlarge_basis(sf, 2*sf->size);
 
-  /* nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead; */
   /* use shorter names in here */
   sf->nt[sf->load]  = (row[0]-1)/2;
   sf->cf[sf->load]  = (cf_t *)malloc(sf->nt[sf->load] * sizeof(cf_t)); 
@@ -243,13 +241,10 @@ int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
   deg_t deg   = 0;
 
   for (i=1; i<row[0]; i += 2) {
-  /* for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
-   *   if (mat->DR->row[ri]->piv_val[i] != 0) { */
       sf->cf[sf->load][ctr] = row[i+1];
       /* note that we have to adjust the position via shifting it by
        * spd->col->nlm since DR is on the righthand side of the matrix */
       sf->eh[sf->load][ctr] = spd->col->hpos[row[i]];
-      /* sf->eh[sf->load][ctr] = spd->col->hpos[spd->col->nlm+i]; */
 #if POLY_DEBUG
     printf("%u|",sf->cf[sf->load][ctr]);
     for (int ii=0; ii<ht->nv; ++ii)
@@ -259,7 +254,6 @@ int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
       deg = ht->deg[sf->eh[sf->load][ctr]] > deg ?
         ht->deg[sf->eh[sf->load][ctr]] : deg;
       ctr++;
-    /* } */
   }
 #if POLY_DEBUG
   printf("\n");
@@ -324,7 +318,6 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
   if (basis->load == basis->size)
     enlarge_basis(basis, 2*basis->size);
 
-  /* nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead; */
   /* use shorter names in here */
   basis->cf[basis->load]  = (cf_t *)malloc(row->sz * sizeof(cf_t)); 
   basis->eh[basis->load]  = (hash_t *)malloc(row->sz * sizeof(hash_t)); 
@@ -333,13 +326,10 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
   deg_t deg   = 0;
 
   for (i=0; i<row->sz; ++i) {
-  /* for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
-   *   if (mat->DR->row[ri]->piv_val[i] != 0) { */
       basis->cf[basis->load][ctr] = row->val[i];
       /* note that we have to adjust the position via shifting it by
        * spd->col->nlm since DR is on the righthand side of the matrix */
       basis->eh[basis->load][ctr] = spd->col->hpos[row->pos[i]];
-      /* basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i]; */
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
   for (int ii=0; ii<ht->nv; ++ii)
@@ -349,7 +339,6 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
       ctr++;
-    /* } */
   }
 #if POLY_DEBUG
   printf("\n");
@@ -408,10 +397,6 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
   /* if not redundandant */
   nelts_t i;
 
-  /* if (basis->load == basis->size)
-   *   enlarge_basis(basis, 2*basis->size); */
-
-  /* nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead; */
   /* use shorter names in here */
   basis->nt[basis->load]  = (row[1]-2)/2;
   basis->cf[basis->load]  = (cf_t *)malloc(basis->nt[basis->load] * sizeof(cf_t)); 
@@ -421,13 +406,10 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
   deg_t deg   = 0;
 
   for (i=2; i<row[1]; i += 2) {
-  /* for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
-   *   if (mat->DR->row[ri]->piv_val[i] != 0) { */
       basis->cf[basis->load][ctr] = row[i+1];
       /* note that we have to adjust the position via shifting it by
        * spd->col->nlm since DR is on the righthand side of the matrix */
       basis->eh[basis->load][ctr] = spd->col->hpos[row[i]];
-      /* basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i]; */
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
     for (int ii=0; ii<ht->nv; ++ii)
@@ -437,7 +419,6 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
       ctr++;
-    /* } */
   }
 #if POLY_DEBUG
   printf("\n");
@@ -509,13 +490,10 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
   deg_t deg   = 0;
 
   for (i=1; i<row[0]; i += 2) {
-  /* for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
-   *   if (mat->DR->row[ri]->piv_val[i] != 0) { */
       basis->cf[basis->load][ctr] = row[i+1];
       /* note that we have to adjust the position via shifting it by
        * spd->col->nlm since DR is on the righthand side of the matrix */
       basis->eh[basis->load][ctr] = spd->col->hpos[row[i]];
-      /* basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i]; */
 #if POLY_DEBUG
     printf("%u|",basis->cf[basis->load][ctr]);
     for (int ii=0; ii<ht->nv; ++ii)
@@ -525,7 +503,6 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
       deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
         ht->deg[basis->eh[basis->load][ctr]] : deg;
       ctr++;
-    /* } */
   }
 #if POLY_DEBUG
   printf("\n");

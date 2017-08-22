@@ -139,6 +139,29 @@ static inline void inverse_val_new(cf_t *x, const cf_t modulus) {
   return;
 }
 
+static inline cf_t inverse_coeff(int32_t cf, const int32_t mod) {
+  int32_t a, b, x, y, q, t;
+  a = mod;
+  b = cf % mod;
+  b +=  (b >> 31) & mod;
+  x =   1;
+  y =   0;
+
+  while (b != 0) {
+    t = b;
+    q = a / t;
+    b = a - q * t;
+    a = t;
+    t = x;
+    x = y - q * t;
+    y = t;
+  }
+  y +=  (y >> 31) & mod;
+  while (y < 0)
+    y +=  mod;
+  return (cf_t)y;
+}
+
 /**
  * \brief Initilializes the gbla matrix corresponding to the selection done
  * during symbolic preprocessing. It also converts the polynomial representation
@@ -3329,15 +3352,23 @@ static inline src_t *normalize_new_pivot(src_t *row, const cf_t mod)
 {
   nelts_t i;
 
-  cf_t inv  = row[3];
-  inverse_val_new(&inv, mod);
-  const cf_t cinv = inv;
+  /* cf_t inv  = row[3];
+   * inverse_val_new(&inv, mod);
+   * const bf_t cinv = (bf_t)inv; */
+  const cf_t cinv = (bf_t)inverse_coeff((int32_t)row[3], (int32_t)mod);
 
   i = (row[1]-2)/2;
   i = i & 1 ? 5 : 3;
+  bf_t tmp1, tmp2;
   while (i<row[1]) {
-    row[i]   = (src_t)MODP((bf_t)(row[i]) * cinv, mod);
-    row[i+2] = (src_t)MODP((bf_t)(row[i+2]) * cinv, mod);
+    tmp1      =   ((bf_t)row[i] * cinv) % mod;
+    tmp2      =   ((bf_t)row[i+2] * cinv) % mod;
+    tmp1      +=  (tmp1 >> 63) & mod;
+    tmp2      +=  (tmp2 >> 63) & mod;
+    row[i]    =   (cf_t)tmp1;
+    row[i+2]  =   (cf_t)tmp2;
+    /* row[i]   = (src_t)(row[i] * cinv) % mod;
+     * row[i+2]   = (src_t)(row[i+2] * cinv) % mod; */
     i +=  4;
   }
   /* possibly not set in the unrolled loop above */
@@ -4673,7 +4704,6 @@ static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
       dr[i]  = dr[i] % mod;
     if (dr[i] == 0)
       continue;
-    /* printf("i %u | pivs[%u] %p\n", i, i, pivs[i]); */
     if (pivs[i] == NULL) {
       ++k;
       continue;
@@ -4684,7 +4714,6 @@ static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
     
     j = (pivs[i][1] - 2) / 2;
     j = (j & 1) ? 4 : 2;
-    /* printf("j %u | pivs[%u][1] %u\n", j, i, pivs[i][1]); */
     for (; j < pivs[i][1]; j = j+4) {
       dr[pivs[i][j]]    +=  (bf_t)mul * pivs[i][j+1];
       dr[pivs[i][j+2]]  +=  (bf_t)mul * pivs[i][j+3];

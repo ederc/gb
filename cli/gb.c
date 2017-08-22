@@ -1496,6 +1496,8 @@ again:
           ctr++;
         }
 
+
+
         while (1) {
           /* fill random value array */
           for (size_t j = 0; j < nrbl; ++j)
@@ -1504,9 +1506,11 @@ again:
           /* generate one dense row as random linear combination
            * of the rows of the block */
           memset(dr, 0, nc * sizeof(bf_t));
-          for (size_t j = 0; j < nrbl; ++j)
-            for (size_t k = 2; k < bl[j][1]; k = k+2)
+          for (size_t j = 0; j < nrbl; ++j) {
+            for (size_t k = 2; k < bl[j][1]; k = k+2) {
               dr[bl[j][k]]  +=  (bf_t) mul[j] * bl[j][k+1];
+            }
+          }
 
           /* reduce the dense random row w.r.t. to the already known pivots  */
           done = 0;

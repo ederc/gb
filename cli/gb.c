@@ -1504,6 +1504,7 @@ void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
 {
   srand((unsigned int)time(NULL));   // should only be called once
   int done;
+  nelts_t bctr;
   const nelts_t nr  = spd->sell->load+spd->selu->load;
   const nelts_t nc  = spd->col->load;
   src_t **pivs      = (src_t **)malloc(nc * sizeof(src_t *));
@@ -1579,7 +1580,8 @@ again:
 
 
 
-        while (1) {
+        bctr = 0;
+        while (bctr < nrbl) {
           /* fill random value array */
           for (size_t j = 0; j < nrbl; ++j)
             mul[j]  = (src_t) rand() % basis->mod;
@@ -1602,6 +1604,7 @@ again:
               goto block_done;
             done  = __sync_bool_compare_and_swap(&pivs[np[2]], NULL, np);
           }
+          bctr++;
         }
 block_done:
         /* fill global dense row for final check at the end */

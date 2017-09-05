@@ -84,15 +84,12 @@ inline gb_t *initialize_basis(const int order, const int nlines,
   return basis;
 }
 
-int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
-    const spd_t *spd, const ht_t *ht)
-{
-  /* get position of lead term in this row */
-  const nelts_t fc  = row->pos[0];
 
+int add_new_element_to_basis(gb_t *basis, src_t *row,
+    const pre_t *mon, const ht_t *ht)
+{
   /* check if we have found a unit in the basis */
-  hash_t hv  = ht->val[spd->col->hpos[fc]];
-  if (hv == 0)
+  if (ht->val[mon->hash[row[2]]] == 0)
     return 0;
 
   /* check next if this element might be redundant: this is only possible if
@@ -102,74 +99,40 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
    * lead term divisibility must have been found already in the linear algebra
    * reduction process. */
   if (basis->hom == 0 &&
-      check_new_element_for_redundancy(spd->col->hpos[fc], basis, ht) != 0) {
+      check_new_element_for_redundancy(mon->hash[row[2]], basis, ht) != 0) {
     return -1;
   }
-#if POLY_DEBUG
-  printf("new lm from row (basis element %u): ", basis->load);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
-#endif
 
   /* if not redundandant */
-  nelts_t i;
+  deg_t deg = 0;
+  for (size_t i = 2; i < row[1]; i += 2) {
+    /* change column position to corresponding exponent hash */
+    row[i]  = mon->hash[row[i]];
 
-  if (basis->load == basis->size)
-    enlarge_basis(basis, 2*basis->size);
-
-  /* use shorter names in here */
-  basis->cf[basis->load]  = (cf_t *)malloc(row->sz * sizeof(cf_t)); 
-  basis->eh[basis->load]  = (hash_t *)malloc(row->sz * sizeof(hash_t)); 
-  
-  nelts_t ctr = 0;
-  deg_t deg   = 0;
-
-  for (i=0; i<row->sz; ++i) {
-      basis->cf[basis->load][ctr] = row->val[i];
-      /* note that we have to adjust the position via shifting it by
-       * spd->col->nlm since DR is on the righthand side of the matrix */
-      basis->eh[basis->load][ctr] = spd->col->hpos[row->pos[i]];
-#if POLY_DEBUG
-    printf("%u|",basis->cf[basis->load][ctr]);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
-  printf("  ");
-#endif
-      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
-        ht->deg[basis->eh[basis->load][ctr]] : deg;
-      ctr++;
+    /* compute degree of polynomial */
+    deg = ht->deg[row[i]] > deg ?
+      ht->deg[row[i]] : deg;
   }
-#if POLY_DEBUG
-  printf("\n");
-  printf("deg: %u\n", deg);
-  printf("# terms = 1 + %u\n",ctr-1);
-#endif
-  basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;
+  basis->p[basis->load]   = row;
   basis->red[basis->load] = 0;
 
-
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
+#if POLY_DEBUG
+  printf("new element (%u) ", basis->load);
+  for (size_t i = 2; i < basis->p[basis->load][1]; i = i+2)
+    printf("%u %u | ", basis->p[basis->load][i+1], basis->p[basis->load][i]);
+  printf("\n")
+#endif
 
   basis->load++;
-
   return 1;
 }
 
-int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
-    const spd_t *spd, const ht_t *ht)
+int add_new_element_to_basis_all_pivs(gb_t *basis, src_t *row,
+    const pre_t *mon, const ht_t *ht)
 {
-  /* get position of lead term in this row */
-  const nelts_t fc  = row[2];
-
   /* check if we have found a unit in the basis */
-  hash_t hv  = ht->val[spd->col->hpos[fc]];
-  if (hv == 0)
+  if (ht->val[mon->hash[row[2]]] == 0)
     return 0;
 
   /* check next if this element might be redundant: this is only possible if
@@ -179,217 +142,23 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
    * lead term divisibility must have been found already in the linear algebra
    * reduction process. */
   if (basis->hom == 0 &&
-      check_new_element_for_redundancy(spd->col->hpos[fc], basis, ht) != 0) {
-    return -1;
-  }
-#if POLY_DEBUG
-  printf("new lm from row (basis element %u): ", basis->load);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
-#endif
-
-  /* if not redundandant */
-  nelts_t i;
-
-  /* use shorter names in here */
-  basis->nt[basis->load]  = (row[1]-2)/2;
-  basis->cf[basis->load]  = (cf_t *)malloc(basis->nt[basis->load] * sizeof(cf_t)); 
-  basis->eh[basis->load]  = (hash_t *)malloc(basis->nt[basis->load] * sizeof(hash_t)); 
-  
-  nelts_t ctr = 0;
-  deg_t deg   = 0;
-
-  for (i=2; i<row[1]; i += 2) {
-      basis->cf[basis->load][ctr] = row[i+1];
-      /* note that we have to adjust the position via shifting it by
-       * spd->col->nlm since DR is on the righthand side of the matrix */
-      basis->eh[basis->load][ctr] = spd->col->hpos[row[i]];
-#if POLY_DEBUG
-    printf("%u|",basis->cf[basis->load][ctr]);
-    for (int ii=0; ii<ht->nv; ++ii)
-      printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
-    printf("  ");
-#endif
-      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
-        ht->deg[basis->eh[basis->load][ctr]] : deg;
-      ctr++;
-  }
-#if POLY_DEBUG
-  printf("\n");
-  printf("deg: %u\n", deg);
-  printf("# terms = 1 + %u\n",ctr-1);
-#endif
-  basis->nt[basis->load]  = ctr;
-  basis->deg[basis->load] = deg;
-  basis->red[basis->load] = 0;
-
-
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
-
-  basis->load++;
-
-  return 1;
-}
-
-int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
-    const spd_t *spd, const ht_t *ht)
-{
-  /* get position of lead term in this row */
-  const nelts_t fc  = row[1];
-
-  /* check if we have found a unit in the basis */
-  hash_t hv  = ht->val[spd->col->hpos[fc]];
-  if (hv == 0)
-    return 0;
-
-  /* check next if this element might be redundant: this is only possible if
-   * the input elements are not homogeneous. in this situation we might have
-   * several new elements from D which have lead terms that divide each other.
-   * if all polynomials are homogeneous this cannot happen since then such a
-   * lead term divisibility must have been found already in the linear algebra
-   * reduction process. */
-  if (basis->hom == 0 &&
-      check_new_element_for_redundancy(spd->col->hpos[fc], basis, ht) != 0) {
-    return -1;
-  }
-#if POLY_DEBUG
-  printf("new lm from row (basis element %u): ", basis->load);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
-#endif
-
-  /* if not redundandant */
-  nelts_t i;
-
-  if (basis->load == basis->size)
-    enlarge_basis(basis, 2*basis->size);
-
-  /* nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead; */
-  /* use shorter names in here */
-  basis->nt[basis->load]  = (row[0]-1)/2;
-  basis->cf[basis->load]  = (cf_t *)malloc(basis->nt[basis->load] * sizeof(cf_t)); 
-  basis->eh[basis->load]  = (hash_t *)malloc(basis->nt[basis->load] * sizeof(hash_t)); 
-  
-  nelts_t ctr = 0;
-  deg_t deg   = 0;
-
-  for (i=1; i<row[0]; i += 2) {
-      basis->cf[basis->load][ctr] = row[i+1];
-      /* note that we have to adjust the position via shifting it by
-       * spd->col->nlm since DR is on the righthand side of the matrix */
-      basis->eh[basis->load][ctr] = spd->col->hpos[row[i]];
-#if POLY_DEBUG
-    printf("%u|",basis->cf[basis->load][ctr]);
-    for (int ii=0; ii<ht->nv; ++ii)
-      printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
-    printf("  ");
-#endif
-      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
-        ht->deg[basis->eh[basis->load][ctr]] : deg;
-      ctr++;
-  }
-#if POLY_DEBUG
-  printf("\n");
-  printf("deg: %u\n", deg);
-  printf("# terms = 1 + %u\n",ctr-1);
-#endif
-  basis->nt[basis->load]  = ctr;
-  basis->deg[basis->load] = deg;
-  basis->red[basis->load] = 0;
-
-
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
-
-  basis->load++;
-
-  return 1;
-}
-
-int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
-    const nelts_t ri, const spd_t *spd, const ht_t *ht)
-{
-  /* get position of lead term in this row */
-  const nelts_t fc  = spd->col->nlm + mat->DR->row[ri]->piv_lead;
-
-  /* check if we have found a unit in the basis */
-  hash_t hv  = ht->val[spd->col->hpos[fc]];
-  if (hv == 0)
-    return 0;
-
-  /* check next if this element might be redundant: this is only possible if
-   * the input elements are not homogeneous. in this situation we might have
-   * several new elements from D which have lead terms that divide each other.
-   * if all polynomials are homogeneous this cannot happen since then such a
-   * lead term divisibility must have been found already in the linear algebra
-   * reduction process. */
-  if (basis->hom == 0 &&
-      check_new_element_for_redundancy(spd->col->hpos[fc], basis, ht) != 0) {
+      check_new_element_for_redundancy(mon->hash[row[2]], basis, ht) != 0) {
     return -1;
   }
 
   /* if not redundandant */
-  nelts_t i;
+  deg_t deg = 0;
+  for (size_t i = 2; i < row[1]; i += 2) {
+    /* change column position to corresponding exponent hash */
+    row[i]  = mon->hash[row[i]];
 
-  if (basis->load == basis->size)
-    enlarge_basis(basis, 2*basis->size);
-
-  /* maximal size is DR->ncols - row's piv lead */
-  nelts_t ms  = mat->DR->ncols - mat->DR->row[ri]->piv_lead;
-  /* use shorter names in here */
-  basis->cf[basis->load]  = (cf_t *)malloc(ms * sizeof(cf_t)); 
-  basis->eh[basis->load]  = (hash_t *)malloc(ms * sizeof(hash_t)); 
-  
-  nelts_t ctr = 0;
-  deg_t deg   = 0;
-#if POLY_DEBUG
-  printf("new lm from row %u (basis element %u): ", ri, basis->load);
-  for (int ii=0; ii<ht->nv; ++ii)
-    printf("%u ",ht->exp[spd->col->hpos[fc]][ii]);
-  printf(" %u  (%u)\n",ht->val[spd->col->hpos[fc]], spd->col->hpos[fc]);
-#endif
-
-  for (i=mat->DR->row[ri]->piv_lead; i<mat->DR->ncols; ++i) {
-    if (mat->DR->row[ri]->piv_val[i] != 0) {
-      basis->cf[basis->load][ctr] = mat->DR->row[ri]->piv_val[i];
-      /* note that we have to adjust the position via shifting it by
-       * spd->col->nlm since DR is on the righthand side of the matrix */
-      basis->eh[basis->load][ctr] = spd->col->hpos[spd->col->nlm+i];
-#if POLY_DEBUG
-    printf("%u|",basis->cf[basis->load][ctr]);
-    for (int ii=0; ii<ht->nv; ++ii)
-      printf("%u",ht->exp[basis->eh[basis->load][ctr]][ii]);
-    printf("  ");
-#endif
-      deg = ht->deg[basis->eh[basis->load][ctr]] > deg ?
-        ht->deg[basis->eh[basis->load][ctr]] : deg;
-      ctr++;
-    }
+    /* compute degree of polynomial */
+    deg = ht->deg[row[i]] > deg ?
+      ht->deg[row[i]] : deg;
   }
-#if POLY_DEBUG
-  printf("\n");
-  printf("deg: %u\n", deg);
-  printf("# terms = 1 + %u\n",ctr-1);
-#endif
-  basis->nt[basis->load]  = ctr;
   basis->deg[basis->load] = deg;
+  basis->p[basis->load]   = row;
   basis->red[basis->load] = 0;
-
-
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
 
   basis->load++;
 

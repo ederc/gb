@@ -118,7 +118,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
    * position in basis */
   const int cur_len = (int)(ps->load + idx - basis->st);
   /* printf("curlen %u for idx %u | %u\n",cur_len,idx, idx-basis->st); */
-  const hash_t hash     = basis->eh[idx][0];
+  const hash_t hash     = basis->p[idx][2];
   int i, j; /* we need ints to cover cases where i=0 and j=i-1 */
   const int load  = (int)ps->load;
 
@@ -252,7 +252,7 @@ inline void generate_input_element_spair(ps_t *ps, const nelts_t gen2, const gb_
   
   sp->gen1    = gen2;
   sp->gen2    = gen2;
-  sp->lcm     = basis->eh[gen2][0];
+  sp->lcm     = basis->p[gen2][2];
   sp->deg     = ht->deg[sp->lcm];
   sp->crit    = NO_CRIT;
 
@@ -271,15 +271,7 @@ inline void generate_spair(ps_t *ps, const nelts_t gen1,
   sp->gen1  = gen2;
   sp->gen2  = gen1;
 
-  /* if (basis->nt[gen1] < basis->nt[gen2]) {
-   *   sp->gen1  = gen1;
-   *   sp->gen2  = gen2;
-   * } else {
-   *   sp->gen1  = gen2;
-   *   sp->gen2  = gen1;
-   * } */
-
-  sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
+  sp->lcm   = get_lcm(basis->p[gen1][2], basis->p[gen2][2], ht);
   sp->deg   = ht->deg[sp->lcm];
   
   /* if one of the generators is redundant we can stop already here and mark it
@@ -288,33 +280,12 @@ inline void generate_spair(ps_t *ps, const nelts_t gen1,
   sp->crit  = NO_CRIT;
   if (basis->red[gen2] > 0) {
     sp->crit  = NO_CRIT;
-    /* sp->crit  = CHAIN_CRIT; */
-    /* sp->crit  = PROD_CRIT; */
     return;
   }
   /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
-  if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]]) {
+  if (sp->deg == ht->deg[basis->p[gen1][2]] + ht->deg[basis->p[gen2][2]]) {
     sp->crit  = PROD_CRIT;
     return;
   }
   return;
-}
-
-inline void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
-    const hash_t lcm, const nelts_t gen)
-{
-  hash_t mul;
-  mul = get_multiplier(lcm, basis->eh[gen][0], ht);
-  if (sel->load == sel->size)
-    adjust_size_of_selection(sel, 2*sel->size);
-  sel->mpp[sel->load].mlm = lcm;
-  sel->mpp[sel->load].mul = mul;
-  sel->mpp[sel->load].bi  = gen;
-  sel->mpp[sel->load].sf  = 0;
-#if 0
-  sel->mpp[sel->load].eh  = basis->eh[gen];
-  sel->mpp[sel->load].cf  = basis->cf[gen];
-  sel->mpp[sel->load].nt  = basis->nt[gen];
-#endif
-  sel->load++;
 }

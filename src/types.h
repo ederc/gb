@@ -619,16 +619,7 @@ typedef struct dup_t
   hash_t lcm;
 } dup_t;
 
-/**
- * \brief Data structure for connecting simplifiers with basis elements
- */
-typedef struct sf_t
-{
-  /* hash_t *mul;  [>!<  hash of multiplier of simplified element <] */
-  nelts_t *idx; /*!<  index of simplified element in simplifier list */
-  nelts_t size; /*!<  memory allocated */
-  nelts_t load; /*!<  number of elements in simplifier list for this polynomial */
-} sf_t;
+typedef uint32_t poly_t;
 
 /**
  * \brief Groebner basis, starts with input data
@@ -655,7 +646,7 @@ typedef struct gb_t
   hom_t hom;        /*!<  homogeneous computation? 1=yes, 0=no (we might homogenize) */
   ord_t ord;        /*!<  monomial ordering */
   nelts_t nred;     /*!<  number of redundant elements in basis */
-  cf_t mod;      /*!<  modulo/field characteristic */
+  cf_t mod;         /*!<  modulo/field characteristic */
   int has_unit;     /*!<  is set to 1 if we have found a unit in the basis */
   nelts_t max_sel;  /*!<  maximal number of spairs handled at once */
   /* element data */
@@ -710,8 +701,6 @@ typedef struct sel_t
   deg_t deg;        /*!<  maximal degree of all elements in selection set*/
   nelts_t size;     /*!<  memory allocated */
   nelts_t load;     /*!<  number of elements in selection*/
-  /* element data */
-  mpp_t *mpp;       /*!<  multiplier-polynomial-pair for symbolic preprocessing */
 } sel_t;
 
 /**
@@ -721,7 +710,7 @@ typedef struct sel_t
  */
 typedef struct pre_t
 {
-  hash_t *hpos;   /*!<  position of monomials in hash table*/
+  hash_t *hash;   /*!<  position of monomials in hash table*/
   nelts_t size;   /*!<  size of list*/
   nelts_t load;   /*!<  number of elements already stored in list*/
   nelts_t nlm;    /*!<  number of leading monomials*/
@@ -765,7 +754,7 @@ typedef struct mat_t
   sm_fl_t *CR;  /*!<  lower right sparse row matrix part */
   dbm_fl_t *D;  /*!<  lower right dense block matrix part */
   dm_t *DR;     /*!<  reduced D in dense row matrix format */
-  cf_t mod;  /*!<  modulo/field characteristic */
+  cf_t mod;     /*!<  modulo/field characteristic */
   bi_t bs;      /*!<  block size given by gbla */
   ci_t ncl;     /*!<  number of columns lefthand side, i.e. cols of A resp. C */
   ci_t ncr;     /*!<  number of columns righthand side, i.e. cols of B resp. D */
@@ -861,8 +850,11 @@ typedef struct mat_gb_meta_data_t
 typedef struct sort_t
 {
   nelts_t (*get_pairs_by_minimal_degree)(ps_t *ps);
-  void (*sort_presorted_columns_invert_left_side)(spd_t *spd, const int nthreads);
-  void (*sort_presorted_columns)(spd_t *spd, const int nthreads);
+  void (*sort_presorted_columns_invert_left_side)(pre_t *mon, const int nthreads);
+  void (*sort_presorted_columns)(pre_t *mon, const int nthreads);
+  void (*sort_rows_by_decreasing_lm)(smc_t *M);
+  void (*sort_rows_by_increasing_lm)(smc_t *M);
+  void (*sort_columns)(pre_t *mon);
   int (*compare_spairs)(const void *a, const void *b);
   int (*compare_monomials)(const void *a, const void *b);
   int (*compare_monomials_inverse)(const void *a, const void *b);
@@ -878,6 +870,10 @@ typedef struct sort_t
  * \note We start with the first element at index 1, not at index 0. Thus we can
  * optimize divisibility checks (if index 0 is returned we have not found any
  * divisor). See also procedure init_hash_table().
+ * 
+ * \note The lookup table part "lut" is important: If we store the hashes
+ * directly, all pairs, all symbolic preprocessing data, etc. needs to be
+ * recomputed when we enlarge the hash table during the computation.
  */
 typedef struct ht_t
 {
@@ -925,20 +921,6 @@ typedef struct dbr_t
   re_t **bl; /*!< array of blocks of coefficients for the dense part of
                      the gbla matrix*/
 } dbr_t;
-
-/**
- * \brief Polys are just an array of the following struct: First we store the
- * exponent hash eh, then the coefficient cf. This has two main features:
- * 1. We can directly transfer the polys to sparse rows, just exchanging the
- * exponent hash value with the corresponding column index
- * 2. We use the first struct in the array for storing the number of terms (in
- * the eh field) and the offset (w.r.t. 4 resp. 8 in the cf field) for loop
- * unrolling.
- */
-typedef struct poly_t {
-  hash_t *eh; /*!<  stores exponent hashes of polynomial*/
-  cf_t *cf;   /*!<  stores coefficients of polynomial*/
-} poly_t;
 
 typedef struct src_tmp_t
 {

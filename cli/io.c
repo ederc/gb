@@ -333,137 +333,76 @@ nvars_t get_nvars(const char *fn)
 
 void check_for_same_exponents(gb_t *basis)
 {
-  cf_t *tmp_cf;
-  hash_t *tmp_eh;
-  cf_t *sort_cf   = (cf_t *)malloc(sizeof(cf_t));
-  hash_t *sort_eh = (hash_t *)malloc(sizeof(hash_t));
-  nelts_t i, j;
   nelts_t ctr;
-  bf_t coeff;
+
+  poly_t *tmp_p;
+  poly_t *p = (poly_t *)malloc(sizeof(poly_t));
 
   /** first we sort the terms of each input polynomial w.r.t. the monomial order */
-  for (i=1; i<basis->load; ++i) {
-    sort_eh  = realloc(sort_eh, basis->nt[i] * sizeof(hash_t));
-    sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(cf_t));
-    ctr = 0;
-    /** lead term is clear */
-    sort_eh[0]  = basis->eh[i][0];
-    sort_cf[0]  = basis->cf[i][0];
-    ctr++;
+  for (size_t i = 1; i < basis->load; ++i) {
+    p   = realloc(p, basis->p[i][1] * sizeof(poly_t));
+    ctr = 2;
+
+    /* lead term */
+    p[ctr++]  = basis->p[i][2];
+    p[ctr++]  = basis->p[i][3];
     /** check all other exponents with previous exponents, probably add
       * coefficients */
-    for (j=1; j<basis->nt[i]; ++j) {
-      if (basis->eh[i][j] == sort_eh[ctr-1]) {
-        coeff = (bf_t)sort_cf[ctr-1] + basis->cf[i][j];
-        coeff %=  basis->mod;
-        sort_cf[ctr-1]  = (cf_t)coeff;
+    for (size_t j = 4; j < basis->p[i][1]; j = j+2) {
+      if (basis->p[i][j] == p[ctr-2]) {
+        p[ctr-1]  = (poly_t)((bf_t)basis->p[i][j+1] + p[ctr-1]) % basis->mod;
       } else {
-        sort_eh[ctr]  = basis->eh[i][j];
-        sort_cf[ctr]  = basis->cf[i][j];
-        ctr++;
+        p[ctr++]  = basis->p[i][j];
+        p[ctr++]  = basis->p[i][j+1];
       }
     }
+    p[1]  = ctr;
     /** reallocate memory */
-    sort_eh  = realloc(sort_eh, ctr * sizeof(hash_t));
-    sort_cf  = realloc(sort_cf, ctr * sizeof(cf_t));
+    p = realloc(p, ctr * sizeof(poly_t));
 
     /** swap arrays */
-    tmp_cf  = basis->cf[i];
-    tmp_eh  = basis->eh[i];
-
-    basis->cf[i]  = sort_cf;
-    basis->eh[i]  = sort_eh;
-    basis->nt[i]  = ctr;
-    
-    sort_cf = tmp_cf;
-    sort_eh = tmp_eh;
+    tmp_p       = basis->p[i];
+    basis->p[i] = p;
+    p           = tmp_p;
   }
   /** free temporary allocated memory */
-  free(sort_cf);
-  free(sort_eh);
+  free(p);
 }
 
 void sort_input_polynomials(gb_t *basis, const ht_t *ht)
 {
-  cf_t *tmp_cf;
-  hash_t *tmp_eh;
-  cf_t *sort_cf  = (cf_t *)malloc(sizeof(cf_t));
-  hash_t *sort_eh   = (hash_t *)malloc(sizeof(hash_t));
-  nelts_t i, j, k;
-
-  /** first we sort the terms of each input polynomial w.r.t. the monomial order */
-  for (i=1; i<basis->load; ++i) {
-    /** sort exponent hashes */
-    sort_eh  = realloc(sort_eh, basis->nt[i] * sizeof(hash_t));
-    sort_cf  = realloc(sort_cf, basis->nt[i] * sizeof(cf_t));
-    memcpy(sort_eh, basis->eh[i], basis->nt[i] * sizeof(hash_t));
-    qsort(sort_eh, basis->nt[i], sizeof(hash_t), ht->sort.compare_monomials);
-    /** sort coefficients like the exponent hashes */
-    for (j=0; j<basis->nt[i]; ++j) {
-      for (k=0; k<basis->nt[i]; ++k) {
-        if (basis->eh[i][k] == sort_eh[j]) {
-          sort_cf[j]  = basis->cf[i][k];
-        }
-      }
-    }
-    /** swap arrays */
-    tmp_cf  = basis->cf[i];
-    tmp_eh  = basis->eh[i];
-
-    basis->cf[i]  = sort_cf;
-    basis->eh[i]  = sort_eh;
-
-    /* normalize polynomials */
-    if (basis->cf[i][0] != 1) {
-      cf_t iv = basis->cf[i][0];
-      inverse_coefficient(&iv, basis->mod);
-      basis->cf[i][0]  = 1;
-      for (j=1; j<basis->nt[i]; ++j)
-        basis->cf[i][j] = MODP(basis->cf[i][j]*iv,basis->mod);
-    }
-    
-    sort_cf = tmp_cf;
-    sort_eh = tmp_eh;
+  /* sorts terms of polynomials, does not resolve if a monomial appears
+   * several times in the same polynomial (check_for_same_exponents() handles
+   * this problem) */
+  for (size_t i = 1; i < basis->load; ++i) {
+    qsort(basis->p[i]+2, (basis->p[i][1]-2)/2, 2*sizeof(poly_t),
+        ht->sort.compare_monomials);
+    normalize(basis->p[i], basis->mod);
   }
-  /** sort the polynomials by increasing lead term w.r.t. the monomial order
-    * note that basis elements start at position 1, not zero! thus we have
-    * basis->load and not basis->load-1 elements stored at the moment. */
-  sort_eh = realloc(sort_eh, basis->load * sizeof(hash_t));
-  for (i=1; i<basis->load; ++i)
-    sort_eh[i]  = basis->eh[i][0];
-  qsort(sort_eh+1, basis->load-1, sizeof(hash_t), ht->sort.compare_monomials_inverse);
 
-  /** stores if a position is already set */
-  uint8_t *pos_set = (uint8_t *)calloc(basis->load, sizeof(uint8_t));
-
-  for (i=1; i<basis->load; ++i) {
-    basis->deg[i] = basis->deg[i];
-    basis->nt[i]  = basis->nt[i];
-    basis->eh[i]  = basis->eh[i];
-    basis->cf[i]  = basis->cf[i];
-  }
-  /** free temporary allocated memory */
-  free(sort_cf);
-  free(sort_eh);
-  free(pos_set);
+  /* sort elements in basis by increasing lead terms */
+  qsort(basis->p+1, basis->load-1, sizeof(poly_t *),
+      ht->sort.compare_polynomials_inverse);
 }
 
-void homogenize_input_polynomials(gb_t *basis, ht_t *ht) {
-  nelts_t i, j;
-  /** make sure that hash table is big enough */
-  if (2*basis->load > ht->sz)
+void homogenize_input_polynomials(gb_t *basis, ht_t *ht)
+{
+  /* make sure that hash table is big enough */
+  if (2 * basis->load > ht->sz)
     enlarge_hash_table(ht);
-  /** use extra variable in exponent vector representation in hash table to
-    * homogenize the terms correspondingly */
-  for (i=1; i<basis->load; ++i) {
-    for (j=0; j<basis->nt[i]; ++j) {
-      memcpy(ht->exp[ht->load], ht->exp[basis->eh[i][j]], ht->nv * sizeof(exp_t));
-      /** add homogenizing variable entry in exponent */
-      ht->exp[ht->load][ht->nv-1] = (exp_t)(basis->deg[i] -  ht->deg[basis->eh[i][j]]);
-      /** add new exponent hash to table */
+  /* use extra variable in exponent vector representation in hash
+   * table to homogenize the terms correspondingly */
+  for (size_t i = 1; i < basis->load; ++i) {
+    for (size_t j = 2; j < basis->p[i][1]; j = j+2) {
+      memcpy(ht->exp[ht->load], ht->exp[basis->p[i][j]],
+          ht->nv * sizeof(exp_t));
+      /* add homogenizing variable entry in exponent */
+      ht->exp[ht->load][ht->nv-1] =
+        (exp_t)(basis->deg[i] -  ht->deg[basis->p[i][j]]);
+      /* add new exponent hash to table */
       ht->deg[ht->load] = basis->deg[i];
       ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
-      basis->eh[i][j] = check_in_hash_table(ht);
+      basis->p[i][j] = check_in_hash_table(ht);
     }
   }
   basis->hom  = 1;
@@ -566,8 +505,8 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       /** get number of terms first */
       nterms          = get_number_of_terms(line);
       basis->p[i]     = (poly_t *)malloc((2*nterms+2) * sizeof(poly_t));
-      basis->p[i][0]  = 2 * nterms + 2; 
-      basis->p[i][1]  = nterms % 4; 
+      basis->p[i][0]  = nterms % 4; 
+      basis->p[i][1]  = 2 * nterms + 2; 
 
 
 #if IO_DEBUG
@@ -610,10 +549,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
       ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
       basis->p[i][2] = check_in_hash_table(ht);
-#if IO_DEBUG
-      printf("cf[%lu] = %u | eh[%lu][%u] = %lu --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
-#endif
-      for (j = 4; j < basis->p[i][0]; j = j+2) {
+      for (j = 4; j < basis->p[i][1]; j = j+2) {
         get_term(line, &prev_pos, &term);
 #if IO_DEBUG
         printf("%s ",term);
@@ -640,14 +576,11 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
         max_deg           = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
         ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
         basis->p[i][j]    = check_in_hash_table(ht);
-#if IO_DEBUG
-        printf("cf[%lu] = %u | eh[%lu][%lu] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
-#endif
       }
       /** if basis->init_hom is 0 then we have already found an inhomogeneous
         * polynomial and the system of polynomials is not homogeneous */
       if (basis->init_hom == 1) {
-        if (ht->deg[basis->p[i][2]] == ht->deg[basis->p[i][basis->p[i][0]-2]])
+        if (ht->deg[basis->p[i][2]] == ht->deg[basis->p[i][basis->p[i][1]-2]])
           basis->init_hom  = 1;
         else
           basis->init_hom  = 0;
@@ -659,6 +592,9 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       continue;
     }
 #if IO_DEBUG
+    printf("\n");
+    for (size_t l = 2; l < basis->p[i][1]; l = l+2)
+      printf("%u %u  ", basis->p[i][l], basis->p[i][l+1]);
     printf("\n");
 #endif
   }
@@ -847,12 +783,11 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   }
 }
 
-void print_basis(const gb_t *basis, const poly_t *fb)
+void print_basis(const gb_t *basis, poly_t **gb)
 {
-  nelts_t i, j;
-  nvars_t k;
   exp_t *exp = NULL;
 
+  size_t i, j, k;
   /** depending on the chosen order we have different start and end points in the
     * exponent vectors:
     * for DRL (ord==0) we have stored the exponents in reverse order,
@@ -860,7 +795,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
   const nvars_t ev_start  = basis->ord == 0 ? basis->rnv : 0;
   const nvars_t ev_end    = basis->ord == 0 ? 0 : basis->rnv;
 
-  for (k=0; k<basis->rnv-1; ++k) {
+  for (k = 0; k < basis->rnv-1; ++k) {
     printf("%s, ", basis->vnames[k]);
   }
   printf("%s\n", basis->vnames[k]);
@@ -868,22 +803,22 @@ void print_basis(const gb_t *basis, const poly_t *fb)
   /** prints groebner basis */
   nelts_t bs  = basis->load - basis->st - basis->nred;
 
-  for (i=0; i<bs; ++i) {
-    if (fb[i].red == 0) {
+  for (i = 0; i < bs; ++i) {
+    if (gb[i][0] != 0) {
       /** we do the first term differently, since we do not have a "+" in front of
         * it */
-      printf("%u", fb[i].cf[0]);
-      exp = ht->exp[fb[i].eh[0]];
+      printf("%u", gb[i][3]);
+      exp = ht->exp[gb[i][2]];
       switch (basis->ord) {
         case 0:
-          for (k=ev_start; k>ev_end; --k) {
+          for (k = ev_start; k > ev_end; --k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
             }
           }
           break;
         case 1:
-          for (k=ev_start; k<ev_end; ++k) {
+          for (k = ev_start; k < ev_end; ++k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[k], exp[k]);
             }
@@ -892,19 +827,19 @@ void print_basis(const gb_t *basis, const poly_t *fb)
         default:
           abort();
       }
-      for (j=1; j<fb[i].nt; ++j) {
-        printf("+%u", fb[i].cf[j]);
-        exp = ht->exp[fb[i].eh[j]];
+      for (j = 4; j < gb[i][0]; j = j+2) {
+        printf("+%u", gb[i][j+1]);
+        exp = ht->exp[gb[i][j]];
         switch (basis->ord) {
           case 0:
-            for (k=ev_start; k>ev_end; --k) {
+            for (k = ev_start; k > ev_end; --k) {
               if (exp[k] != 0) {
                 printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
               }
             }
             break;
           case 1:
-            for (k=ev_start; k<ev_end; ++k) {
+            for (k = ev_start; k < ev_end; ++k) {
               if (exp[k] != 0) {
                 printf("*%s^%u", basis->vnames[k], exp[k]);
               }
@@ -919,14 +854,14 @@ void print_basis(const gb_t *basis, const poly_t *fb)
   }
 }
 
-void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
+void print_basis_in_singular_format(const gb_t *basis, poly_t **gb)
 {
-  nelts_t i, j;
-  nvars_t k;
+  size_t i, j, k;
+ 
   exp_t *exp = NULL;
   /** prints ring */
   printf("ring r = %u, (%s", basis->mod, basis->vnames[0]);
-  for (k=1; k<basis->rnv; ++k)
+  for (k = 1; k < basis->rnv; ++k)
     printf(",%s", basis->vnames[k]);
   switch (basis->ord) {
     case 0:
@@ -948,22 +883,22 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
 
   /** prints input ideal */
   printf("ideal i;\n");
-  for (i=1; i<basis->st; ++i) {
-    printf("i[%u]=", i);
+  for (i = 1; i < basis->st; ++i) {
+    printf("i[%lu]=", i);
     /** we do the first term differently, since we do not have a "+" in front of
       * it */
-    printf("%u", basis->cf[i][0]);
-    exp = ht->exp[basis->eh[i][0]];
+    printf("%u", basis->p[i][3]);
+    exp = ht->exp[basis->p[i][2]];
     switch (basis->ord) {
       case 0:
-        for (k=ev_start; k>ev_end; --k) {
+        for (k = ev_start; k > ev_end; --k) {
           if (exp[k] != 0) {
             printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
           }
         }
         break;
       case 1:
-        for (k=ev_start; k<ev_end; ++k) {
+        for (k = ev_start; k < ev_end; ++k) {
           if (exp[k] != 0) {
             printf("*%s^%u", basis->vnames[k], exp[k]);
           }
@@ -972,19 +907,19 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       default:
         abort();
     }
-    for (j=1; j<basis->nt[i]; ++j) {
-      printf("+%u", basis->cf[i][j]);
-      exp = ht->exp[basis->eh[i][j]];
+    for (j = 4; j < basis->p[i][0]; j = j+2) {
+      printf("+%u", basis->p[i][j+1]);
+      exp = ht->exp[basis->p[i][j]];
       switch (basis->ord) {
         case 0:
-          for (k=ev_start; k>ev_end; --k) {
+          for (k = ev_start; k > ev_end; --k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
             }
           }
           break;
         case 1:
-          for (k=ev_start; k<ev_end; ++k) {
+          for (k = ev_start; k < ev_end; ++k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[k], exp[k]);
             }
@@ -1003,24 +938,24 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     * saturation */
   nelts_t bs  = basis->load - basis->st - basis->nred;
   int ctr = 0;
-  for (i=0; i<bs; ++i) {
-    if (fb[i].red == 0) {
+  for (i = 0; i < bs; ++i) {
+    if (gb[i][0] != 0) {
       printf("g[%u]=", ctr+1);
       ctr++;
       /** we do the first term differently, since we do not have a "+" in front of
         * it */
-      printf("%u", fb[i].cf[0]);
-      exp = ht->exp[fb[i].eh[0]];
+      printf("%u", gb[i][3]);
+      exp = ht->exp[gb[i][2]];
       switch (basis->ord) {
         case 0:
-          for (k=ev_start; k>ev_end; --k) {
+          for (k = ev_start; k > ev_end; --k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
             }
           }
           break;
         case 1:
-          for (k=ev_start; k<ev_end; ++k) {
+          for (k = ev_start; k < ev_end; ++k) {
             if (exp[k] != 0) {
               printf("*%s^%u", basis->vnames[k], exp[k]);
             }
@@ -1029,19 +964,19 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
         default:
           abort();
       }
-      for (j=1; j<fb[i].nt; ++j) {
-        printf("+%u", fb[i].cf[j]);
-        exp = ht->exp[fb[i].eh[j]];
+      for (j = 4; j < gb[i][0]; j = j+2) {
+        printf("+%u", gb[i][j+1]);
+        exp = ht->exp[gb[i][j]];
         switch (basis->ord) {
           case 0:
-            for (k=ev_start; k>ev_end; --k) {
+            for (k = ev_start; k > ev_end; --k) {
               if (exp[k] != 0) {
                 printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
               }
             }
             break;
           case 1:
-            for (k=ev_start; k<ev_end; ++k) {
+            for (k = ev_start; k < ev_end; ++k) {
               if (exp[k] != 0) {
                 printf("*%s^%u", basis->vnames[k], exp[k]);
               }

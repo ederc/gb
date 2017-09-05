@@ -95,17 +95,8 @@ gb_t *initialize_basis(const int order, const int nlines,
  * 1:   the new element is a added to the basis
  * -1:  the new element is not added to the basis since it is redundant
  */
-int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
-    const nelts_t ri, const spd_t *spd, const ht_t *ht);
-
-int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
-    const spd_t *spd, const ht_t *ht);
-
-int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
-    const spd_t *spd, const ht_t *ht);
-
-int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
-    const spd_t *spd, const ht_t *ht);
+int add_new_element_to_basis(gb_t *basis, src_t *row,
+    const pre_t *mon, const ht_t *ht);
 
 /**
  * \brief Frees dynamically allocated memory from groebner basis. Sets the basis
@@ -125,7 +116,6 @@ static inline void free_basis(gb_t **basis_in)
     free(basis->vnames);
     free(basis->red);
     free(basis->deg);
-    free(basis->nt);
     for (i=0; i<basis->load; ++i) {
       free(basis->p[i]);
     }
@@ -147,7 +137,6 @@ static inline void free_basis(gb_t **basis_in)
 static inline void enlarge_basis(gb_t *basis, const nelts_t size)
 {
   basis->size = size;
-  basis->nt   = realloc(basis->nt, basis->size * sizeof(nelts_t));
   basis->deg  = realloc(basis->deg, basis->size * sizeof(deg_t));
   basis->red  = realloc(basis->red, basis->size * sizeof(red_t));
   basis->p    = realloc(basis->p, basis->size * sizeof(poly_t *));
@@ -167,7 +156,8 @@ static inline void track_redundant_elements_in_basis(gb_t *basis, const ht_t *ht
   /* check for redundancy of other elements in basis */
   for (i=basis->st; i<basis->load-1; ++i) {
     if (basis->red[i] == 0) {
-      if (check_monomial_division(basis->p[i][2], basis->p[basis->load-1][2], ht)) {
+      if (check_monomial_division(
+            basis->p[i][2], basis->p[basis->load-1][2], ht)) {
         basis->red[i] = basis->load-1;
         basis->nred++;
       }

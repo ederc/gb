@@ -822,4 +822,11 @@ static inline void clear_hash_table_idx(ht_t *ht)
   memset(ht->idx, 0, ht->load * sizeof(ht_size_t));
   /* memset(ht->ctr, 0, ht->sz * sizeof(ht_size_t)); */
 }
+
+static inline void set_column_indices_in_ht_idx(
+    ht_t *ht, const pre_t *mon)
+{
+  for (size_t i = 0; i < mon->load; ++i)
+    ht->idx[mon->hash[i]] = (ht_size_t)i;
+}
 #endif /* GB_HASH_TABLE_H */

@@ -75,6 +75,7 @@ static inline void set_sort_functions_depending_on_monomial_order(ht_t *ht, cons
     /* graded reverse lexicographical order */
     case 0:
       ht->sort.get_pairs_by_minimal_degree              = get_pairs_by_minimal_degree_grevlex;
+      ht->sort.sort_columns                             = sort_columns_by_grevlex;
       ht->sort.sort_presorted_columns                   = sort_presorted_columns_by_grevlex;
       ht->sort.sort_presorted_columns_invert_left_side  = sort_presorted_columns_by_grevlex_invert_left_side;
       ht->sort.compare_spairs                           = cmp_spairs_by_grevlex;
@@ -82,10 +83,13 @@ static inline void set_sort_functions_depending_on_monomial_order(ht_t *ht, cons
       ht->sort.compare_monomials_inverse                = cmp_symbolic_preprocessing_monomials_by_inverse_grevlex;
       ht->sort.compare_polynomials                      = cmp_polynomials_by_grevlex;
       ht->sort.compare_polynomials_inverse              = cmp_polynomials_by_inverse_grevlex;
+      ht->sort.sort_rows_by_decreasing_lm               = sort_rows_by_decreasing_lm_drl;
+      ht->sort.sort_rows_by_increasing_lm               = sort_rows_by_increasing_lm_drl;
       break;
     /* lexicographical order */
     case 1:
       ht->sort.get_pairs_by_minimal_degree              = get_pairs_by_minimal_degree_lex;
+      ht->sort.sort_columns                             = sort_columns_by_lex;
       ht->sort.sort_presorted_columns                   = sort_presorted_columns_by_lex;
       ht->sort.sort_presorted_columns_invert_left_side  = sort_presorted_columns_by_lex_invert_left_side;
       ht->sort.compare_spairs                           = cmp_spairs_by_deg_lex;
@@ -93,6 +97,8 @@ static inline void set_sort_functions_depending_on_monomial_order(ht_t *ht, cons
       ht->sort.compare_monomials_inverse                = cmp_symbolic_preprocessing_monomials_by_inverse_lex;
       ht->sort.compare_polynomials                      = cmp_polynomials_by_lex;
       ht->sort.compare_polynomials_inverse              = cmp_polynomials_by_inverse_lex;
+      ht->sort.sort_rows_by_decreasing_lm               = sort_rows_by_decreasing_lm_lex;
+      ht->sort.sort_rows_by_increasing_lm               = sort_rows_by_increasing_lm_lex;
       break;
     default:
       abort ();
@@ -117,6 +123,8 @@ static inline void set_sort_functions_depending_on_monomial_order(ht_t *ht, cons
  * \return returns 1 if we have added the constant 1 to the groebner basis, i.e.
  * then the computation is done; else it returns 0.
  */
+
+#if 0
 static inline int update_basis(gb_t *basis, ps_t *ps, const spd_t *spd,
     const mat_t *mat, const ht_t *ht,  const ri_t rankDR)
 {
@@ -143,20 +151,24 @@ static inline int update_basis(gb_t *basis, ps_t *ps, const spd_t *spd,
   basis->load_ls  = basis->load;
   return 0;
 }
+#endif
 
 static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
-    const spd_t *spd, src_t **pivs, const nelts_t nc, const ht_t *ht)
+    const pre_t *mon, src_t **pivs, const nelts_t nc, const ht_t *ht)
 {
   int res;
-  if (basis->size < (nc-spd->selu->load) + basis->load)
-    enlarge_basis(basis, (nc-spd->selu->load) + basis->load);
+  if (basis->size < (nc-mon->nlm) + basis->load)
+    enlarge_basis(basis, (nc-mon->nlm) + basis->load);
 
   /* for (size_t i = spd->selu->load; i < nc; ++i) {
    *   if (pivs[i] != NULL && pivs[i][0] == 0) {
    *     res = add_new_element_to_basis_all_pivs(basis, pivs[i], spd, ht); */
-  for (size_t i = nc; i > spd->selu->load; --i) {
+  for (size_t i = nc; i > mon->nlm; --i) {
     if (pivs[i-1] != NULL && pivs[i-1][0] == 0) {
-      res = add_new_element_to_basis_all_pivs(basis, pivs[i-1], spd, ht);
+      res = add_new_element_to_basis(basis, pivs[i-1], mon, ht);
+      /* row entries are now just a new polynomial in the basis, thus remove
+       * pointer to data to not delete poly  when pivs are freed later on */
+      pivs[i-1] = NULL;
       if (res == -1)
         continue;
       if (res == 0)
@@ -176,6 +188,7 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
   return 0;
 }
 
+#if 0
 static inline int update_basis_new(gb_t *basis, ps_t *ps, const spd_t *spd,
     const smc_t *mat, const ht_t *ht)
 {
@@ -229,7 +242,7 @@ static inline int update_basis_new_new(gb_t *basis, ps_t *ps, const spd_t *spd,
   basis->load_ls  = basis->load;
   return 0;
 }
-
+#endif
 
 
 /********************************
@@ -240,12 +253,13 @@ static inline int update_basis_new_new(gb_t *basis, ps_t *ps, const spd_t *spd,
  * ||||||||||||||||||||||||||||||
  *******************************/
 
+#if 0
 /**************************
  * GBLA implementations
  *************************/
-void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
-    const double density, ps_t *ps, const int keep_A,
-    const int verbose, const int nthreads);
+void linear_algebra_gbla(gb_t *basis, smc_t *AB, smc_t *CD,
+    const spd_t *spd, const double density, ps_t *ps,
+    const int keep_A, const int verbose, const int nthreads);
 
 /******************************
  * New block implementations
@@ -257,9 +271,9 @@ void linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
     const int nthreads);
 
 void linear_algebra_block_ABCD_reduce_CD_directly(
-    gb_t *basis, const spd_t *spd, const double density,
-    ps_t *ps, const nelts_t block_size, const int verbose,
-    const int nthreads);
+    gb_t *basis, ps_t *ps, smc_t *AB, smc_t *CD,
+    const double density, const nelts_t block_size,
+    const int verbose, const int nthreads);
 
 /* first computes A^-1B then reduces C|D */
 void linear_algebra_block_ABCD_reduce_AB_first(
@@ -293,13 +307,13 @@ void linear_algebra_sparse_rows_ABCD_reduce_AB_first(
 void linear_algebra_sparse_rows_no_column_mapping(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
-
+#endif
 /*++++++***************************
  * Probabilistic implementations
  *******++++++********************/
 /* first version of probabilistic f4, cf. "An Algorithm For Splitting Polynomial
  * Systems Based on F4" by Monagan & Pearce */
-void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
-    const double density, ps_t *ps, const int verbose,
+void linear_algebra_probabilistic(gb_t *basis, smc_t *AB, smc_t *CD,
+    const pre_t *mon, const double density, ps_t *ps, const int verbose,
     const int nthreads);
 #endif

@@ -274,7 +274,8 @@ static inline smc_t *initialize_sparse_compact_matrix(const nelts_t nr, const ne
  *
  * \return gbla matrix
  */
-static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
+static inline mat_t *initialize_gbla_matrix(
+    const smc_t *AB, const smc_t *CD)
 {
   mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
 
@@ -287,17 +288,16 @@ static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
   mat->CR = NULL;
   mat->DR = NULL;
 
-  mat->sl   = basis->sl;
-  mat->mod  = basis->mod;
+  mat->mod  = AB->mod;
   mat->bs   = __GBLA_SIMD_BLOCK_SIZE;
-  mat->ncl  = spd->col->nlm;
-  mat->ncr  = spd->col->load - spd->col->nlm;
-  mat->nru  = spd->selu->load;
-  mat->nrl  = spd->sell->load;
-  mat->rbu  = get_number_of_row_blocks(spd->selu, mat->bs);
-  mat->rbl  = get_number_of_row_blocks(spd->sell, mat->bs);
-  mat->cbl  = get_number_of_left_column_blocks(spd->col, mat->bs);
-  mat->cbr  = get_number_of_right_column_blocks(spd->col, mat->bs);
+  mat->ncl  = AB->ncl;
+  mat->ncr  = AB->ncr;
+  mat->nru  = AB->nr;
+  mat->nrl  = CD->nr;
+  mat->rbu  = (ri_t) ceil((float)mat->nru / (float)mat->bs);
+  mat->rbl  = (ri_t) ceil((float)mat->nrl / (float)mat->bs);
+  mat->cbl  = (ci_t) ceil((float)mat->ncl / (float)mat->bs);
+  mat->cbr  = (ci_t) ceil((float)mat->ncr / (float)mat->bs);
 #if MATRIX_DEBUG
   printf("cbl %u | cbr %u\n",mat->cbl, mat->cbr);
 #endif
@@ -305,23 +305,23 @@ static inline mat_t *initialize_gbla_matrix(const spd_t *spd, const gb_t *basis)
   /* initialize parts of gbla matrix with known dimensions */
 
   /* D exists always */
-  init_dbm(mat->D, spd->sell->load, spd->col->load - spd->col->nlm);
+  init_dbm(mat->D, mat->nrl, mat->ncr);
   
   /* if no upper part A & B are NULL and so is C */
-  if (spd->selu->load == 0 || spd->col->nlm == 0) {
+  if (AB->rk == 0) {
     mat->A->blocks  = NULL;
-    mat->A->nrows   = spd->selu->load;
-    mat->A->ncols   = spd->col->nlm;;
+    mat->A->nrows   = mat->nru;
+    mat->A->ncols   = mat->ncl;
     mat->B->blocks  = NULL;
-    mat->A->nrows   = spd->selu->load;
-    mat->B->ncols   = spd->col->load - spd->col->nlm;;
+    mat->B->nrows   = mat->nru;
+    mat->B->ncols   = mat->ncr;
     mat->C->blocks  = NULL;
-    mat->C->nrows   = spd->sell->load;
-    mat->C->ncols   = spd->col->nlm;;
+    mat->C->nrows   = mat->nrl;
+    mat->C->ncols   = mat->ncl;
   } else {
-    init_sb(mat->A, spd->selu->load, spd->col->nlm);
-    init_sb(mat->C, spd->sell->load, spd->col->nlm);
-    init_dbm(mat->B, spd->selu->load, spd->col->load - spd->col->nlm);
+    init_sb(mat->A, mat->nru, mat->ncl);
+    init_sb(mat->C, mat->nrl, mat->ncl);
+    init_dbm(mat->B, mat->nru, mat->ncr);
   }
 
 #if MATRIX_DEBUG
@@ -1267,83 +1267,6 @@ static inline void store_in_buffer_new(dbr_t *dbr, const bi_t rib,  const hash_t
 }
 
 /**
- * \brief Generates one row block of gbla matrix.
- *
- * \note In order to find the right blocks when buffering the coefficients we
- * have to use fr as marking point where the righthand side of the gbla matrix
- * blocks start.
- *
- * \param sparse block matrix A
- *
- * \param dense block matrix B
- *
- * \param row block index rbi
- *
- * \param number of rows nr
- *
- * \param first column on the righthand side in matrix fr
- *
- * \param block size bs
- *
- * \param number of column blocks (i.e. how many blocks are needed over the full
- * column range) ncb
- *
- * \param intermediate groebner basis gb
- *
- * \param symbolic preprocessing selection sel
- */
-static inline void generate_row_blocks(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
-  const nelts_t nr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
-  const gb_t *basis, const gb_t *sf, const sel_t *sel)
-{
-nelts_t i;
-/* get new row index in block rib */
-bi_t rib;
-/* multiplier */
-hash_t mul;
-/* polynomial exponent array */
-hash_t *eh;
-/* polynomial coefficient array */
-cf_t *cf;
-/* polynomial number of terms */
-nelts_t nt; /* preallocate buffer to store row in dense format */
-const nelts_t min = (rbi+1)*bs > nr ? nr : (rbi+1)*bs;
-/* for each row we allocate memory in the sparse, left side and go through the
-  * polynomials and add corresponding entries in the matrix */
-
-dbr_t *dbr  = initialize_dense_block_row(ncb, bs);
-
-for (i=rbi*bs; i<min; ++i) {
-  /* zero out buffer data */
-  reset_buffer(dbr, ncb, bs);
-
-  rib = i % bs;
-  mul = sel->mpp[i].mul;
-  if (sel->mpp[i].sf == 0) {
-    eh  = basis->eh[sel->mpp[i].bi];
-    cf  = basis->cf[sel->mpp[i].bi];
-    nt  = basis->nt[sel->mpp[i].bi];
-  } else {
-    eh  = sf->eh[sel->mpp[i].sf];
-    cf  = sf->cf[sel->mpp[i].sf];
-    nt  = sf->nt[sel->mpp[i].sf];
-  }
-
-  store_in_buffer(dbr, mul, nt, eh, cf, fr, bs, ht);
-#if MATRIX_DEBUG
-  printf("ROW %u\n",i);
-  for (int ii=0; ii<ncb; ++ii)
-    for (int jj=0; jj<bs; ++jj)
-      printf("%u ",dbr->cf[ii][jj]);
-  printf("\n");
-#endif
-
-  store_in_matrix(A, B, dbr, rbi, rib, ncb, fr, bs, basis->mod);
-}
-free_dense_block_row(dbr, ncb);
-}
-
-/**
 * \brief Generates one row block of gbla matrix.
 *
 * \note In order to find the right blocks when buffering the coefficients we
@@ -1369,283 +1292,68 @@ free_dense_block_row(dbr, ncb);
 *
 * \param symbolic preprocessing selection sel
 */
-static inline void generate_row_blocks_new(sb_fl_t * A, dbm_fl_t *B, const nelts_t rbi,
-  const nelts_t nr, const nelts_t fbr, const nelts_t fr, const bi_t bs, const nelts_t ncb,
-  const gb_t *basis, const gb_t *sf, const sel_t *sel)
+static inline void generate_gbla_row_blocks(sb_fl_t *L,
+    dbm_fl_t *R, const mat_t *GM, const nelts_t rbi, const smc_t *M)
 {
-nelts_t i;
-/* get new row index in block rib */
-bi_t rib;
-/* multiplier */
-hash_t mul;
-/* polynomial exponent array */
-hash_t *eh;
-/* polynomial coefficient array */
-cf_t *cf;
-/* polynomial number of terms */
-nelts_t nt; /* preallocate buffer to store row in dense format */
-const nelts_t min = (rbi+1)*bs > nr ? nr : (rbi+1)*bs;
-/* for each row we allocate memory in the sparse, left side and go through the
-  * polynomials and add corresponding entries in the matrix */
+  const nelts_t min = (rbi+1) * GM->bs > M->rk ? M->rk : (rbi+1) * GM->bs;
+  const nelts_t bs2 = GM->bs * GM->bs;
+  size_t j    = 0;
+  nelts_t ctr = 0;
 
-dbr_t *dbr  = initialize_dense_block_row_new(ncb, fbr, bs);
-
-for (i=rbi*bs; i<min; ++i) {
-  /* zero out buffer data */
-  reset_buffer(dbr, fbr, bs);
-
-  rib = i % bs;
-  mul = sel->mpp[i].mul;
-  if (sel->mpp[i].sf == 0) {
-    eh  = basis->eh[sel->mpp[i].bi];
-    cf  = basis->cf[sel->mpp[i].bi];
-    nt  = basis->nt[sel->mpp[i].bi];
-  } else {
-    eh  = sf->eh[sel->mpp[i].sf];
-    cf  = sf->cf[sel->mpp[i].sf];
-    nt  = sf->nt[sel->mpp[i].sf];
+  /* allocate all possible dense blocks on the righthand side */
+  for (size_t i = 0; i < GM->cbr; ++i) {
+    R->blocks[rbi][i].val = (re_t *)malloc(bs2 * sizeof(re_t));
   }
 
-  store_in_buffer_new(dbr, rib, mul, nt, eh, cf, fbr, fr, bs, ht);
-#if MATRIX_DEBUG
-  printf("ROW %u\n",i);
-  for (int ii=0; ii<ncb; ++ii)
-    for (int jj=0; jj<bs; ++jj)
-      printf("%u ",dbr->cf[ii][jj]);
-  printf("\n");
-#endif
-  /* we store the sparse part (lefthand side of the matrix per row and write
-    * them row-wise */
-  store_in_matrix_new_sparse(A, dbr, rbi, rib, fbr, bs, basis->mod);
-}
-/* for the dense matrix part we have allocated full dense blocks already, thus
-  * we only link the nonzero blocks into B */
-store_in_matrix_new_dense(B, dbr, rbi, ncb, fbr);
-free_dense_block_row_new(dbr, fbr);
-}
-
-static inline void poly_to_sparse_compact_matrix_multiline_row(const mpp_t *mpp_start,
-  const nelts_t nc, const nelts_t bs, const gb_t *basis,  src_t **rows)
-{
-src_t *bf1 = (src_t *)malloc(nc * sizeof(src_t));
-src_t *bf2 = (src_t *)malloc(nc * sizeof(src_t));
-
-nelts_t rctr = 0;
-nelts_t k;
-for (k=0; k<bs-1; k=k+2) {
-  /* printf("drin k %u -- bs %u\n", k, bs); */
-  memset(bf1, 0, nc*sizeof(src_t));
-  memset(bf2, 0, nc*sizeof(src_t));
-  const mpp_t *mpp1  = mpp_start+k;
-  const mpp_t *mpp2  = mpp_start+k+1;
-  const nelts_t nt1 = basis->nt[mpp1->bi];
-  const cf_t *cf1   = basis->cf[mpp1->bi];
-  const hash_t *eh1 = basis->eh[mpp1->bi];
-  const nelts_t nt2 = basis->nt[mpp2->bi];
-  const cf_t *cf2   = basis->cf[mpp2->bi];
-  const hash_t *eh2 = basis->eh[mpp2->bi];
-  const nelts_t max = nt1 + nt2;
-  /* printf("max %u | nt1 %u | nt2 %u\n", max, mpp1->nt, mpp2->nt); */
-  /*
-    * we store position - value1 - value2 - ...
-    */
-  rows[rctr]           = (src_t *)malloc((3*max+1) * sizeof(src_t));
-  nelts_t cp; /* column position */
-
-  for (nelts_t i=0; i<nt1; ++i) {
-    cp  = ht->idx[find_in_hash_table_product(mpp1->mul, eh1[i], ht)];
-    bf1[cp]  = cf1[i];
-  }
-  for (nelts_t i=0; i<nt2; ++i) {
-    cp  = ht->idx[find_in_hash_table_product(mpp2->mul, eh2[i], ht)];
-    bf2[cp]  = cf2[i];
-  }
-  nelts_t ctr = 1;
-  for (nelts_t i=0; i<nc; ++i) {
-    /* printf("ctr %u\n"); */
-    if (bf1[i] != 0 || bf2[i] != 0) {
-      rows[rctr][ctr++]  = i;
-      rows[rctr][ctr++]  = (src_t)bf1[i];
-      rows[rctr][ctr++]  = (src_t)bf2[i];
+  /* loop over the rows in this block */
+  for (size_t i = rbi * GM->bs; i < min; ++i) {
+    /* allocate all possible memory for the sparse rows */
+    for (size_t j = 0; j < GM->cbl; ++j) {
+      L->blocks[rbi][j].val[i]  = (re_t *)malloc(GM->bs * sizeof(re_t));
+      L->blocks[rbi][j].pos[i]  = (bi_t *)malloc(GM->bs * sizeof(bi_t));
     }
-  }
-  rows[rctr][0] = ctr;
-  rows[rctr]    = realloc(rows[rctr], ctr * sizeof(src_t));
-  /*
-  printf("length of %u = %u\n", rctr, ctr);
-  for (nelts_t l=1; l<rows[rctr][0]; l=l+3) {
-    printf("%u | %u %u\n", rows[rctr][l], rows[rctr][l+1], rows[rctr][l+2]);
-  }
-  */
-  rctr++;
-}
-/* one is left, fill second part with zeroes */
-if (k<bs) {
-  memset(bf1, 0, nc*sizeof(src_t));
-  memset(bf2, 0, nc*sizeof(src_t));
-  const mpp_t *mpp1 = mpp_start+k;
-  const nelts_t max = basis->nt[mpp1->bi];
-  const cf_t *cf1   = basis->cf[mpp1->bi];
-  const hash_t *eh1 = basis->eh[mpp1->bi];
-  rows[rctr]        = (src_t *)malloc((3*max+1) * sizeof(src_t));
-  rows[rctr][0]     = 3*max+1;
-  nelts_t cp; // column position
 
-  for (nelts_t i=0; i<max; ++i) {
-    cp  = ht->idx[find_in_hash_table_product(mpp1->mul, eh1[i], ht)];
-    bf1[cp]  = cf1[i];
-  }
-  nelts_t ctr = 1;
-  for (nelts_t i=0; i<nc; ++i) {
-    if (bf1[i] != 0) {
-      rows[rctr][ctr++]  = i;
-      rows[rctr][ctr++]  = (src_t)bf1[i];
-      rows[rctr][ctr++]  = (src_t)bf2[i];
+    ctr = 0;
+    j   = 2;
+
+    /* fill sparse lefthand side */
+    while (j < M->row[i][0] && M->row[i][j] < GM->ncl) {
+      ctr = L->blocks[rbi][j/GM->bs].sz[i];
+      L->blocks[rbi][j/GM->bs].pos[i][ctr]  = M->row[i][j] % GM->bs;
+      L->blocks[rbi][j/GM->bs].val[i][ctr]  = (re_t)M->row[i][j+1];
+      L->blocks[rbi][j/GM->bs].sz[i]++;
+      j += 2;
     }
-  }
-  /* printf("length of %u = %u\n", rctr, ctr); */
-}
-free(bf1);
-free(bf2);
-}
-
-static inline void poly_to_sparse_compact_matrix_row_new(const mpp_t *mpp_start,
-  const nelts_t nc, const nelts_t bs, const gb_t *basis, src_t **rows)
-{
-src_t *bf = (src_t *)malloc(nc * sizeof(src_t));
-
-for (nelts_t k=0; k<bs; ++k) {
-  memset(bf, 0, nc*sizeof(src_t));
-  const mpp_t *mpp  = mpp_start+k;
-  const nelts_t nt  = basis->nt[mpp->bi];
-  const cf_t *cf    = basis->cf[mpp->bi];
-  const hash_t *eh  = basis->eh[mpp->bi];
-  rows[k]           = (src_t *)malloc((3*nt+1) * sizeof(src_t));
-  rows[k][0]        = 2*nt+1;
-
-  nelts_t cp; /* column position */
-
-#if newred
-  printf("nc %u\n", nc);
-#endif
-
-#if newred
-  printf("row size = %u\n", row[0]);
-#endif
-  for (nelts_t i=0; i<nt; ++i) {
-    cp  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
-    bf[cp]  = cf[i];
-    /* printf("cp %u | bf[%u] = %u for term %u | hpos %lu\n", cp, cp, bf[cp], i,find_in_hash_table_product(mpp->mul, mpp->eh[i], ht)); */
-  }
-  nelts_t ctr = 1;
-  nelts_t pos = 0;
-  nelts_t ctr_len = 0;
-  for (nelts_t i=0; i<nc; ++i) {
-    if (bf[i] != 0) {
-      pos = i;
-      rows[k][ctr++]  = pos;
-      ctr_len = ctr;
-      ctr++;
-      while (i<nc && bf[i] != 0) {
-        rows[k][ctr++]  = bf[i];
-        i++;
-      }
-      rows[k][ctr_len]  = i-pos;
+    
+    /* fill dense righthand side */
+    while (j < M->row[i][0]) {
+      R->blocks[rbi][j/GM->bs - GM->cbl].val[GM->bs * i + j % GM->bs] =
+        (re_t)M->row[i][j+1];
     }
-  }
-  rows[k][0]  = ctr;
-  rows[k] = realloc(rows[k], rows[k][0] * sizeof(src_t));
-#if newred
-  printf("\n");
-  printf("row[0] ===== %u\n", row[0]);
-  for (int ii=1; ii<row[0]; ii += 2)
-    printf("%u ! %u -- ", row[ii+1], row[ii]);
-  printf("\n");
-#endif
-}
-free(bf);
-}
 
-static inline void poly_to_sparse_compact_matrix_row_pos_val(const mpp_t *mpp_start,
-  const nelts_t nc, const nelts_t bs, const gb_t *basis, src_t **rows)
-{
-src_t *bf = (src_t *)malloc(nc * sizeof(src_t));
-
-for (nelts_t k=0; k<bs; ++k) {
-  memset(bf, 0, nc*sizeof(src_t));
-  const mpp_t *mpp  = mpp_start+k;
-  const nelts_t nt  = basis->nt[mpp->bi];
-  const cf_t *cf    = basis->cf[mpp->bi];
-  const hash_t *eh  = basis->eh[mpp->bi];
-  /* printf("nt[%u] = %u\n", k, mpp->nt); */
-  rows[k]           = (src_t *)malloc((2*nt+1) * sizeof(src_t));
-  rows[k][0]        = 2*nt+1;
-
-  nelts_t cp; /* column position */
-
-#if newred
-  printf("nc %u\n", nc);
-#endif
-
-#if newred
-  printf("row size = %u\n", row[0]);
-#endif
-  for (nelts_t i=0; i<nt; ++i) {
-    cp  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
-    bf[cp]  = cf[i];
-    /* printf("cp %u | bf[%u] = %u for term %u | hpos %lu\n", cp, cp, bf[cp], i,find_in_hash_table_product(mpp->mul, mpp->eh[i], ht)); */
-  }
-  nelts_t ctrp = 1;
-  nelts_t ctrv = (rows[k][0]-1)/2 + 1;
-  for (nelts_t i=0; i<nc; ++i) {
-    if (bf[i] != 0) {
-      /* printf("write bf[%u] = %u to position %u || cp0 %u\n", i, bf[i], ctr, cp0); */
-      rows[k][ctrp++] = i;
-      rows[k][ctrv++] = bf[i];
-    }
-  }
-  /* printf("ctr %u == %u rows[%u][0] ?\n", ctr, rows[k][0], k); */
-#if newred
-  printf("\n");
-  printf("row[0] ===== %u\n", rows[k][0]);
-  for (int ii=1; ii<rows[k][0]; ii += 2)
-    printf("%u ! %u -- ", rows[k][ii], rows[k][ii+1]);
-  printf("\n");
-#endif
-}
-free(bf);
-}
-
-static inline void poly_to_sparse_compact_matrix_row_offset(const mpp_t *mpp_start,
-    const nelts_t nc, const nelts_t bs, const gb_t *basis, src_t **rows)
-{
-  src_t *bf = (src_t *)malloc(nc * sizeof(src_t));
-
-  for (nelts_t k=0; k<bs; ++k) {
-    memset(bf, 0, nc*sizeof(src_t));
-    const mpp_t *mpp  = mpp_start+k;
-    const nelts_t nt  = basis->nt[mpp->bi];
-    const cf_t *cf    = basis->cf[mpp->bi];
-    const hash_t *eh  = basis->eh[mpp->bi];
-    rows[k]           = (src_t *)malloc((2*nt+2) * sizeof(src_t));
-    rows[k][0]        = 2*nt+2;
-    rows[k][1]        = nt % 2 + 1; /* stores offset mod 4 */
-
-    nelts_t cp; /* column position */
-
-    for (nelts_t i=0; i<nt; ++i) {
-      cp  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
-      bf[cp]  = cf[i];
-    }
-    nelts_t ctr = 2;
-    for (nelts_t i=0; i<nc; ++i) {
-      if (bf[i] != 0) {
-        rows[k][ctr++]  = i;
-        rows[k][ctr++]  = bf[i];
+    /* free useless sparse memory */
+    for (j = 0; j < GM->cbl; ++j) {
+      if (L->blocks[rbi][j].sz[i] == 0) {
+        free(L->blocks[rbi][j].val[i]);
+        L->blocks[rbi][j].val[i]  = NULL;
+        free(L->blocks[rbi][j].pos[i]); 
+        L->blocks[rbi][j].pos[i]  = NULL; 
       }
     }
   }
-  free(bf);
+
+  /* free useless dense memory */
+  for (size_t i = 0; i < GM->cbr; ++i) {
+    for (j = 0; j < bs2; ++j) {
+      if (R->blocks[rbi][i].val[j] != 0) {
+        break;
+      }
+    }
+    if (j == bs2) {
+      free(R->blocks[rbi][i].val);
+      R->blocks[rbi][i].val = NULL;
+    }
+  }
 }
 
 static inline int cmp_src_tmp(const void *a, const void *b)
@@ -1656,50 +1364,112 @@ static inline int cmp_src_tmp(const void *a, const void *b)
   return (int)ra.pos - (int)rb.pos;
 }
 
-static inline void poly_to_sparse_compact_matrix_row_test(
-    const mpp_t *mpp_start, const nelts_t bs, const gb_t *basis, src_t **rows)
+static inline void set_column_indices(smc_t *M, const ht_t *ht)
 {
-  for (nelts_t k=0; k<bs; ++k) {
-    const mpp_t *mpp  = mpp_start+k;
-    const nelts_t nt  = basis->nt[mpp->bi];
-    const cf_t *cf    = basis->cf[mpp->bi];
-    const hash_t *eh  = basis->eh[mpp->bi];
-    src_tmp_t *tmp    = (src_tmp_t *)malloc(nt * sizeof(src_tmp_t));
-    rows[k]           = (src_t *)malloc((2*nt+1) * sizeof(src_t));
-    rows[k][0]        = 2*nt+1;
-
-    nelts_t cp; /* column position */
-
-#if newred
-    printf("nc %u\n", nc);
-#endif
-
-#if newred
-    printf("row size = %u\n", row[0]);
-#endif
-    for (nelts_t i=0; i<nt; ++i) {
-      cp  = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
-      tmp[i].pos  = cp;
-      tmp[i].cf   = cf[i];
+  for (size_t i = 0; i < M->nr; ++i) {
+    for (size_t j = 2; j < M->row[i][1]; j = j+2) {
+      M->row[i][j]  = ht->idx[M->row[i][j]];
     }
-    /* sort temporary src_t holder */
-    qsort(tmp, nt, sizeof(src_tmp_t *), cmp_src_tmp);
-    nelts_t ctr=1;
-    for (nelts_t i=0; i<nt; ++i) {
-      rows[k][ctr++]  = tmp[i].pos;
-      rows[k][ctr++]  = tmp[i].cf;
-    }
-#if newred
-    printf("\n");
-    printf("row[0] ===== %u\n", rows[k][0]);
-    for (int ii=1; ii<rows[k][0]; ii += 2)
-      printf("%u ! %u -- ", rows[k][ii+1], rows[k][ii]);
-    printf("\n");
-#endif
-    free(tmp);
   }
 }
 
+static inline int cmp_by_column_indices(const void *a, const void *b)
+{
+  const src_t pa = *((src_t *)a);
+  const src_t pb = *((src_t *)b);
+
+  return (int)(pa - pb);
+}
+
+static inline void sort_rows_by_column_indices(smc_t *M)
+{
+  for (size_t i = 0; i < M->rk; ++i)
+    qsort(M->row[i]+2, (M->row[i][1]-2)/2, 2*sizeof(src_t),
+        cmp_by_column_indices);
+}
+
+
+
+static inline int cmp_rows_by_decreasing_lm_drl(const void *a, const void *b)
+{
+  const src_t *ra = *((src_t **)a);
+  const src_t *rb = *((src_t **)b);
+
+  if (ht->deg[ra[2]] != ht->deg[rb[2]])
+    return (int)(ht->deg[ra[2]]-ht->deg[rb[2]]);
+
+  return memcmp(ht->exp[rb[2]], ht->exp[ra[2]], sizeof(exp_t) * ht->nv);
+}
+
+static inline void sort_rows_by_decreasing_lm_drl(smc_t *M)
+{
+  qsort(M->row, M->rk, sizeof(src_t *), cmp_rows_by_decreasing_lm_drl);
+}
+
+
+
+static inline int cmp_rows_by_decreasing_lm(const void *a, const void *b)
+{
+  const src_t *ra = *((src_t **)a);
+  const src_t *rb = *((src_t **)b);
+
+  return (int)(ra[2] - rb[2]);
+}
+
+static inline int cmp_rows_by_increasing_lm(const void *a, const void *b)
+{
+  const src_t *ra = *((src_t **)a);
+  const src_t *rb = *((src_t **)b);
+
+  return (int)(rb[2] - ra[2]);
+}
+
+static inline int cmp_rows_by_increasing_lm_drl(const void *a, const void *b)
+{
+  const src_t *ra = *((src_t **)a);
+  const src_t *rb = *((src_t **)b);
+
+  if (ht->deg[rb[2]] != ht->deg[ra[2]])
+    return (int)(ht->deg[rb[2]]-ht->deg[ra[2]]);
+
+  return memcmp(ht->exp[ra[2]], ht->exp[rb[2]], sizeof(exp_t) * ht->nv);
+}
+
+static inline void sort_rows_by_increasing_lm_drl(smc_t *M)
+{
+  qsort(M->row, M->rk, sizeof(src_t *), cmp_rows_by_increasing_lm_drl);
+}
+
+
+
+static inline int cmp_rows_by_decreasing_lm_lex(const void *a, const void *b)
+{
+  const src_t *ra = *((src_t **)a);
+  const src_t *rb = *((src_t **)b);
+  return memcmp(ht->exp[rb[2]], ht->exp[ra[2]], sizeof(exp_t) * ht->nv);
+}
+
+static inline void sort_rows_by_decreasing_lm_lex(smc_t *M)
+{
+  qsort(M->row, M->rk, sizeof(src_t *), cmp_rows_by_decreasing_lm_lex);
+}
+
+
+
+static inline int cmp_rows_by_increasing_lm_lex(const void *a, const void *b)
+{
+  const src_t *ra = *((src_t **)a);
+  const src_t *rb = *((src_t **)b);
+  return memcmp(ht->exp[ra[2]], ht->exp[rb[2]], sizeof(exp_t) * ht->nv);
+}
+
+static inline void sort_rows_by_increasing_lm_lex(smc_t *AB)
+{
+  qsort(AB->row, AB->rk, sizeof(src_t *), cmp_rows_by_increasing_lm_lex);
+}
+
+#define OLD_POLY_REPRESENTATION 0
+#if OLD_POLY_REPRESENTATION
 static inline void poly_to_sparse_compact_matrix_row_true_columns(const mpp_t *mpp,
     const nelts_t idx, const gb_t *basis, src_t **rows)
 {
@@ -2032,6 +1802,7 @@ static inline void generate_row_blocks_keep_A(sm_fl_t *A, dbm_fl_t *B, const nel
   }
   free_dense_block_row(dbr, ncb);
 }
+#endif
 
 /**
  * \brief Generates gbla matrix: enters all coefficients from the essential data
@@ -2051,16 +1822,12 @@ static inline void generate_row_blocks_keep_A(sm_fl_t *A, dbm_fl_t *B, const nel
  *
  * \return gbla matrix mat
  */
-static inline mat_t *generate_gbla_matrix(const gb_t *basis,
-    const gb_t *sf, const spd_t *spd, const int nthreads)
+static inline mat_t *generate_gbla_matrix(const smc_t *AB,
+    const smc_t *CD, const int nthreads)
 {
   /* constructing gbla matrices is not threadsafe at the moment */
   const int t = nthreads;
-  mat_t *mat  = initialize_gbla_matrix(spd, basis);
-  /* calculate index of last block on left side
-   * if there is nothing on the lefthand side what can happen when interreducing
-   * the initial input elements then we have to adjust fbr to 0 */
-  const nelts_t fbr = spd->col->nlm == 0 ? 0 : (spd->col->nlm-1)/mat->bs + 1;
+  mat_t *mat  = initialize_gbla_matrix(AB, CD);
   #pragma omp parallel num_threads(t)
   {
     #pragma omp single nowait
@@ -2069,96 +1836,23 @@ static inline mat_t *generate_gbla_matrix(const gb_t *basis,
     for (nelts_t i=0; i<mat->rbu; ++i) {
       #pragma omp task
       {
-        generate_row_blocks_new(mat->A, mat->B, i, spd->selu->load, fbr, spd->col->nlm,
-            mat->bs, mat->cbl+mat->cbr, basis, sf, spd->selu);
+        generate_gbla_row_blocks(mat->A, mat->B, mat, i, AB);
       }
     }
     /* fill the lower part CD */
     for (nelts_t i=0; i<mat->rbl; ++i) {
       #pragma omp task
       {
-        generate_row_blocks_new(mat->C, mat->D, i, spd->sell->load, fbr, spd->col->nlm,
-            mat->bs, mat->cbl+mat->cbr, basis, sf, spd->sell);
+        generate_gbla_row_blocks(mat->C, mat->D, mat, i, CD);
       }
     }
     #pragma omp taskwait
     }
   }
-  /*
-  if (mat->A != NULL && mat->A->blocks != NULL) {
-    for (int ii=0; ii<mat->rbu; ++ii) {
-      for (int jj=0; jj<mat->cbl; ++jj) {
-        if (mat->A->blocks[ii][jj].val != NULL) {
-          printf("%d .. %d\n", ii, jj);
-          for (int kk=0; kk<mat->bs; ++kk) {
-            for (int ll=0; ll<mat->A->blocks[ii][jj].sz[kk]; ++ll) {
-              printf("%d | %d || ", mat->A->blocks[ii][jj].val[kk][ll], mat->A->blocks[ii][jj].pos[kk][ll]);
-            }
-            printf("\n");
-          }
-        }
-      }
-    }
-  }
-  */
-  return mat;
+   return mat;
 }
 
-#if 0
-static inline sb_mat_t *generate_gb_matrix(const gb_t *basis,
-    const spd_t *spd, const int nthreads)
-{
-  /* constructing gbla matrices is not threadsafe at the moment */
-  const int t   = nthreads;
-  sb_mat_t *mat = initialize_gbla_matrix(spd, basis);
-  /* calculate index of last block on left side
-   * if there is nothing on the lefthand side what can happen when interreducing
-   * the initial input elements then we have to adjust fbr to 0 */
-  const nelts_t fbr = spd->col->nlm == 0 ? 0 : (spd->col->nlm-1)/mat->bs + 1;
-  #pragma omp parallel num_threads(t)
-  {
-    #pragma omp single nowait
-    {
-    /* fill the upper part AB */
-    for (nelts_t i=0; i<mat->rbu; ++i) {
-      #pragma omp task
-      {
-        generate_row_blocks_new(mat->A, mat->B, i, spd->selu->load, fbr, spd->col->nlm,
-            mat->bs, mat->cbl+mat->cbr, basis, spd->selu);
-      }
-    }
-    /* fill the lower part CD */
-    for (nelts_t i=0; i<mat->rbl; ++i) {
-      #pragma omp task
-      {
-        generate_row_blocks_new(mat->C, mat->D, i, spd->sell->load, fbr, spd->col->nlm,
-            mat->bs, mat->cbl+mat->cbr, basis, spd->sell);
-      }
-    }
-    #pragma omp taskwait
-    }
-  }
-  /*
-  if (mat->A != NULL && mat->A->blocks != NULL) {
-    for (int ii=0; ii<mat->rbu; ++ii) {
-      for (int jj=0; jj<mat->cbl; ++jj) {
-        if (mat->A->blocks[ii][jj].val != NULL) {
-          printf("%d .. %d\n", ii, jj);
-          for (int kk=0; kk<mat->bs; ++kk) {
-            for (int ll=0; ll<mat->A->blocks[ii][jj].sz[kk]; ++ll) {
-              printf("%d | %d || ", mat->A->blocks[ii][jj].val[kk][ll], mat->A->blocks[ii][jj].pos[kk][ll]);
-            }
-            printf("\n");
-          }
-        }
-      }
-    }
-  }
-  */
-  return mat;
-}
-#endif
-
+#if OLD_POLY_REPRESENTATION
 static inline smc_t *generate_sparse_compact_multiline_matrix(const gb_t *basis,
     const sel_t *sel, const nelts_t nr, const nelts_t ncl,
     const nelts_t ncr, const int nthreads)
@@ -2672,6 +2366,7 @@ static inline mat_t *generate_gbla_matrix_keep_A(const gb_t *basis,
 
   return mat;
 }
+#endif
 
 static inline sr_t *normalize_row(sr_t *row, const cf_t mod)
 {
@@ -3348,6 +3043,30 @@ static inline sr_t *reduce_lower_by_upper_rows(sr_t *row, const smat_t *pivs)
 
   return row;
 }
+static inline src_t *normalize(src_t *row, const cf_t mod)
+{
+  if (row[3] != 1) {
+    nelts_t i;
+
+    /* cf_t inv  = row[3];
+     * inverse_val_new(&inv, mod);
+     * const bf_t cinv = (bf_t)inv; */
+    const cf_t cinv = (bf_t)inverse_coeff((int32_t)row[3], (int32_t)mod);
+
+    i = (row[1]-2)/2;
+    i = i & 1 ? 5 : 3;
+    while (i < row[1]) {
+      row[i]   = (src_t)(row[i] * cinv) % mod;
+      row[i+2]   = (src_t)(row[i+2] * cinv) % mod;
+      i +=  4;
+    }
+    /* possibly not set in the unrolled loop above */
+    row[3] = 1;
+  }
+
+  return row;
+}
+
 static inline src_t *normalize_new_pivot(src_t *row, const cf_t mod)
 {
   nelts_t i;
@@ -3359,16 +3078,9 @@ static inline src_t *normalize_new_pivot(src_t *row, const cf_t mod)
 
   i = (row[1]-2)/2;
   i = i & 1 ? 5 : 3;
-  bf_t tmp1, tmp2;
   while (i<row[1]) {
-    tmp1      =   ((bf_t)row[i] * cinv) % mod;
-    tmp2      =   ((bf_t)row[i+2] * cinv) % mod;
-    tmp1      +=  (tmp1 >> 63) & mod;
-    tmp2      +=  (tmp2 >> 63) & mod;
-    row[i]    =   (cf_t)tmp1;
-    row[i+2]  =   (cf_t)tmp2;
-    /* row[i]   = (src_t)(row[i] * cinv) % mod;
-     * row[i+2]   = (src_t)(row[i+2] * cinv) % mod; */
+    row[i]   = (src_t)(row[i] * cinv) % mod;
+    row[i+2]   = (src_t)(row[i+2] * cinv) % mod;
     i +=  4;
   }
   /* possibly not set in the unrolled loop above */
@@ -4757,6 +4469,7 @@ static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
   return row;
 }
 
+#if OLD_POLY_REPRESENTATION
 static inline src_t *reduce_lower_by_upper_rows_offset_true_columns(src_t *row, const smc_t * pivs, const gb_t *basis)
 {
   /* printf("row %p | lc %u\n", row, row[1]); */
@@ -4860,6 +4573,8 @@ static inline src_t *reduce_lower_by_upper_rows_offset_true_columns(src_t *row, 
   free(bf);
   return row;
 }
+#endif
+
 static inline src_t *reduce_lower_by_upper_rows_offset_c_block(src_t *row, const smc_t * pivs,
     const nelts_t offset)
 {
@@ -5301,34 +5016,35 @@ static inline src_t *reduce_lower_by_upper_rows_c(src_t *row, const smc_t *pivs)
   return row;
 }
 
+#if OLD_POLY_REPRESENTATION
 static inline mat_gb_meta_data_t *generate_matrix_meta_data(
-    const nelts_t bs, const cf_t mod, const spd_t *spd)
+    const smc_t *AB, const smc_t *CD, const nelts_t bs)
 {
   mat_gb_meta_data_t *mat =
     (mat_gb_meta_data_t *)malloc(sizeof(mat_gb_meta_data_t));
 
-  mat->mod    = mod;
+  mat->mod    = AB->mod;
   mat->bs     = (nelts_t)bs;
 
 #define ADAPTIVE_BLOCK_SIZE 1
 
 #if ADAPTIVE_BLOCK_SIZE
-  if (spd->selu->load < mat->bs) {
-    mat->bs = spd->selu->load > 0 ? spd->selu->load : spd->col->load;
+  if (AB->nr < mat->bs) {
+    mat->bs = AB->nr > 0 ? AB->nr : (AB->ncl + AB->ncr);
   } else {
-    nelts_t factor  = spd->selu->load / mat->bs + 1;
-    mat->bs = spd->selu->load / factor;
+    nelts_t factor  = AB->nr / mat->bs + 1;
+    mat->bs = AB->nr / factor;
   }
   /* make block size a multiple of 8 */
   mat->bs +=  (8 - mat->bs % 8);
   /* printf("%u\n",mat->bs); */
 
 #endif
-  mat->nc     = spd->col->load;
-  mat->nr     = spd->selu->load + spd->sell->load;
-  mat->nc_AC  = mat->nr_AB = spd->selu->load;
-  mat->nc_BD  = mat->nc - mat->nc_AC;
-  mat->nr_CD  = spd->sell->load;
+  mat->nc     = AB->ncl + AB->ncr;
+  mat->nr     = AB->nr + CD->nr;
+  mat->nc_AC  = mat->nr_AB = AB->nr;
+  mat->nc_BD  = AB->ncr;
+  mat->nr_CD  = CD->nr;
   mat->nrb_AB = (nelts_t) ceil((float)mat->nr_AB/(float)mat->bs);
   mat->nrb_CD = (nelts_t) ceil((float)mat->nr_CD/(float)mat->bs);
   mat->ncb_AC = (nelts_t) ceil((float)mat->nc_AC/(float)mat->bs);
@@ -5385,85 +5101,6 @@ static inline void write_poly_to_matrix(mat_gb_block_t *mat,
   }
 }
 
-/* Checks blocks for density: Converts sparse to dense and dense to sparse */
-/* static inline void adjust_block_row_types(mat_gb_block_t *mat,
- *     const mat_gb_meta_data_t *meta)
- * {
- *   nelts_t i,j,k;
- *
- *   const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
- *
- *   for (i=0; i<meta->ncb; ++i) {
- *     [> sparse to dense ? <]
- *     if (mat[i].len != NULL) {
- *         printf("len %u\n", mat[i].len[meta->bs]);
- *       if (mat[i].len[meta->bs] > bs_square/2) {
- *         cf_t *val = (cf_t *)calloc(bs_square, sizeof(cf_t));
- *         for (j=0; j<meta->bs; ++j) {
- *           for (k=mat[i].len[j]; k<mat[i].len[j+1]; ++k) {
- *             val[j*meta->bs+mat[i].pos[k]] = mat[i].val[k];
- *           }
- *         }
- *         free(mat[i].len);
- *         mat[i].len  = NULL;
- *         free(mat[i].pos);
- *         mat[i].pos  = NULL;
- *         return;
- *       } else if (mat[i].len[meta->bs] > 0) {
- *         printf("len %u\n", mat[i].len[meta->bs]);
- *         mat[i].pos =
- *           realloc(mat[i].pos, mat[i].len[meta->bs] * sizeof(bs_t));
- *         mat[i].val =
- *           realloc(mat[i].val, mat[i].len[meta->bs] * sizeof(cf_t));
- *         return;
- *       } else {
- *         free(mat[i].len);
- *         mat[i].len  = NULL;
- *         free(mat[i].pos);
- *         mat[i].pos  = NULL;
- *         free(mat[i].val);
- *         mat[i].val  = NULL;
- *         return;
- *       }
- *     } else { [> dense to sparse ? <]
- *       nelts_t ctr = 0;
- *       for (j=0; j<bs_square; ++j)
- *         if (mat[i].val[j] != 0)
- *           ctr++;
- *       if (ctr == 0) {
- *         free(mat[i].len);
- *         mat[i].len  = NULL;
- *         free(mat[i].pos);
- *         mat[i].pos  = NULL;
- *         free(mat[i].val);
- *         mat[i].val  = NULL;
- *         return;
- *       }
- *       if (ctr < bs_square/4) {
- *         mat[i].len  = (nelts_t *)malloc((meta->bs+1) * sizeof(nelts_t));
- *         mat[i].pos  = (bs_t *)malloc(ctr * sizeof(bs_t));
- *         cf_t *val   = (cf_t *)malloc(ctr * sizeof(cf_t));
- *
- *         ctr = 0;
- *         mat[i].len[0] = 0;
- *         for (j=0; j<meta->bs; ++j) {
- *           mat[i].len[j+1] = mat[i].len[j];
- *           for (k=0; k<meta->bs; ++k) {
- *             if (mat[i].val[j*meta->bs+k] != 0) {
- *               val[ctr]        = mat[i].val[j*meta->bs+k];
- *               mat[i].pos[ctr] = (bs_t)k;
- *               mat[i].len[j+1]++;
- *               ctr++;
- *             }
- *           }
- *         }
- *         free(mat[i].val);
- *         mat[i].val  = val;
- *         return;
- *       }
- *     }
- *   }
- * } */
 
 static inline void adjust_block_row_types_including_dense_righthand(
     mat_gb_block_t *mat, const mat_gb_meta_data_t *meta)
@@ -5880,6 +5517,8 @@ smc_t *convert_mat_gb_to_smc_offset_format(const mat_gb_block_t **om,
 
 smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,
     const mat_gb_meta_data_t *meta, const int t);
+
+#endif
 
 
 /**

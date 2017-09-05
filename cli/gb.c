@@ -18,7 +18,6 @@
 
 #include "gb.h"
 #define COL_CHECK 0
-#define REDUCE_AB_FIRST 0
 
 /* extern declaration in src/types.h */
 info_t *meta_data;
@@ -223,10 +222,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  /* if simplification should be done, use GBLA linear algebra */
-  if (simplify != 0)
-    linear_algebra = 1;
-
   /* if GBLA linear algebra is used the block size is given by a macro */
   if (linear_algebra == 1 || linear_algebra == 2)
     block_size  = __GBLA_SIMD_BLOCK_SIZE;
@@ -283,7 +278,7 @@ int main(int argc, char *argv[])
     printf("---------------------------------------------------------------------------\n");
   }
   /* input stores input data */
-  gb_t *basis = load_input(fn, nvars, order, ht, max_spairs, verbose;
+  gb_t *basis = load_input(fn, nvars, order, ht, max_spairs, verbose);
 
   if (verbose > 0) {
     gettimeofday(&t_load_start, NULL);
@@ -322,61 +317,58 @@ int main(int argc, char *argv[])
   if (verbose > 0)
     t_update_pairs  +=  walltime(t_load_start);
 
-  /* if (verbose > 2) {
-   *   printf("---------------------------------------------------------------------------\n");
-   *   printf("ps->size                          %9u\n",ps->size);
-   *   printf("ps->load                          %9u\n",ps->load);
-   *   printf("basis->size                       %9u\n",basis->size);
-   *   [> See note on gb_t in src/types.h why we decrement basis->load here. <]
-   *   printf("basis->load                       %9u\n",basis->load-1);
-   *   printf("---------------------------------------------------------------------------\n");
-   *   printf("criteria applications (last step) %9u\n",meta_data->ncrit_last);
-   *   printf("criteria applications (total)     %9u\n",meta_data->ncrit_total);
-   * } */
+  /* matrix handlers for linear algebra */
+  pre_t *mon  = (pre_t *)malloc(sizeof(pre_t));
+  mon->hash   = NULL;
+  smc_t *AB   = (smc_t *)malloc(sizeof(smc_t));
+  AB->row     = NULL;
+  smc_t *CD   = (smc_t *)malloc(sizeof(smc_t));
+  CD->row     = NULL;
+  AB->mod = CD->mod = basis->mod;
 
   /* run while there exist spairs to be handled */
   while (ps->load > 0)
   {
     steps++;
+
+    mon->nlm  = 0;
+    mon->load = 0;
+    mon->size = 2 * ps->size;
+    mon->hash = realloc(mon->hash, 2 * ps->size * sizeof(hash_t));
     
     /* select next bunch of spairs */
     if (verbose > 0)
       gettimeofday(&t_load_start, NULL);
-    spd_t *spd  = symbolic_preprocessing(ps, basis, sf);
-#if HASH_CHECK
-    printf("HOW OFTEN DO HASHES APPEAR?\n");
-    nelts_t counter = 0;
-    for (nelts_t kk=0; kk<ht->load; ++kk) {
-      if (ht->ctr[kk] == 1) {
-        printf("hash %lu appears %4u times\n", ht->val[kk], ht->ctr[kk]);
-        counter++;
-      }
-    }
-    printf("%u hashes appear only once!\n",counter);
-#endif
+
+    symbolic_preprocessing(ps, AB, CD, mon, basis);
+
+    /* set matrix meta data */
+    AB->row = realloc(AB->row, AB->rk * sizeof(src_t *));
+    AB->nr  = AB->rk;
+    CD->row = realloc(CD->row, CD->rk * sizeof(src_t *));
+    CD->nr  = CD->rk;
+    AB->ncl = CD->ncl  = mon->nlm;
+    AB->ncr = CD->ncr  = mon->load - mon->nlm;
+
+    mon->hash = realloc(mon->hash, mon->load * sizeof(hash_t));
+
     if (verbose > 0) {
       t_symbolic_preprocessing +=  walltime(t_load_start);
       gettimeofday(&t_load_start, NULL);
     }
-    /* if (verbose > 2) {
-     *   printf("---------------------------------------------------------------------------\n");
-     *   printf("sel->deg                          %9u\n",spd->selu->deg);
-     *   printf("selu->load                        %9u\n",spd->selu->load);
-     *   printf("sell->load                        %9u\n",spd->sell->load);
-     *   printf("mon->load                         %9u\n",spd->col->load);
-     *   printf("mon->nlm                          %9u\n",spd->col->nlm);
-     * } */
+
 #if GB_DEBUG
-    printf("# lead terms before sorting: %u\n", spd->col->nlm);
-    for (int i = 0; i < spd->col->load; ++i) {
-      if (i == spd->col->nlm)
+    printf("# lead terms before sorting: %u\n", mon->nlm);
+    for (int i = 0; i < mon->load; ++i) {
+      if (i == mon->nlm)
         printf("-------------------------\n");
       for (int j = 0; j < ht->nv; ++j) {
-        printf("%u ", ht->exp[spd->col->hpos[i]][j]);
+        printf("%u ", ht->exp[mon->hashs[i]][j]);
       }
-      printf("|| %lu | %u\n", spd->col->hpos[i], ht->idx[spd->col->hpos[i]]);
+      printf("|| %lu | %u\n", mon->hash[i], ht->idx[mon->hash[i]]);
     }
 #endif
+
 
     /* next we have to store arrays for the connection between lead monomials
      * and matrix column indices resp. non-lead monomials and matrix column
@@ -385,7 +377,7 @@ int main(int argc, char *argv[])
      * We first sort spd->col via lead and non lead monomials, i.e. ht->idx[i] =
      * 1 or = 2 */
     if (linear_algebra != 10) {
-      sort_columns_by_lead(spd);
+      sort_columns_by_lead(mon);
 
       /* next we can sort both parts (we know the number of lead monomials =
        * spd->sel->load - spd->sel->nsp, i.e. all polynomials considered in
@@ -398,129 +390,151 @@ int main(int argc, char *argv[])
        * inverted for a faster reduction of A in the first step of the matrix
        * reduction. */
       if (linear_algebra > 1)
-        ht->sort.sort_presorted_columns(spd, nthreads);
+        ht->sort.sort_presorted_columns(mon, nthreads);
       else
-        ht->sort.sort_presorted_columns_invert_left_side(spd, nthreads);
+        ht->sort.sort_presorted_columns_invert_left_side(mon, nthreads);
     } else { 
-      if (basis->ord == 0)
-        qsort(spd->col->hpos, spd->col->load,
-            sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_grevlex);
-      if (basis->ord == 1)
-        qsort(spd->col->hpos, spd->col->load,
-            sizeof(hash_t), cmp_symbolic_preprocessing_monomials_by_lex);
+        ht->sort.sort_columns(mon);
     }
-    /* connect monomial hash positions with columns in to be constructed gbla
-     * matrix */
-    set_column_index_in_hash_table(ht, spd);
+    /* for (size_t i = 0; i < mon->load; ++i) {
+     *   printf("%u - %u -- ", i, mon->hash[i]);
+     *   for (size_t j = 0; j < ht->nv; ++j)
+     *     printf("%u ", ht->exp[mon->hash[i]][j]);
+     *   printf("\n");
+     * } */
 
-    /* now sort upper and lower polynomial selections by lead monomials. this
-     * corresponds to sorting by columns (=rows as this is one-to-one for lead
-     * monomials).
-     * if we do not keep A we use for A and C a row structure and thus do not
-     * invert the order of the left side columns.
-     * if we keep A we use for A and C a block structure and we invert
-     * the order of the left side columns since gbla expects blocks be
-     * inverted for a faster reduction of A in the first step of the matrix
-     * reduction. */
-    if (linear_algebra == 2)
-      sort_selection_by_inverted_column_index(spd, nthreads);
-    else
-      sort_selection_by_column_index(spd, nthreads);
-    if (verbose > 0) {
-      t_sorting_columns +=  walltime(t_load_start);
-      gettimeofday(&t_load_start, NULL);
-    }
 
-#if GB_DEBUG
-    printf("# lead terms: %u\n", spd->col->nlm);
-    for (int i = 0; i < spd->col->load; ++i) {
-      if (i == spd->col->nlm)
-        printf("-------------------------\n");
-      for (int j = 0; j < ht->nv; ++j) {
-        printf("%u ", ht->exp[spd->col->hpos[i]][j]);
+    set_column_indices_in_ht_idx(ht, mon);
+    /* exchange hash values with column indices in preconstructed matrices */
+    #pragma omp parallel num_threads(nthreads)
+    {
+      #pragma omp single
+      {
+        #pragma omp task
+        {
+          if (AB->rk != 0) {
+            set_column_indices(AB, ht);
+            sort_rows_by_column_indices(AB);
+          }
+        }
+        #pragma omp task
+        {
+          set_column_indices(CD, ht);
+          sort_rows_by_column_indices(CD);
+        }
+        #pragma omp taskwait
       }
-      printf("|| %lu | %u\n", spd->col->hpos[i], ht->idx[spd->col->hpos[i]]);
     }
-#endif
-  
+
+    /* sort rows in AB and CD */
+    #pragma omp parallel num_threads(nthreads)
+    {
+      #pragma omp single
+      {
+        #pragma omp task
+        qsort(AB->row, AB->rk, sizeof(src_t *), cmp_rows_by_decreasing_lm);
+        /* ht->sort.sort_rows_by_decreasing_lm(AB); */
+        #pragma omp task
+        qsort(CD->row, CD->rk, sizeof(src_t *), cmp_rows_by_increasing_lm);
+        /* ht->sort.sort_rows_by_increasing_lm(CD); */
+        #pragma omp taskwait
+      }
+    }
+    /* for (size_t l = 0; l < AB->rk; ++l) {
+     *   printf("AB->row[%u] %p   ", l, AB->row[l]);
+     *   for (size_t k = 0; k < AB->row[l][1]; k = k+2) {
+     *     printf("%u %u  ", AB->row[l][k], AB->row[l][k+1]);
+     *   }
+     *   printf("\n");
+     * }
+     * printf("\n");
+     * for (size_t l = 0; l < CD->rk; ++l) {
+     *   printf("CD->row[%u] %p   ", l, CD->row[l]);
+     *   printf("test\n");
+     *   for (size_t k = 0; k < CD->row[l][1]; k = k+2) {
+     *     printf("%u %u  ", CD->row[l][k], CD->row[l][k+1]);
+     *   }
+     *   printf("\n");
+     * } */
+
     uint64_t terms  = 0;
-    for (nelts_t i = 0; i < spd->selu->load; ++i) {
-      terms +=  basis->nt[spd->selu->mpp[i].bi];
+    for (nelts_t i = 0; i < AB->nr; ++i) {
+      terms +=  (AB->row[i][1]-2)/2;
     }
-    for (nelts_t i = 0; i < spd->sell->load; ++i) {
-      terms +=  basis->nt[spd->sell->mpp[i].bi];
+    for (nelts_t i = 0; i < CD->nr; ++i) {
+      terms +=  (CD->row[i][1]-2)/2;
     }
     uint64_t dimension  =
-      (uint64_t)(spd->selu->load+spd->sell->load)*spd->col->load;
+      (uint64_t)((AB->nr+CD->nr) * (CD->ncl + CD->ncr));
     double density      = (double)terms / (double)dimension;
 
     /* find corresponding linear algebra implementation */
     switch (linear_algebra) {
    
-      case 1:
-        linear_algebra_gbla(basis, sf, spd, density, ps, 
-            0, verbose, nthreads);
-        break;
-
-      case 2:
-        linear_algebra_gbla(basis, sf, spd, density, ps, 
-            1, verbose, nthreads);
-        break;
-
-      case 3:
-        linear_algebra_block_ABCD_reduce_CD_directly(
-            basis, spd, density, ps, block_size, verbose, nthreads);
-        break;
-
-      case 4:
-        linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
-            basis, spd, density, ps, block_size, verbose, nthreads);
-        break;
-
-      case 5:
-        linear_algebra_block_ABCD_reduce_AB_first(
-            basis, spd, density, ps, block_size, verbose, nthreads);
-        break;
-
-      case 6:
-        linear_algebra_sparse_rows_ABCD(
-            basis, spd, density, ps, verbose, nthreads);
-        break;
-
-      case 7:
-        linear_algebra_sparse_rows_ABCD_reduce_CD_first(
-            basis, spd, density, ps, verbose, nthreads);
-        break;
-
-      case 8:
-        linear_algebra_sparse_rows_ABCD_multiline_AB(
-            basis, spd, density, ps, verbose, nthreads);
-        break;
-
-      case 9:
-        linear_algebra_sparse_rows_ABCD_reduce_AB_first(
-            basis, spd, density, ps, verbose, nthreads);
-        break;
-
-      case 10:
-        linear_algebra_sparse_rows_no_column_mapping(
-            basis, spd, density, ps, verbose, nthreads);
-        break;
+/*       case 1:
+ *         linear_algebra_gbla(basis, AB, CD, density, ps,
+ *             0, verbose, nthreads);
+ *         break;
+ *
+ *       case 2:
+ *         linear_algebra_gbla(basis, AB. CD, density, ps,
+ *             1, verbose, nthreads);
+ *         break;
+ *
+ *       case 3:
+ *         linear_algebra_block_ABCD_reduce_CD_directly(
+ *             basis, ps, AB, CD, density, block_size, verbose, nthreads);
+ *         break;
+ *
+ *       case 4:
+ *         linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
+ *             basis, spd, density, ps, block_size, verbose, nthreads);
+ *         break;
+ *
+ *       case 5:
+ *         linear_algebra_block_ABCD_reduce_AB_first(
+ *             basis, spd, density, ps, block_size, verbose, nthreads);
+ *         break;
+ *
+ *       case 6:
+ *         linear_algebra_sparse_rows_ABCD(
+ *             basis, spd, density, ps, verbose, nthreads);
+ *         break;
+ *
+ *       case 7:
+ *         linear_algebra_sparse_rows_ABCD_reduce_CD_first(
+ *             basis, spd, density, ps, verbose, nthreads);
+ *         break;
+ *
+ *       case 8:
+ *         linear_algebra_sparse_rows_ABCD_multiline_AB(
+ *             basis, spd, density, ps, verbose, nthreads);
+ *         break;
+ *
+ *       case 9:
+ *         linear_algebra_sparse_rows_ABCD_reduce_AB_first(
+ *             basis, spd, density, ps, verbose, nthreads);
+ *         break;
+ *
+ *       case 10:
+ *         linear_algebra_sparse_rows_no_column_mapping(
+ *             basis, spd, density, ps, verbose, nthreads);
+ *         break; */
 
       case 42:
         linear_algebra_probabilistic(
-            basis, spd, density, ps, verbose, nthreads);
+            basis, AB, CD, mon, density, ps, verbose, nthreads);
         break;
 
-      case 666:
-        if (density < 0.01 || spd->sell->load < 40) {
-          linear_algebra_sparse_rows_ABCD(
-              basis, spd, density, ps, verbose, nthreads);
-        } else {
-          linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
-              basis, spd, density, ps, block_size, verbose, nthreads);
-        }
-        break;
+      /* case 666:
+       *   if (density < 0.01 || spd->sell->load < 40) {
+       *     linear_algebra_sparse_rows_ABCD(
+       *         basis, spd, density, ps, verbose, nthreads);
+       *   } else {
+       *     linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
+       *         basis, spd, density, ps, block_size, verbose, nthreads);
+       *   }
+       *   break; */
 
 
       default:
@@ -528,11 +542,16 @@ int main(int argc, char *argv[])
             "Unknown linear algebra option.\n");
         return 1;
     }
-    free_symbolic_preprocessing_data(&spd);
+  /* free(mon->hash); */
   }
 
+  free(mon->hash);
+  free(mon);
+  free(AB);
+  free(CD);
+
   /* final basis for possible output data */
-  poly_t *fb  = NULL;
+  poly_t **fb  = NULL;
   /* generate final basis for output data */
   if (verbose > 0 || print_gb > 0) {
     fb  = final_basis_for_output(basis);
@@ -598,23 +617,26 @@ int main(int argc, char *argv[])
   free_pair_set(&ps);
   /* if we have found a unit we have allocated memory for the unit */
   if (basis->has_unit == 1) {
-    free(fb[0].cf);
-    free(fb[0].eh);
+    free(fb[0]);
+  } else {
+    /* elements are freed in basis
+     * for (size_t k = 0; k < basis->load - basis->st - basis->nred; ++k)
+     *   free(fb[k]); */
   }
   free_basis(&basis);
   free_hash_table(&ht);
-  free(fb);
 
   return 0;
 }
 
-void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
+#if 0
+void linear_algebra_gbla(gb_t *basis, smc_t *AB, smc_t *CD,
     const double density, ps_t *ps, const int keep_A,
     const int verbose, const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows = AB->nr + CD->nr;
+  meta_data->mat_cols = AB->ncl + AB->ncr;
   if (verbose > 0) {
     printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
         steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,
@@ -624,9 +646,20 @@ void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
 
   mat_t *mat  = NULL;
   if (keep_A == 1)
-    mat = generate_gbla_matrix_keep_A(basis, sf, spd, nthreads);
+    mat = generate_gbla_matrix(AB, CD, nthreads);
   else
-    mat = generate_gbla_matrix(basis, sf, spd, nthreads);
+    mat = generate_gbla_matrix(AB, CD, nthreads);
+
+  /* delete sparse matrix structures */
+  for (size_t i = 0; i < AB->nr; ++i) {
+    free(AB->row[i]);
+    AB->row[i]  = 0;
+  }
+  for (size_t i = 0; i < CD->nr; ++i) {
+    free(CD->row[i]);
+    CD->row[i]  = 0;
+  }
+
   if (verbose > 0) {
     t_generating_gbla_matrix  +=  walltime(t_load_start);
     gettimeofday(&t_load_start, NULL);
@@ -649,8 +682,8 @@ void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
     rankDR  = reduce_gbla_matrix(mat, verbose, nthreads);
   if (verbose > 0) {
     t_linear_algebra  +=  walltime(t_load_start);
-    n_zero_reductions +=  (spd->sell->load - rankDR);
-    printf("%6u new %6u zero ", rankDR, spd->sell->load - rankDR);
+    n_zero_reductions +=  (CD->nr - rankDR);
+    printf("%6u new %6u zero ", rankDR, CD->nr - rankDR);
     printf("%9.3f sec ", walltime(t_load_start) / (1000000));
     printf("%7.3f%% d ", density);
     printf("%6u bs\n", __GBLA_SIMD_BLOCK_SIZE);
@@ -668,7 +701,7 @@ void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
    * } */
 
   /* add new elements to basis and update pair set */
-  done  = update_basis(basis, ps, spd, mat, ht, rankDR);
+  done  = update_basis(basis, ps, mat, ht, rankDR);
 
   if (verbose > 0) {
     t_update_pairs  +=  walltime(t_load_start);
@@ -974,13 +1007,14 @@ void linear_algebra_block_ABCD_reduce_AB_first(
 }
 
 void linear_algebra_block_ABCD_reduce_CD_directly(
-    gb_t *basis, const spd_t *spd, const double density,
-    ps_t *ps, const nelts_t block_size, const int verbose,
+    gb_t *basis, ps_t *ps, smc_t *sAB, 
+    smc_t *sCD, const double density,
+    const nelts_t block_size, const int verbose,
     const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows = sAB->nr + sCD->nr;
+  meta_data->mat_cols = sAB->ncl + sAB->ncr;
 
   nelts_t j, k;
   mat_gb_block_t *AB        = NULL;
@@ -990,7 +1024,7 @@ void linear_algebra_block_ABCD_reduce_CD_directly(
     t_linear_algebra_local  = 0;
 
   /* generate meta data */
-  meta  = generate_matrix_meta_data(block_size, basis->mod, spd);
+  meta  = generate_matrix_meta_dataas(sAB, sCD, block_size);
 
   if (verbose > 0) {
     t_generating_gbla_matrix  +=  walltime(t_load_start);
@@ -1002,7 +1036,7 @@ void linear_algebra_block_ABCD_reduce_CD_directly(
   }
 
   /* generate AB if upper rows are available */
-  if (spd->selu->load > 0) {
+  if (sAB->nr > 0) {
     AB  = generate_mat_gb_upper(meta, basis, spd, ht, nthreads);
 
     if (verbose > 0) {
@@ -1416,27 +1450,29 @@ void linear_algebra_sparse_rows_ABCD_multiline_AB(
     basis->has_unit = 1;
   }
 }
+#endif
 
-void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
-    const double density, ps_t *ps, const int verbose,
+void linear_algebra_probabilistic(gb_t *basis, smc_t *AB, smc_t *CD,
+    const pre_t *mon, const double density, ps_t *ps, const int verbose,
     const int nthreads)
 {
   srand((unsigned int)time(NULL));   // should only be called once
   int done;
-  const nelts_t nr  = spd->sell->load+spd->selu->load;
-  const nelts_t nc  = spd->col->load;
+  const nelts_t nr  = AB->nr + CD->nr;
+  const nelts_t nc  = AB->ncl + AB->ncr;
   src_t **pivs      = (src_t **)malloc(nc * sizeof(src_t *));
-  src_t *np; /* possible new pivot row */
   for (size_t i = 0; i < nc; ++i)
     pivs[i] = NULL;
+  for (size_t i = 0; i < AB->rk; ++i) {
+    pivs[AB->row[i][2]]     = AB->row[i];
+    pivs[AB->row[i][2]][0]  = 1;
+  }
+
+  src_t *np; /* possible new pivot row */
 
   /* meta data information for printing */
   meta_data->mat_rows = nr;
   meta_data->mat_cols = nc;
-  if (verbose > 0) {
-    t_generating_gbla_matrix  +=  walltime(t_load_start);
-    gettimeofday(&t_load_start, NULL);
-  }
   if (verbose > 0) {
     printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
         steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,
@@ -1444,38 +1480,17 @@ void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
     fflush(stdout);
   }
 
-  /* adds known pivots in generated matrix pivs */
-  for (size_t i = 0; i < spd->selu->load; ++i)
-    add_poly_to_pivs(pivs, i, basis, spd->selu);
-
   /* global dense random row for checking after all blocks are done */
   bf_t *drg = (bf_t *)calloc(nc, sizeof(bf_t));
 
-#if REDUCE_AB_FIRST
-  /* interreduce new pivs */
-  for (size_t i = 0; i < spd->selu->load; ++i) {
-    /* printf("i %u", i); */
-    if (pivs[i] != NULL) {
-      memset(drg, 0, nc * sizeof(bf_t));
-      for (size_t k = 2; k < pivs[i][1]; k = k+2)
-        drg[pivs[i][k]]  +=  (bf_t) pivs[i][k+1];
-      free(pivs[i]);
-      pivs[i] = NULL;
-      np  = reduce_dense_row_by_known_pivots(
-          drg, pivs, nc, basis->mod);
-      /* printf(" np %p\n", np); */
-      np[0] = i;
-      pivs[i] = np;
-    }
-  }
-#endif
   /* number of blocks */
-  const nelts_t nb  = (nelts_t)(floor(sqrt(spd->sell->load/2))) > 0 ?
-    (nelts_t)(floor(sqrt(spd->sell->load/2))) :
-    (nelts_t)(floor(sqrt(spd->sell->load))) ;
-  nelts_t rem       = (spd->sell->load % nb == 0) ? 0 : 1;
+  const nelts_t nrl = CD->nr;
+  const nelts_t nb  = (nelts_t)(floor(sqrt(nrl/2))) > 0 ?
+    (nelts_t)(floor(sqrt(nrl/2))) :
+    (nelts_t)(floor(sqrt(nrl))) ;
+  nelts_t rem       = (nrl % nb == 0) ? 0 : 1;
   /* rows per block */
-  const nelts_t rpb = (spd->sell->load / nb) + rem;
+  const nelts_t rpb = (nrl / nb) + rem;
 
 again:
 #pragma omp parallel num_threads(nthreads) shared(drg)
@@ -1484,21 +1499,13 @@ again:
     bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
 #pragma omp parallel for num_threads(nthreads)
     for (size_t i = 0; i < nb; ++i) {
-      nelts_t nbl   = (nelts_t) (spd->sell->load > (i+1)*rpb ? (i+1)*rpb :
-          spd->sell->load);
+      nelts_t nbl   = (nelts_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
       nelts_t nrbl  = (nelts_t) (nbl - i*rpb); 
 
       if (nrbl != 0) {
-        src_t **bl  = (src_t **)malloc(nrbl * sizeof(src_t *));
-        nelts_t ctr = 0;
-        for (size_t j = i*rpb; j < nbl; ++j) {
-          add_poly_to_block(bl, spd->sell->load-1-j, ctr, basis, spd->sell);
-          ctr++;
-        }
 
-
-
-        while (1) {
+        nelts_t bctr  = 0;
+        while (bctr < nrbl) {
           /* fill random value array */
           for (size_t j = 0; j < nrbl; ++j)
             mul[j]  = (src_t) rand() % basis->mod;
@@ -1506,34 +1513,33 @@ again:
           /* generate one dense row as random linear combination
            * of the rows of the block */
           memset(dr, 0, nc * sizeof(bf_t));
-          for (size_t j = 0; j < nrbl; ++j) {
-            for (size_t k = 2; k < bl[j][1]; k = k+2) {
-              dr[bl[j][k]]  +=  (bf_t) mul[j] * bl[j][k+1];
+          nelts_t ctr = 0;
+          for (size_t j = i*rpb; j < nbl; ++j) {
+            for (size_t k = 2; k < CD->row[j][1]; k = k+2) {
+              dr[CD->row[j][k]]  +=  (bf_t) mul[ctr] * CD->row[j][k+1];
             }
+            ctr++;
           }
 
           /* reduce the dense random row w.r.t. to the already known pivots  */
           done = 0;
           while (!done) {
             np  = reduce_dense_row_by_known_pivots(
-                dr, pivs, spd->col->load, basis->mod);
+                dr, pivs, mon->load, basis->mod);
             if (!np)
               goto block_done;
             done  = __sync_bool_compare_and_swap(&pivs[np[2]], NULL, np);
           }
+          bctr++;
         }
 block_done:
         /* fill global dense row for final check at the end */
         for (size_t j = 0; j < nrbl; ++j)
           mul[j]  = (src_t) rand() % basis->mod;
-        for (size_t j = 0; j < nrbl; ++j)
-          for (size_t k = 2; k < bl[j][1]; k = k+2)
-            drg[bl[j][k]]  +=  (bf_t) mul[j] * bl[j][k+1];
+        for (size_t j = i*rpb; j < nbl; ++j)
+          for (size_t k = 2; k < CD->row[j][1]; k = k+2)
+            drg[CD->row[j][k]]  +=  (bf_t) mul[j] * CD->row[j][k+1];
 
-        /* free local data */
-        for (size_t j = 0; j < nrbl; ++j)
-          free(bl[j]);
-        free(bl);
       }
     }
     free(mul);
@@ -1542,14 +1548,14 @@ block_done:
 
   /* do final check, go back if check fails */
   src_t *fc  = reduce_dense_row_by_known_pivots(
-      drg, pivs, spd->col->load, basis->mod);
+      drg, pivs, mon->load, basis->mod);
 
   if (fc != NULL)
     goto again;
 
   /* interreduce new pivs */
   nelts_t nnr = 0; /* number of new rows */
-  for (size_t i = nc; i > spd->selu->load; --i) {
+  for (size_t i = nc; i > mon->nlm; --i) {
     if (pivs[i-1] != NULL) {
       ++nnr;
       memset(drg, 0, nc * sizeof(bf_t));
@@ -1568,19 +1574,40 @@ block_done:
 
   if (verbose > 0) {
     t_linear_algebra  +=  walltime(t_load_start);
-    n_zero_reductions += spd->sell->load - nnr;
+    n_zero_reductions += nrl - nnr;
     printf("%5u nb ", nb);
-    printf("%6u new %6u zero ", nnr, spd->sell->load - nnr);
+    printf("%6u new %6u zero ", nnr, nrl - nnr);
     printf("%9.3f sec ", walltime(t_load_start) / (1000000));
     printf("%7.3f%% d\n", density);
     gettimeofday(&t_load_start, NULL);
   }
 
-  done  = update_basis_all_pivs(basis, ps, spd, pivs, nc, ht);
+  /* for (size_t i = 0; i < nc; ++i)
+   *   printf("%u %p\n", i, pivs[i]); */
+  done  = update_basis_all_pivs(basis, ps, mon, pivs, nc, ht);
+    /* printf("1 last (%u) basis element: ", basis->load-1);
+     * for (size_t i = 0; i < basis->p[basis->load-1][1]; i = i+2)
+     *   printf("%u %u  ", basis->p[basis->load-1][i], basis->p[basis->load-1][i+1]);
+     * printf("\n"); */
+
+  for (size_t i = 0; i < CD->nr; ++i)
+    free(CD->row[i]);
+  CD->nr  = CD->rk  = 0;
+    /* printf("2 last (%u) basis element: ", basis->load-1);
+     * for (size_t i = 0; i < basis->p[basis->load-1][1]; i = i+2)
+     *   printf("%u %u  ", basis->p[basis->load-1][i], basis->p[basis->load-1][i+1]);
+     * printf("\n"); */
+
   for (size_t i = 0; i < nc; ++i)
     free(pivs[i]);
   free(pivs);
   pivs  = NULL;
+  AB->nr  = AB->rk  = 0;
+    /* printf("3 last (%u) basis element: ", basis->load-1);
+     * for (size_t i = 0; i < basis->p[basis->load-1][1]; i = i+2)
+     *   printf("%u %u  ", basis->p[basis->load-1][i], basis->p[basis->load-1][i+1]);
+     * printf("\n"); */
+
   if (verbose > 0) {
     t_update_pairs  +=  walltime(t_load_start);
     gettimeofday(&t_load_start, NULL);
@@ -1591,6 +1618,7 @@ block_done:
   }
 }
 
+#if 0
 void linear_algebra_sparse_rows_ABCD_reduce_AB_first(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads)
@@ -1675,3 +1703,4 @@ void linear_algebra_sparse_rows_ABCD_reduce_AB_first(
     basis->has_unit = 1;
   }
 }
+#endif

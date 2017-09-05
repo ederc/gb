@@ -117,12 +117,6 @@ ri_t reduce_gbla_matrix(mat_t * mat, int verbose, int nthreads)
     printf("%9.3f sec %5d %5d %5d\n",
         walltime(t_load_start) / (1000000), rank_D, mat->DR->nrows - rank_D, mat->DR->nrows);
   }
-  /* if we simplify, then copy B to dense row representation */
-  if (mat->sl > 0 && mat->B->blocks != NULL) {
-    /* first copy B to BR (dense row format) */
-    mat->BR = copy_block_to_dense_matrix(&(mat->B), nthreads, 0);
-    mat->BR->mod  = mat->mod;
-  }
   if (verbose > 3) {
     print_mem_usage();
   }
@@ -349,6 +343,7 @@ static inline void write_sparse_compact_row(src_t **rows,
   }
 }
 
+#if OLD_POLY_REPRESENTATION
 smc_t *convert_mat_gb_to_smc_offset_format(const mat_gb_block_t **om,
     const mat_gb_meta_data_t *meta, const int t)
 {
@@ -398,3 +393,4 @@ smc_t *convert_mat_gb_to_smc_format(const mat_gb_block_t *om,
 
   return nm;
 }
+#endif

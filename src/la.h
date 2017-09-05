@@ -32,6 +32,7 @@
 #include <config.h>
 #include "types.h"
 
+#if 0
 static inline void copy_first_row_from_dense(mat_gb_block_t *bl,
     const mat_gb_block_t *obl, const mat_gb_meta_data_t *meta)
 {
@@ -1298,4 +1299,5 @@ static inline void reduce_upper_part(mat_gb_block_t **mat,
     reduce_upper_column_block(mat, meta->nrb_AB-1-j, meta, t);
   }
 }
+#endif
 #endif

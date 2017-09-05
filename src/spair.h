@@ -159,21 +159,6 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
 nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
 
 /**
- * \brief Adds generator gen of the corresponding spair with least common
- * multiple lcm to selection list sel.
- *
- * \param selection list sel
- *
- * \param intermediate groebner basis basis
- *
- * \param least common multiple of spair lcm
- *
- * \param a generator of spair gen
- */
-void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
-    const hash_t lcm, const nelts_t gen);
-
-/**
  * \brief Adjusts selection set size to new_size
  *
  * \note This function is not only used for enlargements, but also
@@ -186,7 +171,6 @@ void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
 static inline void adjust_size_of_selection(sel_t *sel, const nelts_t new_size)
 {
   sel->size = new_size;
-  sel->mpp  = realloc(sel->mpp, sel->size * sizeof(mpp_t));
 }
 
 /**
@@ -202,7 +186,6 @@ static inline sel_t *init_selection(const nelts_t size)
   sel->size   = size;
   sel->load   = 0;
 
-  sel->mpp    = (mpp_t *)malloc(size * sizeof(mpp_t));
 
   return sel;
 }
@@ -215,7 +198,6 @@ static inline sel_t *init_selection(const nelts_t size)
 static inline void free_selection(sel_t **sel_in)
 {
   sel_t *sel  = *sel_in;
-  free(sel->mpp);
   free(sel);
   sel     = NULL;
   *sel_in = sel;

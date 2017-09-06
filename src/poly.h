@@ -271,6 +271,20 @@ static inline void track_redundant_elements_in_basis(gb_t *basis, const ht_t *ht
   }
 }
 
+static inline void track_redundant_elements_in_basis_many(gb_t *basis, const ht_t *ht)
+{
+  /* check for redundancy of other elements in basis */
+  for (size_t j = basis->load_ls; j < basis->load; ++j) {
+    for (size_t i = basis->st; i < j; ++i) {
+      if (basis->red[i] == 0 &&
+          check_monomial_division(basis->eh[i][0], basis->eh[j][0], ht)) {
+        basis->red[i] = basis->load-1;
+        basis->nred++;
+      }
+    }
+  }
+}
+
 /**
  * \brief Checks if the new element is probably already redundant. This is
  * possible if elements of lower degree were added to basis in the same

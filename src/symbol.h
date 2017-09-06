@@ -963,6 +963,10 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   nelts_t *gens = (nelts_t *)malloc(2 * nsel * sizeof(nelts_t));
   nelts_t load  = 0;
   nelts_t tmp, min_nt_pos;
+
+  /* allocate maximal used memory for selu */
+  while (selu->load > selu->size+nsel)
+    adjust_size_of_selection(selu, 2*selu->size);
   while (i<nsel) {
     lcm     = ps->pairs[i].lcm;
     gens[0] = ps->pairs[i].gen1;
@@ -1066,6 +1070,9 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
     }
     /* if (load > 1)
      *   load  = 2; */
+    /* allocate maximal used memory for sell */
+    while (sell->load > sell->size+(load-k))
+      adjust_size_of_selection(sell, 2*sell->size);
     for (l=k; l<load; l++) {
       add_spair_generator_to_selection(sell, basis, lcm, gens[l]);
       j = sell->load-1;
@@ -1117,6 +1124,6 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   }
   ps->load  = k;
   /* adjust size of lower selection set, it will not change from this point onwards */
-  adjust_size_of_selection(sell, sell->load);
+  /* adjust_size_of_selection(sell, sell->load); */
 }
 #endif

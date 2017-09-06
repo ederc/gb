@@ -287,8 +287,8 @@ inline void generate_spair(ps_t *ps, const nelts_t gen1,
   /* else */
   sp->crit  = NO_CRIT;
   if (basis->red[gen2] > 0) {
-    sp->crit  = NO_CRIT;
-    /* sp->crit  = CHAIN_CRIT; */
+    /* sp->crit  = NO_CRIT; */
+    sp->crit  = CHAIN_CRIT;
     /* sp->crit  = PROD_CRIT; */
     return;
   }
@@ -305,8 +305,8 @@ inline void add_spair_generator_to_selection(sel_t *sel, const gb_t *basis,
 {
   hash_t mul;
   mul = get_multiplier(lcm, basis->eh[gen][0], ht);
-  if (sel->load == sel->size)
-    adjust_size_of_selection(sel, 2*sel->size);
+  /* if (sel->load == sel->size)
+   *   adjust_size_of_selection(sel, 2*sel->size); */
   sel->mpp[sel->load].mlm = lcm;
   sel->mpp[sel->load].mul = mul;
   sel->mpp[sel->load].bi  = gen;

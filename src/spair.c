@@ -175,7 +175,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       case NO_CRIT:
         for (j=i-1; j>(int)(ps->load-1); --j) {
           if (ps->pairs[j].lcm == ps->pairs[i].lcm) {
-            ps->pairs[i].crit  = CHAIN_CRIT;
+              ps->pairs[i].crit  = CHAIN_CRIT;
             break;
           }
         }

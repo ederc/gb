@@ -112,6 +112,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         while (basis->red[i] != 0)
           i = basis->red[i];
         hio = i;
+        goto done;
       } else {
         i = basis->st;
         while (i<basis->load) {
@@ -119,7 +120,7 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
             while (basis->red[i] != 0)
               i = basis->red[i];
             hio = i;
-            break;
+            goto done;
           }
           i++;
         }

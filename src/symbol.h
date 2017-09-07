@@ -964,9 +964,6 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
   nelts_t load  = 0;
   nelts_t tmp, min_nt_pos;
 
-  /* allocate maximal used memory for selu */
-  while (selu->load > selu->size+nsel)
-    adjust_size_of_selection(selu, 2*selu->size);
   while (i<nsel) {
     lcm     = ps->pairs[i].lcm;
     gens[0] = ps->pairs[i].gen1;

@@ -62,6 +62,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   /* the lower part of the gbla matrix resp. the selection is fixed:
    * those are just the second generators of the spairs, thus we need nsel
    * places. */
+
+  /* NOTE: We allocate enough memory for sel_low and sel_upp such that we do
+  *       not need to reallocate during select_pairs. Later on we might need
+  *       to reallocated memory for sel_upp, sel_low is fixed after pair
+  *       selection. */
   sel_t *sel_low  = init_selection(2*nsel - nlcm);
   sel_t *sel_upp  = init_selection(20*nsel);
   sel_upp->deg    = ps->pairs[0].deg;
@@ -109,21 +114,18 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
       if (last_div > 0) {
         i = last_div;
-        while (basis->red[i] != 0)
-          i = basis->red[i];
-        hio = i;
-        goto done;
       } else {
         i = basis->st;
-        while (i<basis->load) {
-          if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
-            while (basis->red[i] != 0)
-              i = basis->red[i];
-            hio = i;
-            goto done;
-          }
-          i++;
+      }
+      while (i<basis->load) {
+        if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
+          while (basis->red[i] != 0)
+            i = basis->red[i];
+          hio = i;
+          ht->div[hash_pos]  = hio;
+          goto done;
         }
+        i++;
       }
 #else
       nelts_t b = i;
@@ -139,64 +141,57 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
         }
       }
 #endif
-      if (hio > 0) {
-        done:
-        /* ho = get_multiplier(hash_pos, basis->eh[hio][0], ht); */
-        mon->nlm++;
-        /* printf("this is the reducer finally taken %3u\n",hio); */
-        /* if (ht->div[hash_pos] != hio)
-         *   printf("hdiv changed: %u --> %u\n", ht->div[hash_pos], hio); */
-        ht->div[hash_pos]  = hio;
-        /* if multiple is not already in the selected list
-         * we have found another element with such a monomial, since we do not
-         * take care of the lead monomial below when entering the other lower
-         * order monomials, we have to adjust the idx for this given monomial
-         * here.
-         * we have reducer, i.e. the monomial is a leading monomial (important for
-         * splicing matrix later on */
-        ht->idx[hash_pos] = 2;
-        if (sel_upp->load == sel_upp->size)
-          adjust_size_of_selection(sel_upp, 2*sel_upp->size);
-        sel_upp->mpp[sel_upp->load].bi  = hio;
-        sel_upp->mpp[sel_upp->load].sf  = 0;
-        sel_upp->mpp[sel_upp->load].mlm = hash_pos;
-        sel_upp->mpp[sel_upp->load].mul = get_multiplier(hash_pos, basis->eh[hio][0], ht);
-#if 0
-        sel_upp->mpp[sel_upp->load].nt  = basis->nt[hio];
-        sel_upp->mpp[sel_upp->load].eh  = basis->eh[hio];
-        sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
-#endif
-        sel_upp->load++;
+      ht->div[hash_pos]  = i;
+      idx++;
+      continue;
 
-        if (mon->size-mon->load+1 < basis->nt[sel_upp->mpp[sel_upp->load-1].bi]) {
-          const nelts_t max = 2*mon->size > basis->nt[sel_upp->mpp[sel_upp->load-1].bi] ?
-            2*mon->size : basis->nt[sel_upp->mpp[sel_upp->load-1].bi];
-          adjust_size_of_preprocessing_hash_list(mon, max);
-        }
+done:
+      /* ho = get_multiplier(hash_pos, basis->eh[hio][0], ht); */
+      mon->nlm++;
+      /* printf("this is the reducer finally taken %3u\n",hio); */
+      /* if (ht->div[hash_pos] != hio)
+       *   printf("hdiv changed: %u --> %u\n", ht->div[hash_pos], hio); */
+      /* if multiple is not already in the selected list
+       * we have found another element with such a monomial, since we do not
+       * take care of the lead monomial below when entering the other lower
+       * order monomials, we have to adjust the idx for this given monomial
+       * here.
+       * we have reducer, i.e. the monomial is a leading monomial (important for
+       * splicing matrix later on */
+      ht->idx[hash_pos] = 2;
+      if (sel_upp->load == sel_upp->size)
+        adjust_size_of_selection(sel_upp, 2*sel_upp->size);
+      sel_upp->mpp[sel_upp->load].bi  = hio;
+      sel_upp->mpp[sel_upp->load].sf  = 0;
+      sel_upp->mpp[sel_upp->load].mlm = hash_pos;
+      sel_upp->mpp[sel_upp->load].mul = get_multiplier(hash_pos, basis->eh[hio][0], ht);
+#if 0
+      sel_upp->mpp[sel_upp->load].nt  = basis->nt[hio];
+      sel_upp->mpp[sel_upp->load].eh  = basis->eh[hio];
+      sel_upp->mpp[sel_upp->load].cf  = basis->cf[hio];
+#endif
+      sel_upp->load++;
+
+      if (mon->size-mon->load+1 < basis->nt[sel_upp->mpp[sel_upp->load-1].bi]) {
+        const nelts_t max = 2*mon->size > basis->nt[sel_upp->mpp[sel_upp->load-1].bi] ?
+          2*mon->size : basis->nt[sel_upp->mpp[sel_upp->load-1].bi];
+        adjust_size_of_preprocessing_hash_list(mon, max);
+      }
 #define SIMPLIFY  1
 #if SIMPLIFY
-        /* function pointer set correspondingly if simplify option is set or not */
-        ht->sf.simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
-        /* try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf); */
-        /* now add new monomials to preprocessing hash list */
-        if (sel_upp->mpp[sel_upp->load-1].sf > 0) {
-          enter_monomial_to_preprocessing_hash_list(
-              /* sel_upp->mpp[sel_upp->load-1], */
-              sel_upp->mpp[sel_upp->load-1].mul,
-              sel_upp->mpp[sel_upp->load-1].sf,
-              sf,
-              mon,
-              ht);
-        } else {
-          enter_monomial_to_preprocessing_hash_list(
-              /* sel_upp->mpp[sel_upp->load-1], */
-              sel_upp->mpp[sel_upp->load-1].mul,
-              sel_upp->mpp[sel_upp->load-1].bi,
-              basis,
-              mon,
-              ht);
-        }
-#else
+      /* function pointer set correspondingly if simplify option is set or not */
+      ht->sf.simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf);
+      /* try_to_simplify(&sel_upp->mpp[sel_upp->load-1], basis, sf); */
+      /* now add new monomials to preprocessing hash list */
+      if (sel_upp->mpp[sel_upp->load-1].sf > 0) {
+        enter_monomial_to_preprocessing_hash_list(
+            /* sel_upp->mpp[sel_upp->load-1], */
+            sel_upp->mpp[sel_upp->load-1].mul,
+            sel_upp->mpp[sel_upp->load-1].sf,
+            sf,
+            mon,
+            ht);
+      } else {
         enter_monomial_to_preprocessing_hash_list(
             /* sel_upp->mpp[sel_upp->load-1], */
             sel_upp->mpp[sel_upp->load-1].mul,
@@ -204,8 +199,16 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
             basis,
             mon,
             ht);
-#endif
       }
+#else
+      enter_monomial_to_preprocessing_hash_list(
+          /* sel_upp->mpp[sel_upp->load-1], */
+          sel_upp->mpp[sel_upp->load-1].mul,
+          sel_upp->mpp[sel_upp->load-1].bi,
+          basis,
+          mon,
+          ht);
+#endif
     }
     idx++;
   }

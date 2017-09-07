@@ -256,6 +256,7 @@ inline void generate_spair(ps_t *ps, const nelts_t gen1,
    * } */
 
   sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
+
   sp->deg   = ht->deg[sp->lcm];
   
   /* if one of the generators is redundant we can stop already here and mark it

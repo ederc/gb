@@ -999,7 +999,7 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
      * does it really makes sense to sort the elements such that the known pivot
      * is the corresponding sparsest row? or is the benefit from this not enough
      * to compensate the drawback of searching for the element? */
-#if 0
+#if 1
     /* put generator with minimal number of terms on first position, i.e.
      * sparsest row of given lcm is used as known pivot */
     min_nt_pos  = 0;

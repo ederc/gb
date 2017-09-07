@@ -198,13 +198,15 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
       /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
       /* update_pair_set(ps, basis, basis->load-1); */
       /* printf("psl after: %u\n", ps->load); */
+      if (basis->hom == 0)
+        track_redundant_elements_in_basis(basis, ht);
     }
   }
   update_pair_set_many(ps, basis, basis->load_ls);
   /* if elements are homogeneous we compute by degree, thus no redundancy can
     * appear */
-  if (basis->hom == 0)
-    track_redundant_elements_in_basis_many(basis, ht);
+  /* if (basis->hom == 0)
+   *   track_redundant_elements_in_basis_many(basis, ht); */
   /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
   return 0;

@@ -85,11 +85,11 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
        * reach the last known divisor last_div */
       hio = 0;
       /* ho  = 0; */
-      if (last_div > 0 && basis->red[last_div] == 0) {
-        hio = last_div;
-        goto done;
-      }
-      i   = last_div == 0 ? basis->st : last_div+1;
+      /* if (last_div > 0 && basis->red[last_div] == 0) {
+       *   hio = last_div;
+       *   goto done;
+       * }
+       * i   = last_div == 0 ? basis->st : last_div; */
 
 #if 1
       /* max value for an unsigned data type in order to ensure that the first
@@ -107,18 +107,22 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
        *   }
        * } */
 
-      while (i<basis->load) {
-        /* if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) { */
-        if (basis->red[i] == 0 && check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
-        /* if (basis->red[i] == 0 && basis->nt[i] < nto && check_monomial_division(hash_pos, basis->eh[i][0], ht)) { */
-          /* h = get_multiplier(hash_pos, basis->eh[i][0], ht); */
-          /* if ((h != 0)) { */
+      if (last_div > 0) {
+        i = last_div;
+        while (basis->red[i] != 0)
+          i = basis->red[i];
+        hio = i;
+      } else {
+        i = basis->st;
+        while (i<basis->load) {
+          if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
+            while (basis->red[i] != 0)
+              i = basis->red[i];
             hio = i;
-            /* nto = basis->nt[i]; */
             break;
-          /* } */
+          }
+          i++;
         }
-        i++;
       }
 #else
       nelts_t b = i;

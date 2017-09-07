@@ -166,8 +166,8 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         continue;
       case PROD_CRIT:
         for (j=(int)ps->load; j<cur_len; ++j) {
-          if (ps->pairs[j].lcm == ps->pairs[i].lcm) {
-          /* if (ps->pairs[j].crit == NO_CRIT && ps->pairs[j].lcm == ps->pairs[i].lcm) { */
+          /* if (ps->pairs[j].lcm == ps->pairs[i].lcm) { */
+          if (ps->pairs[j].crit == NO_CRIT && ps->pairs[j].lcm == ps->pairs[i].lcm) {
             ps->pairs[j].crit  = CHAIN_CRIT;
           }
         }

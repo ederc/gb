@@ -262,12 +262,13 @@ static inline void track_redundant_elements_in_basis(gb_t *basis, const ht_t *ht
   nelts_t i;
   /* check for redundancy of other elements in basis */
   for (i=basis->st; i<basis->load-1; ++i) {
-    if (basis->red[i] == 0) {
+    /* if (basis->red[i] == 0) { */
       if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
+        if (basis->red[i] == 0)
+          basis->nred++;
         basis->red[i] = basis->load-1;
-        basis->nred++;
       }
-    }
+    /* } */
   }
 }
 
@@ -276,10 +277,10 @@ static inline void track_redundant_elements_in_basis_many(gb_t *basis, const ht_
   /* check for redundancy of other elements in basis */
   for (size_t j = basis->load_ls; j < basis->load; ++j) {
     for (size_t i = basis->st; i < j; ++i) {
-      if (basis->red[i] == 0 &&
-          check_monomial_division(basis->eh[i][0], basis->eh[j][0], ht)) {
-        basis->red[i] = basis->load-1;
-        basis->nred++;
+      if (check_monomial_division(basis->eh[i][0], basis->eh[j][0], ht)) {
+        if (basis->red[i] == 0)
+          basis->nred++;
+        basis->red[i] = (red_t)j;
       }
     }
   }
@@ -306,7 +307,7 @@ static inline int check_new_element_for_redundancy(hash_t hash, const gb_t *basi
 {
   /* check for redundancy of other elements in basis */
   for (nelts_t i=basis->load_ls; i<basis->load; ++i) {
-    if (basis->red[i] == 0 && check_monomial_division(hash, basis->eh[i][0], ht) == 1)
+    if (check_monomial_division(hash, basis->eh[i][0], ht) == 1)
       return 1;
   }
   return 0;

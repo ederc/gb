@@ -1638,7 +1638,7 @@ block_done:
       ++nnr;
       memset(drg, 0, nc * sizeof(bf_t));
       for (size_t k = 2; k < pivs[i-1][1]; k = k+2)
-        drg[pivs[i-1][k]]  +=  (bf_t) pivs[i-1][k+1];
+        drg[pivs[i-1][k]] =  (bf_t) pivs[i-1][k+1];
       free(pivs[i-1]);
       pivs[i-1] = NULL;
       np  = reduce_dense_row_by_known_pivots(

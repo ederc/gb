@@ -226,14 +226,16 @@ static inline int update_basis_new(gb_t *basis, ps_t *ps, const spd_t *spd,
       continue;
     if (res == 0)
       return 1;
+
+    /* if elements are homogeneous we compute by degree, thus no redundancy can
+     * appear */
     if (basis->hom == 0)
       track_redundant_elements_in_basis(basis, ht);
     /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
-    update_pair_set(ps, basis, basis->load-1);
+    /* update_pair_set(ps, basis, basis->load-1); */
     /* printf("psl after: %u\n", ps->load); */
-    /* if elements are homogeneous we compute by degree, thus no redundancy can
-     * appear */
   }
+  update_pair_set_many(ps, basis, basis->load_ls);
   /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
   return 0;

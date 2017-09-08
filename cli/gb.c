@@ -691,8 +691,9 @@ void linear_algebra_gbla(gb_t *basis, gb_t *sf, const spd_t *spd,
     const int verbose, const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
   if (verbose > 0) {
     printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
         steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,
@@ -771,8 +772,9 @@ void linear_algebra_sparse_rows_no_column_mapping(
     ps_t *ps, const int verbose, const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
 
   nelts_t init_rk_CD  = 0;
   smc_t *AB = NULL, *CD = NULL;
@@ -854,8 +856,9 @@ void linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
     const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
 
   mat_gb_block_t *AB, *CD   = NULL;
   mat_gb_meta_data_t *meta  = NULL;
@@ -952,8 +955,9 @@ void linear_algebra_block_ABCD_reduce_AB_first(
     const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
 
   nelts_t i, j, k;
   mat_gb_block_t **AB       = NULL;
@@ -1061,8 +1065,9 @@ void linear_algebra_block_ABCD_reduce_CD_directly(
     const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
 
   nelts_t j, k;
   mat_gb_block_t *AB        = NULL;
@@ -1163,8 +1168,9 @@ void linear_algebra_sparse_rows_ABCD_reduce_CD_first(
     ps_t *ps, const int verbose, const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
   if (verbose > 0) {
     printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
         steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,
@@ -1270,8 +1276,9 @@ void linear_algebra_sparse_rows_ABCD_unoptimized(
   /* generate upper matrix, i.e. already known pivots */
   int done;
   smat_t *AB = NULL, *CD = NULL;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
   /* generate lower matrix, i.e. unkown pivots */
   CD = generate_sparse_matrix(basis, spd->sell,
       spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
@@ -1350,8 +1357,9 @@ void linear_algebra_sparse_rows_ABCD(gb_t *basis, const spd_t *spd,
   /* generate upper matrix, i.e. already known pivots */
   int done;
   smc_t *AB = NULL, *CD = NULL;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
   /* generate lower matrix, i.e. unkown pivots */
   CD = generate_sparse_compact_matrix(basis, spd->sell,
       spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
@@ -1428,8 +1436,9 @@ void linear_algebra_sparse_rows_ABCD_multiline_AB(
     ps_t *ps, const int verbose, const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
   /* generate upper matrix, i.e. already known pivots */
   smc_t *AB = NULL, *CD = NULL;
   /* generate lower matrix, i.e. unkown pivots */
@@ -1682,8 +1691,9 @@ void linear_algebra_sparse_rows_ABCD_reduce_AB_first(
     ps_t *ps, const int verbose, const int nthreads)
 {
   int done;
-  meta_data->mat_rows = spd->selu->load + spd->sell->load;
-  meta_data->mat_cols = spd->col->load;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
   if (verbose > 0) {
     printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
         steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,

@@ -57,11 +57,11 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   for (i=0; i<load; ++i) {
     /* do not check on initial spairs */
     if (ps->pairs[i].crit == NO_CRIT) {
-      if (basis->red[ps->pairs[i].gen2] != 0 ||
-          (basis->red[ps->pairs[i].gen1] != 0 && basis->red[ps->pairs[i].gen1] != ps->pairs[i].gen2)) {
-        ps->pairs[i].crit = CHAIN_CRIT;
-        continue;
-      }
+      /* if (basis->red[ps->pairs[i].gen2] != 0 ||
+       *     (basis->red[ps->pairs[i].gen1] != 0 && basis->red[ps->pairs[i].gen1] != ps->pairs[i].gen2)) {
+       *   ps->pairs[i].crit = CHAIN_CRIT;
+       *   continue;
+       * } */
       /* See note on gb_t in src/types.h why we adjust position by -basis->st. */
       pos1  = ps->pairs[i].gen1 - basis->st;
       pos2  = ps->pairs[i].gen2 - basis->st;
@@ -202,10 +202,9 @@ inline void generate_spair(ps_t *ps, const nelts_t gen1,
   /* if one of the generators is redundant we can stop already here and mark it
    * with the CHAIN_CRIT in order to remove it later on */
   /* else */
-  /* if (basis->red[gen2] > 0) {
-   *   sp->crit  = CHAIN_CRIT;
-   *   return;
-   * } */
+  if (basis->red[gen2] > 0) {
+    sp->crit  = CHAIN_CRIT;
+  }
   /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
   if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]]) {
     sp->crit  = PROD_CRIT;

@@ -11,7 +11,7 @@ AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wformat=2 -Wformat-y2k -Wno-format-extra-args \
 						-Wno-format-zero-length -Wformat-nonliteral \
 						-Wformat-security -Wno-unknown-pragmas -mpopcnt \
-						-funroll-loops -finline-functions -fpic \
+						-funroll-loops -finline-functions -shared -fPIC \
 						${OPENMP_CFLAGS} ${CL_CFLAGS}
 
 #AM_LIBS	=	${CL_LIBS}
@@ -19,6 +19,7 @@ AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 lib_LTLIBRARIES = libgb.la
 
 libgb_la_SOURCES = \
+	src/types.h src/types.c	\
 	src/hash.h	src/hash.c	\
 	src/poly.h	src/poly.c \
 	src/spair.h src/spair.c	\
@@ -58,8 +59,8 @@ bin_PROGRAMS = gb
 # set up the console program. Listing the headers in sources ensure that
 # those files are included in distributions.
 gb_SOURCES = \
-	cli/gb.h	cli/gb.c	\
-	cli/io.h	cli/io.c
+	cli/io.h	cli/io.c	\
+	cli/gb.h	cli/gb.c
 
 gb_LDADD = $(top_builddir)/libgb.la $(DEPS_LIBS) ${CL_LIBS} $(GBLA_LIBS) -lm
 

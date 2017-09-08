@@ -33,6 +33,7 @@
 #include <limits.h>
 #include <getopt.h>
 #include "io.h"
+#include <src/types.h>
 #include <src/poly.h>
 #include <src/spair.h>
 #include <src/symbol.h>

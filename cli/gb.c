@@ -20,9 +20,6 @@
 #define COL_CHECK 0
 #define REDUCE_AB_FIRST 0
 
-/* extern declaration in src/types.h */
-info_t *meta_data;
-
 void print_help(void)
 {
   printf("\n");

@@ -174,6 +174,7 @@ inline nelts_t get_number_of_terms(const char *line)
 
   return nterms;
 }
+
 inline void store_exponent(const char *term, const gb_t *basis, ht_t *ht)
 {
   nvars_t k;

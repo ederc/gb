@@ -35,6 +35,9 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
 
+  /* for (size_t k = 0; k < ps->load; ++k)
+   *   printf("%u | %u %u | deg %u\n", k, ps->pairs[k].gen1, ps->pairs[k].gen2, ps->pairs[k].deg); */
+
   /* check if limit for spair handling is set */
   if (basis->max_sel != 0) {
     while (nsel > basis->max_sel)

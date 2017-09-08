@@ -193,8 +193,8 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
    *       largest lead term. in a lot of other examples it is just the other
    *       way around. this choice influences the gebauer-moeller check and the
    *       number of pairs resp. which pairs are handled. */
-  for (size_t i = nc; i > spd->selu->load; --i) {
-  /* for (size_t i = spd->selu->load+1; i < nc+1; ++i) { */
+  /* for (size_t i = nc; i > spd->selu->load; --i) { */
+  for (size_t i = spd->selu->load+1; i < nc+1; ++i) {
     if (pivs[i-1] != NULL && pivs[i-1][0] == 0) {
       res = add_new_element_to_basis_all_pivs(basis, pivs[i-1], spd, ht);
       if (res == -1)
@@ -204,15 +204,25 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
       /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
       /* update_pair_set(ps, basis, basis->load-1); */
       /* printf("psl after: %u\n", ps->load); */
+      /* if (basis->hom == 0)
+       *   track_redundant_elements_in_basis(basis, ht); */
+#if 0
+      update_pair_set(ps, basis, basis->load-1);
+      /* printf("psl after: %u\n", ps->load); */
+      /* if elements are homogeneous we compute by degree, thus no redundancy can
+      * appear */
       if (basis->hom == 0)
         track_redundant_elements_in_basis(basis, ht);
+#endif
     }
   }
+#if 1
   update_pair_set_many(ps, basis, basis->load_ls);
   /* if elements are homogeneous we compute by degree, thus no redundancy can
     * appear */
-  /* if (basis->hom == 0)
-   *   track_redundant_elements_in_basis_many(basis, ht); */
+  if (basis->hom == 0)
+    track_redundant_elements_in_basis_many(basis, ht);
+#endif
   /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
   return 0;

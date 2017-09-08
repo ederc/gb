@@ -175,7 +175,15 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       case NO_CRIT:
         for (j=i-1; j>(int)(ps->load-1); --j) {
           if (ps->pairs[j].lcm == ps->pairs[i].lcm) {
-              ps->pairs[i].crit  = CHAIN_CRIT;
+            /* if (ps->pairs[j].deg == 18) {
+             *   printf("%u || %u | %u %u | %u %u\n", ps->pairs[j].lcm, j,
+             *       ps->pairs[j].gen1, basis->nt[ps->pairs[j].gen1],
+             *       ps->pairs[j].gen2, basis->nt[ps->pairs[j].gen2]);
+             *   printf("%u || %u | %u %u | %u %u\n", ps->pairs[i].lcm, i,
+             *       ps->pairs[i].gen1, basis->nt[ps->pairs[i].gen1],
+             *       ps->pairs[i].gen2, basis->nt[ps->pairs[i].gen2]);
+             * } */
+            ps->pairs[i].crit  = CHAIN_CRIT;
             break;
           }
         }
@@ -198,7 +206,7 @@ inline nelts_t remove_detected_pairs(ps_t *ps, const nelts_t ctr)
   for (i=0; i<cur_len; ++i) {
     if (ps->pairs[i].crit != NO_CRIT) {
 #if SPAIR_DEBUG
-      printf("REMOVED (%u,%u)\n",ps->pairs[i]->gen1, ps->pairs[i]->gen2);
+      printf("REMOVED %u (%u,%u) -> %u\n",i, ps->pairs[i].gen1, ps->pairs[i].gen2, ps->pairs[i].crit);
 #endif
       nremoved++;
       /* printf("%p %u\n", ps->pairs[i], i); */

@@ -991,6 +991,10 @@ static inline void select_pairs(ps_t *ps, sel_t *selu, sel_t *sell, pre_t *mon,
       }
       j++;
     }
+    /* printf("lcm %u :  ", lcm);
+     * for (size_t w = 0; w < load; ++w)
+     *   printf("%u  ", gens[w]);
+     * printf("\n"); */
 
     /* TODO:
      * does it really makes sense to sort the elements such that the known pivot

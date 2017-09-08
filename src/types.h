@@ -583,6 +583,7 @@ struct info_t
   nelts_t ncrit_total;                        /*!<  number of pairs removed by criteria in total*/
   nelts_t nzerored_last;                      /*!<  number of zero reductions in the last step*/
   nelts_t nzerored_total;                     /*!<  number of zero reductions in total*/
+  uint64_t nrows_total;                       /*!<  total number of rows handled */
   struct timeval read_input_time;             /*!<  time for reading input data*/
   struct timeval criteria_check_time;         /*!<  overall time for criteria checks*/
   struct timeval pair_selection_time;         /*!<  overall time for pair selection*/

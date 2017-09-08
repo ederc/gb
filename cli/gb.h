@@ -188,7 +188,12 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
   /* for (size_t i = spd->selu->load; i < nc; ++i) {
    *   if (pivs[i] != NULL && pivs[i][0] == 0) {
    *     res = add_new_element_to_basis_all_pivs(basis, pivs[i], spd, ht); */
+  /* NOTE: for examples like jason210 it is better to first add the elements with
+   *       largest lead term. in a lot of other examples it is just the other
+   *       way around. this choice influences the gebauer-moeller check and the
+   *       number of pairs resp. which pairs are handled. */
   for (size_t i = nc; i > spd->selu->load; --i) {
+  /* for (size_t i = spd->selu->load+1; i < nc+1; ++i) { */
     if (pivs[i-1] != NULL && pivs[i-1][0] == 0) {
       res = add_new_element_to_basis_all_pivs(basis, pivs[i-1], spd, ht);
       if (res == -1)

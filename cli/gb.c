@@ -577,7 +577,8 @@ int main(int argc, char *argv[])
         meta_data->non_div, (double)(meta_data->non_div_found)/(double)(meta_data->non_div));
 #endif
     printf("Size of basis                     %9u\n", basis->fl);
-    printf("criteria applications (total)     %9u\n", meta_data->ncrit_total);
+    printf("Number of rows handled (total)    %9lu\n", meta_data->nrows_total);
+    printf("Criteria applications (total)     %9u\n", meta_data->ncrit_total);
     printf("Number of zero reductions         %9lu\n", n_zero_reductions);
     printf("Number of hashed elements         %9u (<= 2^%u) of 2^%u\n", ht->load,
         (unsigned int)(ceil(log(ht->load) / log(2))), (unsigned int)(log(ht->sz) / log(2)));
@@ -1515,6 +1516,7 @@ void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
   /* meta data information for printing */
   meta_data->mat_rows = nr;
   meta_data->mat_cols = nc;
+  meta_data->nrows_total += nr;
   if (verbose > 0) {
     t_generating_gbla_matrix  +=  walltime(t_load_start);
     gettimeofday(&t_load_start, NULL);

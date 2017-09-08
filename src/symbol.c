@@ -24,7 +24,7 @@
 
 spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
 {
-  nelts_t i, idx, last_div, nsel, nlcm;
+  nelts_t i, idx, nsel, nlcm;
   hash_t hash_pos;
 
   /* clears hash table index: there we store during symbolic preprocessing a 2
@@ -80,70 +80,23 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
   /* we use mon as LIFO: last in, first out. thus we can easily remove and add
    * new elements to mon */
   idx = 0;
-  nelts_t hio;
   /* hash_t h, ho; */
   while (idx < mon->load) {
     /* printf("mon_load %u\n", mon->load); */
     hash_pos  = mon->hpos[idx];
     /* only if not already a lead monomial, e.g. if coming from spair */
     if (ht->idx[hash_pos] != 2) {
-      last_div  = ht->div[hash_pos];
+      i = ht->div[hash_pos] > 0 ? ht->div[hash_pos] : basis->st;;
 
-      /* takes last element in basis and test for division, goes down until we
-       * reach the last known divisor last_div */
-      hio = 0;
-      /* ho  = 0; */
-      /* if (last_div > 0 && basis->red[last_div] == 0) {
-       *   hio = last_div;
-       *   goto done;
-       * }
-       * i   = last_div == 0 ? basis->st : last_div; */
-
-#if 1
-      /* max value for an unsigned data type in order to ensure that the first
-       * polynomial is taken */
-      /* nelts_t nto = UINT32_MAX; */
-
-      /* if (last_div != 0) {
-       *   if (basis->red[i] == 0) {
-       *     hio = i;
-       *     ho  = get_multiplier(hash_pos, basis->eh[i][0], ht);
-       *     nto = basis->nt[i];
-       *     goto done;
-       *   } else {
-       *     i++;
-       *   }
-       * } */
-
-      if (last_div > 0) {
-        i = last_div;
-      } else {
-        i = basis->st;
-      }
       while (i<basis->load) {
         if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
           while (basis->red[i] != 0)
             i = basis->red[i];
-          hio = i;
-          ht->div[hash_pos]  = hio;
+          ht->div[hash_pos] = i;
           goto done;
         }
         i++;
       }
-#else
-      nelts_t b = i;
-      hio = 0;
-      /* max value for an unsigned data type in order to ensure that the first
-       * polynomial is taken */
-      for (i=basis->load; i>b; --i) {
-        if (basis->red[i-1] == 0 && check_monomial_division(hash_pos, basis->eh[i-1][0], ht)) {
-          /* h = get_multiplier(hash_pos, basis->eh[i-1][0], ht); */
-          hio = i-1;
-          ho  = h;
-          break;
-        }
-      }
-#endif
       ht->div[hash_pos]  = i;
       idx++;
       continue;
@@ -164,10 +117,10 @@ done:
       ht->idx[hash_pos] = 2;
       if (sel_upp->load == sel_upp->size)
         adjust_size_of_selection(sel_upp, 2*sel_upp->size);
-      sel_upp->mpp[sel_upp->load].bi  = hio;
+      sel_upp->mpp[sel_upp->load].bi  = i;
       sel_upp->mpp[sel_upp->load].sf  = 0;
       sel_upp->mpp[sel_upp->load].mlm = hash_pos;
-      sel_upp->mpp[sel_upp->load].mul = get_multiplier(hash_pos, basis->eh[hio][0], ht);
+      sel_upp->mpp[sel_upp->load].mul = get_multiplier(hash_pos, basis->eh[i][0], ht);
 #if 0
       sel_upp->mpp[sel_upp->load].nt  = basis->nt[hio];
       sel_upp->mpp[sel_upp->load].eh  = basis->eh[hio];

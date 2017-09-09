@@ -202,7 +202,7 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
       if (res == 0)
         return 1;
       /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
-      /* update_pair_set(ps, basis, basis->load-1); */
+      update_pair_set(ps, basis, basis->load-1);
       /* printf("psl after: %u\n", ps->load); */
       if (basis->hom == 0)
         track_redundant_elements_in_basis(basis, ht);
@@ -217,7 +217,7 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
     }
   }
 #if 1
-  update_pair_set_many(ps, basis, basis->load_ls);
+  /* update_pair_set_many(ps, basis, basis->load_ls); */
   /* if elements are homogeneous we compute by degree, thus no redundancy can
     * appear */
   /* if (basis->hom == 0)

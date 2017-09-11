@@ -931,6 +931,7 @@ typedef struct ht_t
   hash_t *rand;       /*!<  array of random values for each variable
                             to generate hash values out of exponents*/
   deg_t *deg;         /*!<  degree of monmial, for faster sorting and searching*/
+  nelts_t *ld;        /*!<  last found divisor during symbolic preprocessing */
   nelts_t *div;       /*!<  latest element from gb checked for its leading
                             term dividing corresponding monomial in hash table*/
   nelts_t bpv;        /*!<  bits per variable in divmask */

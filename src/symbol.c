@@ -86,13 +86,19 @@ spd_t *symbolic_preprocessing(ps_t *ps, const gb_t *basis, const gb_t *sf)
     hash_pos  = mon->hpos[idx];
     /* only if not already a lead monomial, e.g. if coming from spair */
     if (ht->idx[hash_pos] != 2) {
-      i = ht->div[hash_pos] > 0 ? ht->div[hash_pos] : basis->st;;
-
+      i = ht->ld[hash_pos];
+      if (i > 0) {
+        while (basis->red[i] != 0)
+          i = basis->red[i];
+        ht->ld[hash_pos] = i;
+        goto done;
+      }
+      i = ht->div[hash_pos] > 0 ? ht->div[hash_pos] : basis->st;
       while (i<basis->load) {
         if (check_monomial_division(hash_pos, basis->eh[i][0], ht)) {
           while (basis->red[i] != 0)
             i = basis->red[i];
-          ht->div[hash_pos] = i;
+          ht->ld[hash_pos] = i;
           goto done;
         }
         i++;

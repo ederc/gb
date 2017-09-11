@@ -260,6 +260,7 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   ht->lut     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
   ht->val     = (hash_t *)calloc(ht->sz, sizeof(hash_t));
   ht->deg     = (deg_t *)calloc(ht->sz, sizeof(deg_t));
+  ht->ld      = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
   ht->div     = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
   ht->idx     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
 #if 1
@@ -334,9 +335,11 @@ static inline void enlarge_hash_table(ht_t *ht)
   printf("enlarging hash table: %10u --> %10u\n", old_sz, ht->sz);
 #endif
   ht->lut   = realloc(ht->lut, ht->sz * sizeof(ht_size_t));
+  memset(ht->lut+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
   ht->val   = realloc(ht->val, ht->sz * sizeof(hash_t));
   ht->deg   = realloc(ht->deg, ht->sz * sizeof(deg_t));
   ht->idx   = realloc(ht->idx, ht->sz * sizeof(ht_size_t));
+  memset(ht->idx+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
 #if 1
   ht->dm    = realloc(ht->dm, ht->sz * sizeof(divm_t));
 #endif
@@ -344,13 +347,12 @@ static inline void enlarge_hash_table(ht_t *ht)
   ht->ctr   = realloc(ht->ctr, ht->sz * sizeof(ht_size_t));
 #endif
   ht->div   = realloc(ht->div, ht->sz * sizeof(nelts_t));
-  /* set mew values for divisors and index to zero */
-  memset(ht->idx+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
+  memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
+  ht->ld   = realloc(ht->div, ht->sz * sizeof(nelts_t));
+  memset(ht->ld+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
 #if HASH_CHECK
   memset(ht->ctr+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
 #endif
-  memset(ht->lut+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
-  memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
   ht->exp   = realloc(ht->exp, ht->sz * sizeof(exp_t *));
   for (i=old_sz; i<ht->sz; ++i) {
     ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
@@ -381,6 +383,7 @@ static inline void free_hash_table(ht_t **ht_in)
     free(ht->rand);
     free(ht->deg);
     free(ht->div);
+    free(ht->ld);
     free(ht->idx);
     free(ht->dm);
     free(ht->divmap);
@@ -493,20 +496,20 @@ static inline hash_t check_in_hash_table(ht_t *ht)
   for (size_t i = 0; i < ht->sz;  ++i) {
     tmp_h = (ht_size_t) (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
-    if (tmp_l == 0 && tmp_h != 0)
+    if (tmp_l == 0) {
       break;
-    if (ht->val[tmp_l] != hash)
-       continue;
+    }
+    if (ht->val[tmp_l] != hash) {
+      continue;
+    }
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
-      /* printf("ret %u\n", tmp_l); */
       return tmp_l;
     }
   }
   /* at this point we know that we do not have the hash value of exp in the
    * table, so we have to insert it */
-  hash_t ret =  insert_in_hash_table(hash, tmp_h, ht);
-  /* printf("ret %u\n", ret); */
-  return ret;
+
+  return insert_in_hash_table(hash, tmp_h, ht);
 }
 
 /**
@@ -585,7 +588,6 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   }
   ht->deg[ht->load] = ht->deg[mon_1] + ht->deg[mon_2];
   ht->val[ht->load] = ht->val[mon_1] + ht->val[mon_2];
-
   return check_in_hash_table(ht);
 }
 

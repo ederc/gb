@@ -103,8 +103,7 @@ int cmp_wle(const void *a, const void *b) ;
 static inline void init_wide_blocks(re_l_t ***wide_block)
 {
   int ret;
-  re_l_t **wb = *wide_block;
-  wb = (re_l_t **)malloc(__GBLA_SIMD_BLOCK_SIZE * sizeof(re_l_t *));
+  re_l_t **wb = (re_l_t **)malloc(__GBLA_SIMD_BLOCK_SIZE * sizeof(re_l_t *));
   uint64_t size = __GBLA_SIMD_BLOCK_SIZE * sizeof(re_l_t);
   bi_t i;
   for (i=0; i<__GBLA_SIMD_BLOCK_SIZE; ++i) {
@@ -208,8 +207,8 @@ static inline void copy_hybrid_to_wide_block(dbl_t ***hybrid_block_in,
 static inline void copy_wide_to_hybrid_block(re_l_t **wide_block,
     dbl_t ***hybrid_block)
 {
-  dbl_t **hb  = *hybrid_block;
   bi_t i, j, k;
+  dbl_t **hb  = (dbl_t **)malloc(__GBLA_SIMD_BLOCK_SIZE * sizeof(dbl_t *));
   for (i=0; i<__GBLA_SIMD_BLOCK_SIZE; ++i) {
     for (j=0; j<__GBLA_SIMD_BLOCK_SIZE; ++j) {
       //printf("wb[%d][%d] = %lu\n",i,j,wide_block[i][j]);
@@ -218,10 +217,10 @@ static inline void copy_wide_to_hybrid_block(re_l_t **wide_block,
       }
     }
   }
+  free(hb);
   return;
 
 not_zero:
-  hb  = (dbl_t **)malloc(__GBLA_SIMD_BLOCK_SIZE * sizeof(dbl_t *));
   for (i=0; i<__GBLA_SIMD_BLOCK_SIZE; ++i) {
     hb[i] = NULL;
   }

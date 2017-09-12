@@ -3940,7 +3940,6 @@ static inline src_t *reduce_lower_by_upper_multiline_rows_c(src_t *row, const sm
   while (lc < ncl) {
     const src_t *red = pivs->row[lc/2];
     if (lc % 2) {
-      mul1  = 0;
       mul2  = (bf_t)(mod) - bft[lc]; /* it is already reduced modulo mod */
       /* loop unrolling by 2, test length in advance and probably add the useless
        * reduction on the pivot entry in order to get a even loop length */

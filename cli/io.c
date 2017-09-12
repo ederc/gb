@@ -136,7 +136,10 @@ inline char *get_variable_name(const char *line, char **prev_pos)
       tmp_var_end--;
     } while (isspace(*tmp_var_end));
   }
-  size_t final_length  = (size_t)(tmp_var_end - tmp_var_begin + 1);
+  int fin_len  = (int)(tmp_var_end - tmp_var_begin + 1);
+  size_t final_length = 0;
+  if (fin_len > 0)
+    final_length  = (size_t)fin_len;
   char *final_var   = (char *)malloc((final_length+1) * sizeof(char));
   memcpy(final_var, tmp_var_begin, final_length);
   final_var[final_length] = '\0';
@@ -522,6 +525,9 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
     tmp = line;
   } else {
     printf("Bad file format.\n");
+    free(vnames);
+    free(line);
+    fclose(fh);
     return NULL;
   }
   for (i=0; i<nvars; ++i) {
@@ -536,10 +542,16 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       mod  = (mod_t)tmp_mod;
     } else {
       printf("Bad file format.\n");
+      free(vnames);
+      free(line);
+      fclose(fh);
       return NULL;
     }
   } else {
     printf("Bad file format.\n");
+    free(vnames);
+    free(line);
+    fclose(fh);
     return NULL;
   }
 
@@ -674,6 +686,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   check_for_same_exponents(basis);
   recalculate_divmaps(ht);
   ht->rcdm  = 10000;
+  free(vnames);
   free(term);
   free(line);
   fclose(fh);

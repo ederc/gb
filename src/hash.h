@@ -269,7 +269,7 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
    * number of variables: initially all exponents are set to zero, after reading
    * in all the input elements we recalculate the possible exponents for the
    * divmap for the first time */
-  ht->divmap  = (deg_t *)calloc(CHAR_BIT * sizeof(divm_t), sizeof(deg_t)); 
+  ht->divmap  = (deg_t *)calloc(CHAR_BIT * sizeof(deg_t), sizeof(deg_t)); 
   ht->bpv     = (CHAR_BIT * sizeof(divm_t)) / ht->nv;
   if (ht->bpv == 0)
     ht->bpv = 1;

@@ -260,27 +260,28 @@ int add_new_element_to_simplifier_new(gb_t *basis, gb_t * sf, const src_t *row,
   printf("deg: %u\n", deg);
   printf("# terms = 1 + %u\n",ctr-1);
 #endif
-  sf->nt[sf->load]  = ctr;
-  sf->deg[sf->load] = deg;
-  sf->red[sf->load] = 0;
+  if (ctr > 0) {
+    sf->nt[sf->load]  = ctr;
+    sf->deg[sf->load] = deg;
+    sf->red[sf->load] = 0;
 
 
-  /* realloc memory to the correct number of terms */
-  sf->cf[sf->load]  = realloc(sf->cf[sf->load],
-    sf->nt[sf->load] * sizeof(cf_t));
-  sf->eh[sf->load]  = realloc(sf->eh[sf->load],
-      sf->nt[sf->load] * sizeof(hash_t));
+    /* realloc memory to the correct number of terms */
+    sf->cf[sf->load]  = realloc(sf->cf[sf->load],
+        sf->nt[sf->load] * sizeof(cf_t));
+    sf->eh[sf->load]  = realloc(sf->eh[sf->load],
+        sf->nt[sf->load] * sizeof(hash_t));
 
-  if (sf->sf != NULL) {
-    sf->sf[sf->load].size = 3;
-    sf->sf[sf->load].load = 0;
-    sf->sf[sf->load].idx  = (nelts_t *)malloc(sf->sf[sf->load].size * sizeof(nelts_t));
+    if (sf->sf != NULL) {
+      sf->sf[sf->load].size = 3;
+      sf->sf[sf->load].load = 0;
+      sf->sf[sf->load].idx  = (nelts_t *)malloc(sf->sf[sf->load].size * sizeof(nelts_t));
+    }
+    sf->load++;
+
+    /* get index of element in sf */
+    link_simplifier_to_basis(basis, sf, spd, ri);
   }
-  sf->load++;
-  
-  /* get index of element in sf */
-  link_simplifier_to_basis(basis, sf, spd, ri);
-
   return 1;
 }
 
@@ -345,24 +346,25 @@ int add_new_element_to_basis_new_new(gb_t *basis, const sr_t *row,
   printf("deg: %u\n", deg);
   printf("# terms = 1 + %u\n",ctr-1);
 #endif
-  basis->nt[basis->load]  = ctr;
-  basis->deg[basis->load] = deg;
-  basis->red[basis->load] = 0;
+  if (ctr > 0) {
+    basis->nt[basis->load]  = ctr;
+    basis->deg[basis->load] = deg;
+    basis->red[basis->load] = 0;
 
 
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
+    /* realloc memory to the correct number of terms */
+    basis->cf[basis->load]  = realloc(basis->cf[basis->load],
+        basis->nt[basis->load] * sizeof(cf_t));
+    basis->eh[basis->load]  = realloc(basis->eh[basis->load],
+        basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    if (basis->sf != NULL) {
+      basis->sf[basis->load].size = 3;
+      basis->sf[basis->load].load = 0;
+      basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    }
+    basis->load++;
   }
-  basis->load++;
-
   return 1;
 }
 
@@ -425,35 +427,36 @@ int add_new_element_to_basis_all_pivs(gb_t *basis, const src_t *row,
   printf("deg: %u\n", deg);
   printf("# terms = 1 + %u\n",ctr-1);
 #endif
-  basis->nt[basis->load]  = ctr;
-  basis->deg[basis->load] = deg;
-  basis->red[basis->load] = 0;
+  if (ctr > 0) {
+    basis->nt[basis->load]  = ctr;
+    basis->deg[basis->load] = deg;
+    basis->red[basis->load] = 0;
 
 
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
+    /* realloc memory to the correct number of terms */
+    basis->cf[basis->load]  = realloc(basis->cf[basis->load],
+        basis->nt[basis->load] * sizeof(cf_t));
+    basis->eh[basis->load]  = realloc(basis->eh[basis->load],
+        basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
-  }
-  ht->div[basis->eh[basis->load][0]]  = basis->load;
+    if (basis->sf != NULL) {
+      basis->sf[basis->load].size = 3;
+      basis->sf[basis->load].load = 0;
+      basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    }
+    ht->div[basis->eh[basis->load][0]]  = basis->load;
 
 #if POLY_DEBUG
-  for (size_t i = basis->st;  i < basis->load; ++i) {
-    for (size_t j = 0;  j < basis->nt[basis->load]; ++j) {
-      if (check_monomial_division(basis->eh[basis->load][j], basis->eh[i][0], ht) != 0) {
-        printf("divisible tail term %u by basis element %u\n", j, i);
+    for (size_t i = basis->st;  i < basis->load; ++i) {
+      for (size_t j = 0;  j < basis->nt[basis->load]; ++j) {
+        if (check_monomial_division(basis->eh[basis->load][j], basis->eh[i][0], ht) != 0) {
+          printf("divisible tail term %u by basis element %u\n", j, i);
+        }
       }
     }
-  }
 #endif
-  basis->load++;
-
+    basis->load++;
+  }
   return 1;
 }
 
@@ -520,24 +523,25 @@ int add_new_element_to_basis_new(gb_t *basis, const src_t *row,
   printf("deg: %u\n", deg);
   printf("# terms = 1 + %u\n",ctr-1);
 #endif
-  basis->nt[basis->load]  = ctr;
-  basis->deg[basis->load] = deg;
-  basis->red[basis->load] = 0;
+  if (ctr > 0) {
+    basis->nt[basis->load]  = ctr;
+    basis->deg[basis->load] = deg;
+    basis->red[basis->load] = 0;
 
 
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
+    /* realloc memory to the correct number of terms */
+    basis->cf[basis->load]  = realloc(basis->cf[basis->load],
+        basis->nt[basis->load] * sizeof(cf_t));
+    basis->eh[basis->load]  = realloc(basis->eh[basis->load],
+        basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    if (basis->sf != NULL) {
+      basis->sf[basis->load].size = 3;
+      basis->sf[basis->load].load = 0;
+      basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    }
+    basis->load++;
   }
-  basis->load++;
-
   return 1;
 }
 
@@ -606,23 +610,24 @@ int add_new_element_to_basis(gb_t *basis, const mat_t *mat,
   printf("deg: %u\n", deg);
   printf("# terms = 1 + %u\n",ctr-1);
 #endif
-  basis->nt[basis->load]  = ctr;
-  basis->deg[basis->load] = deg;
-  basis->red[basis->load] = 0;
+  if (ctr > 0) {
+    basis->nt[basis->load]  = ctr;
+    basis->deg[basis->load] = deg;
+    basis->red[basis->load] = 0;
 
 
-  /* realloc memory to the correct number of terms */
-  basis->cf[basis->load]  = realloc(basis->cf[basis->load],
-    basis->nt[basis->load] * sizeof(cf_t));
-  basis->eh[basis->load]  = realloc(basis->eh[basis->load],
-      basis->nt[basis->load] * sizeof(hash_t));
+    /* realloc memory to the correct number of terms */
+    basis->cf[basis->load]  = realloc(basis->cf[basis->load],
+        basis->nt[basis->load] * sizeof(cf_t));
+    basis->eh[basis->load]  = realloc(basis->eh[basis->load],
+        basis->nt[basis->load] * sizeof(hash_t));
 
-  if (basis->sf != NULL) {
-    basis->sf[basis->load].size = 3;
-    basis->sf[basis->load].load = 0;
-    basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    if (basis->sf != NULL) {
+      basis->sf[basis->load].size = 3;
+      basis->sf[basis->load].load = 0;
+      basis->sf[basis->load].idx  = (nelts_t *)malloc(basis->sf[basis->load].size * sizeof(nelts_t));
+    }
+    basis->load++;
   }
-  basis->load++;
-
   return 1;
 }

@@ -348,7 +348,7 @@ static inline void enlarge_hash_table(ht_t *ht)
 #endif
   ht->div   = realloc(ht->div, ht->sz * sizeof(nelts_t));
   memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
-  ht->ld   = realloc(ht->div, ht->sz * sizeof(nelts_t));
+  ht->ld   = realloc(ht->ld, ht->sz * sizeof(nelts_t));
   memset(ht->ld+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
 #if HASH_CHECK
   memset(ht->ctr+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));

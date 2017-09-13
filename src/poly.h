@@ -264,8 +264,10 @@ static inline void track_redundant_elements_in_basis(gb_t *basis, const ht_t *ht
   for (i=basis->st; i<basis->load-1; ++i) {
     /* if (basis->red[i] == 0) { */
       if (check_monomial_division(basis->eh[i][0], basis->eh[basis->load-1][0], ht)) {
-        if (basis->red[i] == 0)
+        if (basis->red[i] == 0) {
+          /* printf("redundant %u by %u\n", i, basis->load-1); */
           basis->nred++;
+        }
         basis->red[i] = basis->load-1;
       }
     /* } */
@@ -278,8 +280,9 @@ static inline void track_redundant_elements_in_basis_many(gb_t *basis, const ht_
   for (size_t j = basis->load_ls; j < basis->load; ++j) {
     for (size_t i = basis->st; i < j; ++i) {
       if (check_monomial_division(basis->eh[i][0], basis->eh[j][0], ht)) {
-        if (basis->red[i] == 0)
+        if (basis->red[i] == 0) {
           basis->nred++;
+        }
         basis->red[i] = (red_t)j;
       }
     }

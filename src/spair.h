@@ -147,6 +147,8 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
  */
 nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
 
+nelts_t remove_chain_crit_pairs(ps_t *ps, const nelts_t ctr);
+
 /**
  * \brief Adds generator gen of the corresponding spair with least common
  * multiple lcm to selection list sel.
@@ -420,9 +422,6 @@ static inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t id
   if (idx > basis->st)
     gebauer_moeller(ps, basis, idx);
 
-  /* fix pair set and remove detected pairs */
-  meta_data->ncrit_last   =   remove_detected_pairs(ps, idx-basis->st);
-  meta_data->ncrit_total  +=  meta_data->ncrit_last;
 }
 
 /* updates many pairs at once starting from the first index fidx

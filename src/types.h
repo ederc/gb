@@ -701,7 +701,8 @@ typedef struct ps_t
 {
   /* global data */
   nelts_t size;     /*!<  memory allocated */
-  nelts_t load;     /*!<  number of elements in basis*/
+  nelts_t load_ls;  /*!<  number of elements in pair list in the last step*/
+  nelts_t load;     /*!<  number of elements in pair list */
   /* element data */
   spair_t *pairs;   /*!<  pointers of spairs */
 } ps_t;

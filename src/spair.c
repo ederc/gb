@@ -54,45 +54,76 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   int i, j; /* we need ints to cover cases where i=0 and j=i-1 */
   const int load  = (int)ps->load;
 
+  spair_t *sp = ps->pairs;
+
   for (i=0; i<load; ++i) {
+    if (basis->red[sp[i].gen1] > 0 || basis->red[sp[i].gen2] > 0) {
+      sp[i].crit  = CHAIN_CRIT;
+      continue;
+    }
     /* do not check on initial spairs */
-    if (ps->pairs[i].crit == NO_CRIT) {
-      /* if (basis->red[ps->pairs[i].gen2] != 0 ||
-       *     (basis->red[ps->pairs[i].gen1] != 0 && basis->red[ps->pairs[i].gen1] != ps->pairs[i].gen2)) {
-       *   ps->pairs[i].crit = CHAIN_CRIT;
-       *   continue;
-       * } */
-      /* See note on gb_t in src/types.h why we adjust position by -basis->st. */
-      pos1  = ps->pairs[i].gen1 - basis->st;
-      pos2  = ps->pairs[i].gen2 - basis->st;
-       if (ps->pairs[i].lcm != ps->pairs[ps->load+pos1].lcm &&
-          ps->pairs[i].lcm != ps->pairs[ps->load+pos2].lcm &&
-          check_monomial_division(ps->pairs[i].lcm, hash, ht) != 0) {
-        ps->pairs[i].crit  = CHAIN_CRIT;
-      }
+    /* See note on gb_t in src/types.h why we adjust position by -basis->st. */
+    pos1  = sp[i].gen1 - basis->st;
+    pos2  = sp[i].gen2 - basis->st;
+    if (sp[i].lcm != sp[ps->load+pos1].lcm &&
+        sp[i].lcm != sp[ps->load+pos2].lcm &&
+        check_monomial_division(sp[i].lcm, hash, ht) != 0) {
+      sp[i].crit  = CHAIN_CRIT;
     }
   }
 
   /* next: sort new pairs */
-  qsort(ps->pairs+ps->load, idx-basis->st, sizeof(spair_t), ht->sort.compare_spairs);
+  qsort(sp+ps->load, idx-basis->st, sizeof(spair_t), ht->sort.compare_spairs);
 
   /* second step: remove new pairs by themselves w.r.t the chain criterion */
-  for (i=load; i<cur_len; ++i) {
-    if (ps->pairs[i].crit != NO_CRIT)
+
+  int next;
+  for (j = load; j < cur_len; ++j) {
+    next  = j;
+    if (sp[j].crit != CHAIN_CRIT) {
+      i = j+1;
+      while (i < cur_len && sp[i].lcm == sp[j].lcm)
+        ++i;
+      next  = i-1;
+      while (i < cur_len) {
+        if (sp[i].crit == NO_CRIT &&
+            check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) {
+          sp[i].crit  = CHAIN_CRIT;
+        }
+        ++i;
+      }
+    }
+    j = next;
+  }
+
+  /* third step */
+  for (i = load; i < cur_len; ++i) {
+    if (sp[i].crit == CHAIN_CRIT) {
       continue;
-    for (j=load; j<i; ++j) {
-      /* if (ps->pairs[j].crit == CHAIN_CRIT) [> smaller lcm eliminated j <]
-       *   continue; */
-      if (ps->pairs[i].lcm != ps->pairs[j].lcm &&
-          check_monomial_division(ps->pairs[i].lcm, ps->pairs[j].lcm, ht) != 0) {
-        ps->pairs[i].crit  = CHAIN_CRIT;
-        break;
+    }
+    const hash_t lcm  = sp[i].lcm;
+    if (sp[i].crit == NO_CRIT) {
+      /* j = i+1;
+       * while (j < cur_len && sp[j].lcm == lcm) {
+       *   sp[j].crit  = CHAIN_CRIT;
+       *   j++;
+       * } */
+      for (j = i+1; j < cur_len; ++j) {
+        if (sp[j].lcm == lcm) {
+          sp[j].crit = CHAIN_CRIT;
+        } else {
+          break;
+        }
+      }
+    } else {
+      if (i > load && sp[i-1].lcm == lcm) {
+        sp[i].crit = CHAIN_CRIT;
       }
     }
   }
 
-  /* third step */
-  for (i=(int)ps->load; i<cur_len; ++i) {
+#if 0
+  for (i=load; i<cur_len; ++i) {
     switch (ps->pairs[i].crit) {
       case CHAIN_CRIT:
         continue;
@@ -124,6 +155,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
         break;
     }
   }
+#endif
 }
 
 inline nelts_t remove_detected_pairs(ps_t *ps, const nelts_t ctr)
@@ -179,38 +211,40 @@ inline void generate_input_element_spair(ps_t *ps, const nelts_t gen2, const gb_
 inline void generate_spair(ps_t *ps, const nelts_t gen1,
     const nelts_t gen2, const gb_t *basis, ht_t *ht)
 {
-  spair_t *sp = ps->pairs + ps->load + gen2 - basis->st;
-  /* we have to fix the positions where the new basis element is put (gen2),
-   * since we are trying to remove as much as possible useless elements in
-   * select_pairs(). if we would dynamically adjust the positioning (as done in
-   * the below commented out code) we could no longer track this correctly. */
-  sp->gen1  = gen2;
-  sp->gen2  = gen1;
+  if (basis->red[gen2] == 0) {
+    spair_t *sp = ps->pairs + ps->load + gen2 - basis->st;
+    /* we have to fix the positions where the new basis element is put (gen2),
+     * since we are trying to remove as much as possible useless elements in
+     * select_pairs(). if we would dynamically adjust the positioning (as done in
+     * the below commented out code) we could no longer track this correctly. */
+    sp->gen1  = gen2;
+    sp->gen2  = gen1;
 
-  /* if (basis->nt[gen1] < basis->nt[gen2]) {
-   *   sp->gen1  = gen1;
-   *   sp->gen2  = gen2;
-   * } else {
-   *   sp->gen1  = gen2;
-   *   sp->gen2  = gen1;
-   * } */
+    /* if (basis->nt[gen1] < basis->nt[gen2]) {
+     *   sp->gen1  = gen1;
+     *   sp->gen2  = gen2;
+     * } else {
+     *   sp->gen1  = gen2;
+     *   sp->gen2  = gen1;
+     * } */
 
-  sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
+    sp->lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
 
-  sp->deg   = ht->deg[sp->lcm];
-  
-  /* if one of the generators is redundant we can stop already here and mark it
-   * with the CHAIN_CRIT in order to remove it later on */
-  /* else */
-  if (basis->red[gen2] > 0) {
-    sp->crit  = CHAIN_CRIT;
+    sp->deg   = ht->deg[sp->lcm];
+
+    /* if one of the generators is redundant we can stop already here and mark it
+     * with the CHAIN_CRIT in order to remove it later on */
+    /* else */
+    if (basis->red[gen2] > 0) {
+      sp->crit  = CHAIN_CRIT;
+    }
+    /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
+    if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]]) {
+      sp->crit  = PROD_CRIT;
+      return;
+    }
+    sp->crit  = NO_CRIT;
   }
-  /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
-  if (sp->deg == ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]]) {
-    sp->crit  = PROD_CRIT;
-    return;
-  }
-  sp->crit  = NO_CRIT;
   return;
 }
 

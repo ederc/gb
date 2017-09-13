@@ -404,6 +404,7 @@ static inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t id
     enlarge_pair_set(ps, 2*ps->size);
   /* generate spairs with the initial elements in basis
    * See note on gb_t in src/types.h why we start at position 1 here. */
+  ps->load_ls = ps->load;
   for (i=basis->st; i<idx; ++i) {
     generate_spair(ps, idx, i, basis, ht);
 #if SPAIR_DEBUG

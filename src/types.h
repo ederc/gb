@@ -679,8 +679,15 @@ typedef struct gb_t
 /**
  * \brief Typedef of enum for criteria recognition: no criterion applies or the
  * product criterion applies or the chain criterion applies.
+ *
+ * \note The order of this enum seems strange: We need this for a faster
+ * Gebauer-Moeller check when updating pairs: For a given lcm we want to know
+ * two properties: Firstly if there is a product criterion applied. Secondly, if
+ * there is a pair with no criterion applied. With the given order of the enum
+ * we can presort the pair list by lcm and the break ties by the applied
+ * criteria.
  */
-typedef enum {NO_CRIT, CHAIN_CRIT, PROD_CRIT} criteria_t;
+typedef enum {PROD_CRIT, NO_CRIT, CHAIN_CRIT} criteria_t;
 
 /**
  * \brief S-pairs resp. S-polynomials list

@@ -1669,14 +1669,14 @@ block_done:
   }
 
   done  = update_basis_all_pivs(basis, ps, spd, pivs, nc, ht);
-  for (size_t i = 0; i < nc; ++i)
-    free(pivs[i]);
-  free(pivs);
-  pivs  = NULL;
   if (verbose > 0) {
     t_update_pairs  +=  walltime(t_load_start);
     gettimeofday(&t_load_start, NULL);
   }
+  for (size_t i = 0; i < nc; ++i)
+    free(pivs[i]);
+  free(pivs);
+  pivs  = NULL;
 
   if (done) {
     basis->has_unit = 1;

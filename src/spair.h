@@ -31,6 +31,7 @@
 #include <config.h>
 #include "types.h"
 #include "hash.h"
+#include <cli/io.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0
@@ -39,6 +40,7 @@
 #ifndef SPAIR_DEBUG
 #define SPAIR_DEBUG  0
 #endif
+
 
 /* global meta_data */
 extern info_t *meta_data;
@@ -124,6 +126,9 @@ void generate_input_element_spair(ps_t *ps, const nelts_t gen1, const gb_t *inpu
 void generate_spair(ps_t *ps, const nelts_t gen1, const nelts_t gen2,
     const gb_t *basis, ht_t *ht);
 
+void generate_all_spairs(ps_t *ps, const nelts_t new,
+    const gb_t *basis, ht_t *ht);
+
 
 /**
  * \brief Gebauer-Moeller checks for product and chain criterion
@@ -145,6 +150,8 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
  *
  * \return number of removed pairs
  */
+nelts_t remove_detected_pairs_new(ps_t *ps, const nelts_t idx);
+
 nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
 
 nelts_t remove_chain_crit_pairs(ps_t *ps, const nelts_t ctr);
@@ -222,6 +229,18 @@ static inline void free_selection(sel_t **sel_in)
  *
  * \returns corresponding integer for qsort
  */
+static inline int cmp_spairs_by_criteria(const void *a, const void *b)
+{
+  const spair_t *spa  = ((spair_t *)a);
+  const spair_t *spb  = ((spair_t *)b);
+  
+  if (spa->crit == NO_CRIT)
+    return -1;
+  if (spb->crit == NO_CRIT)
+    return 1;
+  return 0;
+}
+
 static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
 {
   const spair_t *spa  = ((spair_t *)a);
@@ -256,7 +275,7 @@ static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
     */
     return memcmp(expb,expa, sizeof(exp_t) * ht->nv);
   } else {
-    return 0;
+    return (int)(spa->crit - spb->crit);
   }
 }
 
@@ -397,32 +416,7 @@ static inline nelts_t get_pairs_by_minimal_degree_grevlex(ps_t *ps)
  *
  * \param index of new element in gb idx
  */
-static inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
-{
-  nelts_t i;
-
-  /* we get maximal idx-1 new pairs */
-  if (ps->size <= ps->load + (idx-1))
-    enlarge_pair_set(ps, 2*ps->size);
-  /* generate spairs with the initial elements in basis
-   * See note on gb_t in src/types.h why we start at position 1 here. */
-  ps->load_ls = ps->load;
-  for (i=basis->st; i<idx; ++i) {
-    generate_spair(ps, idx, i, basis, ht);
-#if SPAIR_DEBUG
-    printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-basis->st]->deg);
-#endif
-  }
-  /* we do not update ps->load at the moment in order to be able to distinguish
-   * old and new pairs for the gebauer-moeller update following */
-
-  /* check product and chain criterion in gebauer moeller style
-   * note that we have already marked the pairs for which the product criterion
-   * applies in generate_spair() */
-  if (idx > basis->st)
-    gebauer_moeller(ps, basis, idx);
-
-}
+void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx);
 
 /* updates many pairs at once starting from the first index fidx
  * up to the current basis->load */

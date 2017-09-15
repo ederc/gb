@@ -52,8 +52,6 @@ void enter_input_elements_to_pair_set(ps_t *ps, const gb_t *basis)
 
 inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
-  nelts_t i;
-
   /* we get maximal idx-1 new pairs */
   if (ps->size <= ps->load + (idx-1))
     enlarge_pair_set(ps, 2*ps->size);
@@ -306,7 +304,7 @@ inline void generate_all_spairs(ps_t *ps, const nelts_t new,
      * since we are trying to remove as much as possible useless elements in
      * select_pairs(). if we would dynamically adjust the positioning (as done in
      * the below commented out code) we could no longer track this correctly. */
-    sp->gen1  = i;
+    sp->gen1  = (nelts_t)i;
     sp->gen2  = new;
 
     /* if (basis->nt[gen1] < basis->nt[gen2]) {

@@ -512,7 +512,7 @@ int main(int argc, char *argv[])
         break;
 
       case 42:
-        linear_algebra_probabilistic(
+        linear_algebra_probabilistic_16_bit(
             basis, spd, density, ps, verbose, nthreads);
         break;
 
@@ -1505,7 +1505,7 @@ void linear_algebra_sparse_rows_ABCD_multiline_AB(
   }
 }
 
-void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
+void linear_algebra_probabilistic_16_bit(gb_t *basis, const spd_t *spd,
     const double density, ps_t *ps, const int verbose,
     const int nthreads)
 {
@@ -1551,7 +1551,7 @@ void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
         drg[pivs[i][k]]  +=  (bf_t) pivs[i][k+1];
       free(pivs[i]);
       pivs[i] = NULL;
-      np  = reduce_dense_row_by_known_pivots(
+      np  = reduce_dense_row_by_known_pivots_16_bit(
           drg, pivs, nc, basis->mod);
       /* printf(" np %p\n", np); */
       np[0] = i;
@@ -1606,7 +1606,7 @@ again:
           /* reduce the dense random row w.r.t. to the already known pivots  */
           done = 0;
           while (!done) {
-            np  = reduce_dense_row_by_known_pivots(
+            np  = reduce_dense_row_by_known_pivots_16_bit(
                 dr, pivs, spd->col->load, basis->mod);
             if (!np)
               goto block_done;
@@ -1633,7 +1633,7 @@ block_done:
   }
 
   /* do final check, go back if check fails */
-  src_t *fc  = reduce_dense_row_by_known_pivots(
+  src_t *fc  = reduce_dense_row_by_known_pivots_16_bit(
       drg, pivs, spd->col->load, basis->mod);
 
   if (fc != NULL)
@@ -1649,7 +1649,7 @@ block_done:
         drg[pivs[i-1][k]] =  (bf_t) pivs[i-1][k+1];
       free(pivs[i-1]);
       pivs[i-1] = NULL;
-      np  = reduce_dense_row_by_known_pivots(
+      np  = reduce_dense_row_by_known_pivots_16_bit(
           drg, pivs, nc, basis->mod);
       pivs[i-1] = np;
     }

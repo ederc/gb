@@ -4693,7 +4693,7 @@ static inline smc_t *reduce_upper_rows_c(smc_t *pivs)
   return pivs;
 }
 
-static inline src_t *reduce_dense_row_by_known_pivots(bf_t *dr,
+static inline src_t *reduce_dense_row_by_known_pivots_16_bit(bf_t *dr,
     src_t **pivs, const nelts_t nc, const mod_t mod)
 {
   size_t i, j;

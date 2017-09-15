@@ -397,7 +397,7 @@ void linear_algebra_sparse_rows_no_column_mapping(
  *******++++++********************/
 /* first version of probabilistic f4, cf. "An Algorithm For Splitting Polynomial
  * Systems Based on F4" by Monagan & Pearce */
-void linear_algebra_probabilistic(gb_t *basis, const spd_t *spd,
-    const double density, ps_t *ps, const int verbose,
-    const int nthreads);
+void linear_algebra_probabilistic_16_bit(gb_t *basis,
+    const spd_t *spd, const double density,
+    ps_t *ps, const int verbose, const int nthreads);
 #endif

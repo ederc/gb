@@ -139,7 +139,7 @@ static inline void inverse_val_new(cf_t *x, const cf_t modulus) {
   return;
 }
 
-static inline cf_t inverse_coeff(int32_t cf, const int32_t mod) {
+static inline int32_t inverse_coeff(int32_t cf, const int32_t mod) {
   int32_t a, b, x, y, q, t;
   a = mod;
   b = cf % mod;
@@ -157,9 +157,7 @@ static inline cf_t inverse_coeff(int32_t cf, const int32_t mod) {
     y = t;
   }
   y +=  (y >> 31) & mod;
-  while (y < 0)
-    y +=  mod;
-  return (cf_t)y;
+  return y;
 }
 
 /**
@@ -3352,23 +3350,18 @@ static inline src_t *normalize_new_pivot(src_t *row, const cf_t mod)
 {
   nelts_t i;
 
-  /* cf_t inv  = row[3];
-   * inverse_val_new(&inv, mod);
-   * const bf_t cinv = (bf_t)inv; */
-  const cf_t cinv = (bf_t)inverse_coeff((int32_t)row[3], (int32_t)mod);
+  const int32_t cinv = (int32_t)inverse_coeff((int32_t)row[3], (int32_t)mod);
 
   i = (row[1]-2)/2;
   i = i & 1 ? 5 : 3;
-  bf_t tmp1, tmp2;
+  int64_t tmp1, tmp2;
   while (i<row[1]) {
-    tmp1      =   ((bf_t)row[i] * cinv) % mod;
-    tmp2      =   ((bf_t)row[i+2] * cinv) % mod;
+    tmp1      =   ((int64_t)row[i] * cinv) % mod;
+    tmp2      =   ((int64_t)row[i+2] * cinv) % mod;
     tmp1      +=  (tmp1 >> 63) & mod;
     tmp2      +=  (tmp2 >> 63) & mod;
     row[i]    =   (cf_t)tmp1;
     row[i+2]  =   (cf_t)tmp2;
-    /* row[i]   = (src_t)(row[i] * cinv) % mod;
-     * row[i+2]   = (src_t)(row[i+2] * cinv) % mod; */
     i +=  4;
   }
   /* possibly not set in the unrolled loop above */
@@ -4761,7 +4754,7 @@ static inline src_t *reduce_dense_row_by_known_pivots_32_bit(bf_t *dr,
 {
   size_t i, j;
   int64_t c0, c1;
-  const int64_t mod2 = (bf_t)mod * mod;
+  const int64_t mod2 = (int64_t)mod * mod;
   nelts_t k = 0;
   for (i = 0; i < nc; ++i) {
     if (dr[i] != 0)
@@ -4779,27 +4772,16 @@ static inline src_t *reduce_dense_row_by_known_pivots_32_bit(bf_t *dr,
     j = (pivs[i][1] - 2) / 2;
     j = (j & 1) ? 4 : 2;
     for (; j < pivs[i][1]; j = j+4) {
-      c0  =   dr[pivs[i][j]];
-      c1  =   dr[pivs[i][j+2]];
+      c0  =   (int64_t)dr[pivs[i][j]];
+      c1  =   (int64_t)dr[pivs[i][j+2]];
       c0  -=  mul * pivs[i][j+1];
       c1  -=  mul * pivs[i][j+3];
       c0  +=  (c0 >> 63) & mod2; 
       c1  +=  (c1 >> 63) & mod2;
-      dr[pivs[i][j]]    = c0;  
-      dr[pivs[i][j+2]]  = c1;
+      dr[pivs[i][j]]    = (bf_t)c0;  
+      dr[pivs[i][j+2]]  = (bf_t)c1;
     }
     dr[i]  = 0;
-
-    /* get new pivot element in dense row */
-    /* for (j = i+1; j < nc; ++j) {
-     *   if (dr[j] != 0)
-     *     dr[j] = dr[j] % mod;
-     *   if (dr[j] != 0)
-     *     break;
-     * } */
-    /* zero reduction of dense row */
-    /* if (j == nc)
-     *   return NULL; */
   }
   if (k == 0)
     return NULL;

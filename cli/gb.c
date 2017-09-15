@@ -512,7 +512,7 @@ int main(int argc, char *argv[])
         break;
 
       case 42:
-        linear_algebra_probabilistic_32_bit(
+        linear_algebra_probabilistic_16_bit(
             basis, spd, density, ps, verbose, nthreads);
         break;
 
@@ -1730,8 +1730,10 @@ void linear_algebra_probabilistic_32_bit(gb_t *basis, const spd_t *spd,
 again:
 #pragma omp parallel num_threads(nthreads) shared(drg)
   {
-    src_t *mul        = (src_t *)malloc(rpb * sizeof(src_t));
-    bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
+    int64_t *mul  = (int64_t *)malloc(rpb * sizeof(int64_t));
+    int64_t tmp;
+    int64_t mod2  = (int64_t)basis->mod * basis->mod;
+    bf_t *dr      = (bf_t *)malloc(nc * sizeof(bf_t));
 #pragma omp parallel for num_threads(nthreads)
     for (size_t i = 0; i < nb; ++i) {
       nelts_t nbl   = (nelts_t) (spd->sell->load > (i+1)*rpb ? (i+1)*rpb :
@@ -1752,14 +1754,17 @@ again:
         while (bctr < nrbl) {
           /* fill random value array */
           for (size_t j = 0; j < nrbl; ++j)
-            mul[j]  = (src_t) rand() % basis->mod;
+            mul[j]  = (int64_t) rand() % basis->mod;
 
           /* generate one dense row as random linear combination
            * of the rows of the block */
           memset(dr, 0, nc * sizeof(bf_t));
           for (size_t j = 0; j < nrbl; ++j) {
             for (size_t k = 2; k < bl[j][1]; k = k+2) {
-              dr[bl[j][k]]  +=  (bf_t) ((mul[j] * bl[j][k+1]) % basis->mod);
+              tmp =   (int64_t)dr[bl[j][k]];
+              tmp -=  (int64_t)bl[j][k+1] * mul[j];
+              tmp +=  (tmp >> 63) & mod2;
+              dr[bl[j][k]]  =  (bf_t)tmp;
             }
           }
 
@@ -1777,11 +1782,15 @@ again:
 block_done:
         /* fill global dense row for final check at the end */
         for (size_t j = 0; j < nrbl; ++j)
-          mul[j]  = (src_t) rand() % basis->mod;
-        for (size_t j = 0; j < nrbl; ++j)
-          for (size_t k = 2; k < bl[j][1]; k = k+2)
-            drg[bl[j][k]]  +=  (bf_t) ((mul[j] * bl[j][k+1]) % basis->mod);
-
+          mul[j]  = (int64_t) rand() % basis->mod;
+        for (size_t j = 0; j < nrbl; ++j) {
+          for (size_t k = 2; k < bl[j][1]; k = k+2) {
+            tmp =   (int64_t)dr[bl[j][k]];
+            tmp -=  (int64_t)bl[j][k+1] * mul[j];
+            tmp +=  (tmp >> 63) & mod2;
+            dr[bl[j][k]]  =  (bf_t)tmp;
+          }
+        }
         /* free local data */
         for (size_t j = 0; j < nrbl; ++j)
           free(bl[j]);

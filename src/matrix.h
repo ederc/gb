@@ -4760,6 +4760,8 @@ static inline src_t *reduce_dense_row_by_known_pivots_32_bit(bf_t *dr,
     src_t **pivs, const nelts_t nc, const cf_t mod)
 {
   size_t i, j;
+  int64_t c0, c1;
+  const int64_t mod2 = (bf_t)mod * mod;
   nelts_t k = 0;
   for (i = 0; i < nc; ++i) {
     if (dr[i] != 0)
@@ -4772,13 +4774,19 @@ static inline src_t *reduce_dense_row_by_known_pivots_32_bit(bf_t *dr,
     }
     
     /* reduce dense row with found pivot row */
-    const bf_t mul = (bf_t)(mod) - dr[i]; /* it is already reduced modulo mod */
+    const int64_t mul = (int64_t)dr[i]; /* it is already reduced modulo mod */
     
     j = (pivs[i][1] - 2) / 2;
     j = (j & 1) ? 4 : 2;
     for (; j < pivs[i][1]; j = j+4) {
-      dr[pivs[i][j]]    +=  (bf_t)((mul * pivs[i][j+1]) % mod);
-      dr[pivs[i][j+2]]  +=  (bf_t)((mul * pivs[i][j+3]) % mod);
+      c0  =   dr[pivs[i][j]];
+      c1  =   dr[pivs[i][j+2]];
+      c0  -=  mul * pivs[i][j+1];
+      c1  -=  mul * pivs[i][j+3];
+      c0  +=  (c0 >> 63) & mod2; 
+      c1  +=  (c1 >> 63) & mod2;
+      dr[pivs[i][j]]    = c0;  
+      dr[pivs[i][j+2]]  = c1;
     }
     dr[i]  = 0;
 

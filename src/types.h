@@ -656,14 +656,14 @@ typedef struct gb_t
   hom_t hom;        /*!<  homogeneous computation? 1=yes, 0=no (we might homogenize) */
   ord_t ord;        /*!<  monomial ordering */
   nelts_t nred;     /*!<  number of redundant elements in basis */
-  cf_t mod;      /*!<  modulo/field characteristic */
+  cf_t mod;         /*!<  modulo/field characteristic */
   int has_unit;     /*!<  is set to 1 if we have found a unit in the basis */
   nelts_t max_sel;  /*!<  maximal number of spairs handled at once */
   /* element data */
   nelts_t *nt;      /*!<  number of terms in each element resp. polynomial*/
   deg_t *deg;       /*!<  degree of each element resp. polynomial*/
   red_t *red;       /*!<  stores if the element is redundant or not*/
-  cf_t **cf;     /*!<  coefficients of input elements*/
+  cf_t **cf;        /*!<  coefficients of input elements*/
   hash_t **eh;      /*!<  monomial exponent hash*/
   sf_t *sf;         /*!<  simplifier list for given polynomial, NULL if
                           simplification is not used */

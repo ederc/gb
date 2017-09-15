@@ -399,4 +399,7 @@ void linear_algebra_sparse_rows_no_column_mapping(
 void linear_algebra_probabilistic_16_bit(gb_t *basis,
     const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
+void linear_algebra_probabilistic_32_bit(gb_t *basis,
+    const spd_t *spd, const double density,
+    ps_t *ps, const int verbose, const int nthreads);
 #endif

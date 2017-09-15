@@ -512,7 +512,7 @@ int main(int argc, char *argv[])
         break;
 
       case 42:
-        linear_algebra_probabilistic_16_bit(
+        linear_algebra_probabilistic_32_bit(
             basis, spd, density, ps, verbose, nthreads);
         break;
 
@@ -1650,6 +1650,166 @@ block_done:
       free(pivs[i-1]);
       pivs[i-1] = NULL;
       np  = reduce_dense_row_by_known_pivots_16_bit(
+          drg, pivs, nc, basis->mod);
+      pivs[i-1] = np;
+    }
+  }
+
+  free(drg);
+  clear_hash_table_idx(ht);
+
+  if (verbose > 0) {
+    t_linear_algebra  +=  walltime(t_load_start);
+    n_zero_reductions += spd->sell->load - nnr;
+    printf("%5u nb ", nb);
+    printf("%6u new %6u zero ", nnr, spd->sell->load - nnr);
+    printf("%9.3f sec ", walltime(t_load_start) / (1000000));
+    printf("%7.3f%% d\n", density);
+    gettimeofday(&t_load_start, NULL);
+  }
+
+  done  = update_basis_all_pivs(basis, ps, spd, pivs, nc, ht);
+  if (verbose > 0) {
+    t_update_pairs  +=  walltime(t_load_start);
+    gettimeofday(&t_load_start, NULL);
+  }
+  for (size_t i = 0; i < nc; ++i)
+    free(pivs[i]);
+  free(pivs);
+  pivs  = NULL;
+
+  if (done) {
+    basis->has_unit = 1;
+  }
+}
+
+void linear_algebra_probabilistic_32_bit(gb_t *basis, const spd_t *spd,
+    const double density, ps_t *ps, const int verbose,
+    const int nthreads)
+{
+  srand((unsigned int)time(NULL));   // should only be called once
+  int done;
+  nelts_t bctr;
+  const nelts_t nr  = spd->sell->load+spd->selu->load;
+  const nelts_t nc  = spd->col->load;
+  src_t **pivs      = (src_t **)malloc(nc * sizeof(src_t *));
+  src_t *np; /* possible new pivot row */
+  for (size_t i = 0; i < nc; ++i)
+    pivs[i] = NULL;
+
+  /* meta data information for printing */
+  meta_data->mat_rows = nr;
+  meta_data->mat_cols = nc;
+  meta_data->nrows_total += nr;
+  if (verbose > 0) {
+    t_generating_gbla_matrix  +=  walltime(t_load_start);
+    gettimeofday(&t_load_start, NULL);
+  }
+  if (verbose > 0) {
+    printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+        steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,
+        meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+    fflush(stdout);
+  }
+
+  /* adds known pivots in generated matrix pivs */
+  for (size_t i = 0; i < spd->selu->load; ++i)
+    add_poly_to_pivs(pivs, i, basis, spd->selu);
+
+  /* global dense random row for checking after all blocks are done */
+  bf_t *drg = (bf_t *)calloc(nc, sizeof(bf_t));
+
+  /* number of blocks */
+  const nelts_t nb  = (nelts_t)(floor(sqrt(spd->sell->load/2))) > 0 ?
+    (nelts_t)(floor(sqrt(spd->sell->load/2))) :
+    (nelts_t)(floor(sqrt(spd->sell->load))) ;
+  nelts_t rem       = (spd->sell->load % nb == 0) ? 0 : 1;
+  /* rows per block */
+  const nelts_t rpb = (spd->sell->load / nb) + rem;
+
+again:
+#pragma omp parallel num_threads(nthreads) shared(drg)
+  {
+    src_t *mul        = (src_t *)malloc(rpb * sizeof(src_t));
+    bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
+#pragma omp parallel for num_threads(nthreads)
+    for (size_t i = 0; i < nb; ++i) {
+      nelts_t nbl   = (nelts_t) (spd->sell->load > (i+1)*rpb ? (i+1)*rpb :
+          spd->sell->load);
+      nelts_t nrbl  = (nelts_t) (nbl - i*rpb); 
+
+      if (nrbl != 0) {
+        src_t **bl  = (src_t **)malloc(nrbl * sizeof(src_t *));
+        nelts_t ctr = 0;
+        for (size_t j = i*rpb; j < nbl; ++j) {
+          add_poly_to_block(bl, spd->sell->load-1-j, ctr, basis, spd->sell);
+          ctr++;
+        }
+
+
+
+        bctr = 0;
+        while (bctr < nrbl) {
+          /* fill random value array */
+          for (size_t j = 0; j < nrbl; ++j)
+            mul[j]  = (src_t) rand() % basis->mod;
+
+          /* generate one dense row as random linear combination
+           * of the rows of the block */
+          memset(dr, 0, nc * sizeof(bf_t));
+          for (size_t j = 0; j < nrbl; ++j) {
+            for (size_t k = 2; k < bl[j][1]; k = k+2) {
+              dr[bl[j][k]]  +=  (bf_t) ((mul[j] * bl[j][k+1]) % basis->mod);
+            }
+          }
+
+          /* reduce the dense random row w.r.t. to the already known pivots  */
+          done = 0;
+          while (!done) {
+            np  = reduce_dense_row_by_known_pivots_32_bit(
+                dr, pivs, spd->col->load, basis->mod);
+            if (!np)
+              goto block_done;
+            done  = __sync_bool_compare_and_swap(&pivs[np[2]], NULL, np);
+          }
+          bctr++;
+        }
+block_done:
+        /* fill global dense row for final check at the end */
+        for (size_t j = 0; j < nrbl; ++j)
+          mul[j]  = (src_t) rand() % basis->mod;
+        for (size_t j = 0; j < nrbl; ++j)
+          for (size_t k = 2; k < bl[j][1]; k = k+2)
+            drg[bl[j][k]]  +=  (bf_t) ((mul[j] * bl[j][k+1]) % basis->mod);
+
+        /* free local data */
+        for (size_t j = 0; j < nrbl; ++j)
+          free(bl[j]);
+        free(bl);
+      }
+    }
+    free(mul);
+    free(dr);
+  }
+
+  /* do final check, go back if check fails */
+  src_t *fc  = reduce_dense_row_by_known_pivots_32_bit(
+      drg, pivs, spd->col->load, basis->mod);
+
+  if (fc != NULL)
+    goto again;
+
+  /* interreduce new pivs */
+  nelts_t nnr = 0; /* number of new rows */
+  for (size_t i = nc; i > spd->selu->load; --i) {
+    if (pivs[i-1] != NULL) {
+      ++nnr;
+      memset(drg, 0, nc * sizeof(bf_t));
+      for (size_t k = 2; k < pivs[i-1][1]; k = k+2)
+        drg[pivs[i-1][k]] =  (bf_t) pivs[i-1][k+1];
+      free(pivs[i-1]);
+      pivs[i-1] = NULL;
+      np  = reduce_dense_row_by_known_pivots_32_bit(
           drg, pivs, nc, basis->mod);
       pivs[i-1] = np;
     }

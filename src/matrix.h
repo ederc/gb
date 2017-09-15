@@ -4694,7 +4694,7 @@ static inline smc_t *reduce_upper_rows_c(smc_t *pivs)
 }
 
 static inline src_t *reduce_dense_row_by_known_pivots_16_bit(bf_t *dr,
-    src_t **pivs, const nelts_t nc, const mod_t mod)
+    src_t **pivs, const nelts_t nc, const cf_t mod)
 {
   size_t i, j;
   nelts_t k = 0;
@@ -4716,6 +4716,69 @@ static inline src_t *reduce_dense_row_by_known_pivots_16_bit(bf_t *dr,
     for (; j < pivs[i][1]; j = j+4) {
       dr[pivs[i][j]]    +=  (bf_t)mul * pivs[i][j+1];
       dr[pivs[i][j+2]]  +=  (bf_t)mul * pivs[i][j+3];
+    }
+    dr[i]  = 0;
+
+    /* get new pivot element in dense row */
+    /* for (j = i+1; j < nc; ++j) {
+     *   if (dr[j] != 0)
+     *     dr[j] = dr[j] % mod;
+     *   if (dr[j] != 0)
+     *     break;
+     * } */
+    /* zero reduction of dense row */
+    /* if (j == nc)
+     *   return NULL; */
+  }
+  if (k == 0)
+    return NULL;
+
+  /* dense row is not reduced to zero, thus we have found a new pivot row */
+  src_t *row = (src_t *)malloc((2*nc+2)*sizeof(src_t));
+  nelts_t ctr = 2;
+  for (j = 0; j < nc; ++j) {
+    if (dr[j] != 0) {
+      dr[j] = dr[j] % mod;
+      if (dr[j] != 0) {
+        row[ctr++] = (src_t)j;
+        row[ctr++] = (src_t)dr[j];
+      }
+    }
+  } 
+  /* fix memory */
+  row[0]  = 0;
+  row[1]  = ctr;
+  row     = realloc(row, row[1]*sizeof(src_t));
+
+  if (row[3] != 1)
+    row = normalize_new_pivot(row, mod);
+
+  return row;
+}
+
+static inline src_t *reduce_dense_row_by_known_pivots_32_bit(bf_t *dr,
+    src_t **pivs, const nelts_t nc, const cf_t mod)
+{
+  size_t i, j;
+  nelts_t k = 0;
+  for (i = 0; i < nc; ++i) {
+    if (dr[i] != 0)
+      dr[i]  = dr[i] % mod;
+    if (dr[i] == 0)
+      continue;
+    if (pivs[i] == NULL) {
+      ++k;
+      continue;
+    }
+    
+    /* reduce dense row with found pivot row */
+    const bf_t mul = (bf_t)(mod) - dr[i]; /* it is already reduced modulo mod */
+    
+    j = (pivs[i][1] - 2) / 2;
+    j = (j & 1) ? 4 : 2;
+    for (; j < pivs[i][1]; j = j+4) {
+      dr[pivs[i][j]]    +=  (bf_t)((mul * pivs[i][j+1]) % mod);
+      dr[pivs[i][j+2]]  +=  (bf_t)((mul * pivs[i][j+3]) % mod);
     }
     dr[i]  = 0;
 

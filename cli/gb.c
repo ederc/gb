@@ -487,7 +487,7 @@ int main(int argc, char *argv[])
         break;
 
       case 6:
-        linear_algebra_sparse_rows_ABCD(
+        linear_algebra_sparse_rows_ABCD_32_bit(
             basis, spd, density, ps, verbose, nthreads);
         break;
 
@@ -518,7 +518,7 @@ int main(int argc, char *argv[])
 
       case 666:
         if (density < 0.01 || spd->sell->load < 40) {
-          linear_algebra_sparse_rows_ABCD(
+          linear_algebra_sparse_rows_ABCD_16_bit(
               basis, spd, density, ps, verbose, nthreads);
         } else {
           linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
@@ -819,7 +819,7 @@ void linear_algebra_sparse_rows_no_column_mapping(
   CD->nr  = ctr;
   CD->rk  = ctr;
   if (CD->rk > 1)
-    reduce_lower_rows_c(CD, 0, nthreads);
+    reduce_lower_rows_c_16_bit(CD, 0, nthreads);
   if (verbose > 0) {
     t_linear_algebra  +=  walltime(t_load_start);
     n_zero_reductions +=  (spd->sell->load - CD->rk);
@@ -920,7 +920,7 @@ void linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(
   D->nr  = ctr;
   D->rk  = ctr;
   if (D->rk > 1)
-    reduce_lower_rows_c(D, D->ncl, nthreads);
+    reduce_lower_rows_c_16_bit(D, D->ncl, nthreads);
   if (verbose > 0) {
     t_linear_algebra_local  +=  walltime(t_load_start);
     t_linear_algebra        +=  t_linear_algebra_local;
@@ -1029,7 +1029,7 @@ void linear_algebra_block_ABCD_reduce_AB_first(
   D->nr  = ctr;
   D->rk  = ctr;
   if (D->rk > 1)
-    reduce_lower_rows_c(D, D->ncl, nthreads);
+    reduce_lower_rows_c_16_bit(D, D->ncl, nthreads);
   if (verbose > 0) {
     t_linear_algebra_local  +=  walltime(t_load_start);
     t_linear_algebra        +=  t_linear_algebra_local;
@@ -1133,7 +1133,7 @@ void linear_algebra_block_ABCD_reduce_CD_directly(
   D->nr  = ctr;
   D->rk  = ctr;
   if (D->rk > 1)
-    reduce_lower_rows_c(D, D->ncl, nthreads);
+    reduce_lower_rows_c_16_bit(D, D->ncl, nthreads);
   if (verbose > 0) {
     t_linear_algebra_local  +=  walltime(t_load_start);
     t_linear_algebra        +=  t_linear_algebra_local;
@@ -1347,9 +1347,9 @@ void linear_algebra_sparse_rows_ABCD_unoptimized(
   }
 }
 
-void linear_algebra_sparse_rows_ABCD(gb_t *basis, const spd_t *spd,
-    const double density, ps_t *ps, const int verbose,
-    const int nthreads)
+void linear_algebra_sparse_rows_ABCD_16_bit(gb_t *basis,
+    const spd_t *spd, const double density, ps_t *ps,
+    const int verbose, const int nthreads)
 {
   /* generate upper matrix, i.e. already known pivots */
   int done;
@@ -1380,7 +1380,7 @@ void linear_algebra_sparse_rows_ABCD(gb_t *basis, const spd_t *spd,
     }
 #pragma omp parallel for num_threads(nthreads)
     for (nelts_t i=0; i<CD->nr; ++i) {
-      CD->row[i]  = reduce_lower_by_upper_rows_offset_c(CD->row[i], AB);
+      CD->row[i]  = reduce_lower_by_upper_rows_offset_c_16_bit(CD->row[i], AB);
     }
     for (nelts_t k=0; k<AB->nr; ++k) {
       free(AB->row[k]);
@@ -1401,7 +1401,88 @@ void linear_algebra_sparse_rows_ABCD(gb_t *basis, const spd_t *spd,
   CD->nr  = ctr;
   CD->rk  = ctr;
   if (CD->rk > 1)
-    reduce_lower_rows_c(CD, CD->ncl, nthreads);
+    reduce_lower_rows_c_16_bit(CD, CD->ncl, nthreads);
+  if (verbose > 0) {
+    t_linear_algebra  +=  walltime(t_load_start);
+    n_zero_reductions +=  (spd->sell->load- CD->rk);
+    printf("%6u new %6u zero ", CD->rk, spd->sell->load - CD->rk);
+    printf("%9.3f sec ", walltime(t_load_start) / (1000000));
+    printf("%7.3f%% d\n", density);
+    gettimeofday(&t_load_start, NULL);
+  }
+
+  done  = update_basis_new(basis, ps, spd, CD, ht);
+  for (nelts_t k=0; k<CD->rk; ++k) {
+    free(CD->row[k]);
+  }
+  free(CD->row);
+  free(CD);
+  CD  = NULL;
+  if (verbose > 0) {
+    t_update_pairs  +=  walltime(t_load_start);
+    gettimeofday(&t_load_start, NULL);
+  }
+
+  if (done) {
+    basis->has_unit = 1;
+  }
+}
+
+void linear_algebra_sparse_rows_ABCD_32_bit(gb_t *basis,
+    const spd_t *spd, const double density, ps_t *ps,
+    const int verbose, const int nthreads)
+{
+  /* generate upper matrix, i.e. already known pivots */
+  int done;
+  smc_t *AB = NULL, *CD = NULL;
+  meta_data->mat_rows     =   spd->selu->load + spd->sell->load;
+  meta_data->nrows_total  +=  spd->selu->load + spd->sell->load;
+  meta_data->mat_cols     =   spd->col->load;
+  /* generate lower matrix, i.e. unkown pivots */
+  CD = generate_sparse_compact_matrix(basis, spd->sell,
+      spd->sell->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+      nthreads);
+  if (verbose > 0) {
+    t_generating_gbla_matrix  +=  walltime(t_load_start);
+    gettimeofday(&t_load_start, NULL);
+    printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+        steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,
+        meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+    fflush(stdout);
+  }
+  /* check appearing columns in CD */
+  if (spd->selu->load > 0) {
+    AB = generate_sparse_compact_matrix_offset(basis, spd->selu,
+        spd->selu->load, spd->col->nlm, spd->col->load-spd->col->nlm,
+        nthreads);
+    if (verbose > 0) {
+      t_generating_gbla_matrix  +=  walltime(t_load_start);
+      gettimeofday(&t_load_start, NULL);
+    }
+#pragma omp parallel for num_threads(nthreads)
+    for (nelts_t i=0; i<CD->nr; ++i) {
+      CD->row[i]  = reduce_lower_by_upper_rows_offset_c_32_bit(CD->row[i], AB);
+    }
+    for (nelts_t k=0; k<AB->nr; ++k) {
+      free(AB->row[k]);
+    }
+    free(AB->row);
+    free(AB);
+    AB  = NULL;
+  }
+  clear_hash_table_idx(ht);
+
+  nelts_t ctr = 0;
+  for (nelts_t i=0; i<CD->nr; ++i) {
+    if (CD->row[i] != NULL) {
+      CD->row[ctr] = CD->row[i];
+      ctr++;
+    }
+  }
+  CD->nr  = ctr;
+  CD->rk  = ctr;
+  if (CD->rk > 1)
+    reduce_lower_rows_c_32_bit(CD, CD->ncl, nthreads);
   if (verbose > 0) {
     t_linear_algebra  +=  walltime(t_load_start);
     n_zero_reductions +=  (spd->sell->load- CD->rk);
@@ -1479,7 +1560,7 @@ void linear_algebra_sparse_rows_ABCD_multiline_AB(
   CD->nr  = ctr;
   CD->rk  = ctr;
   if (CD->rk > 1)
-    reduce_lower_rows_c(CD, CD->ncl, nthreads);
+    reduce_lower_rows_c_16_bit(CD, CD->ncl, nthreads);
   if (verbose > 0) {
     t_linear_algebra  +=  walltime(t_load_start);
     n_zero_reductions +=  (spd->sell->load - CD->rk);
@@ -1891,7 +1972,7 @@ void linear_algebra_sparse_rows_ABCD_reduce_AB_first(
     }
 #pragma omp parallel for num_threads(nthreads)
     for (nelts_t i=0; i<CD->nr; ++i) {
-      CD->row[i]  = reduce_lower_by_upper_rows_offset_c(CD->row[i], AB);
+      CD->row[i]  = reduce_lower_by_upper_rows_offset_c_16_bit(CD->row[i], AB);
     }
     for (nelts_t k=0; k<AB->nr; ++k) {
       free(AB->row[k]);
@@ -1910,7 +1991,7 @@ void linear_algebra_sparse_rows_ABCD_reduce_AB_first(
   CD->nr  = ctr;
   CD->rk  = ctr;
   if (CD->rk > 1)
-    reduce_lower_rows_c(CD, CD->ncl, nthreads);
+    reduce_lower_rows_c_16_bit(CD, CD->ncl, nthreads);
   if (verbose > 0) {
     t_linear_algebra  +=  walltime(t_load_start);
     n_zero_reductions +=  (spd->sell->load - CD->rk);

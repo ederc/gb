@@ -339,7 +339,7 @@ static inline void write_sparse_compact_row(src_t **rows,
       row = realloc(row, ctr * sizeof(src_t));
       rows[i + idx] = row;
       if (row[2] != 1) {
-        normalize_row_c(row, meta->mod);
+        normalize_row_c_16_bit(row, meta->mod);
       }  
     } else {
       free(row);

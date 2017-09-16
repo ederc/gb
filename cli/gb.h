@@ -367,6 +367,10 @@ void linear_algebra_block_ABCD_reduce_AB_first(
 /*++++++****************************
  * New sparse row implementations
  *******++++++*********************/
+void linear_algebra_sparse(gb_t *basis,
+    const spd_t *spd, const double density, ps_t *ps,
+    const int verbose, const int nthreads);
+
 void linear_algebra_sparse_rows_ABCD_16_bit(gb_t *basis,
     const spd_t *spd, const double density, ps_t *ps,
     const int verbose, const int nthreads);

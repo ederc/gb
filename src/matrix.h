@@ -2215,6 +2215,21 @@ static inline smc_t *generate_sparse_compact_matrix_pos_val(const gb_t *basis,
   return mat;
 }
 
+static inline void load_dense_row(bf_t *dr, const size_t ri,
+    const gb_t *basis, const sel_t* sel)
+{
+  const mpp_t *mpp  = sel->mpp+ri;
+  const nelts_t nt  = basis->nt[mpp->bi];
+  const hash_t *eh  = basis->eh[mpp->bi];
+  const cf_t *cf    = basis->cf[mpp->bi];
+
+  ht_size_t pos;
+  for (nelts_t i = 0; i < nt; ++i) {
+    pos     = ht->idx[find_in_hash_table_product(mpp->mul, eh[i], ht)];
+    dr[pos] = cf[i];
+  }
+}
+
 static inline void add_poly_to_block(src_t **pivs, const size_t ri,
     const nelts_t idx, const gb_t *basis, const sel_t* sel)
 {

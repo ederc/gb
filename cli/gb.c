@@ -523,7 +523,7 @@ int main(int argc, char *argv[])
 
       case 666:
         if (density < 0.01 || spd->sell->load < 40) {
-          linear_algebra_sparse_rows_ABCD_16_bit(
+          linear_algebra_sparse_all_pivs_16_bit(
               basis, spd, density, ps, verbose, nthreads);
         } else {
           linear_algebra_block_ABCD_reduce_CD_directly_blockwise_AB_construction(

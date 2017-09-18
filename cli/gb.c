@@ -90,6 +90,9 @@ void print_help(void)
   printf("                       of matrix.\n");
   printf("                 10 -> Sparse row implementation, no column remapping,\n");
   printf("                       directly reducing lower matrix part.\n");
+  printf("                 11 -> Sparse row implementation, ABCD mapping,\n");
+  printf("                       directly reducing lower matrix part, but storing\n");
+  printf("                       all pivots in a big sparse matrix\n");
   printf("                 42 -> Probabilistic linear algebra, error probability is\n");
   printf("                       lower than 1/(characteristic of field). See also the\n");
   printf("                       paper \"An Algorithm For Splitting Polynomial Systems\n");

@@ -166,29 +166,40 @@ static inline void load_dense_row_for_update_from_sparse(bf_t *dr,
 }
 
 static inline void write_updated_block_to_sparse_format_directly(mat_gb_block_t *bl,
-    const bf_t *db, const nelts_t lr, const mat_gb_meta_data_t *meta)
+   bf_t *db, const nelts_t lr, const mat_gb_meta_data_t *meta)
 {
-  nelts_t i, j;
   bf_t tmp;
+  bf_t *dbs;
 
+  nelts_t ctr = 0;
+
+  for (size_t i = 0; i < meta->bs * meta->bs; ++i){
+    if (db[i] != 0) {
+      db[i] = db[i] % meta->mod;
+    }
+    if (db[i] != 0) {
+      ctr++;
+    }
+  }
   free(bl->len);
-  bl->len = (nelts_t *)calloc((meta->bs+1), sizeof(nelts_t));
-  bl->pos = realloc(bl->pos, meta->bs*meta->bs * sizeof(bs_t));
-  bl->val= realloc(bl->val, meta->bs*meta->bs * sizeof(cf_t));
+  /* if (ctr > meta->bs * meta->bs / 4) {
+   * } else { */
+    bl->len = (nelts_t *)calloc((meta->bs+1), sizeof(nelts_t));
+    bl->pos = realloc(bl->pos, ctr * sizeof(bs_t));
+    bl->val = realloc(bl->val, ctr * sizeof(cf_t));
 
-  for (i = 0; i < lr; ++i) {
-    bl->len[i+1]  = bl->len[i];
-    for (j = 0; j < meta->bs; ++j) {
-      if (db[j + i*meta->bs] != 0) {
-        tmp = db[j + i*meta->bs] % meta->mod;
-        if (tmp != 0) {
+    for (size_t i = 0; i < lr; ++i) {
+      dbs = db + i*meta->bs;
+      bl->len[i+1]  = bl->len[i];
+      for (size_t j = 0; j < meta->bs; ++j) {
+        if (dbs[j] != 0) {
           bl->pos[bl->len[i+1]] = (bs_t)j;
-          bl->val[bl->len[i+1]] = (cf_t)tmp;
+          bl->val[bl->len[i+1]] = (cf_t)dbs[j];
           bl->len[i+1]++;
         }
       }
     }
-  }
+  /* } */
 }
 
 static inline void write_updated_block_to_sparse_format(mat_gb_block_t *bl,

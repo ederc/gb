@@ -165,7 +165,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       continue;
     }
     j = i+1;
-    while(sp[j].lcm == sp[i].lcm) {
+    while(j < cur_len && sp[j].lcm == sp[i].lcm) {
       sp[j].crit = CHAIN_CRIT;
       j++;
     }

@@ -168,7 +168,6 @@ static inline void load_dense_row_for_update_from_sparse(bf_t *dr,
 static inline void write_updated_block_to_sparse_format_directly(mat_gb_block_t *bl,
    bf_t *db, const nelts_t lr, const mat_gb_meta_data_t *meta)
 {
-  bf_t tmp;
   bf_t *dbs;
 
   nelts_t ctr = 0;

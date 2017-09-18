@@ -515,7 +515,7 @@ int main(int argc, char *argv[])
         break;
 
       case 11:
-        linear_algebra_sparse_all_pivs_32_bit(
+        linear_algebra_sparse_all_pivs_16_bit(
             basis, spd, density, ps, verbose, nthreads);
         break;
 

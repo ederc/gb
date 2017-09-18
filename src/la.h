@@ -443,23 +443,33 @@ static inline void update_dense_block_sparse(bf_t *db,
   register nelts_t shift;
 
   for (i=0; i<max; ++i) {
+    /* align dense block data for given ith shift */
+    bf_t *dbs = db + i *meta->bs;
     for (j=mbl->len[i]; j<mbl->len[i+1]; ++j) {
       mul   = (uint32_t)meta->mod - mbl->val[j];
       ri    = mbl->pos[j];
       shift = (bl->len[ri+1]-bl->len[ri]) % 8;
       for (k=bl->len[ri]; k<bl->len[ri]+shift; ++k) {
-      /* for (k=bl->len[ri]; k<bl->len[ri+1]; ++k) { */
-        db[i*meta->bs + bl->pos[k]] +=  mul * bl->val[k];
+        /* db[i*meta->bs + bl->pos[k]] +=  mul * bl->val[k]; */
+        dbs[bl->pos[k]] +=  mul * bl->val[k];
       }
       for (; k<bl->len[ri+1]; k=k+8) {
-        db[i*meta->bs + bl->pos[k]]    +=  mul * bl->val[k];
-        db[i*meta->bs + bl->pos[k+1]]  +=  mul * bl->val[k+1];
-        db[i*meta->bs + bl->pos[k+2]]  +=  mul * bl->val[k+2];
-        db[i*meta->bs + bl->pos[k+3]]  +=  mul * bl->val[k+3];
-        db[i*meta->bs + bl->pos[k+4]]  +=  mul * bl->val[k+4];
-        db[i*meta->bs + bl->pos[k+5]]  +=  mul * bl->val[k+5];
-        db[i*meta->bs + bl->pos[k+6]]  +=  mul * bl->val[k+6];
-        db[i*meta->bs + bl->pos[k+7]]  +=  mul * bl->val[k+7];
+        dbs[bl->pos[k]]    +=  mul * bl->val[k];
+        dbs[bl->pos[k+1]]  +=  mul * bl->val[k+1];
+        dbs[bl->pos[k+2]]  +=  mul * bl->val[k+2];
+        dbs[bl->pos[k+3]]  +=  mul * bl->val[k+3];
+        dbs[bl->pos[k+4]]  +=  mul * bl->val[k+4];
+        dbs[bl->pos[k+5]]  +=  mul * bl->val[k+5];
+        dbs[bl->pos[k+6]]  +=  mul * bl->val[k+6];
+        dbs[bl->pos[k+7]]  +=  mul * bl->val[k+7];
+        /* db[i*meta->bs + bl->pos[k]]    +=  mul * bl->val[k];
+         * db[i*meta->bs + bl->pos[k+1]]  +=  mul * bl->val[k+1];
+         * db[i*meta->bs + bl->pos[k+2]]  +=  mul * bl->val[k+2];
+         * db[i*meta->bs + bl->pos[k+3]]  +=  mul * bl->val[k+3];
+         * db[i*meta->bs + bl->pos[k+4]]  +=  mul * bl->val[k+4];
+         * db[i*meta->bs + bl->pos[k+5]]  +=  mul * bl->val[k+5];
+         * db[i*meta->bs + bl->pos[k+6]]  +=  mul * bl->val[k+6];
+         * db[i*meta->bs + bl->pos[k+7]]  +=  mul * bl->val[k+7]; */
       }
     }
   }
@@ -1015,21 +1025,23 @@ static inline void compute_multiples_in_first_block_at_once(bf_t *db,
   nelts_t i, j, l;
 
   for (l = 0; l < meta->bs; ++l) {
+    /* align dense block data for given ith shift */
+    bf_t *dbs = db + l * meta->bs;
     for (i=0; i<bl->nr; ++i) {
-      if (db[i+l*meta->bs] != 0) {
-        db[i+l*meta->bs] = db[i+l*meta->bs] % meta->mod;
-        if (db[i+l*meta->bs] != 0) {
-          const bf_t mul  = (bf_t)meta->mod - db[i+l*meta->bs];
+      if (dbs[i] != 0) {
+        dbs[i] = dbs[i] % meta->mod;
+        if (dbs[i] != 0) {
+          const bf_t mul  = (bf_t)meta->mod - dbs[i];
           const nelts_t ri  = i;
           const nelts_t shift = (bl->len[ri+1]-bl->len[ri]-1) % 4;
           for (j=bl->len[ri]+1; j<bl->len[ri]+shift+1; ++j) {
-            db[bl->pos[j]+l*meta->bs] +=  mul * bl->val[j];
+            dbs[bl->pos[j]] +=  mul * bl->val[j];
           }
           for (; j<bl->len[ri+1]; j=j+4) {
-            db[bl->pos[j]+l*meta->bs] +=  mul * bl->val[j];
-            db[bl->pos[j+1]+l*meta->bs] +=  mul * bl->val[j+1];
-            db[bl->pos[j+2]+l*meta->bs] +=  mul * bl->val[j+2];
-            db[bl->pos[j+3]+l*meta->bs] +=  mul * bl->val[j+3];
+            dbs[bl->pos[j]]   +=  mul * bl->val[j];
+            dbs[bl->pos[j+1]] +=  mul * bl->val[j+1];
+            dbs[bl->pos[j+2]] +=  mul * bl->val[j+2];
+            dbs[bl->pos[j+3]] +=  mul * bl->val[j+3];
           }
         }
       }
@@ -1104,7 +1116,7 @@ static inline void update_lower_by_upper_row_block_not_prereduced(
   {
 #pragma omp single nowait
     {
-      /* the first block is used for updated the remaining ones,
+      /* the first block is used for updating the remaining ones,
        * i.e. we start at block index i=1 */
       for (nelts_t i=0; i<meta->nrb_CD; ++i) {
         /* need to look at the first block in each row in
@@ -1162,6 +1174,60 @@ static inline void reduce_upper_column_block(mat_gb_block_t **l,
 
 static inline void update_lower_by_unreduced_upper_row_block(mat_gb_block_t *l,
     const mat_gb_block_t *u, const mat_gb_meta_data_t *meta, const int t)
+{
+#pragma omp parallel num_threads(t)
+  {
+#pragma omp single nowait
+    {
+      /* loop over row blocks in CD */
+      for (nelts_t i = 0; i < meta->nrb_CD; ++i) {
+#pragma omp task
+        {
+          /* allocate memory for a dense block:
+           * always the block to be updated */
+          bf_t *db  = (bf_t *)malloc(meta->bs * meta->bs * sizeof(bf_t));
+
+          /* multiply with all previously updated blocks from A multiplied by C */
+          for (nelts_t j = 0; j < meta->ncb_AC; ++j) {
+            load_dense_block_for_update_full(db, l+j+i*meta->ncb, meta);
+            for (nelts_t k = 0; k < j; ++k) {
+              if (u[k*meta->ncb + j].val != NULL && l[k+i*meta->ncb].val != NULL) {
+                update_dense_block_sparse(db, u + k*meta->ncb + j,
+                    l + i*meta->ncb + k, meta->bs, meta);
+              }
+            }
+            /* finally update block computing needed multiples for updating D later on */
+            compute_multiples_in_first_block_at_once(db, u+j*meta->ncb + j, meta);
+            write_updated_block_to_sparse_format_directly(l+j+i*meta->ncb,
+                db, l[j+i*meta->ncb].nr, meta);
+          }
+
+          /* now update D */
+          for (nelts_t j = meta->ncb_AC; j < meta->ncb; ++j) {
+            load_dense_block_for_update_full(db, l+j+i*meta->ncb, meta);
+            for (nelts_t k = 0; k < meta->nrb_AB; ++k) {
+              if (u[k*meta->ncb + j].val != NULL && l[k+i*meta->ncb].val != NULL) {
+                update_dense_block_sparse(db, u + k*meta->ncb + j,
+                    l + i*meta->ncb + k, meta->bs, meta);
+              }
+            }
+            write_updated_block_to_sparse_format_directly(l+j+i*meta->ncb,
+                db, l[j+i*meta->ncb].nr, meta);
+          }
+          /* free_mat_gb_block(l + j + i * meta->ncb); */
+          adjust_block_row_types_including_dense_righthand(l + i * meta->ncb, meta);
+
+          free(db);
+        }
+#pragma omp taskwait
+      }
+    }
+  }
+}
+
+static inline void update_lower_by_unreduced_upper_row_block_new_order(
+    mat_gb_block_t *l, const mat_gb_block_t *u,
+    const mat_gb_meta_data_t *meta, const int t)
 {
 #pragma omp parallel num_threads(t)
   {

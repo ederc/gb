@@ -501,7 +501,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
   /** get number of lines in file:
     * number of lines - 2 is number of generators in input system */
   int nlines  = 0;
-  char buf[10000];
+  char buf[50000];
   fh  = fopen(fn,"r");
   while(fgets(buf, sizeof(buf), fh) != NULL) {
     /** check if there are empty lines in the input file */

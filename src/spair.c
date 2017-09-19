@@ -99,12 +99,14 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
   for (i=0; i<load; ++i) {
     /* do not check on initial spairs */
     /* See note on gb_t in src/types.h why we adjust position by -basis->st. */
-    pos1  = sp[i].gen1 - basis->st;
-    pos2  = sp[i].gen2 - basis->st;
-    if (check_monomial_division(sp[i].lcm, hash, ht) != 0 &&
-        sp[i].lcm != sp[ps->load+pos1].lcm &&
-        sp[i].lcm != sp[ps->load+pos2].lcm) {
-      sp[i].crit  = CHAIN_CRIT;
+    if (sp[i].gen1 > basis->st) {
+      pos1  = sp[i].gen1 - basis->st;
+      pos2  = sp[i].gen2 - basis->st;
+      if (check_monomial_division(sp[i].lcm, hash, ht) != 0 &&
+          sp[i].lcm != sp[ps->load+pos1].lcm &&
+          sp[i].lcm != sp[ps->load+pos2].lcm) {
+        sp[i].crit  = CHAIN_CRIT;
+      }
     }
     /* if (sp[i].lcm != sp[ps->load+pos1].lcm &&
      *     sp[i].lcm != sp[ps->load+pos2].lcm &&

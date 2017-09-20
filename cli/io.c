@@ -447,7 +447,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
 
   fh  = fopen(fn,"r");
   /** load lines and store data */
-  const int max_line_size  = 100000;
+  const int max_line_size  = 800000;
   char *line  = (char *)malloc((nelts_t)max_line_size * sizeof(char));
 
   /** we already know the number of variables

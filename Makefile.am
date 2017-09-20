@@ -50,7 +50,7 @@ EXTRA_DIST=autogen.sh
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gb.pc
 
-libgb_la_LDFLAGS = $(LDFLAGS) -release $(RELEASE) -no-undefined
+libgb_la_LDFLAGS = $(LDFLAGS) -release $(RELEASE) -no-undefined -rdynamic
 libgb_la_LIBADD = $(LIBPNG_LIBADD)
 
 bin_PROGRAMS = gb

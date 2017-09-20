@@ -31,6 +31,7 @@
 #include <config.h>
 #include "types.h"
 #include "hash.h"
+#include <cli/io.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0

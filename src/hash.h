@@ -251,6 +251,8 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   ht_t *ht = (ht_t *)malloc(sizeof(ht_t));
 
   /* global table data */
+  /* ht->sz   = (ht_size_t)8388607; */
+  /* ht->sz    = (ht_size_t)524287; */
   ht->sz    = (ht_size_t)(pow(2,ht_si));
   /* we add one extra variable in case we have to homogenize the system */
   ht->nv    = nv+1;

@@ -31,8 +31,8 @@
 #include <omp.h>
 #endif
 #include <config.h>
-#include "types.h"
-#include "hash.h"
+#include <src/types.h>
+#include <src/hash.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0

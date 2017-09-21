@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <getopt.h>
-#include "io.h"
+#include <cli/io.h>
 #include <src/types.h>
 #include <src/poly.h>
 #include <src/spair.h>

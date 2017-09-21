@@ -52,7 +52,7 @@
 #include <omp.h>
 #endif
 #include <config.h>
-#include "types.h"
+#include <src/types.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0
@@ -252,6 +252,8 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
 
   /* global table data */
   ht->sz    = (ht_size_t)(pow(2,ht_si));
+  /* ht->sz    = 33554393; [> 2^25 <]
+   * ht->sz    = 2097143; [> 2^21 <] */
   /* we add one extra variable in case we have to homogenize the system */
   ht->nv    = nv+1;
   /* for easier divisibility checks we start at index 1. If the divisibility
@@ -364,6 +366,8 @@ static inline void enlarge_hash_table(ht_t *ht)
     /* printf("coming from position %u ---> ",i); */
     insert_while_enlarging(hash, i, ht);
   }
+  recalculate_divmaps(ht);
+  printf("ENLARGED HASH TABLE + RECALCULATED DIVMASKS\n");
 }
 
 /**
@@ -452,8 +456,6 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  * ht->div and ht->idx are already initialized with 0, so nothing to do there */
   ht->val[ht->load]   = hash;
   ht->lut[pos]        = ht->load;
-  if (ht->rcdm == 0)
-    recalculate_divmaps(ht);
   ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
   ht->rcdm--;
 #if HASH_DEBUG

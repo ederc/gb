@@ -31,9 +31,9 @@
 #include <omp.h>
 #endif
 #include <config.h>
-#include "types.h"
-#include "hash.h"
-#include "spair.h"
+#include <src/types.h>
+#include <src/hash.h>
+#include <src/spair.h>
 
 #ifndef META_DATA_DEBUG
 #define META_DATA_DEBUG 0
@@ -145,12 +145,22 @@ static inline void enter_monomial_to_preprocessing_hash_list(
     ht_t *ht)
 {
   nelts_t i;
+  /* ht_size_t hts = 0; */
 
   const hash_t *eh  = basis->eh[idx];
   const nelts_t nt  = basis->nt[idx];
   
   for (i=0; i<nt; ++i) {
+    /* hts = ht->load; */
     hash_t pos = check_in_hash_table_product(mul, eh[i], ht);
+    /* if (hts != ht->load) {
+     *   hts = ht->load;
+     *   for (size_t j = basis->st; j < basis->load; ++j) {
+     *     if (check_monomial_division(ht->val[ht->load-1], basis->eh[j][0], ht)) {
+     *       ht->ld[ht->load] = j;
+     *     }
+     *   }
+     * } */
     /* only in this case we have this monomial hash for the first time,
      * otherwise it has already been taken care of */
 #if SYMBOL_DEBUG

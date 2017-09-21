@@ -30,11 +30,11 @@
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
-#include "gbla-elimination.h"
-#include <cli/io.h>
 #include <config.h>
-#include "types.h"
-#include "hash.h"
+#include <cli/io.h>
+#include <src/gbla-elimination.h>
+#include <src/types.h>
+#include <src/hash.h>
 
 #include "immintrin.h"
 
@@ -5560,6 +5560,30 @@ static inline mat_gb_meta_data_t *generate_matrix_meta_data(
  * resp. update functions for interreducing AB and reducing CD with AB.
  * Thus generation of AB always calls this procedure with "start=1" and
  * the generation of CD is done via "start=0". */
+static inline void write_poly_to_matrix_new(mat_gb_block_t *mat,
+    const mat_gb_meta_data_t *meta, const nelts_t idx, const nelts_t start,
+    const mpp_t *mpp, const gb_t *basis, const ht_t *ht)
+{
+  nelts_t i;
+  nelts_t cp;
+  mat_gb_block_t *bl;
+
+  for (i=start; i<basis->nt[mpp->bi]; ++i) {
+    cp  = ht->idx[find_in_hash_table_product(mpp->mul,
+        basis->eh[mpp->bi][i], ht)];
+
+    if (cp < meta->nc_AC) {
+      bl  = mat + (cp / meta->bs);
+    } else {
+      cp  = cp - meta->nc_AC;
+      bl  = mat + (meta->ncb_AC + cp / meta->bs);
+    }
+    bl->val[bl->len[idx]] = (cf_t)basis->cf[mpp->bi][i];
+    bl->pos[bl->len[idx]] = (bs_t)(cp % meta->bs);
+    bl->len[idx]++;
+  }
+}
+
 static inline void write_poly_to_matrix(mat_gb_block_t *mat,
     const mat_gb_meta_data_t *meta, const nelts_t idx, const nelts_t start,
     const mpp_t *mpp, const gb_t *basis, const ht_t *ht)
@@ -5851,6 +5875,17 @@ static inline mat_gb_block_t *generate_mat_gb_block(
   return bl;
 }
 
+static inline void initialize_mat_gb_block_new(mat_gb_block_t *bl,
+    const mat_gb_meta_data_t *meta, const nelts_t nr)
+{
+  const nelts_t bs_square = (nelts_t)meta->bs * meta->bs;
+
+  bl->len = (nelts_t *)calloc(meta->bs, sizeof(nelts_t));
+  bl->pos = (bs_t *)malloc(bs_square * sizeof(bs_t));
+  bl->val = (cf_t *)malloc(bs_square * sizeof(cf_t));
+  bl->nr  = nr;
+}
+
 static inline void initialize_mat_gb_block(mat_gb_block_t *bl,
     const mat_gb_meta_data_t *meta, const nelts_t nr)
 {
@@ -5913,6 +5948,31 @@ static inline void write_to_src_mat_row_block(src_t **mat,
 
   poly_to_sparse_compact_matrix_row_test(sel->mpp+(idx+offset),
       max, basis, row);
+}
+
+static inline void write_to_mat_gb_row_block_new(mat_gb_block_t *mat,
+    const mat_gb_meta_data_t *meta, const nelts_t idx, const nelts_t ci,
+    const sel_t *sel, const gb_t *basis, const ht_t *ht)
+{
+  nelts_t i;
+  
+  mat_gb_block_t *start   = mat + (ci * meta->ncb);
+
+  const nelts_t offset  = idx*meta->bs;
+  const nelts_t max     =
+    (idx+1)*meta->bs < sel->load ? meta->bs : sel->load - offset;
+
+  for (i=0; i<meta->ncb; ++i) {
+    initialize_mat_gb_block_new(start+i, meta, max);
+  }
+
+  for (i=0; i<max; ++i) {
+    write_poly_to_matrix_new(start, meta, i, 0, sel->mpp+(i+offset), basis, ht);
+  }
+
+  /* initially we keep them sparsely represented */
+  adjust_block_row_types(start, meta);
+  /* adjust_block_row_types_including_dense(start, meta); */
 }
 
 static inline void write_to_mat_gb_row_block(mat_gb_block_t *mat,
@@ -6029,6 +6089,28 @@ static inline mat_gb_block_t *generate_mat_gb_row_block(
   return mat;
 }
 
+static inline mat_gb_block_t *generate_mat_gb_upper_new(
+    const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
+    const ht_t *ht, const int t)
+{
+  mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
+      (meta->nrb_AB * meta->ncb * sizeof(mat_gb_block_t)));
+  /* printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD); */
+
+  /* printf("meta %u\n", meta->nrb_CD); */
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+      for (nelts_t i=0; i<meta->nrb_AB; ++i) {
+        #pragma omp task
+        write_to_mat_gb_row_block_new(mat, meta, i, i, spd->selu, basis, ht);
+      }
+    }
+  }
+  return mat;
+}
+
 static inline mat_gb_block_t *generate_mat_gb_upper(
     const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
     const ht_t *ht, const int t)
@@ -6048,6 +6130,33 @@ static inline mat_gb_block_t *generate_mat_gb_upper(
       }
     }
   }
+  return mat;
+}
+
+static inline mat_gb_block_t *generate_mat_gb_lower_new(
+    const mat_gb_meta_data_t *meta, const gb_t *basis, const spd_t *spd, 
+    const ht_t *ht, const int t)
+{
+  mat_gb_block_t *mat  = (mat_gb_block_t *)malloc(
+      (meta->nrb_CD * meta->ncb * sizeof(mat_gb_block_t)));
+  /* printf("ncb %u | nrb_CD %u\n", meta->ncb, meta->nrb_CD); */
+
+  /* printf("meta %u\n", meta->nrb_CD); */
+  #pragma omp parallel num_threads(t)
+  {
+    #pragma omp single nowait
+    {
+      for (nelts_t i=0; i<meta->nrb_CD; ++i) {
+        #pragma omp task
+        write_to_mat_gb_row_block_new(mat, meta, i, i, spd->sell, basis, ht);
+      }
+    }
+  }
+
+  /* printf("%p\n", mat[0].len);
+   * printf("%p\n", mat[0].pos);
+   * printf("%p\n", mat[0].val);
+   * printf("nr %u\n", mat[0].nr); */
   return mat;
 }
 

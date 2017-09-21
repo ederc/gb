@@ -30,7 +30,7 @@
 #include <omp.h>
 #endif
 #include <config.h>
-#include "types.h"
+#include <src/types.h>
 
 static inline void copy_first_row_from_dense(mat_gb_block_t *bl,
     const mat_gb_block_t *obl, const mat_gb_meta_data_t *meta)

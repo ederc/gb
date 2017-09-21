@@ -6,7 +6,7 @@ AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wmissing-prototypes -Wstrict-overflow=5 -Wwrite-strings \
 						-Waggregate-return -Wswitch-default \
 						-Wswitch-enum -Wconversion -Wunreachable-code \
-						-Wno-unused-result -save-temps -fverbose-asm -masm=intel \
+						-Wno-unused-result -save-temps -fverbose-asm \
 						-Werror-implicit-function-declaration -pedantic \
 						-Wformat=2 -Wformat-y2k -Wno-format-extra-args \
 						-Wno-format-zero-length -Wformat-nonliteral \

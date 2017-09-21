@@ -29,8 +29,8 @@
 #include <math.h>
 #include <omp.h>
 #include <config.h>
-#include "types.h"
-#include "hash.h"
+#include <src/types.h>
+#include <src/hash.h>
 #include <cli/io.h>
 
 #ifndef META_DATA_DEBUG

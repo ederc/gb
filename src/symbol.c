@@ -31,7 +31,7 @@ void symbolic_preprocessing(ps_t *ps, smc_t *AB, smc_t *CD,
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
 
   /* allocate memory for matrices */
-  AB->row = realloc(AB->row, 2 * nsel * sizeof(src_t *));
+  AB->row = realloc(AB->row, 20 * nsel * sizeof(src_t *));
   AB->ncl = AB->ncr = AB->rk  = 0;
   CD->row = realloc(CD->row, 2 * nsel * sizeof(src_t *));
   CD->ncl = CD->ncr = CD->rk  = 0;

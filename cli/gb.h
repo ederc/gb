@@ -309,6 +309,10 @@ void linear_algebra_sparse_rows_no_column_mapping(
     gb_t *basis, const spd_t *spd, const double density,
     ps_t *ps, const int verbose, const int nthreads);
 #endif
+
+void linear_algebra_all_pivs_16_bit(gb_t *basis, smc_t *AB, smc_t *CD,
+    const pre_t *mon, const double density, ps_t *ps, const int verbose,
+    const int nthreads);
 /*++++++***************************
  * Probabilistic implementations
  *******++++++********************/

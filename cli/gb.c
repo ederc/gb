@@ -92,6 +92,9 @@ void print_help(void)
   printf("                       of matrix.\n");
   printf("                 10 -> Sparse row implementation, no column remapping,\n");
   printf("                       directly reducing lower matrix part.\n");
+  /* printf("                 11 -> Sparse row implementation, ABCD mapping,\n");
+   * printf("                       directly reducing lower matrix part, but storing\n");
+   * printf("                       all pivots in a big sparse matrix\n"); */
   printf("                 42 -> Probabilistic linear algebra, error probability is\n");
   printf("                       lower than 1/(characteristic of field). See also the\n");
   printf("                       paper \"An Algorithm For Splitting Polynomial Systems\n");
@@ -520,6 +523,11 @@ int main(int argc, char *argv[])
  *         linear_algebra_sparse_rows_no_column_mapping(
  *             basis, spd, density, ps, verbose, nthreads);
  *         break; */
+
+      case 11:
+        linear_algebra_all_pivs_16_bit(
+            basis, AB, CD, mon, density, ps, verbose, nthreads);
+        break;
 
       case 42:
         linear_algebra_probabilistic(
@@ -1607,6 +1615,108 @@ block_done:
      * for (size_t i = 0; i < basis->p[basis->load-1][1]; i = i+2)
      *   printf("%u %u  ", basis->p[basis->load-1][i], basis->p[basis->load-1][i+1]);
      * printf("\n"); */
+
+  if (verbose > 0) {
+    t_update_pairs  +=  walltime(t_load_start);
+    gettimeofday(&t_load_start, NULL);
+  }
+
+  if (done) {
+    basis->has_unit = 1;
+  }
+}
+
+void linear_algebra_all_pivs_16_bit(gb_t *basis, smc_t *AB, smc_t *CD,
+    const pre_t *mon, const double density, ps_t *ps, const int verbose,
+    const int nthreads)
+{
+  int done;
+  const nelts_t nr  = AB->nr + CD->nr;
+  const nelts_t nc  = AB->ncl + AB->ncr;
+  const nelts_t nrl = CD->nr;
+
+  /* meta data information for printing */
+  meta_data->mat_rows = nr;
+  meta_data->mat_cols = nc;
+  if (verbose > 0) {
+    printf("%3d %5u/%5u pairs deg %3u %7u x %7u mat ",
+        steps-1, meta_data->sel_pairs, meta_data->sel_pairs+ps->load,
+        meta_data->curr_deg, meta_data->mat_rows, meta_data->mat_cols);
+    fflush(stdout);
+  }
+
+  src_t **pivs      = (src_t **)malloc(nc * sizeof(src_t *));
+  for (size_t i = 0; i < nc; ++i)
+    pivs[i] = NULL;
+  for (size_t i = 0; i < AB->rk; ++i) {
+    pivs[AB->row[i][2]]     = AB->row[i];
+    pivs[AB->row[i][2]][0]  = 1;
+  }
+
+  src_t *np; /* possible new pivot row */
+
+#pragma omp parallel num_threads(nthreads)
+  {
+    bf_t *dr          = (bf_t *)malloc(nc * sizeof(bf_t));
+#pragma omp parallel for num_threads(nthreads)
+    for (size_t i = 0; i < CD->nr; ++i) {
+      memset(dr, 0, nc * sizeof(bf_t));
+      for (size_t j = 2; j < CD->row[i][1]; j = j+2) {
+        dr[CD->row[i][j]] = (bf_t)CD->row[i][j+1];
+      }
+      /* reduce the dense random row w.r.t. to the already known pivots  */
+      done = 0;
+      while (!done) {
+        np  = reduce_dense_row_by_known_pivots(
+            dr, pivs, mon->load, basis->mod);
+        if (!np) {
+          break;
+        }
+        done  = __sync_bool_compare_and_swap(&pivs[np[2]], NULL, np);
+      }
+    }
+    free(dr);
+  }
+
+  /* interreduce new pivs */
+  bf_t *dr  = (bf_t *)malloc(nc * sizeof(bf_t));
+  nelts_t nnr = 0; /* number of new rows */
+  for (size_t i = nc; i > mon->nlm; --i) {
+    if (pivs[i-1] != NULL) {
+      ++nnr;
+      memset(dr, 0, nc * sizeof(bf_t));
+      for (size_t k = 2; k < pivs[i-1][1]; k = k+2)
+        dr[pivs[i-1][k]]  +=  (bf_t) pivs[i-1][k+1];
+      free(pivs[i-1]);
+      pivs[i-1] = NULL;
+      np  = reduce_dense_row_by_known_pivots(
+          dr, pivs, nc, basis->mod);
+      pivs[i-1] = np;
+    }
+  }
+  free(dr);
+  clear_hash_table_idx(ht);
+
+  if (verbose > 0) {
+    t_linear_algebra  +=  walltime(t_load_start);
+    n_zero_reductions += nrl - nnr;
+    printf("%6u new %6u zero ", nnr, nrl - nnr);
+    printf("%9.3f sec ", walltime(t_load_start) / (1000000));
+    printf("%7.3f%% d\n", density);
+    gettimeofday(&t_load_start, NULL);
+  }
+
+  done  = update_basis_all_pivs(basis, ps, mon, pivs, nc, ht);
+
+  for (size_t i = 0; i < CD->nr; ++i)
+    free(CD->row[i]);
+  CD->nr  = CD->rk  = 0;
+
+  for (size_t i = 0; i < nc; ++i)
+    free(pivs[i]);
+  free(pivs);
+  pivs  = NULL;
+  AB->nr  = AB->rk  = 0;
 
   if (verbose > 0) {
     t_update_pairs  +=  walltime(t_load_start);

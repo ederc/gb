@@ -1011,7 +1011,7 @@ void linear_algebra_block_ABCD_reduce_AB_first(
 
   if (AB != NULL) {
     update_lower_by_reduced_upper_row_block(CD, AB, meta, nthreads);
-    for (i=0; j<meta->nrb_AB; ++i) {
+    for (i=0; i<meta->nrb_AB; ++i) {
       for (j=0; j<meta->ncb; ++j) {
         free_mat_gb_block(AB[i]+j);
       }

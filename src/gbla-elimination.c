@@ -2260,7 +2260,7 @@ ri_t elim_fl_dense_D_test(dm_t *D, int nthrds)
       // if there are not enough rows for a good scaling, use only have of the
       // available threads
       range = (ri_t)((int)D->rank - duplicate);
-      if (range < nthrds*nthrds)
+      if (range < (ri_t)(nthrds*nthrds))
         nthrds--;
       //if (ctr>3 && nthrds>1)
       //  nthrds--;

@@ -1869,7 +1869,7 @@ static inline void generate_row_blocks_no_buffer(sb_fl_t * A, dbm_fl_t *B,
   /* get new row index in block rib */
   bi_t rib;
   /* multiplier */
-  hash_t mul;
+  hash_t mul  = 0;
   /* polynomial exponent array */
   hash_t *eh;
   /* polynomial coefficient array */

@@ -11,7 +11,7 @@ AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wformat=2 -Wformat-y2k -Wno-format-extra-args \
 						-Wno-format-zero-length -Wformat-nonliteral \
 						-Wformat-security -Wno-unknown-pragmas -mpopcnt \
-						-funroll-loops -finline-functions -shared -fPIC \
+						-funroll-loops -finline-functions -fPIC \
 						${OPENMP_CFLAGS} ${CL_CFLAGS}
 
 #AM_LIBS	=	${CL_LIBS}

@@ -106,7 +106,7 @@ static inline void free_pair_set(ps_t **ps_in)
 
 inline void add_spair_triangle(ps_t *ps, const gb_t *basis)
 {
-  if (basis->load-1 > ps->spt_size) {
+  if (basis->load == ps->spt_size) {
     ps->spt       =   realloc(ps->spt, 2 * ps->spt_size * sizeof(spt_t *));
     ps->spt_size  *=  2;
   }

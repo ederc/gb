@@ -80,7 +80,7 @@ void gebauer_moeller(ps_t *ps, const gb_t *basis, const nelts_t idx)
       if (check_monomial_division(sp[i].lcm, hash, ht) != 0 &&
           sp[i].lcm != sp[ps->load+pos1].lcm &&
           sp[i].lcm != sp[ps->load+pos2].lcm) {
-        eliminate(ps->spt[idx], i);
+        eliminate(ps->spt[sp[i].gen2], sp[i].gen1);
         sp[i].crit  = CHAIN_CRIT;
       }
     }

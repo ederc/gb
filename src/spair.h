@@ -94,11 +94,35 @@ static inline void free_pair_set(ps_t **ps_in)
 {
   ps_t *ps  = *ps_in;
   free(ps->pairs);
+  free(ps->lcm_hit_cache);
+  for (size_t i = 0; i < ps->spt_load; ++i) {
+    free(ps->spt[i]);
+  }
+  free(ps->spt);
   free(ps);
   ps      = NULL;
   *ps_in  = ps;
 }
 
+inline void add_spair_triangle(ps_t *ps, const gb_t *basis)
+{
+  if (basis->load-1 > ps->spt_size) {
+    ps->spt       =   realloc(ps->spt, 2 * ps->spt_size * sizeof(spt_t *));
+    ps->spt_size  *=  2;
+  }
+
+  ps->spt[basis->load-1]  = calloc((basis->load-2)/32 + 1, sizeof(spt_t));
+  ps->spt_load++;
+}
+
+inline void enlarge_lcm_hit_cache(
+    ps_t *ps, const nelts_t old_size, const gb_t *basis)
+{
+  ps->lcm_hit_cache =
+    realloc(ps->lcm_hit_cache, basis->size * sizeof(nelts_t));
+  memset(ps->lcm_hit_cache + old_size, 0,
+      (basis->size - old_size) * sizeof(nelts_t));
+}
 
 /**
  * \brief Generates spair given by one input element. The first generator is 0.

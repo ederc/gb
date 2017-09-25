@@ -514,6 +514,13 @@ typedef re_l_t bf_t;
 /* block size */
 typedef uint16_t bs_t;
 
+
+/* spair triangle data */
+typedef uint32_t spt_t;
+#define eliminate(A,k)     ( A[(k/32)] |= (1 << (k%32)) )
+#define clear(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) )            
+#define is_eliminated(A,k)    ( A[(k/32)] & (1 << (k%32)) )
+
 #define ALIGNT 32
 
 #ifdef GB_USE_DOUBLE
@@ -712,6 +719,11 @@ typedef struct ps_t
   nelts_t load;     /*!<  number of elements in pair list */
   /* element data */
   spair_t *pairs;   /*!<  pointers of spairs */
+  spt_t **spt;      /*!<   spair triangle */
+  nelts_t spt_load;
+  nelts_t spt_size;
+  nelts_t *lcm_hit_cache; /*!<  stores hits of lcm divisibility for 
+                                gebauer-moeller */
 } ps_t;
 
 /**

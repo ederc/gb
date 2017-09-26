@@ -187,13 +187,13 @@ static inline void generate_all_spairs(ps_t *ps, const nelts_t new,
     if (basis->red[i] > 0) {
       /* printf("%u - %u || %u\n", gen2, gen1, ps->load + gen2 - basis->st); */
       sp->crit  = CHAIN_CRIT;
-      eliminate(ps->spt[new], i);
+      /* eliminate(ps->spt[new], i); */
       continue;
     }
     /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
     if (sp->deg == ht->deg[basis->eh[i][0]] + ht->deg[basis->eh[new][0]]) {
       sp->crit  = PROD_CRIT;
-      eliminate(ps->spt[new], i);
+      /* eliminate(ps->spt[new], i); */
       continue;
     }
     sp->crit  = NO_CRIT;

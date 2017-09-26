@@ -92,15 +92,21 @@ extern ht_t *ht;
  *
  * \return some pseudo random number
  */
-static inline uint32_t pseudo_random_generator(uint32_t random_seed)
+static inline hash_t pseudo_random_generator(hash_t random_seed)
+/* static inline uint32_t pseudo_random_generator(uint32_t random_seed) */
 {
 /*   random_seed ^=  (random_seed << 13);
- *   random_seed ^=  (random_seed << 17);
+ *   random_seed ^=  (random_seed >> 17);
  *   random_seed ^=  (random_seed << 5);
  *
  *   return random_seed; */
+/*   random_seed ^=  (random_seed << 13);
+ *   random_seed ^=  (random_seed >> 7);
+ *   random_seed ^=  (random_seed << 17);
+ *
+ *   return random_seed; */
   /* return (uint32_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL); */
-  return (uint32_t) ((110351523 * ((uint64_t)random_seed) + 54321) & 0x7fffffffUL);
+  return (hash_t) ((110351523 * (random_seed) + 54321) & 0x7fffffffUL);
   /* return random_seed; */
   /* random_seed = 36969*(random_seed & 65535) * (random_seed >> 16);
    * random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
@@ -120,7 +126,8 @@ static inline void set_random_seed(ht_t *ht)
 {
   hash_t i;
 
-  uint32_t random_seed  = 2463534242;
+  hash_t random_seed  = 88172645463325252LL;
+  /* hash_t random_seed  = 2463534242; */
 /* uint32_t random_seed  = 0xFFFFFFFF; */
   /* use random_seed, no zero values are allowed */
   for (i=0; i<ht->nv; ++i) {

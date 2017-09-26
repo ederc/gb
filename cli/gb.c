@@ -622,7 +622,16 @@ int main(int argc, char *argv[])
         sectr++;
     }
   }
+  uint64_t shctr  = 0;
+  for (size_t k = 0; k < ht->load; ++k) {
+    for (size_t l = k+1; l < ht->load; ++l) {
+      if (ht->val[k] == ht->val[l]) {
+        shctr++;
+      }
+    }
+  }
   printf("# same exponents: %lu\n", sectr);
+  printf("# same hashes: %lu\n", shctr);
 
   /* free allocated memory */
   free(meta_data);

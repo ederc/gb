@@ -484,14 +484,15 @@ typedef uint32_t nelts_t;
 typedef uint32_t ht_size_t;
 
 /* hash table entry size */
+typedef int32_t hash_t;
 /* typedef uint32_t hash_t; */
-typedef uint64_t hash_t;
+/* typedef uint64_t hash_t; */
 /* typedef unsigned long hash_t; */
 
 /* degree size */
 /* typedef uint16_t deg_t; */
 /* typedef unsigned int deg_t; */
-typedef uint32_t deg_t;
+typedef int32_t deg_t;
 
 /* homogeneity */
 typedef int hom_t;

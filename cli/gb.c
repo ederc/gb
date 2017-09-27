@@ -606,32 +606,32 @@ int main(int argc, char *argv[])
       break;
   }
 
-  exp_t *exp1, *exp2;
-  size_t m;
-  uint64_t sectr  = 0;
-  for (size_t k = 0; k < ht->load; ++k) {
-    exp1  = ht->exp[k];
-    for (size_t l = k+1; l < ht->load; ++l) {
-      exp2  = ht->exp[l];
-      for (m = 0; m < ht->nv; ++m) {
-        if (exp1[m] != exp2[m]) {
-          break;
-        }
-      }
-      if (m == ht->nv)
-        sectr++;
-    }
-  }
-  uint64_t shctr  = 0;
-  for (size_t k = 0; k < ht->load; ++k) {
-    for (size_t l = k+1; l < ht->load; ++l) {
-      if (ht->val[k] == ht->val[l]) {
-        shctr++;
-      }
-    }
-  }
-  printf("# same exponents: %lu\n", sectr);
-  printf("# same hashes: %lu\n", shctr);
+  /* exp_t *exp1, *exp2;
+   * size_t m;
+   * uint64_t sectr  = 0;
+   * for (size_t k = 0; k < ht->load; ++k) {
+   *   exp1  = ht->exp[k];
+   *   for (size_t l = k+1; l < ht->load; ++l) {
+   *     exp2  = ht->exp[l];
+   *     for (m = 0; m < ht->nv; ++m) {
+   *       if (exp1[m] != exp2[m]) {
+   *         break;
+   *       }
+   *     }
+   *     if (m == ht->nv)
+   *       sectr++;
+   *   }
+   * }
+   * uint64_t shctr  = 0;
+   * for (size_t k = 0; k < ht->load; ++k) {
+   *   for (size_t l = k+1; l < ht->load; ++l) {
+   *     if (ht->val[k] == ht->val[l]) {
+   *       shctr++;
+   *     }
+   *   }
+   * }
+   * printf("# same exponents: %lu\n", sectr);
+   * printf("# same hashes: %lu\n", shctr); */
 
   /* free allocated memory */
   free(meta_data);

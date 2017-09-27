@@ -262,7 +262,8 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   /* ht->sz    = 33554393; [> 2^25 <]
    * ht->sz    = 2097143; [> 2^21 <] */
   /* we add one extra variable in case we have to homogenize the system */
-  ht->nv    = nv+1;
+  ht->nv    = nv;
+  /* ht->nv    = nv+1; */
   /* for easier divisibility checks we start at index 1. If the divisibility
    * check routines return 0, there is no division. */
   ht->load    = 1;
@@ -511,6 +512,15 @@ static inline hash_t check_in_hash_table(ht_t *ht)
     if (ht->val[tmp_l] != hash) {
       continue;
     }
+    /* if (ht->deg[ht->load] != ht->deg[tmp_l])
+     *   continue; */
+    /* for (size_t k = ht->nv; k > 0; --k) {
+     *   if (exp[k-1] !=  ht->exp[tmp_l][k-1]) {
+     *     continue;
+     *   }
+     * }
+     * return tmp_l; */
+
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
       return tmp_l;
     }
@@ -547,8 +557,9 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   ht_size_t i;
   hash_t hash;
   exp_t exp[ht->nv];
+  deg_t deg = 0;
   for (i = 0; i < ht->nv; ++i) {
-    exp[i]    = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+    deg +=  exp[i]    = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
   }
   /* hash value of the product is the sum of the hash values in our setting */
   hash   = ht->val[mon_1] + ht->val[mon_2];
@@ -561,6 +572,14 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     tmp_l = ht->lut[tmp_h];
     if (ht->val[tmp_l] != hash)
       continue;
+    /* if (deg != ht->deg[tmp_l])
+     *   continue; */
+    /* for (size_t k = ht->nv; k > 0; --k) {
+     *   if (exp[k-1] !=  ht->exp[tmp_l][k-1]) {
+     *     continue;
+     *   }
+     * }
+     * return tmp_l; */
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
       return tmp_l;
   }

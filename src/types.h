@@ -941,6 +941,7 @@ typedef struct ht_t
 {
   /* size and load counters */
   nvars_t nv;         /*!<  number of variables*/
+  ht_size_t load_ls;  /*!<  load of hash table after last step*/
   ht_size_t load;     /*!<  load of hash table*/
   ht_size_t sz;       /*!<  hash table size*/
   /* data and arrays for storage */

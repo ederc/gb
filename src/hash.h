@@ -78,7 +78,9 @@
 #define DIVMAP_RECALCULATE_COUNTER  100000
 #endif
 
-
+#ifndef MEMCMP
+#define MEMCMP 1
+#endif
 /***************************
  * OUR HASH TABLE IS GLOBAL
  **************************/
@@ -504,6 +506,7 @@ static inline hash_t check_in_hash_table(ht_t *ht)
 
   /* remaining checks with probing */
   for (size_t i = 0; i < ht->sz;  ++i) {
+go_on:
     tmp_h = (ht_size_t) (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (tmp_l == 0) {
@@ -512,18 +515,23 @@ static inline hash_t check_in_hash_table(ht_t *ht)
     if (ht->val[tmp_l] != hash) {
       continue;
     }
+#if MEMCMP
     /* if (ht->deg[ht->load] != ht->deg[tmp_l])
      *   continue; */
-    /* for (size_t k = ht->nv; k > 0; --k) {
-     *   if (exp[k-1] !=  ht->exp[tmp_l][k-1]) {
-     *     continue;
-     *   }
-     * }
-     * return tmp_l; */
-
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
       return tmp_l;
     }
+#else
+    if (ht->deg[ht->load] != ht->deg[tmp_l])
+      continue;
+    for (size_t k = 0; k < ht->nv; ++k) {
+      if (exp[k] !=  ht->exp[tmp_l][k]) {
+        i++;
+        goto go_on;
+      }
+    }
+    return tmp_l;
+#endif
   }
   /* at this point we know that we do not have the hash value of exp in the
    * table, so we have to insert it */
@@ -567,21 +575,28 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   ht_size_t tmp_l;         /* temporary lookup table value */
 
   for (i = 0; i < ht->sz; ++i) {
+go_on:
     /* tmp_h = (tmp_h+i) & (ht->sz-1); */
     tmp_h = (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
     if (ht->val[tmp_l] != hash)
       continue;
+#if MEMCMP
     /* if (deg != ht->deg[tmp_l])
      *   continue; */
-    /* for (size_t k = ht->nv; k > 0; --k) {
-     *   if (exp[k-1] !=  ht->exp[tmp_l][k-1]) {
-     *     continue;
-     *   }
-     * }
-     * return tmp_l; */
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
       return tmp_l;
+#else
+    if (deg != ht->deg[tmp_l])
+      continue;
+    for (size_t k = 0; k < ht->nv; ++k) {
+      if (exp[k] !=  ht->exp[tmp_l][k]) {
+      i++;
+      goto go_on;
+      }
+    }
+    return tmp_l;
+#endif
   }
   return 0;
 }
@@ -852,4 +867,5 @@ static inline void clear_hash_table_idx(ht_t *ht)
   memset(ht->idx, 0, ht->load * sizeof(ht_size_t));
   /* memset(ht->ctr, 0, ht->sz * sizeof(ht_size_t)); */
 }
+
 #endif /* GB_HASH_TABLE_H */

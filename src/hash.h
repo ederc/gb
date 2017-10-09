@@ -128,8 +128,8 @@ static inline void set_random_seed(ht_t *ht)
 {
   hash_t i;
 
-  hash_t random_seed  = 88172645463325252LL;
-  /* hash_t random_seed  = 2463534242; */
+  /* hash_t random_seed  = 88172645463325252LL; */
+  hash_t random_seed  = 2463534242;
 /* uint32_t random_seed  = 0xFFFFFFFF; */
   /* use random_seed, no zero values are allowed */
   for (i=0; i<ht->nv; ++i) {
@@ -858,7 +858,8 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 }
 
 /**
- * \brief Resets all idx entries of the hash table to zero
+ * \brief Resets all idx entries of the hash table to zero and removes useless
+ * hash table entries, i.e.
  *
  * \param hash table ht
  */

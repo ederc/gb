@@ -446,11 +446,12 @@ static inline hash_t get_hash(const exp_t *exp, const ht_t *ht)
 {
 #if 1
   hash_t hash = 0;
-  for (size_t i = 0; i < ht->nv-1; i = i+2) {
+  if (ht->offset)
+    hash  +=  ht->rand[0] * exp[0];
+  for (size_t i = ht->offset; i < ht->nv; i = i+2) {
     hash  +=  ht->rand[i] * exp[i];
     hash  +=  ht->rand[i+1] * exp[i+1];
   }
-    hash  +=  ht->rand[ht->nv-1] * exp[ht->nv-1];
   return hash;
 #else
   nvars_t i;
@@ -750,6 +751,7 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
 }
 #endif
 
+#if 0
 /**
  * \brief Tests if exp of h1 is divisible by exp of h2. If divisibility is
  * fulfilled we add the multiplier to the hash table and return its hash
@@ -840,7 +842,7 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
   return check_in_hash_table(ht);
 }
 #endif
-
+#endif
 /**
  * \brief Tests if exp of h1 is divisible by exp of h2. If divisibility is
  * fulfilled only 1 is returned, else 0.
@@ -866,12 +868,12 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
 #endif
     return 0;
   }
-  if (ht->deg[h1] < ht->deg[h2]) {
-#if COUNT_DIV_HITS
-    meta_data->non_div++;
-#endif
-    return 0;
-  }
+/*   if (ht->deg[h1] < ht->deg[h2]) {
+ * #if COUNT_DIV_HITS
+ *     meta_data->non_div++;
+ * #endif
+ *     return 0;
+ *   } */
   /* nvars_t i; */
   const exp_t * const exp1  = ht->exp[h1];
   const exp_t * const exp2  = ht->exp[h2];
@@ -920,15 +922,13 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
   }
   /* do not do the degree check: for saturated polynomials we have not computed
    * the correct degree! */
-  nvars_t i;
-  const exp_t *exp1  = ht->exp[h1];
-  const exp_t *exp2  = ht->exp[h2];
+  const exp_t * const exp1  = ht->exp[h1];
+  const exp_t * const exp2  = ht->exp[h2];
 
   /* note that we explicitly do not check w.r.t. the last variable! */
-  i = (ht->nv-1) & 1 ? 1 : 0;
   if (exp1[0] < exp2[0])
     return 0;
-  for (; i<ht->nv-1; i=i+2) {
+  for (size_t i = ht->offset; i < ht->nv-1; i = i+2) {
     if (exp1[i] < exp2[i])
       return 0;
     if (exp1[i+1] < exp2[i+1])
@@ -955,8 +955,8 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
 #if DIRECT_HASH_ENTRY
 static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 {
-  const exp_t *e1  = ht->exp[h1];
-  const exp_t *e2  = ht->exp[h2];
+  const exp_t * const e1  = ht->exp[h1];
+  const exp_t * const e2  = ht->exp[h2];
   exp_t *e  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
 
   /* we know that exp e2 divides exp e1, so no check for e1[i] < e2[i] */
@@ -968,15 +968,13 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 #else
 static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 {
-  nvars_t i;
   exp_t *e  = ht->exp[ht->load];
-  const exp_t *e1  = ht->exp[h1];
-  const exp_t *e2  = ht->exp[h2];
+  const exp_t * const e1  = ht->exp[h1];
+  const exp_t * const e2  = ht->exp[h2];
 
   /* we know that exp e2 divides exp e1, so no check for e1[i] < e2[i] */
-  i = ht->nv & 1 ? 1 : 0;
   e[0]  = (exp_t)(e1[0] - e2[0]);
-  for (; i<ht->nv; i=i+2) {
+  for (size_t i = ht->offset; i < ht->nv; i = i+2) {
     e[i]    = (exp_t)(e1[i] - e2[i]);
     e[i+1]  = (exp_t)(e1[i+1] - e2[i+1]);
   }

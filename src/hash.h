@@ -579,8 +579,8 @@ go_on:
       return tmp_l;
     }
 #else
-    if (ht->deg[ht->load] != ht->deg[tmp_l])
-      continue;
+    /* if (ht->deg[ht->load] != ht->deg[tmp_l])
+     *   continue; */
     for (size_t k = 0; k < ht->nv; ++k) {
       if (exp[k] !=  ht->exp[tmp_l][k]) {
         i++;
@@ -644,8 +644,8 @@ go_on:
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
       return tmp_l;
 #else
-    if (deg != ht->deg[tmp_l])
-      continue;
+    /* if (deg != ht->deg[tmp_l])
+     *   continue; */
     for (size_t k = 0; k < ht->nv; ++k) {
       if (exp[k] !=  ht->exp[tmp_l][k]) {
       i++;

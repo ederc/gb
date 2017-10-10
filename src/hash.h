@@ -81,6 +81,10 @@
 #ifndef MEMCMP
 #define MEMCMP 1
 #endif
+
+#ifndef DIRECT_HASH_ENTRY
+#define DIRECT_HASH_ENTRY 0
+#endif
 /***************************
  * OUR HASH TABLE IS GLOBAL
  **************************/
@@ -265,12 +269,19 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
    * ht->sz    = 2097143; [> 2^21 <] */
   /* we add one extra variable in case we have to homogenize the system */
   ht->nv    = nv;
+  if (ht->nv % 2 == 0)
+    ht->offset =  0;
+  else
+    ht->offset =  1;
   /* ht->nv    = nv+1; */
   /* for easier divisibility checks we start at index 1. If the divisibility
    * check routines return 0, there is no division. */
   ht->load    = 1;
+#if DIRECT_HASH_ENTRY
+#else
   ht->lut     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
   ht->val     = (hash_t *)calloc(ht->sz, sizeof(hash_t));
+#endif
   ht->deg     = (deg_t *)calloc(ht->sz, sizeof(deg_t));
   ht->ld      = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
   ht->div     = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
@@ -295,11 +306,15 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   ht->ctr     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
 #endif
   ht->rand    = (hash_t *)malloc(ht->nv * sizeof(hash_t));
+#if DIRECT_HASH_ENTRY
+  ht->exp     = (exp_t **)calloc(ht->sz, sizeof(exp_t *));
+#else
   ht->exp     = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
   /* get memory for each exponent */
   for (i=0; i<ht->sz; ++i) {
     ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
   }
+#endif
   /* use random_seed, no zero values are allowed */
   set_random_seed(ht);
 
@@ -392,8 +407,11 @@ static inline void free_hash_table(ht_t **ht_in)
 
     hash_t i;
 
+#if DIRECT_HASH_ENTRY
+#else
     free(ht->lut);
     free(ht->val);
+#endif
     free(ht->rand);
     free(ht->deg);
     free(ht->div);
@@ -507,6 +525,34 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  *
  * \return position of hash of exp in table
  */
+#if DIRECT_HASH_ENTRY
+static inline hash_t check_in_hash_table(exp_t *exp, ht_t *ht)
+{
+  hash_t hash = get_hash(exp, ht);
+
+  ht_size_t pos;
+  /* remaining checks with probing */
+  for (size_t i = 0; i < ht->sz;  ++i) {
+    pos= (ht_size_t) (hash+i) & (ht->sz-1);
+    if (ht->exp[pos] == NULL) {
+      break;
+    }
+    if (memcmp(exp, ht->exp[pos], ht->nv*sizeof(exp_t)) == 0) {
+      free(exp);
+      exp = NULL;
+      return pos;
+    }
+  }
+  ht->exp[pos]  = exp;
+  for (size_t i = 0; i < ht->nv; ++i) {
+    ht->deg[pos]  +=  exp[i]
+  }
+  ht->dm[pos]   = generate_divmask(exp, ht);
+  ht->load++;
+
+  return pos;
+}
+#else
 static inline hash_t check_in_hash_table(ht_t *ht)
 {
   hash_t hash = ht->val[ht->load];
@@ -548,7 +594,7 @@ go_on:
 
   return insert_in_hash_table(hash, tmp_h, ht);
 }
-
+#endif
 /**
  * \brief Finds the product of the given two monomial exponents is already
  * in the hash table.
@@ -632,6 +678,17 @@ go_on:
  *
  * \return position of hash of exp in table
  */
+#if DIRECT_HASH_ENTRY
+static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
+    ht_t *ht)
+{
+  exp_t *exp  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+  for (size_t i = 0; i < ht->nv; ++i) {
+    exp[i]  = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+  }
+  return check_in_hash_table(exp, ht);
+}
+#else
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     ht_t *ht)
 {
@@ -643,6 +700,7 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
   ht->val[ht->load] = ht->val[mon_1] + ht->val[mon_2];
   return check_in_hash_table(ht);
 }
+#endif
 
 /**
  * \brief Returns position of lcm of the exponents stored at position h1 and h2
@@ -656,16 +714,30 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
  *
  * \return position of lcm of generators h1 and h2 in hash table ht
  */
+#if DIRECT_HASH_ENTRY
+static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
+{
+
+  /* use first free entry in hash table ht to store possible new lcm monomial */
+  exp_t *lcm = (exp_t *)malloc(ht->nv * sizeof(exp_t));;
+  const exp_t *e1  = ht->exp[h1];
+  const exp_t *e2  = ht->exp[h2];
+
+  for (size_t i = 0; i < ht->nv; ++i) {
+    lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
+  }
+  return check_in_hash_table(lcm, ht);
+}
+#else
 static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   nvars_t i;
-  exp_t *lcm, *e1, *e2;
   deg_t deg = 0;
 
   /* use first free entry in hash table ht to store possible new lcm monomial */
-  lcm = ht->exp[ht->load];
-  e1  = ht->exp[h1];
-  e2  = ht->exp[h2];
+  exp_t *lcm = ht->exp[ht->load];
+  const exp_t *e1  = ht->exp[h1];
+  const exp_t *e2  = ht->exp[h2];
 
   for (i=0; i<ht->nv; ++i) {
     deg +=  lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
@@ -676,6 +748,7 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
   ht->val[ht->load] = get_hash(lcm, ht);
   return check_in_hash_table(ht);
 }
+#endif
 
 /**
  * \brief Tests if exp of h1 is divisible by exp of h2. If divisibility is
@@ -690,6 +763,7 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
  *
  * \return hash position of multiplier or 0
  */
+#if DIRECT_HASH_ENTRY
 static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   if ((ht->dm[h2] & ~ht->dm[h1])) {
@@ -705,12 +779,43 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
 #endif
     return 0;
   }
-  nvars_t i = 0;
-  exp_t *e, *e1, *e2;
 
-  e   = ht->exp[ht->load];
-  e1  = ht->exp[h1];
-  e2  = ht->exp[h2];
+  const exp_t *e1 = ht->exp[h1];
+  const exp_t *e2 = ht->exp[h2];
+  exp_t *e  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+
+  for (size_t i = 0; i < ht->nv; ++i) {
+    if (e1[i] < e2[i]) {
+#if COUNT_DIV_HITS
+      meta_data->non_div++;
+#endif
+      free(e);
+      return 0;
+    }
+    e[i]    = (exp_t)(e1[i] - e2[i]);
+  }
+  return check_in_hash_table(e, ht);
+}
+#else
+static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *ht)
+{
+  if ((ht->dm[h2] & ~ht->dm[h1])) {
+#if COUNT_DIV_HITS
+    meta_data->non_div_found++;
+    meta_data->non_div++;
+#endif
+    return 0;
+  }
+  if (ht->deg[h1] < ht->deg[h2]) {
+#if COUNT_DIV_HITS
+    meta_data->non_div++;
+#endif
+    return 0;
+  }
+
+  exp_t *e  = ht->exp[ht->load];
+  const exp_t *e1  = ht->exp[h1];
+  const exp_t *e2  = ht->exp[h2];
 
   if (e1[0] < e2[0]) {
 #if COUNT_DIV_HITS
@@ -718,9 +823,8 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
 #endif
     return 0;
   }
-  e[i]  = (exp_t)(e1[i] - e2[i]);
-  i = ht->nv & 1 ? 1 : 0;
-  for (; i<ht->nv; i=i+2) {
+  e[0]  = (exp_t)(e1[0] - e2[0]);
+  for (size_t i = ht->offset; i<ht->nv; i=i+2) {
     if (e1[i] < e2[i] || e1[i+1] < e2[i+1]) {
 #if COUNT_DIV_HITS
       meta_data->non_div++;
@@ -735,6 +839,7 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
   /* ht->val[ht->load] = get_hash(lcm, ht); */
   return check_in_hash_table(ht);
 }
+#endif
 
 /**
  * \brief Tests if exp of h1 is divisible by exp of h2. If divisibility is
@@ -767,7 +872,7 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
 #endif
     return 0;
   }
-  nvars_t i;
+  /* nvars_t i; */
   const exp_t * const exp1  = ht->exp[h1];
   const exp_t * const exp2  = ht->exp[h2];
 
@@ -777,8 +882,7 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
 #endif
     return 0;
   }
-  i = ht->nv & 1 ? 1 : 0;
-  for (; i<ht->nv; i=i+2) {
+  for (size_t i = ht->offset; i < ht->nv; i = i+2) {
     if (exp1[i] < exp2[i] || exp1[i+1] < exp2[i+1]) {
 #if COUNT_DIV_HITS
       meta_data->non_div++;
@@ -817,8 +921,8 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
   /* do not do the degree check: for saturated polynomials we have not computed
    * the correct degree! */
   nvars_t i;
-  const exp_t * const exp1  = ht->exp[h1];
-  const exp_t * const exp2  = ht->exp[h2];
+  const exp_t *exp1  = ht->exp[h1];
+  const exp_t *exp2  = ht->exp[h2];
 
   /* note that we explicitly do not check w.r.t. the last variable! */
   i = (ht->nv-1) & 1 ? 1 : 0;
@@ -848,12 +952,26 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
  *
  * \return hash position of multiplier 
  */
+#if DIRECT_HASH_ENTRY
+static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
+{
+  const exp_t *e1  = ht->exp[h1];
+  const exp_t *e2  = ht->exp[h2];
+  exp_t *e  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+
+  /* we know that exp e2 divides exp e1, so no check for e1[i] < e2[i] */
+  for (size_t i = 0;i < ht->nv; ++i) {
+    e[i]    = (exp_t)(e1[i] - e2[i]);
+  }
+  return check_in_hash_table(e, ht);
+}
+#else
 static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   nvars_t i;
   exp_t *e  = ht->exp[ht->load];
-  const exp_t * const e1  = ht->exp[h1];
-  const exp_t * const e2  = ht->exp[h2];
+  const exp_t *e1  = ht->exp[h1];
+  const exp_t *e2  = ht->exp[h2];
 
   /* we know that exp e2 divides exp e1, so no check for e1[i] < e2[i] */
   i = ht->nv & 1 ? 1 : 0;
@@ -866,6 +984,7 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
   ht->val[ht->load] = ht->val[h1] - ht->val[h2];
   return check_in_hash_table(ht);
 }
+#endif
 
 /**
  * \brief Resets all idx entries of the hash table to zero and removes useless

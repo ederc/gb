@@ -426,6 +426,15 @@ static inline void free_hash_table(ht_t **ht_in)
  */
 static inline hash_t get_hash(const exp_t *exp, const ht_t *ht)
 {
+#if 1
+  hash_t hash = 0;
+  for (size_t i = 0; i < ht->nv-1; i = i+2) {
+    hash  +=  ht->rand[i] * exp[i];
+    hash  +=  ht->rand[i+1] * exp[i+1];
+  }
+    hash  +=  ht->rand[ht->nv-1] * exp[ht->nv-1];
+  return hash;
+#else
   nvars_t i;
   hash_t hash  = ht->rand[0] * exp[0];
   i = ht->nv & 1 ? 1 : 0;
@@ -439,6 +448,7 @@ static inline hash_t get_hash(const exp_t *exp, const ht_t *ht)
   printf(" --> %lu\n", hash);
 #endif
   return hash;
+#endif
 }
 
 /**

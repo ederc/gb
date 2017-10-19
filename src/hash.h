@@ -92,7 +92,8 @@ extern ht_t *ht;
  *
  * \return some pseudo random number
  */
-static inline uint32_t pseudo_random_generator(uint32_t random_seed)
+static inline hash_t pseudo_random_generator(hash_t random_seed)
+/* static inline uint32_t pseudo_random_generator(uint32_t random_seed) */
 {
 /*   random_seed ^=  (random_seed << 13);
  *   random_seed ^=  (random_seed << 17);
@@ -100,7 +101,7 @@ static inline uint32_t pseudo_random_generator(uint32_t random_seed)
  *
  *   return random_seed; */
   /* return (uint32_t) ((1103515245 * ((uint64_t)random_seed) + 12345) & 0x7fffffffUL); */
-  return (uint32_t) ((110351523 * ((uint64_t)random_seed) + 54321) & 0x7fffffffUL);
+  return (hash_t) ((110351523 * ((uint64_t)random_seed) + 54321) & 0x7fffffffUL);
   /* return random_seed; */
   /* random_seed = 36969*(random_seed & 65535) * (random_seed >> 16);
    * random_seed = 18000*(random_seed & 65535) ^ (random_seed >> 16);
@@ -255,10 +256,11 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   /* ht->sz    = (ht_size_t)524287; */
   ht->sz    = (ht_size_t)(pow(2,ht_si));
   /* we add one extra variable in case we have to homogenize the system */
-  ht->nv    = nv+1;
+  ht->nv    = nv;
   /* for easier divisibility checks we start at index 1. If the divisibility
    * check routines return 0, there is no division. */
   ht->load    = 1;
+  ht->load_ls = 1;
   ht->lut     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
   ht->val     = (hash_t *)calloc(ht->sz, sizeof(hash_t));
   ht->deg     = (deg_t *)calloc(ht->sz, sizeof(deg_t));
@@ -486,28 +488,38 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  */
 static inline hash_t check_in_hash_table(ht_t *ht)
 {
+  
   hash_t hash = ht->val[ht->load];
 
   ht_size_t tmp_h = 0, tmp_l = 0;
   exp_t *exp  = ht->exp[ht->load];
 
+  /* printf("hash %d\n", hash);
+   * for (size_t i = 0; i < ht->nv; ++i)
+   *   printf("%d ", exp[i]);
+   * printf("\n"); */
+  /* printf("hash %d | ht->load %u\n", hash, ht->load); */
+
   /* remaining checks with probing */
   for (size_t i = 0; i < ht->sz;  ++i) {
     tmp_h = (ht_size_t) (hash+i) & (ht->sz-1);
     tmp_l = ht->lut[tmp_h];
+    /* if (hash == -829905355) {
+     *   printf("tmp_h %d | tmp_l %d\n", tmp_h, tmp_l);
+     * } */
     if (tmp_l == 0 && tmp_h != 0)
       break;
     if (ht->val[tmp_l] != hash)
        continue;
     if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
-      /* printf("ret %u\n", tmp_l); */
+      /* printf("found %d | %d\n", tmp_l, ht->load); */
       return tmp_l;
     }
   }
   /* at this point we know that we do not have the hash value of exp in the
    * table, so we have to insert it */
   hash_t ret =  insert_in_hash_table(hash, tmp_h, ht);
-  /* printf("ret %u\n", ret); */
+  /* printf("ret %u | ht->load %d\n", ret, ht->load); */
   return ret;
 }
 
@@ -578,6 +590,24 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
  *
  * \return position of hash of exp in table
  */
+static inline hash_t check_in_hash_table_product_special(
+    const hash_t mon, const hash_t mul_hash, const deg_t mul_deg,
+    const exp_t *mul_exp, ht_t *ht)
+{
+  for (size_t i = 0; i < ht->nv; ++i) {
+    ht->exp[ht->load][i]  = (exp_t)(ht->exp[mon][i] + mul_exp[i]);
+  }
+  /* for (size_t i = 0; i < ht->nv; ++i) {
+   *   printf("%d ", ht->exp[ht->load][i]);
+   * } */
+  ht->deg[ht->load] = ht->deg[mon] + mul_deg;
+  ht->val[ht->load] = ht->val[mon] + mul_hash;
+  /* printf("%d + %d = %d", ht->val[mon], mul_hash, ht->val[ht->load]);
+   * printf("\n"); */
+
+  return check_in_hash_table(ht);
+}
+
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     ht_t *ht)
 {
@@ -701,17 +731,28 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
  */
 static inline int check_monomial_division(const hash_t h1, const hash_t h2, const ht_t *ht)
 {
+  /* printf("check division of %d by %d\n", h1, h2);
+   * for (size_t i = 0; i < ht->nv; ++i) {
+   *   printf("%d ", ht->exp[h1][i]);
+   * }
+   * printf("\n");
+   * for (size_t i = 0; i < ht->nv; ++i) {
+   *   printf("%d ", ht->exp[h2][i]);
+   * }
+   * printf("\n"); */
   if ((ht->dm[h2] & ~ht->dm[h1])) {
 #if COUNT_DIV_HITS
     meta_data->non_div_found++;
     meta_data->non_div++;
 #endif
+    /* printf("dm negates\n"); */
     return 0;
   }
   if (ht->deg[h1] < ht->deg[h2]) {
 #if COUNT_DIV_HITS
     meta_data->non_div++;
 #endif
+    /* printf("deg negates\n"); */
     return 0;
   }
   nvars_t i;
@@ -730,6 +771,7 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
 #if COUNT_DIV_HITS
       meta_data->non_div++;
 #endif
+      /* printf("exp negates\n"); */
       return 0;
     }
   }
@@ -823,6 +865,147 @@ static inline void clear_hash_table_idx(ht_t *ht)
 {
   memset(ht->idx, 0, ht->load * sizeof(ht_size_t));
   /* memset(ht->ctr, 0, ht->sz * sizeof(ht_size_t)); */
+}
+
+static inline ht_size_t get_hash_position(const hash_t hash, const ht_t *ht)
+{
+  ht_size_t tmp_h = 0, tmp_l = 0;
+
+  /* remaining checks with probing */
+  for (size_t i = 0; i < ht->sz;  ++i) {
+    tmp_h = (ht_size_t) (hash+i) & (ht->sz-1);
+    tmp_l = ht->lut[tmp_h];
+    if (ht->val[tmp_l] != hash)
+      continue;
+    return tmp_h;
+  }
+}
+
+static inline ht_t *clear_hash_table_after_symbolic_preprocessing_new(
+    ht_t *ht, pre_t *mon, ps_t *ps, const gb_t *basis, const nelts_t nlm)
+{
+  ht_t *ht2 = init_hash_table((unsigned int)(log(ht->sz) / log(2)), ht->nv);
+  ht2->sort = ht->sort;
+  recalculate_divmaps(ht2);
+  printf("ht2->sz %u\n", ht2->sz);
+
+  for (size_t i = 0; i < ht->load; ++i) {
+    printf("%5u %d\n", i, ht->val[i]);
+  }
+
+  for (size_t i = basis->load-1; i > 0; --i) {
+  /* for (size_t i = 1; i < basis->load; ++i) { */
+    printf("i %u\n", i);
+    for (size_t j = 2; j < basis->p[i][1]; j = j+2) {
+      ht2->val[ht2->load] = ht->val[basis->p[i][j]];
+      ht2->deg[ht2->load] = ht->deg[basis->p[i][j]];
+      memcpy(ht2->exp[ht2->load], ht->exp[basis->p[i][j]], ht->nv * sizeof(exp_t));
+      basis->p[i][j]  = check_in_hash_table(ht2);
+    }
+  }
+  for (size_t i = 0; i < ps->load; ++i) {
+    ps->pairs[i].lcm  = get_lcm(ps->pairs[i].gen1, ps->pairs[i].gen2, ht2);
+  }
+  for (size_t i = 0; i < ht2->load; ++i) {
+    printf("%5u %d\n", i, ht2->val[i]);
+  }
+  free_hash_table(&ht);
+  
+  printf("ht2->load %u -- done\n", ht2->load);
+  return ht2;
+}
+      
+static inline void clear_hash_table_after_symbolic_preprocessing(
+    ht_t *ht, pre_t *mon, ps_t *ps, const gb_t *basis, const nelts_t nlm)
+{
+
+  const ht_size_t ht_length = ht->load;
+#if 1
+  if (nlm > 0) {
+    nelts_t ctr = ht->load_ls;
+    /* printf("ht->load_ls %u | mon->load %u\n", ht->load_ls, mon->load); */
+    /* for (size_t i = 0; i < mon->load; ++i) {
+     *   printf("%u | %u | %u || ", i, mon->hash[i], ht->idx[mon->hash[i]]);
+     *   for (size_t j = 0; j < ht->nv; ++j) {
+     *     printf("%d ", ht->exp[mon->hash[i]][j]);
+     *   }
+     *   printf("\n");
+     * } */
+    for (size_t i = ht->load_ls; i < ht->load; ++i) {
+      if (ht->idx[i] < nlm) {
+        ht->lut[get_hash_position(ht->val[i], ht)] = 0;
+        ht->val[i]  = 0;
+        ht->deg[i]  = 0;
+        ht->dm[i]   = 0;
+        /* printf("ht->idx[%u] = %u\n", i, ht->idx[i]); */
+      } else {
+        if (ctr != i) {
+          /* printf("move ! ctr %u | i %u\n", ctr, i);
+           * for (size_t j = 0; j < ht->nv; ++j) {
+           *   printf("%d ", ht->exp[i][j]);
+           * }
+           * printf("\n"); */
+          ht->val[ctr]  = ht->val[i];
+          ht->deg[ctr]  = ht->deg[i];
+          ht->dm[ctr]   = ht->dm[i];
+          ht->div[ctr]  = ht->div[i];
+          /* no need for resetting the idx entry, it is set to zero later on
+           * ht->idx[ctr]  = ht->idx[i]; */
+          /* for (size_t j = 0; j < ht->nv; ++j) {
+           *   printf("%d ", ht->exp[i][j]);
+           * }
+           * printf("\n"); */
+          memcpy(ht->exp[ctr], ht->exp[i], ht->nv * sizeof(exp_t));
+          /* printf("%p : ", ht->exp[ctr]);
+           * for (size_t j = 0; j < ht->nv; ++j) {
+           *   printf("%d ", ht->exp[ctr][j]);
+           * }
+           * printf(" | ");
+           * for (size_t j = 0; j < ht->nv; ++j) {
+           *   printf("%d ", ht->exp[22][j]);
+           * }
+           * printf("\n"); */
+          memset(ht->exp[i], 0, ht->nv * sizeof(exp_t));
+
+          /* printf("hash pos %d\n",get_hash_position(ht->val[i], ht)); */
+          ht->lut[get_hash_position(ht->val[i], ht)]  = ctr; 
+          /* ht->lut[get_hash_position(ht->val[i], ht)]  = ht->lut[i]; */
+          /* printf("ht->idx[%u] = %u\n", i, ht->idx[i]); */
+          mon->hash[ht->idx[i]] = ctr;
+        }
+        ctr++;
+      }
+    }
+    /* printf("mon->load %u\n", mon->load);
+     * for (size_t i = 0; i < mon->load; ++i) {
+     *   printf("%u | %u | %u || %p : ", i, mon->hash[i], ht->idx[mon->hash[i]],
+     *       ht->exp[mon->hash[i]]);
+     *   for (size_t j = 0; j < ht->nv; ++j) {
+     *     printf("%d ", ht->exp[mon->hash[i]][j]);
+     *   }
+     *   printf("\n");
+     * } */
+    /* printf("ht->load %u | ctr %u | nlm %u\n", ht->load, ctr, nlm); */
+    ht->load_ls = ht->load = ctr;
+    /* ht->load_ls = ht->load; */
+
+    /* regenerate lcms of s-pairs if the system is affine */
+    /* if (basis->hom == 0) {
+     *   for (size_t i = 0; i < ps->load; ++i) {
+     *     printf("pair check %u / %u\n", i, ps->load);
+     *     ps->pairs[i].lcm  = get_lcm(
+     *         basis->p[ps->pairs[i].gen1][2],
+     *         basis->p[ps->pairs[i].gen2][2],
+     *         ht);
+     *   }
+     * } */
+  }
+#endif
+  /* clear div entries for freed ht entries */
+  memset(ht->div+ht->load_ls, 0, (ht_length-ht->load) * sizeof(ht_size_t));
+  /* clear idx entries */
+  memset(ht->idx, 0, ht_length * sizeof(ht_size_t));
+  /* printf("---> %u / %u\n", ht->load, ht_length); */
 }
 
 static inline void set_column_indices_in_ht_idx(

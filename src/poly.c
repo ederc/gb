@@ -119,9 +119,15 @@ int add_new_element_to_basis(gb_t *basis, src_t *row,
 
 #if POLY_DEBUG
   printf("new element (%u) ", basis->load);
-  for (size_t i = 2; i < basis->p[basis->load][1]; i = i+2)
-    printf("%u %u | ", basis->p[basis->load][i+1], basis->p[basis->load][i]);
-  printf("\n")
+  for (size_t i = 2; i < basis->p[basis->load][1]; i = i+2) {
+    printf("%u | ", basis->p[basis->load][i+1]);
+    /* printf("%u %u | ", basis->p[basis->load][i+1], basis->p[basis->load][i]); */
+    for (size_t j = 0; j < ht->nv; ++j) {
+      printf("%u", ht->exp[basis->p[basis->load][i]][j]);
+    }
+    printf(" || ");
+  }
+  printf("\n");
 #endif
 
   basis->load++;

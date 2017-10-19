@@ -654,6 +654,12 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
   nelts_t *gens = (nelts_t *)malloc(2 * nsel * sizeof(nelts_t));
   nelts_t load  = 0;
   nelts_t tmp, min_nt_pos;
+#define NOT_ADDING_MUL_TO_HT 1
+#if NOT_ADDING_MUL_TO_HT
+  hash_t mul_hash;
+  deg_t mul_deg;
+  exp_t *mul_exp  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+#endif
   while (i<nsel) {
     memset(gens, 0, 2 * nsel * sizeof(nelts_t));
     lcm     = ps->pairs[i].lcm;
@@ -708,14 +714,32 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
       AB->row[AB->rk] = (src_t *)malloc(basis->p[gens[k]][1] * sizeof(src_t));
       memcpy(AB->row[AB->rk], basis->p[gens[k]],
           basis->p[gens[k]][1] * sizeof(src_t));
+#if NOT_ADDING_MUL_TO_HT
+      mul_hash = ht->val[lcm] - ht->val[basis->p[gens[k]][2]];
+      for (size_t j = 0; j < ht->nv; ++j) {
+        mul_exp[j]  = ht->exp[lcm][j] - ht->exp[basis->p[gens[k]][2]][j];
+      }
+      mul_deg = 0;
+      for (size_t j = 0; j < ht->nv; ++j) {
+        mul_deg +=  mul_exp[j];
+      }
+#else
       hash_t mul = get_multiplier(lcm, basis->p[gens[k]][2], ht);
+#endif
       /* printf("adds %u with mul %u to AB at row %u || lcm %u\n", gens[k], mul, AB->rk, lcm); */
       for (size_t i = 2; i < AB->row[AB->rk][1]; i = i+2) {
+#if NOT_ADDING_MUL_TO_HT
+        AB->row[AB->rk][i]  = check_in_hash_table_product_special(
+            AB->row[AB->rk][i], mul_hash, mul_deg, mul_exp, ht);
+      /* printf("a %d\n", AB->row[AB->rk][i]); */
+#else
         AB->row[AB->rk][i]  = check_in_hash_table_product(
             mul, AB->row[AB->rk][i], ht);
+#endif
         if (ht->idx[AB->row[AB->rk][i]] == 0) {
           ht->idx[AB->row[AB->rk][i]] = 1;
           add_to_monomial_list(mon, AB->row[AB->rk][i]);
+          /* printf("a mon->hash[%d] %d\n", mon->load, mon->hash[mon->load]); */
         }
       }
       AB->rk++;
@@ -730,11 +754,27 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
       CD->row[CD->rk] = (src_t *)malloc(basis->p[gens[l]][1] * sizeof(src_t));
       memcpy(CD->row[CD->rk], basis->p[gens[l]],
           basis->p[gens[l]][1] * sizeof(src_t));
+#if NOT_ADDING_MUL_TO_HT
+      mul_hash = ht->val[lcm] - ht->val[basis->p[gens[l]][2]];
+      for (size_t j = 0; j < ht->nv; ++j) {
+        mul_exp[j]  = ht->exp[lcm][j] - ht->exp[basis->p[gens[l]][2]][j];
+      }
+      mul_deg = 0;
+      for (size_t j = 0; j < ht->nv; ++j) {
+        mul_deg +=  mul_exp[j];
+      }
+#else
       hash_t mul = get_multiplier(lcm, basis->p[gens[l]][2], ht);
+#endif
       /* printf("adds %u with mul %u to CD at row %u || lcm %u\n", gens[l], mul, CD->rk, lcm); */
       for (size_t i = 2; i < CD->row[CD->rk][1]; i = i+2) {
+#if NOT_ADDING_MUL_TO_HT
+        CD->row[CD->rk][i]  = check_in_hash_table_product_special(
+            CD->row[CD->rk][i], mul_hash, mul_deg, mul_exp, ht);
+#else
         CD->row[CD->rk][i]  = check_in_hash_table_product(
             mul, CD->row[CD->rk][i], ht);
+#endif
         if (ht->idx[CD->row[CD->rk][i]] == 0) {
           ht->idx[CD->row[CD->rk][i]] = 1;
           add_to_monomial_list(mon, CD->row[CD->rk][i]);
@@ -746,6 +786,10 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
     load  = 0;
   }
   free(gens);
+
+#if NOT_ADDING_MUL_TO_HT
+  free(mul_exp);
+#endif
 
   /* adjust pair set after removing the bunch of selected pairs */
   k = 0;

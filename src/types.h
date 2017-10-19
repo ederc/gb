@@ -481,10 +481,10 @@ typedef uint32_t nvars_t;
 typedef uint32_t nelts_t;
 
 /* hash table table size */
-typedef uint32_t ht_size_t;
+typedef int32_t ht_size_t;
 
 /* hash table entry size */
-typedef uint32_t hash_t;
+typedef int32_t hash_t;
 /* typedef uint64_t hash_t; */
 /* typedef unsigned long hash_t; */
 
@@ -879,6 +879,7 @@ typedef struct ht_t
 {
   /* size and load counters */
   nvars_t nv;         /*!<  number of variables*/
+  ht_size_t load_ls;  /*!<  load of hash table after last step */
   ht_size_t load;     /*!<  load of hash table*/
   ht_size_t sz;       /*!<  hash table size*/
   /* data and arrays for storage */

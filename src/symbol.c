@@ -60,6 +60,12 @@ void symbolic_preprocessing(ps_t *ps, smc_t *AB, smc_t *CD,
   /* we use mon as LIFO: last in, first out. thus we can easily remove and add
    * new elements to mon */
   idx = 0;
+  
+#if NOT_ADDING_MUL_TO_HT
+  hash_t mul_hash;
+  deg_t mul_deg;
+  exp_t *mul_exp  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
+#endif
   /* hash_t h, ho; */
   while (idx < mon->load) {
     hash_pos  = mon->hash[idx];
@@ -70,7 +76,9 @@ void symbolic_preprocessing(ps_t *ps, smc_t *AB, smc_t *CD,
     }
     i = ht->div[hash_pos] > 0 ? ht->div[hash_pos] : basis->st;
 
+    /* printf("i %u last divisor checked with to start sc\n", i); */
     while (i<basis->load) {
+      /* printf("i %u\n", i); */
       if (check_monomial_division(hash_pos, basis->p[i][2], ht)) {
         while (basis->red[i] != 0)
           i = basis->red[i];
@@ -98,14 +106,52 @@ done:
     AB->row[AB->rk] = (src_t *)malloc(basis->p[i][1] * sizeof(src_t));
     memcpy(AB->row[AB->rk], basis->p[i],
         basis->p[i][1] * sizeof(src_t));
+#if NOT_ADDING_MUL_TO_HT
+    /* printf("hash values: %d - %d = %d\n", ht->val[hash_pos], ht->val[basis->p[i][2]], mul_hash); */
+    mul_hash = ht->val[hash_pos] - ht->val[basis->p[i][2]];
+    for (size_t j = 0; j < ht->nv; ++j) {
+      mul_exp[j]  = ht->exp[hash_pos][j] - ht->exp[basis->p[i][2]][j];
+    }
+    /* printf("--mul--\n");
+     * for (size_t j = 0; j < ht->nv; ++j) {
+     *   printf("%u", mul_exp[j]);
+     * }
+     * printf("\n");
+     * printf("--div--\n");
+     * for (size_t j = 0; j < ht->nv; ++j) {
+     *   printf("%u", ht->exp[basis->p[i][2]][j]);
+     * }
+     * printf("\n");
+     * printf("--elt--\n");
+     * for (size_t j = 0; j < ht->nv; ++j) {
+     *   printf("%u", ht->exp[hash_pos][j]);
+     * }
+     * printf("\n"); */
+    mul_deg = 0;
+    for (size_t j = 0; j < ht->nv; ++j) {
+      mul_deg +=  mul_exp[j];
+    }
+#else
     hash_t mul = get_multiplier(hash_pos, basis->p[i][2], ht);
+#endif
+
+    /* hash_t mul = get_multiplier_after_poly(
+     *     hash_pos, basis->p[i][2], basis->p[i][1], ht); */
     /* printf("mul %u\n", mul); */
+    /* printf("NEW POLY STARTS %u\n", i); */
     for (size_t j = 2; j < AB->row[AB->rk][1]; j = j+2) {
+#if NOT_ADDING_MUL_TO_HT
+      AB->row[AB->rk][j]  = check_in_hash_table_product_special(
+          AB->row[AB->rk][j], mul_hash, mul_deg, mul_exp, ht);
+      /* printf("b %d\n", AB->row[AB->rk][j]); */
+#else
       AB->row[AB->rk][j]  = check_in_hash_table_product(
           mul, AB->row[AB->rk][j], ht);
+#endif
       if (ht->idx[AB->row[AB->rk][j]] == 0) {
         ht->idx[AB->row[AB->rk][j]] = 1;
         add_to_monomial_list(mon, AB->row[AB->rk][j]);
+        /* printf("b mon->hash[%d] %d\n", mon->load, mon->hash[mon->load]); */
       }
     }
     AB->rk++;
@@ -113,4 +159,7 @@ done:
     mon->nlm++;
     idx++;
   }
+#if NOT_ADDING_MUL_TO_HT
+  free(mul_exp);
+#endif
 }

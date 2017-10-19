@@ -154,7 +154,7 @@ static inline int update_basis(gb_t *basis, ps_t *ps, const spd_t *spd,
 #endif
 
 static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
-    const pre_t *mon, src_t **pivs, const nelts_t nc, const ht_t *ht)
+    const pre_t *mon, src_t **pivs, const nelts_t nc, ht_t *ht)
 {
   int res;
   if (basis->size < (nc-mon->nlm) + basis->load)
@@ -186,6 +186,14 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
   /* update_pair_set_many(ps, basis, basis->load_ls); */
   /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
+  ht->load_ls     = ht->load;
+  /* for (size_t i = 0; i < ps->load; ++i) {
+   *   printf("sp %u | %u | %d -- ", ps->pairs[i].gen1, ps->pairs[i].gen2, ps->pairs[i].lcm);
+   *   for (size_t j = 0; j < ht->nv; ++j) {
+   *     printf("%d ", ht->exp[ps->pairs[i].lcm][j]);
+   *   }
+   *   printf("\n");
+   * } */
   return 0;
 }
 
@@ -195,7 +203,7 @@ static inline int update_basis_new(gb_t *basis, ps_t *ps, const spd_t *spd,
 {
   ri_t i;
   int res;
-  for (i=0; i<mat->rk; ++i) {
+   (i=0; i<mat->rk; ++i) {
     /* add lowest row first, it has the smallest new lead monomial */
     res = add_new_element_to_basis_new(basis, mat->row[mat->rk-1-i], spd, ht);
     /* if hash value 0 is new lead monomial we are done, since we have found a

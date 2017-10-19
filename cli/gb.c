@@ -399,7 +399,14 @@ int main(int argc, char *argv[])
     } else { 
         ht->sort.sort_columns(mon);
     }
-    /* for (size_t i = 0; i < mon->load; ++i) {
+    /* for (size_t i = 0; i < mon->nlm; ++i) {
+     *   printf("%u - %u -- ", i, mon->hash[i]);
+     *   for (size_t j = 0; j < ht->nv; ++j)
+     *     printf("%u ", ht->exp[mon->hash[i]][j]);
+     *   printf("\n");
+     * }
+     * printf("-------------------------------\n");
+     * for (size_t i = mon->nlm; i < mon->load; ++i) {
      *   printf("%u - %u -- ", i, mon->hash[i]);
      *   for (size_t j = 0; j < ht->nv; ++j)
      *     printf("%u ", ht->exp[mon->hash[i]][j]);
@@ -470,6 +477,10 @@ int main(int argc, char *argv[])
     uint64_t dimension  =
       (uint64_t)((AB->nr+CD->nr) * (CD->ncl + CD->ncr));
     double density      = (double)terms / (double)dimension;
+
+    /* printf("ht->load %u | AB->nr %u\n", ht->load, AB->nr); */
+    /* ht =  clear_hash_table_after_symbolic_preprocessing_new(ht, mon, ps, basis, AB->nr); */
+    clear_hash_table_after_symbolic_preprocessing(ht, mon, ps, basis, AB->nr);
 
     /* find corresponding linear algebra implementation */
     switch (linear_algebra) {
@@ -555,7 +566,9 @@ int main(int argc, char *argv[])
 
   free(mon->hash);
   free(mon);
+  free(AB->row);
   free(AB);
+  free(CD->row);
   free(CD);
 
   /* final basis for possible output data */
@@ -596,7 +609,17 @@ int main(int argc, char *argv[])
     printf("Div Hits                          %9lu/%9lu (%4.2f)\n", meta_data->non_div_found,
         meta_data->non_div, (double)(meta_data->non_div_found)/(double)(meta_data->non_div));
 #endif
+
+    uint64_t nterms = 0;
+    for (size_t l = basis->st; l < basis->load; ++l) {
+      if (basis->red[l] == 0) {
+        nterms  +=  basis->p[l][1];
+      }
+    }
+
     printf("Size of basis                     %9u\n", basis->fl);
+    printf("Number of terms in basis          %9lu (<= 2^%u)\n", nterms,
+        (unsigned int)(ceil(log(nterms) / log(2))));
     printf("criteria applications (total)     %9u\n", meta_data->ncrit_total);
     printf("Number of zero reductions         %9lu\n", n_zero_reductions);
     printf("Number of hashed elements         %9u (<= 2^%u) of 2^%u\n", ht->load,
@@ -627,10 +650,25 @@ int main(int argc, char *argv[])
   if (basis->has_unit == 1) {
     free(fb[0]);
   } else {
-    /* elements are freed in basis
-     * for (size_t k = 0; k < basis->load - basis->st - basis->nred; ++k)
-     *   free(fb[k]); */
+    /* elements are freed in basis */
+    /* for (size_t k = 0; k < basis->load - basis->st - basis->nred; ++k) {
+     *   free(fb[k]);
+     *   fb[k] = NULL;
+     * } */
   }
+
+  for (size_t l = 0; l < ht->load; ++l) {
+    for (size_t m = l+1; m < ht->load; ++m) {
+      if (ht->val[l] == ht->val[m]) {
+        printf("%u | %u || %d || ", l, m, ht->val[l]);
+        for (size_t n = 0; n < ht->nv; ++n) {
+          printf("%d ", ht->exp[l][n]);
+        }
+        printf("\n");
+      }
+    }
+  }
+  free(fb);
   free_basis(&basis);
   free_hash_table(&ht);
 
@@ -1510,6 +1548,7 @@ again:
       nelts_t nbl   = (nelts_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
       nelts_t nrbl  = (nelts_t) (nbl - i*rpb); 
 
+      /* printf("rpb %u | nrbl %u\n", rpb, nrbl); */
       if (nrbl != 0) {
 
         nelts_t bctr  = 0;
@@ -1523,6 +1562,7 @@ again:
           memset(dr, 0, nc * sizeof(bf_t));
           nelts_t ctr = 0;
           for (size_t j = i*rpb; j < nbl; ++j) {
+            /* printf("ctr %u\n", ctr); */
             for (size_t k = 2; k < CD->row[j][1]; k = k+2) {
               dr[CD->row[j][k]]  +=  (bf_t) mul[ctr] * CD->row[j][k+1];
             }

@@ -168,7 +168,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lex(const void *a,
   const hash_t hb = *((hash_t *)b);
 
   /* else we have to check lexicographical */
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * hb), ht->exp+(ht->nv * ha), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -195,7 +195,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_lex(const void
   const hash_t hb = *((hash_t *)b);
 
   /* else we have to check lexicographical */
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * ha), ht->exp+(ht->nv * hb), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -225,7 +225,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   /* else we have to check reverse lexicographical
    * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
    * => we can use memcmp() here and still get reverse lexicographical ordering */
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * ha), ht->exp+(ht->nv * hb), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -256,7 +256,7 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
     return (int)(ht->deg[ha]-ht->deg[hb]);
 
   /* else we have to check reverse lexicographical */
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * hb), ht->exp+(ht->nv * ha), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -279,7 +279,7 @@ static inline int cmp_polynomials_by_lex(const void *a,
   const hash_t ha = pa[2];
   const hash_t hb = pb[2];
 
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * hb), ht->exp+(ht->nv * ha), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -309,7 +309,7 @@ static inline int cmp_polynomials_by_grevlex(const void *a,
   /* else we have to check reverse lexicographical
    * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
    * => we can use memcmp() here and still get reverse lexicographical ordering */
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * ha), ht->exp+(ht->nv * hb), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -332,7 +332,7 @@ static inline int cmp_polynomials_by_inverse_lex(const void *a,
   const hash_t ha = pa[2];
   const hash_t hb = pb[2];
 
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * ha), ht->exp+(ht->nv * hb), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -362,7 +362,7 @@ static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
   /* else we have to check reverse lexicographical
    * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
    * => we can use memcmp() here and still get reverse lexicographical ordering */
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp+(ht->nv * hb), ht->exp+(ht->nv * ha), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -710,14 +710,17 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
     k = 0;
 
     /* add to upper matrix AB */
+    exp_t *ev = ht->exp + (ht->nv * lcm);
+    exp_t *ed = NULL;
     if (load > 1) {
       AB->row[AB->rk] = (src_t *)malloc(basis->p[gens[k]][1] * sizeof(src_t));
       memcpy(AB->row[AB->rk], basis->p[gens[k]],
           basis->p[gens[k]][1] * sizeof(src_t));
 #if NOT_ADDING_MUL_TO_HT
       mul_hash = ht->val[lcm] - ht->val[basis->p[gens[k]][2]];
+      ed  = ht->exp + (ht->nv * basis->p[gens[k]][2]);
       for (size_t j = 0; j < ht->nv; ++j) {
-        mul_exp[j]  = ht->exp[lcm][j] - ht->exp[basis->p[gens[k]][2]][j];
+        mul_exp[j]  = ev[j] - ed[j];
       }
       mul_deg = 0;
       for (size_t j = 0; j < ht->nv; ++j) {
@@ -731,7 +734,7 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
 #if NOT_ADDING_MUL_TO_HT
         AB->row[AB->rk][i]  = check_in_hash_table_product_special(
             AB->row[AB->rk][i], mul_hash, mul_deg, mul_exp, ht);
-      /* printf("a %d\n", AB->row[AB->rk][i]); */
+      /* printf("a1 %d\n", AB->row[AB->rk][i]); */
 #else
         AB->row[AB->rk][i]  = check_in_hash_table_product(
             mul, AB->row[AB->rk][i], ht);
@@ -751,13 +754,24 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
     }
     /* add to lower matrix CD */
     for (l=k; l<load; l++) {
+      ed  = ht->exp + (ht->nv * basis->p[gens[l]][2]);
       CD->row[CD->rk] = (src_t *)malloc(basis->p[gens[l]][1] * sizeof(src_t));
       memcpy(CD->row[CD->rk], basis->p[gens[l]],
           basis->p[gens[l]][1] * sizeof(src_t));
 #if NOT_ADDING_MUL_TO_HT
       mul_hash = ht->val[lcm] - ht->val[basis->p[gens[l]][2]];
+      /* printf("LCM ");
+       * for (size_t k = 0; k < ht->nv; ++k) {
+       *   printf("%d ", ht->exp[lcm][k]);
+       * }
+       * printf("\n");
+       * printf("POL %u ", gens[l]);
+       * for (size_t k = 0; k < ht->nv; ++k) {
+       *   printf("%d ", ht->exp[basis->p[gens[l]][2]][k]);
+       * }
+       * printf("\n"); */
       for (size_t j = 0; j < ht->nv; ++j) {
-        mul_exp[j]  = ht->exp[lcm][j] - ht->exp[basis->p[gens[l]][2]][j];
+        mul_exp[j]  = ev[j] - ed[j];
       }
       mul_deg = 0;
       for (size_t j = 0; j < ht->nv; ++j) {
@@ -771,6 +785,7 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
 #if NOT_ADDING_MUL_TO_HT
         CD->row[CD->rk][i]  = check_in_hash_table_product_special(
             CD->row[CD->rk][i], mul_hash, mul_deg, mul_exp, ht);
+      /* printf("c %d\n", CD->row[CD->rk][i]); */
 #else
         CD->row[CD->rk][i]  = check_in_hash_table_product(
             mul, CD->row[CD->rk][i], ht);

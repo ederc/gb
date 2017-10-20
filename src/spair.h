@@ -235,8 +235,8 @@ static inline int cmp_spairs_by_grevlex(const void *a, const void *b)
      * NOTE: for graded reverse lexicographical ordering we store the exponents
      * ht->exp and ht->ev in reverse order => we can use memcmp() for reverse
      * lex comparison */
-    exp_t *expa = ht->exp[spa->lcm];
-    exp_t *expb = ht->exp[spb->lcm];
+    exp_t *expa = ht->exp + (ht->nv * spa->lcm);
+    exp_t *expb = ht->exp + (ht->nv * spb->lcm);
     /*
     for (int ii=0; ii<ht->nv; ++ii)
       printf("%u | ",expa[ii]);
@@ -282,8 +282,8 @@ static inline int cmp_spairs_by_deg_lex(const void *a, const void *b)
         return -1;
     }
     /* compare lexicographical */
-    exp_t *expa = ht->exp[spa->lcm];
-    exp_t *expb = ht->exp[spb->lcm];
+    exp_t *expa = ht->exp + (ht->nv * spa->lcm);
+    exp_t *expb = ht->exp + (ht->nv * spb->lcm);
     /*
     for (int ii=0; ii<ht->nv; ++ii)
       printf("%u | ",expa[ii]);

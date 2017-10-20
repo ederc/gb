@@ -480,7 +480,7 @@ int main(int argc, char *argv[])
 
     /* printf("ht->load %u | AB->nr %u\n", ht->load, AB->nr); */
     /* ht =  clear_hash_table_after_symbolic_preprocessing_new(ht, mon, ps, basis, AB->nr); */
-    clear_hash_table_after_symbolic_preprocessing(ht, mon, ps, basis, AB->nr);
+    /* clear_hash_table_after_symbolic_preprocessing(ht, mon, ps, basis, AB->nr); */
 
     /* find corresponding linear algebra implementation */
     switch (linear_algebra) {
@@ -561,6 +561,7 @@ int main(int argc, char *argv[])
             "Unknown linear algebra option.\n");
         return 1;
     }
+    /* ht =  clear_hash_table_after_symbolic_preprocessing_new(ht, mon, ps, basis, AB->nr); */
   /* free(mon->hash); */
   }
 
@@ -657,17 +658,17 @@ int main(int argc, char *argv[])
      * } */
   }
 
-  for (size_t l = 0; l < ht->load; ++l) {
-    for (size_t m = l+1; m < ht->load; ++m) {
-      if (ht->val[l] == ht->val[m]) {
-        printf("%u | %u || %d || ", l, m, ht->val[l]);
-        for (size_t n = 0; n < ht->nv; ++n) {
-          printf("%d ", ht->exp[l][n]);
-        }
-        printf("\n");
-      }
-    }
-  }
+  /* for (size_t l = 0; l < ht->load; ++l) {
+   *   for (size_t m = l+1; m < ht->load; ++m) {
+   *     if (ht->val[l] == ht->val[m]) {
+   *       printf("%u | %u || %d || ", l, m, ht->val[l]);
+   *       for (size_t n = 0; n < ht->nv; ++n) {
+   *         printf("%d ", ht->exp[l][n]);
+   *       }
+   *       printf("\n");
+   *     }
+   *   }
+   * } */
   free(fb);
   free_basis(&basis);
   free_hash_table(&ht);

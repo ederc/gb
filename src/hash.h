@@ -178,10 +178,12 @@ static inline void recalculate_divmaps(ht_t *ht)
    * printf("\n"); */
   deg_t *max_exponents = (deg_t *)malloc(ht->ndv * sizeof(deg_t));
   deg_t *min_exponents = (deg_t *)malloc(ht->ndv * sizeof(deg_t));
+  
+  exp_t *ev = ht->exp + (ht->nv * 1);
 
   /* get initial values for min and max from first hash table entry */
   for (nelts_t j=0; j<ht->ndv; ++j)
-    max_exponents[j]  = min_exponents[j]  = ht->exp[1][j]; 
+    max_exponents[j]  = min_exponents[j]  = ev[j]; 
   /* printf("max and min initial\n");
    * for (nelts_t i=0; i<ht->ndv; ++i)
    *   printf("%3u ", max_exponents[i]);
@@ -191,11 +193,12 @@ static inline void recalculate_divmaps(ht_t *ht)
    * printf("\n"); */
   /* now calculate min and max over the full hash table */
   for (nelts_t i=2; i<ht->load; ++i) {
+    ev  = ht->exp + (ht->nv * i);
     for (nelts_t j=0; j<ht->ndv; ++j) {
-      if (ht->exp[i][j] > max_exponents[j])
-        max_exponents[j]  = ht->exp[i][j];
-      if (ht->exp[i][j] < min_exponents[j])
-        min_exponents[j]  = ht->exp[i][j];
+      if (ev[j] > max_exponents[j])
+        max_exponents[j]  = ev[j];
+      if (ev[j] < min_exponents[j])
+        min_exponents[j]  = ev[j];
     }
   }
   /* printf("max and min\n");
@@ -223,7 +226,7 @@ static inline void recalculate_divmaps(ht_t *ht)
    *   printf("%u | %u\n", i, ht->divmap[i]); */
   /* recalculate divmask entries for all elements in hash table */
   for (nelts_t i=1; i<ht->load; ++i) {
-    ht->dm[i] = generate_divmask(ht->exp[i], ht);
+    ht->dm[i] = generate_divmask(ht->exp + (ht->nv * i), ht);
   }
 
   /* reset recalculate counter for divmaps */
@@ -286,11 +289,11 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   ht->ctr     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
 #endif
   ht->rand    = (hash_t *)malloc(ht->nv * sizeof(hash_t));
-  ht->exp     = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
+  ht->exp     = (exp_t *)malloc(ht->sz * ht->nv * sizeof(exp_t));
   /* get memory for each exponent */
-  for (i=0; i<ht->sz; ++i) {
-    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
-  }
+  /* for (i=0; i<ht->sz; ++i) {
+   *   ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
+   * } */
   /* use random_seed, no zero values are allowed */
   set_random_seed(ht);
 
@@ -314,7 +317,7 @@ static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos
       break;
 #if HASH_DEBUG
       for (int i=0; i<ht->nv; ++i)
-        printf("%u ",ht->exp[pos][i]);
+        printf("%u ",ht->exp{(ht->nv * pos) + i]);
       printf(" ||| ");
       printf("%11u | %11u | %5u\n",hash, pos, ht->deg[pos]);
 #endif
@@ -355,10 +358,10 @@ static inline void enlarge_hash_table(ht_t *ht)
 #endif
   memset(ht->lut+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
   memset(ht->div+old_sz, 0, (ht->sz-old_sz) * sizeof(nelts_t));
-  ht->exp   = realloc(ht->exp, ht->sz * sizeof(exp_t *));
-  for (i=old_sz; i<ht->sz; ++i) {
-    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
-  }
+  ht->exp   = realloc(ht->exp, ht->nv * ht->sz * sizeof(exp_t *));
+  /* for (i=old_sz; i<ht->sz; ++i) {
+   *   ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
+   * } */
   /* re-insert all elements in block */
   memset(ht->lut+1, 0, (ht->sz-1) * sizeof(ht_size_t));
   for (i=1; i<ht->load; ++i) {
@@ -391,9 +394,9 @@ static inline void free_hash_table(ht_t **ht_in)
 #if HASH_CHECK
     free(ht->ctr);
 #endif
-    for (i=0; i<ht->sz; ++i) {
-      free(ht->exp[i]);
-    }
+    /* for (i=0; i<ht->sz; ++i) {
+     *   free(ht->exp[i]);
+     * } */
     free(ht->exp);
   }
 
@@ -455,11 +458,11 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
   ht->lut[pos]        = ht->load;
   if (ht->rcdm == 0)
     recalculate_divmaps(ht);
-  ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
+  ht->dm[ht->load]  = generate_divmask(ht->exp + (ht->nv * ht->load), ht);
   ht->rcdm--;
 #if HASH_DEBUG
   for (int i=0; i<ht->nv; ++i)
-    printf("%u ",ht->exp[ht->load][i]);
+    printf("%u ",ht->exp[(ht->nv * ht->load) + i]);
   printf(" ||| ");
   printf("%11u | %11u | %5u\n",hash, ht->load, ht->deg[ht->load]);
 #endif
@@ -492,13 +495,13 @@ static inline hash_t check_in_hash_table(ht_t *ht)
   hash_t hash = ht->val[ht->load];
 
   ht_size_t tmp_h = 0, tmp_l = 0;
-  exp_t *exp  = ht->exp[ht->load];
+  exp_t *exp  = ht->exp + (ht->nv * ht->load);
 
   /* printf("hash %d\n", hash);
    * for (size_t i = 0; i < ht->nv; ++i)
    *   printf("%d ", exp[i]);
-   * printf("\n"); */
-  /* printf("hash %d | ht->load %u\n", hash, ht->load); */
+   * printf("\n");
+   * printf("hash %d | ht->load %u\n", hash, ht->load); */
 
   /* remaining checks with probing */
   for (size_t i = 0; i < ht->sz;  ++i) {
@@ -511,7 +514,7 @@ static inline hash_t check_in_hash_table(ht_t *ht)
       break;
     if (ht->val[tmp_l] != hash)
        continue;
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
+    if (memcmp(exp, ht->exp + (ht->nv * tmp_l), ht->nv*sizeof(exp_t)) == 0) {
       /* printf("found %d | %d\n", tmp_l, ht->load); */
       return tmp_l;
     }
@@ -549,8 +552,10 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   ht_size_t i;
   hash_t hash;
   exp_t exp[ht->nv];
+  exp_t *ev1 = ht->exp + (ht->nv * mon_1);
+  exp_t *ev2 = ht->exp + (ht->nv * mon_2);
   for (i = 0; i < ht->nv; ++i) {
-    exp[i]    = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+    exp[i]    = (exp_t)(ev1[i] + ev2[i]);
   }
   /* hash value of the product is the sum of the hash values in our setting */
   hash   = ht->val[mon_1] + ht->val[mon_2];
@@ -563,7 +568,7 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
     tmp_l = ht->lut[tmp_h];
     if (ht->val[tmp_l] != hash)
       continue;
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+    if (memcmp(exp, ht->exp+(ht->nv * tmp_l), ht->nv*sizeof(exp_t)) == 0)
       return tmp_l;
   }
   return 0;
@@ -594,8 +599,10 @@ static inline hash_t check_in_hash_table_product_special(
     const hash_t mon, const hash_t mul_hash, const deg_t mul_deg,
     const exp_t *mul_exp, ht_t *ht)
 {
+  exp_t *ev = ht->exp + (ht->nv * ht->load);
+  exp_t *em = ht->exp + (ht->nv * mon);
   for (size_t i = 0; i < ht->nv; ++i) {
-    ht->exp[ht->load][i]  = (exp_t)(ht->exp[mon][i] + mul_exp[i]);
+    ev[i]  = (exp_t)(em[i] + mul_exp[i]);
   }
   /* for (size_t i = 0; i < ht->nv; ++i) {
    *   printf("%d ", ht->exp[ht->load][i]);
@@ -611,9 +618,11 @@ static inline hash_t check_in_hash_table_product_special(
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     ht_t *ht)
 {
-  ht_size_t i;
-  for (i = 0; i < ht->nv; ++i) {
-    ht->exp[ht->load][i]  = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+  exp_t *ev   = ht->exp + (ht->nv * ht->load);
+  exp_t *ev1  = ht->exp + (ht->nv * mon_1);
+  exp_t *ev2  = ht->exp + (ht->nv * mon_2);
+  for (size_t i = 0; i < ht->nv; ++i) {
+    ev[i]  = (exp_t)(ev1[i] + ev2[i]);
   }
   ht->deg[ht->load] = ht->deg[mon_1] + ht->deg[mon_2];
   ht->val[ht->load] = ht->val[mon_1] + ht->val[mon_2];
@@ -640,10 +649,21 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
   deg_t deg = 0;
 
   /* use first free entry in hash table ht to store possible new lcm monomial */
-  lcm = ht->exp[ht->load];
-  e1  = ht->exp[h1];
-  e2  = ht->exp[h2];
+  lcm = ht->exp + (ht->nv * ht->load);
+  e1  = ht->exp + (ht->nv * h1);
+  e2  = ht->exp + (ht->nv * h2);
 
+/*   printf("GET LCM:\n");
+ *   for (size_t j = 0; j < ht->nv; ++j) {
+ *     printf("%d ", e1[j]);
+ *   }
+ *   printf("\n");
+ *   for (size_t j = 0; j < ht->nv; ++j) {
+ *     printf("%d ", e2[j]);
+ *   }
+ *   printf("\n");
+ *
+ *   printf(" -- "); */
   for (i=0; i<ht->nv; ++i) {
     deg +=  lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
     /* printf("%u ", lcm[i]); */
@@ -685,9 +705,9 @@ static inline hash_t monomial_division(const hash_t h1, const hash_t h2, ht_t *h
   nvars_t i = 0;
   exp_t *e, *e1, *e2;
 
-  e   = ht->exp[ht->load];
-  e1  = ht->exp[h1];
-  e2  = ht->exp[h2];
+  e   = ht->exp + (ht->nv * ht->load);
+  e1  = ht->exp + (ht->nv * h1);
+  e2  = ht->exp + (ht->nv * h2);
 
   if (e1[0] < e2[0]) {
 #if COUNT_DIV_HITS
@@ -756,8 +776,8 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
     return 0;
   }
   nvars_t i;
-  const exp_t * const exp1  = ht->exp[h1];
-  const exp_t * const exp2  = ht->exp[h2];
+  const exp_t * const exp1  = ht->exp +(ht->nv *  h1);
+  const exp_t * const exp2  = ht->exp + (ht->nv * h2);
 
   if (exp1[0] < exp2[0]) {
 #if COUNT_DIV_HITS
@@ -806,8 +826,8 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
   /* do not do the degree check: for saturated polynomials we have not computed
    * the correct degree! */
   nvars_t i;
-  const exp_t * const exp1  = ht->exp[h1];
-  const exp_t * const exp2  = ht->exp[h2];
+  const exp_t * const exp1  = ht->exp + (ht->nv * h1);
+  const exp_t * const exp2  = ht->exp + (ht->nv * h2);
 
   /* note that we explicitly do not check w.r.t. the last variable! */
   i = (ht->nv-1) & 1 ? 1 : 0;
@@ -840,9 +860,9 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
 static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   nvars_t i;
-  exp_t *e  = ht->exp[ht->load];
-  const exp_t * const e1  = ht->exp[h1];
-  const exp_t * const e2  = ht->exp[h2];
+  exp_t *e  = ht->exp + (ht->nv * ht->load);
+  const exp_t * const e1  = ht->exp + (ht->nv * h1);
+  const exp_t * const e2  = ht->exp + (ht->nv * h2);
 
   /* we know that exp e2 divides exp e1, so no check for e1[i] < e2[i] */
   i = ht->nv & 1 ? 1 : 0;
@@ -887,31 +907,109 @@ static inline ht_t *clear_hash_table_after_symbolic_preprocessing_new(
   ht_t *ht2 = init_hash_table((unsigned int)(log(ht->sz) / log(2)), ht->nv);
   ht2->sort = ht->sort;
   recalculate_divmaps(ht2);
-  printf("ht2->sz %u\n", ht2->sz);
-
-  for (size_t i = 0; i < ht->load; ++i) {
-    printf("%5u %d\n", i, ht->val[i]);
-  }
+/*   printf("ht2->sz %u\n", ht2->sz);
+ *
+ *   for (size_t i = 0; i < ht->load; ++i) {
+ *     printf("%5u %d | ", i, ht->val[i]);
+ *     for (size_t j = 0; j < ht->nv; ++j) {
+ *       printf("%d ", ht->exp[i][j]);
+ *     }
+ *     printf("\n");
+ *   } */
 
   for (size_t i = basis->load-1; i > 0; --i) {
   /* for (size_t i = 1; i < basis->load; ++i) { */
-    printf("i %u\n", i);
+    /* printf("i %u\n", i); */
     for (size_t j = 2; j < basis->p[i][1]; j = j+2) {
       ht2->val[ht2->load] = ht->val[basis->p[i][j]];
       ht2->deg[ht2->load] = ht->deg[basis->p[i][j]];
-      memcpy(ht2->exp[ht2->load], ht->exp[basis->p[i][j]], ht->nv * sizeof(exp_t));
+      memcpy(ht2->exp+(ht->nv * ht2->load), ht->exp+(ht->nv * basis->p[i][j]), ht->nv * sizeof(exp_t));
       basis->p[i][j]  = check_in_hash_table(ht2);
     }
+    /* printf("lm of %u  ", i);
+     * for (size_t k = 0; k < ht2->nv; ++k) {
+     *   printf("%d ", ht2->exp[basis->p[i][2]][k]);
+     * }
+     * rintf("\n"); */
   }
   for (size_t i = 0; i < ps->load; ++i) {
-    ps->pairs[i].lcm  = get_lcm(ps->pairs[i].gen1, ps->pairs[i].gen2, ht2);
+    /* printf("gen1 %u | gen2 %u\n", ps->pairs[i].gen1, ps->pairs[i].gen2); */
+    ps->pairs[i].lcm  = get_lcm(basis->p[ps->pairs[i].gen1][2],
+        basis->p[ps->pairs[i].gen2][2], ht2);
   }
-  for (size_t i = 0; i < ht2->load; ++i) {
-    printf("%5u %d\n", i, ht2->val[i]);
-  }
+  /* for (size_t i = 0; i < ht2->load; ++i) {
+   *   printf("%5u %d | ", i, ht2->val[i]);
+   *   for (size_t j = 0; j < ht2->nv; ++j) {
+   *     printf("%d ", ht2->exp[i][j]);
+   *   }
+   *   printf("\n");
+   * } */
   free_hash_table(&ht);
-  
-  printf("ht2->load %u -- done\n", ht2->load);
+/*   for (size_t i = 0; i < ht2->load; ++i) {
+ *     printf("%5u %d | ", i, ht2->val[i]);
+ *     for (size_t j = 0; j < ht2->nv; ++j) {
+ *       printf("%d ", ht2->exp[i][j]);
+ *     }
+ *     printf("\n");
+ *   }
+ *
+ *   printf("ht2->load %u -- done\n", ht2->load); */
+  return ht2;
+}
+      
+static inline ht_t *clear_hash_table_after_symbolic_preprocessing_new_2(
+    ht_t *ht, pre_t *mon, ps_t *ps, const gb_t *basis, const nelts_t nlm)
+{
+  ht_t *ht2 = init_hash_table((unsigned int)(log(ht->sz) / log(2)), ht->nv);
+  ht2->sort = ht->sort;
+  recalculate_divmaps(ht2);
+/*   printf("ht2->sz %u\n", ht2->sz);
+ *
+ *   for (size_t i = 0; i < ht->load; ++i) {
+ *     printf("%5u %d | ", i, ht->val[i]);
+ *     for (size_t j = 0; j < ht->nv; ++j) {
+ *       printf("%d ", ht->exp[i][j]);
+ *     }
+ *     printf("\n");
+ *   } */
+
+  for (size_t i = basis->load-1; i > 0; --i) {
+  /* for (size_t i = 1; i < basis->load; ++i) { */
+    /* printf("i %u\n", i); */
+    for (size_t j = 2; j < basis->p[i][1]; j = j+2) {
+      ht2->val[ht2->load] = ht->val[basis->p[i][j]];
+      ht2->deg[ht2->load] = ht->deg[basis->p[i][j]];
+      memcpy(ht2->exp+(ht->nv * ht2->load), ht->exp+(ht->nv * basis->p[i][j]), ht->nv * sizeof(exp_t));
+      basis->p[i][j]  = check_in_hash_table(ht2);
+    }
+    /* printf("lm of %u  ", i);
+     * for (size_t k = 0; k < ht2->nv; ++k) {
+     *   printf("%d ", ht2->exp[basis->p[i][2]][k]);
+     * }
+     * rintf("\n"); */
+  }
+  for (size_t i = 0; i < ps->load; ++i) {
+    /* printf("gen1 %u | gen2 %u\n", ps->pairs[i].gen1, ps->pairs[i].gen2); */
+    ps->pairs[i].lcm  = get_lcm(basis->p[ps->pairs[i].gen1][2],
+        basis->p[ps->pairs[i].gen2][2], ht2);
+  }
+  /* for (size_t i = 0; i < ht2->load; ++i) {
+   *   printf("%5u %d | ", i, ht2->val[i]);
+   *   for (size_t j = 0; j < ht2->nv; ++j) {
+   *     printf("%d ", ht2->exp[i][j]);
+   *   }
+   *   printf("\n");
+   * } */
+  free_hash_table(&ht);
+/*   for (size_t i = 0; i < ht2->load; ++i) {
+ *     printf("%5u %d | ", i, ht2->val[i]);
+ *     for (size_t j = 0; j < ht2->nv; ++j) {
+ *       printf("%d ", ht2->exp[i][j]);
+ *     }
+ *     printf("\n");
+ *   }
+ *
+ *   printf("ht2->load %u -- done\n", ht2->load); */
   return ht2;
 }
       
@@ -955,7 +1053,7 @@ static inline void clear_hash_table_after_symbolic_preprocessing(
            *   printf("%d ", ht->exp[i][j]);
            * }
            * printf("\n"); */
-          memcpy(ht->exp[ctr], ht->exp[i], ht->nv * sizeof(exp_t));
+          memcpy(ht->exp+(ht->nv * ctr), ht->exp+(ht->nv * i), ht->nv * sizeof(exp_t));
           /* printf("%p : ", ht->exp[ctr]);
            * for (size_t j = 0; j < ht->nv; ++j) {
            *   printf("%d ", ht->exp[ctr][j]);
@@ -965,7 +1063,7 @@ static inline void clear_hash_table_after_symbolic_preprocessing(
            *   printf("%d ", ht->exp[22][j]);
            * }
            * printf("\n"); */
-          memset(ht->exp[i], 0, ht->nv * sizeof(exp_t));
+          memset(ht->exp+(ht->nv * i), 0, ht->nv * sizeof(exp_t));
 
           /* printf("hash pos %d\n",get_hash_position(ht->val[i], ht)); */
           ht->lut[get_hash_position(ht->val[i], ht)]  = ctr; 

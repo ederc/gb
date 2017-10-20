@@ -28,6 +28,8 @@ void symbolic_preprocessing(ps_t *ps, smc_t *AB, smc_t *CD,
   nelts_t i, idx, nsel;
   hash_t hash_pos;
 
+  exp_t *ev = NULL, *ed = NULL;
+
   nsel  = ht->sort.get_pairs_by_minimal_degree(ps);
 
   /* allocate memory for matrices */
@@ -106,11 +108,13 @@ done:
     AB->row[AB->rk] = (src_t *)malloc(basis->p[i][1] * sizeof(src_t));
     memcpy(AB->row[AB->rk], basis->p[i],
         basis->p[i][1] * sizeof(src_t));
+    ev  = ht->exp + (ht->nv * hash_pos);
+    ed  = ht->exp + (ht->nv * basis->p[i][2]);
 #if NOT_ADDING_MUL_TO_HT
     /* printf("hash values: %d - %d = %d\n", ht->val[hash_pos], ht->val[basis->p[i][2]], mul_hash); */
     mul_hash = ht->val[hash_pos] - ht->val[basis->p[i][2]];
     for (size_t j = 0; j < ht->nv; ++j) {
-      mul_exp[j]  = ht->exp[hash_pos][j] - ht->exp[basis->p[i][2]][j];
+      mul_exp[j]  = ev[j] - ed[j];
     }
     /* printf("--mul--\n");
      * for (size_t j = 0; j < ht->nv; ++j) {

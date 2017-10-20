@@ -67,9 +67,10 @@ void print_help(void)
   printf("                DEFAULT: 0.\n");
   printf("\n");
   printf("    -p PRINT    Prints resulting groebner basis.\n");
-  printf("                0 -> no printing.\n");
-  printf("                1 -> default print out of basis.\n");
+  printf("                0 -> No printing.\n");
+  printf("                1 -> Default print out of basis.\n");
   printf("                2 -> Singular format print out of basis.\n");
+  printf("                3 -> Prints lead ideal.\n");
   printf("                DEFAULT: 0.\n");
   printf("\n");
   printf("    -r REDLA    Variant of linear algebra to be used (usually the matrix M\n");

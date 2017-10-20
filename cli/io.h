@@ -392,6 +392,16 @@ static inline info_t *init_meta_data(void)
 void inverse_coefficient(cf_t *x, const cf_t modulus);
 
 /**
+ * \brief Prints resulting lead ideal to stdout, sorted w.r.t. the given
+ * monomial order.
+ *
+ * \param groebner basis basis
+ *
+ * \param already sorted and possibly saturated final basis fb
+ */
+void print_lead_ideal(const gb_t *basis, const poly_t *fb);
+
+/**
  * \brief Prints resulting groebner basis to stdout, sorted w.r.t. the given
  * monomial order.
  *

@@ -861,6 +861,67 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   }
 }
 
+void print_lead_ideal(const gb_t *basis, const poly_t *fb)
+{
+  nelts_t i, j;
+  nvars_t k;
+  exp_t *exp = NULL;
+
+  /** depending on the chosen order we have different start and end points in the
+    * exponent vectors:
+    * for DRL (ord==0) we have stored the exponents in reverse order,
+    * for LEX (prd==1) we kept the usual order, but have possibly homogenized */
+  const nvars_t ev_start  = basis->ord == 0 ? basis->rnv : 0;
+  const nvars_t ev_end    = basis->ord == 0 ? 0 : basis->rnv;
+
+  for (k=0; k<basis->rnv-1; ++k) {
+    printf("%s, ", basis->vnames[k]);
+  }
+  printf("%s\n", basis->vnames[k]);
+  printf("%u\n", basis->mod);
+  /** prints groebner basis */
+  nelts_t bs  = basis->load - basis->st - basis->nred;
+
+  int ctr = 0;
+  for (i=0; i<bs; ++i) {
+    if (fb[i].red == 0) {
+      /** we do the first term differently, since we do not have a "+" in front of
+        * it */
+      exp = ht->exp[fb[i].eh[0]];
+      ctr = 0;
+      switch (basis->ord) {
+        case 0:
+          for (k=ev_start; k>ev_end; --k) {
+            if (exp[k-1] != 0) {
+              if (ctr == 0)
+                printf("%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
+              else
+                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
+
+              ctr++;
+            }
+          }
+          break;
+        case 1:
+          for (k=ev_start; k<ev_end; ++k) {
+            if (exp[k] != 0) {
+              if (ctr == 0)
+                printf("%s^%u", basis->vnames[k], exp[k]);
+              else
+                printf("*%s^%u", basis->vnames[k], exp[k]);
+
+              ctr++;
+            }
+          }
+          break;
+        default:
+          abort();
+      }
+      printf("\n");
+    }
+  }
+}
+
 void print_basis(const gb_t *basis, const poly_t *fb)
 {
   nelts_t i, j;
@@ -891,8 +952,8 @@ void print_basis(const gb_t *basis, const poly_t *fb)
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
-            if (exp[k] != 0) {
-              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+            if (exp[k-1] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
             }
           }
           break;
@@ -912,8 +973,8 @@ void print_basis(const gb_t *basis, const poly_t *fb)
         switch (basis->ord) {
           case 0:
             for (k=ev_start; k>ev_end; --k) {
-              if (exp[k] != 0) {
-                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+              if (exp[k-1] != 0) {
+                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
               }
             }
             break;
@@ -971,8 +1032,8 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     switch (basis->ord) {
       case 0:
         for (k=ev_start; k>ev_end; --k) {
-          if (exp[k] != 0) {
-            printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+          if (exp[k-1] != 0) {
+            printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
           }
         }
         break;
@@ -992,8 +1053,8 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
-            if (exp[k] != 0) {
-              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+            if (exp[k-1] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
             }
           }
           break;
@@ -1028,8 +1089,8 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
-            if (exp[k] != 0) {
-              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+            if (exp[k-1] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
             }
           }
           break;
@@ -1049,8 +1110,8 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
         switch (basis->ord) {
           case 0:
             for (k=ev_start; k>ev_end; --k) {
-              if (exp[k] != 0) {
-                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+              if (exp[k-1] != 0) {
+                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
               }
             }
             break;

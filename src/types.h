@@ -720,11 +720,6 @@ typedef struct ps_t
   nelts_t load;     /*!<  number of elements in pair list */
   /* element data */
   spair_t *pairs;   /*!<  pointers of spairs */
-  spt_t **spt;      /*!<   spair triangle */
-  nelts_t spt_load;
-  nelts_t spt_size;
-  nelts_t *lcm_hit_cache; /*!<  stores hits of lcm divisibility for 
-                                gebauer-moeller */
 } ps_t;
 
 /**

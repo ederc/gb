@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
         break;
       case 'p':
         print_gb = (int)strtol(optarg, NULL, 10);
-        if (print_gb > 2)
+        if (print_gb > 3)
           print_gb = 0;
         break;
       case 'r':
@@ -601,6 +601,9 @@ int main(int argc, char *argv[])
       break;
     case 2:
       print_basis_in_singular_format(basis, fb);
+      break;
+    case 3:
+      print_lead_ideal(basis, fb);
       break;
     default:
       break;

@@ -186,7 +186,6 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
   if (basis->size < (nc-spd->selu->load) + basis->load) {
     nelts_t old_size  = basis->size;
     enlarge_basis(basis, (nc-spd->selu->load) + basis->load);
-    enlarge_lcm_hit_cache(ps, old_size, basis);
   }
 
   /* for (size_t i = spd->selu->load; i < nc; ++i) {
@@ -204,7 +203,6 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
         continue;
       if (res == 0)
         return 1;
-      add_spair_triangle(ps, basis);
       /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
       /* update_pair_set_new(ps, basis, basis->load-1); */
       update_pair_set(ps, basis, basis->load-1);

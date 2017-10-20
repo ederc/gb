@@ -35,13 +35,6 @@ inline ps_t *initialize_pair_set(const gb_t *basis)
   ps->pairs = (spair_t *)malloc(ps->size * sizeof(spair_t));
   ps->load  = 0;
 
-  ps->spt       = (spt_t **)malloc(100 * sizeof(spt_t *));
-  for (size_t i = 0; i < basis->st; ++i)
-    ps->spt[i] = NULL;
-  ps->spt_load  = basis->st;
-  ps->spt_size  = 100;
-
-  ps->lcm_hit_cache = (nelts_t *)malloc(basis->size * sizeof(nelts_t));
   /* enter input elements as special spairs */
   enter_input_elements_to_pair_set(ps, basis);
 

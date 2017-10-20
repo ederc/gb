@@ -94,34 +94,9 @@ static inline void free_pair_set(ps_t **ps_in)
 {
   ps_t *ps  = *ps_in;
   free(ps->pairs);
-  free(ps->lcm_hit_cache);
-  for (size_t i = 0; i < ps->spt_load; ++i) {
-    free(ps->spt[i]);
-  }
-  free(ps->spt);
   free(ps);
   ps      = NULL;
   *ps_in  = ps;
-}
-
-inline void add_spair_triangle(ps_t *ps, const gb_t *basis)
-{
-  if (basis->load == ps->spt_size) {
-    ps->spt       =   realloc(ps->spt, 2 * ps->spt_size * sizeof(spt_t *));
-    ps->spt_size  *=  2;
-  }
-
-  ps->spt[basis->load-1]  = calloc((basis->load-2)/32 + 1, sizeof(spt_t));
-  ps->spt_load++;
-}
-
-inline void enlarge_lcm_hit_cache(
-    ps_t *ps, const nelts_t old_size, const gb_t *basis)
-{
-  ps->lcm_hit_cache =
-    realloc(ps->lcm_hit_cache, basis->size * sizeof(nelts_t));
-  memset(ps->lcm_hit_cache + old_size, 0,
-      (basis->size - old_size) * sizeof(nelts_t));
 }
 
 /**
@@ -198,91 +173,6 @@ static inline void generate_all_spairs(ps_t *ps, const nelts_t new,
     }
     sp->crit  = NO_CRIT;
   }
-}
-
-static inline void generate_all_spairs_and_update_directly(ps_t *ps,
-    const nelts_t new_element, const gb_t *basis, ht_t *ht)
-{
-  /* printf("-\n"); */
-  size_t j;
-
-  nelts_t ctr   = ps->load;
-  hash_t lcm    = 0;
-  nelts_t gen1  = 0;
-  nelts_t gen2  = 0;
-  
-  for (size_t i = basis->st; i < new_element; ++i) {
-    gen1  = (nelts_t)i;
-
-    if (basis->red[gen1] != 0) {
-      eliminate(ps->spt[gen2], gen1);
-      continue;
-    }
-
-    gen2  = new_element;
-    lcm   = get_lcm(basis->eh[gen1][0], basis->eh[gen2][0], ht);
-
-    if (ht->deg[lcm] ==
-        ht->deg[basis->eh[gen1][0]] + ht->deg[basis->eh[gen2][0]]) {
-      eliminate(ps->spt[gen2], gen1);
-      continue;
-    }
-
-    /* lcm hit cache check first */
-    const nelts_t cache_gen2  = ps->lcm_hit_cache[gen2];
-    if (cache_gen2 != 0) {
-      if (basis->red[cache_gen2] == 0 &&
-          check_monomial_division(lcm, basis->eh[cache_gen2][0], ht) &&
-          !is_eliminated(ps->spt[new_element], cache_gen2)) {
-        continue;
-      }
-    }
-    const nelts_t cache_gen1  = ps->lcm_hit_cache[gen1];
-    if (cache_gen1 != 0) {
-      if (basis->red[cache_gen1] == 0 &&
-          check_monomial_division(lcm, basis->eh[cache_gen1][0], ht) &&
-          !is_eliminated(ps->spt[new_element], cache_gen1)) {
-        continue;
-      }
-    }
-
-    for (j = basis->st; j < gen2; ++j) {
-      if (basis->red[j] != 0)
-        continue;
-      if (!check_monomial_division(lcm, basis->eh[j][0], ht))
-        continue;
-      if (j == gen1 || j == gen2)
-        continue;
-      if (j < gen1) {
-        if (!is_eliminated(ps->spt[gen1], j)) {
-          if (lcm == get_lcm(gen1, j, ht))
-            continue;
-        }
-      } else {
-        if (!is_eliminated(ps->spt[j], gen1)) {
-          if (lcm == get_lcm(gen1, j, ht))
-            continue;
-        }
-      }
-      if (!is_eliminated(ps->spt[gen2], j)) {
-        if (lcm == get_lcm(gen2, j, ht))
-          continue;
-      }
-      break;
-    }
-    if (j == new_element) {
-      ps->pairs[ctr].gen1 = gen1;
-      ps->pairs[ctr].gen2 = gen2;
-      ps->pairs[ctr].lcm  = lcm;
-      ps->pairs[ctr].deg  = ht->deg[lcm];
-      ctr++;
-    } else {
-      ps->lcm_hit_cache[gen2] = j;
-      ps->lcm_hit_cache[gen1] = j;
-      eliminate(ps->spt[gen2], gen1);
-    }
-  }
-  ps->load  = ctr;
 }
 
 static inline void generate_spair(ps_t *ps, const nelts_t gen1,
@@ -644,38 +534,6 @@ static inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t id
     gebauer_moeller(ps, basis, idx);
 
 }
-
-static inline void update_pair_set_new(ps_t *ps, const gb_t *basis, const nelts_t idx)
-{
-  /* we get maximal idx-1 new pairs */
-  if (ps->size <= ps->load + (idx-1))
-    enlarge_pair_set(ps, 2*ps->size);
-  /* generate spairs with the initial elements in basis
-   * See note on gb_t in src/types.h why we start at position 1 here. */
-  ps->load_ls = ps->load;
-  gettimeofday(&t_start, NULL);
-  generate_all_spairs_and_update_directly(ps, idx, basis, ht);
-/*   for (i=basis->st; i<idx; ++i) {
- *     generate_spair(ps, idx, i, basis, ht);
- * #if SPAIR_DEBUG
- *     printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-basis->st]->deg);
- * #endif
- *   } */
-  t_gen_spair +=  walltime(t_start);
-  /* printf("gen spairs %9.3f sec\n",
-   *     t_gen_spair / (1000000)); */
-
-  /* we do not update ps->load at the moment in order to be able to distinguish
-   * old and new pairs for the gebauer-moeller update following */
-
-  /* check product and chain criterion in gebauer moeller style
-   * note that we have already marked the pairs for which the product criterion
-   * applies in generate_spair() */
-  /* if (idx > basis->st)
-   *   gebauer_moeller(ps, basis, idx); */
-
-}
-
 
 
 /* updates many pairs at once starting from the first index fidx

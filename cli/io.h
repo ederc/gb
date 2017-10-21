@@ -71,38 +71,46 @@ static inline int is_line_empty(const char *line)
  * the basis that are redundant after saturation are marked) groebner basis.
  *
  * \param resulting groebner basis basis
- *
- * \return final groebner basis, sorted and possibly saturated
  */
-static inline poly_t **final_basis_for_output(gb_t *basis)
+static inline void final_basis_for_output(gb_t **basis_p)
 {
+  gb_t *basis = *basis_p;
   /* if we have a unit in the basis we add it "by hand" */
   if (basis->has_unit == 1) {
-    basis->fl = 1;
-    poly_t **gb = (poly_t **)malloc(1 * sizeof(poly_t *));
-    gb[0]       = (poly_t *)malloc(4 * sizeof(poly_t));
-    gb[0][0]    = 0;
-    gb[0][1]    = 4;
-    gb[0][2]    = 0;
-    gb[0][3]    = 1;
+    basis->fl = basis->st;
+    basis->p[basis->st][0]  = 0;
+    basis->p[basis->st][1]  = 4;
+    basis->p[basis->st][2]  = 0;
+    basis->p[basis->st][3]  = 1;
 
-    return gb;
+    *basis_p  = basis;
+    return;
   }
 
   /* else we sort the basis */
-  nelts_t bs  = basis->load - basis->st - basis->nred;
-  poly_t **gb = (poly_t **)malloc(bs * sizeof(poly_t *));
-  nelts_t np = 0;
-  for (nelts_t i=basis->st; i<basis->load; ++i) {
+  nelts_t np = basis->st;
+  for (size_t i=basis->st; i<basis->load; ++i) {
     if (basis->red[i] == 0) {
-      gb[np]  = basis->p[i];
+      if (np < i) {
+        basis->p[np]  = basis->p[i];
+        printf("%u => %u\n", i, np);
+      }
       np++;
+    } else {
+      free(basis->p[i]);
+      basis->p[i] = NULL;
+      printf("%u freed\n", i);
     }
   }
+  /* free remaining entries */
+  for (size_t i=np; i<basis->load; ++i) {
+    basis->p[i] = NULL;
+  }
   /* sort final basis */
-  qsort(gb, np, sizeof(poly_t *), ht->sort.compare_polynomials_inverse);
+  qsort(basis->p+basis->st, np-basis->st, sizeof(poly_t *), ht->sort.compare_polynomials_inverse);
 
-  gb  = realloc(gb, np*sizeof(poly_t *));
+  basis->fl = np;
+  *basis_p  = basis;
 
   /* if the given monomial order is not degree compatible and the input system
    * is not homogeneous the computation was homogenized, thus we have to
@@ -110,21 +118,18 @@ static inline poly_t **final_basis_for_output(gb_t *basis)
    * variable to 1.
    * note that we have already removed redundant elements, but when saturating
    * more redundancy might appear. */
-  if (basis->init_hom == 0 && basis->hom == 1) {
-    for (size_t i = 0; i < np; ++i) {
-      for (size_t j = 0; j < i; ++j) {
-        if (check_monomial_division_saturated(gb[i][2], gb[j][2], ht) == 1) {
-          gb[i][1] = 0; /* any value =/= 0 is OK to mark it for deletion */
-          np--;
-          break;
-        }
-      }
-    }
-  }
+  /* if (basis->init_hom == 0 && basis->hom == 1) {
+   *   for (size_t i = basis->st; i < np; ++i) {
+   *     for (size_t j = 0; j < i; ++j) {
+   *       if (check_monomial_division_saturated(gb[i][2], gb[j][2], ht) == 1) {
+   *         gb[i][1] = 0; [> any value =/= 0 is OK to mark it for deletion <]
+   *         np--;
+   *         break;
+   *       }
+   *     }
+   *   }
+   * } */
   /* final size of basis */
-  basis->fl = np;
-
-  return gb;
 }
 
 /**
@@ -387,11 +392,11 @@ void inverse_coefficient(cf_t *x, const cf_t modulus);
  * \brief Prints resulting groebner basis to stdout, sorted w.r.t. the given
  * monomial order.
  */
-void print_basis(const gb_t *basis, poly_t **gb);
+void print_basis(const gb_t *basis);
 
 /**
  * \brief Prints resulting groebner basis in Singular style, sorted w.r.t. the
  * given monomial order.
  */
-void print_basis_in_singular_format(const gb_t *basis, poly_t **gb);
+void print_basis_in_singular_format(const gb_t *basis);
 #endif

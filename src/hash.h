@@ -454,7 +454,7 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  * ht->deg[ht->load] is already set
  *
  * ht->div and ht->idx are already initialized with 0, so nothing to do there */
-  ht->val[ht->load]   = hash;
+  /* ht->val[ht->load]   = hash; */
   ht->lut[pos]        = ht->load;
   if (ht->rcdm == 0)
     recalculate_divmaps(ht);
@@ -957,62 +957,6 @@ static inline ht_t *clear_hash_table_after_symbolic_preprocessing_new(
   return ht2;
 }
       
-static inline ht_t *clear_hash_table_after_symbolic_preprocessing_new_2(
-    ht_t *ht, pre_t *mon, ps_t *ps, const gb_t *basis, const nelts_t nlm)
-{
-  ht_t *ht2 = init_hash_table((unsigned int)(log(ht->sz) / log(2)), ht->nv);
-  ht2->sort = ht->sort;
-  recalculate_divmaps(ht2);
-/*   printf("ht2->sz %u\n", ht2->sz);
- *
- *   for (size_t i = 0; i < ht->load; ++i) {
- *     printf("%5u %d | ", i, ht->val[i]);
- *     for (size_t j = 0; j < ht->nv; ++j) {
- *       printf("%d ", ht->exp[i][j]);
- *     }
- *     printf("\n");
- *   } */
-
-  for (size_t i = basis->load-1; i > 0; --i) {
-  /* for (size_t i = 1; i < basis->load; ++i) { */
-    /* printf("i %u\n", i); */
-    for (size_t j = 2; j < basis->p[i][1]; j = j+2) {
-      ht2->val[ht2->load] = ht->val[basis->p[i][j]];
-      ht2->deg[ht2->load] = ht->deg[basis->p[i][j]];
-      memcpy(ht2->exp+(ht->nv * ht2->load), ht->exp+(ht->nv * basis->p[i][j]), ht->nv * sizeof(exp_t));
-      basis->p[i][j]  = check_in_hash_table(ht2);
-    }
-    /* printf("lm of %u  ", i);
-     * for (size_t k = 0; k < ht2->nv; ++k) {
-     *   printf("%d ", ht2->exp[basis->p[i][2]][k]);
-     * }
-     * rintf("\n"); */
-  }
-  for (size_t i = 0; i < ps->load; ++i) {
-    /* printf("gen1 %u | gen2 %u\n", ps->pairs[i].gen1, ps->pairs[i].gen2); */
-    ps->pairs[i].lcm  = get_lcm(basis->p[ps->pairs[i].gen1][2],
-        basis->p[ps->pairs[i].gen2][2], ht2);
-  }
-  /* for (size_t i = 0; i < ht2->load; ++i) {
-   *   printf("%5u %d | ", i, ht2->val[i]);
-   *   for (size_t j = 0; j < ht2->nv; ++j) {
-   *     printf("%d ", ht2->exp[i][j]);
-   *   }
-   *   printf("\n");
-   * } */
-  free_hash_table(&ht);
-/*   for (size_t i = 0; i < ht2->load; ++i) {
- *     printf("%5u %d | ", i, ht2->val[i]);
- *     for (size_t j = 0; j < ht2->nv; ++j) {
- *       printf("%d ", ht2->exp[i][j]);
- *     }
- *     printf("\n");
- *   }
- *
- *   printf("ht2->load %u -- done\n", ht2->load); */
-  return ht2;
-}
-      
 static inline void clear_hash_table_after_symbolic_preprocessing(
     ht_t *ht, pre_t *mon, ps_t *ps, const gb_t *basis, const nelts_t nlm)
 {
@@ -1105,6 +1049,66 @@ static inline void clear_hash_table_after_symbolic_preprocessing(
   memset(ht->idx, 0, ht_length * sizeof(ht_size_t));
   /* printf("---> %u / %u\n", ht->load, ht_length); */
 }
+
+#if 0
+static inline void clear_hash_table_after_update(
+    ht_t *ht, pre_t *mon, ps_t *ps, const gb_t *basis, const nelts_t nlm)
+{
+  const ht_size_t ht_length = ht->load;
+  if (nlm > 0) {
+    nelts_t ctr = ht->load_ls;
+    /* printf("ht->load_ls %u | mon->load %u\n", ht->load_ls, mon->load); */
+    /* for (size_t i = 0; i < mon->load; ++i) {
+     *   printf("%u | %u | %u || ", i, mon->hash[i], ht->idx[mon->hash[i]]);
+     *   for (size_t j = 0; j < ht->nv; ++j) {
+     *     printf("%d ", ht->exp[mon->hash[i]][j]);
+     *   }
+     *   printf("\n");
+     * } */
+
+    /* copy all newly added information (val & exp) of the last step in
+     * temporary storage */
+    size_t len  = ht->load - ht->load_ls;
+    hash_t *val  = (hash_t *)malloc(len * sizeof(hash_t));
+    memcpy(val, ht->val+ht->load_ls, len * sizeof(hash_t));
+    exp_t* exp  = (exp_t *)malloc(len * ht->nv * sizeof(exp_t));
+    memcpy(exp, ht->exp+(ht->load_ls*ht->nv), len * ht->nv * sizeof(exp_t));
+
+    /* clear corresponding data in hash table */
+    memset(ht->val+ht->load_ls, 0, len * sizeof(hash_t));
+    memset(ht->exp+(ht->load_ls*ht->nv), 0, len * ht->nv * sizeof(exp_t));
+    memset(ht->div+ht->load_ls, 0, (ht_length-ht->load) * sizeof(ht_size_t));
+
+    /* clear also ht->idx for further usage in next symbolic preprocessing step */
+    memset(ht->idx, 0, ht_length * sizeof(ht_size_t));
+    /* reset hash table load */
+    ht->load  = ht->load_ls;
+
+    for (size_t i = basis->load_ls; i < basis->load; ++i) {
+      for (size_t j = 2; j < basis->p[i][1]; j = j+2) {
+        if (basis->p[i][j] >= ht->load_ls) {
+          ht->val[ht->load] = val[basis->p[i][j] - ht->load_ls];
+          memcpy(
+              ht->exp + (ht->load * ht->nv),
+              exp + (basis->p[i][j]
+            check_in_hash_table();
+        }
+      }
+    }
+      
+    /* regenerate lcms of s-pairs if the system is affine */
+    if (basis->hom == 0) {
+      for (size_t i = 0; i < ps->load; ++i) {
+        printf("pair check %u / %u\n", i, ps->load);
+        ps->pairs[i].lcm  = get_lcm(
+            basis->p[ps->pairs[i].gen1][2],
+            basis->p[ps->pairs[i].gen2][2],
+            ht);
+      }
+    }
+  }
+}
+#endif
 
 static inline void set_column_indices_in_ht_idx(
     ht_t *ht, const pre_t *mon)

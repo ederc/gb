@@ -572,12 +572,13 @@ int main(int argc, char *argv[])
   free(CD->row);
   free(CD);
 
-  /* final basis for possible output data */
-  poly_t **fb  = NULL;
   /* generate final basis for output data */
   if (verbose > 0 || print_gb > 0) {
-    fb  = final_basis_for_output(basis);
+    final_basis_for_output(&basis);
   }
+
+  for (size_t l = 0; l < basis->load; ++l)
+    printf("%u %p\n", l, basis->p[l]);
   if (verbose > 0) {
     printf("---------------------------------------------------------------------------\n");
     printf("%-38s","Time for updating pairs ...");
@@ -612,13 +613,11 @@ int main(int argc, char *argv[])
 #endif
 
     uint64_t nterms = 0;
-    for (size_t l = basis->st; l < basis->load; ++l) {
-      if (basis->red[l] == 0) {
-        nterms  +=  basis->p[l][1];
-      }
+    for (size_t l = basis->st; l < basis->fl; ++l) {
+      nterms  +=  basis->p[l][1];
     }
 
-    printf("Size of basis                     %9u\n", basis->fl);
+    printf("Size of basis                     %9u\n", basis->fl-basis->st);
     printf("Number of terms in basis          %9lu (<= 2^%u)\n", nterms,
         (unsigned int)(ceil(log(nterms) / log(2))));
     printf("criteria applications (total)     %9u\n", meta_data->ncrit_total);
@@ -635,10 +634,10 @@ int main(int argc, char *argv[])
     case 0:
       break;
     case 1:
-      print_basis(basis, fb);
+      print_basis(basis);
       break;
     case 2:
-      print_basis_in_singular_format(basis, fb);
+      print_basis_in_singular_format(basis);
       break;
     default:
       break;
@@ -647,29 +646,6 @@ int main(int argc, char *argv[])
   /* free allocated memory */
   free(meta_data);
   free_pair_set(&ps);
-  /* if we have found a unit we have allocated memory for the unit */
-  if (basis->has_unit == 1) {
-    free(fb[0]);
-  } else {
-    /* elements are freed in basis */
-    /* for (size_t k = 0; k < basis->load - basis->st - basis->nred; ++k) {
-     *   free(fb[k]);
-     *   fb[k] = NULL;
-     * } */
-  }
-
-  /* for (size_t l = 0; l < ht->load; ++l) {
-   *   for (size_t m = l+1; m < ht->load; ++m) {
-   *     if (ht->val[l] == ht->val[m]) {
-   *       printf("%u | %u || %d || ", l, m, ht->val[l]);
-   *       for (size_t n = 0; n < ht->nv; ++n) {
-   *         printf("%d ", ht->exp[l][n]);
-   *       }
-   *       printf("\n");
-   *     }
-   *   }
-   * } */
-  free(fb);
   free_basis(&basis);
   free_hash_table(&ht);
 

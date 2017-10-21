@@ -785,15 +785,15 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   }
 }
 
-void print_basis(const gb_t *basis, poly_t **gb)
+void print_basis(const gb_t *basis)
 {
   exp_t *exp = NULL;
 
   size_t i, j, k;
   /** depending on the chosen order we have different start and end points in the
-    * exponent vectors:
-    * for DRL (ord==0) we have stored the exponents in reverse order,
-    * for LEX (prd==1) we kept the usual order, but have possibly homogenized */
+   * exponent vectors:
+   * for DRL (ord==0) we have stored the exponents in reverse order,
+   * for LEX (prd==1) we kept the usual order, but have possibly homogenized */
   const nvars_t ev_start  = basis->ord == 0 ? basis->rnv : 0;
   const nvars_t ev_end    = basis->ord == 0 ? 0 : basis->rnv;
 
@@ -803,19 +803,40 @@ void print_basis(const gb_t *basis, poly_t **gb)
   printf("%s\n", basis->vnames[k]);
   printf("%u\n", basis->mod);
   /** prints groebner basis */
-  nelts_t bs  = basis->load - basis->st - basis->nred;
+  const nelts_t bs  = basis->fl;
+  /* nelts_t bs  = basis->load - basis->st - basis->nred; */
 
-  for (i = 0; i < bs; ++i) {
-    if (gb[i][0] != 0) {
-      /** we do the first term differently, since we do not have a "+" in front of
-        * it */
-      printf("%u", gb[i][3]);
-      exp = ht->exp + (ht->nv * gb[i][2]);
+  for (i = basis->st; i < bs; ++i) {
+    /** we do the first term differently, since we do not have a "+" in front of
+     * it */
+    printf("%u", basis->p[i][3]);
+    exp = ht->exp + (ht->nv * basis->p[i][2]);
+    switch (basis->ord) {
+      case 0:
+        for (k = ev_start; k > ev_end; --k) {
+          if (exp[k-1] != 0) {
+            printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
+          }
+        }
+        break;
+      case 1:
+        for (k = ev_start; k < ev_end; ++k) {
+          if (exp[k] != 0) {
+            printf("*%s^%u", basis->vnames[k], exp[k]);
+          }
+        }
+        break;
+      default:
+        abort();
+    }
+    for (j = 4; j < basis->p[i][1]; j = j+2) {
+      printf("+%u", basis->p[i][j+1]);
+      exp = ht->exp + (ht->nv * basis->p[i][j]);
       switch (basis->ord) {
         case 0:
           for (k = ev_start; k > ev_end; --k) {
-            if (exp[k] != 0) {
-              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+            if (exp[k-1] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
             }
           }
           break;
@@ -829,37 +850,15 @@ void print_basis(const gb_t *basis, poly_t **gb)
         default:
           abort();
       }
-      for (j = 4; j < gb[i][0]; j = j+2) {
-        printf("+%u", gb[i][j+1]);
-        exp = ht->exp + (ht->nv * gb[i][j]);
-        switch (basis->ord) {
-          case 0:
-            for (k = ev_start; k > ev_end; --k) {
-              if (exp[k] != 0) {
-                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
-              }
-            }
-            break;
-          case 1:
-            for (k = ev_start; k < ev_end; ++k) {
-              if (exp[k] != 0) {
-                printf("*%s^%u", basis->vnames[k], exp[k]);
-              }
-            }
-            break;
-          default:
-            abort();
-        }
-      }
-      printf("\n");
     }
+    printf("\n");
   }
 }
 
-void print_basis_in_singular_format(const gb_t *basis, poly_t **gb)
+void print_basis_in_singular_format(const gb_t *basis)
 {
   size_t i, j, k;
- 
+
   exp_t *exp = NULL;
   /** prints ring */
   printf("ring r = %u, (%s", basis->mod, basis->vnames[0]);
@@ -877,9 +876,9 @@ void print_basis_in_singular_format(const gb_t *basis, poly_t **gb)
   }
 
   /** depending on the chosen order we have different start and end points in the
-    * exponent vectors:
-    * for DRL (ord==0) we have stored the exponents in reverse order,
-    * for LEX (prd==1) we kept the usual order, but have possibly homogenized */
+   * exponent vectors:
+   * for DRL (ord==0) we have stored the exponents in reverse order,
+   * for LEX (prd==1) we kept the usual order, but have possibly homogenized */
   const nvars_t ev_start  = basis->ord == 0 ? basis->rnv : 0;
   const nvars_t ev_end    = basis->ord == 0 ? 0 : basis->rnv;
 
@@ -888,14 +887,14 @@ void print_basis_in_singular_format(const gb_t *basis, poly_t **gb)
   for (i = 1; i < basis->st; ++i) {
     printf("i[%lu]=", i);
     /** we do the first term differently, since we do not have a "+" in front of
-      * it */
+     * it */
     printf("%u", basis->p[i][3]);
     exp = ht->exp + (ht->nv * basis->p[i][2]);
     switch (basis->ord) {
       case 0:
         for (k = ev_start; k > ev_end; --k) {
-          if (exp[k] != 0) {
-            printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+          if (exp[k-1] != 0) {
+            printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
           }
         }
         break;
@@ -909,14 +908,14 @@ void print_basis_in_singular_format(const gb_t *basis, poly_t **gb)
       default:
         abort();
     }
-    for (j = 4; j < basis->p[i][0]; j = j+2) {
+    for (j = 4; j < basis->p[i][1]; j = j+2) {
       printf("+%u", basis->p[i][j+1]);
       exp = ht->exp + (ht->nv * basis->p[i][j]);
       switch (basis->ord) {
         case 0:
           for (k = ev_start; k > ev_end; --k) {
-            if (exp[k] != 0) {
-              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+            if (exp[k-1] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
             }
           }
           break;
@@ -937,22 +936,42 @@ void print_basis_in_singular_format(const gb_t *basis, poly_t **gb)
   /** prints groebner basis sorted w.r.t. the given monomial order */
   printf("ideal g;\n");
   /** we need to get the basis size without the probably removed elements due to
-    * saturation */
-  nelts_t bs  = basis->load - basis->st - basis->nred;
+   * saturation */
+  nelts_t bs  = basis->fl;
   int ctr = 0;
-  for (i = 0; i < bs; ++i) {
-    if (gb[i][0] != 0) {
-      printf("g[%u]=", ctr+1);
-      ctr++;
-      /** we do the first term differently, since we do not have a "+" in front of
-        * it */
-      printf("%u", gb[i][3]);
-      exp = ht->exp + (ht->nv * gb[i][2]);
+  for (i = basis->st; i < bs; ++i) {
+    printf("g[%u]=", ctr+1);
+    ctr++;
+    /** we do the first term differently, since we do not have a "+" in front of
+     * it */
+    printf("%u", basis->p[i][3]);
+    exp = ht->exp + (ht->nv * basis->p[i][2]);
+    switch (basis->ord) {
+      case 0:
+        for (k = ev_start; k > ev_end; --k) {
+          if (exp[k-1] != 0) {
+            printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
+          }
+        }
+        break;
+      case 1:
+        for (k = ev_start; k < ev_end; ++k) {
+          if (exp[k] != 0) {
+            printf("*%s^%u", basis->vnames[k], exp[k]);
+          }
+        }
+        break;
+      default:
+        abort();
+    }
+    for (j = 4; j < basis->p[i][1]; j = j+2) {
+      printf("+%u", basis->p[i][j+1]);
+      exp = ht->exp + (ht->nv * basis->p[i][j]);
       switch (basis->ord) {
         case 0:
           for (k = ev_start; k > ev_end; --k) {
-            if (exp[k] != 0) {
-              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
+            if (exp[k-1] != 0) {
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
             }
           }
           break;
@@ -966,30 +985,8 @@ void print_basis_in_singular_format(const gb_t *basis, poly_t **gb)
         default:
           abort();
       }
-      for (j = 4; j < gb[i][0]; j = j+2) {
-        printf("+%u", gb[i][j+1]);
-        exp = ht->exp + (ht->nv * gb[i][j]);
-        switch (basis->ord) {
-          case 0:
-            for (k = ev_start; k > ev_end; --k) {
-              if (exp[k] != 0) {
-                printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k]);
-              }
-            }
-            break;
-          case 1:
-            for (k = ev_start; k < ev_end; ++k) {
-              if (exp[k] != 0) {
-                printf("*%s^%u", basis->vnames[k], exp[k]);
-              }
-            }
-            break;
-          default:
-            abort();
-        }
-      }
-      printf(";\n");
     }
+    printf(";\n");
   }
 }
 

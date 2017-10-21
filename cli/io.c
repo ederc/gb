@@ -785,6 +785,61 @@ void write_lower_part_row_to_buffer(char *buffer, const nelts_t idx,
   }
 }
 
+void print_lead_ideal(const gb_t *basis)
+{
+  exp_t *exp = NULL;
+
+  size_t i, j, k;
+  /** depending on the chosen order we have different start and end points in the
+   * exponent vectors:
+   * for DRL (ord==0) we have stored the exponents in reverse order,
+   * for LEX (prd==1) we kept the usual order, but have possibly homogenized */
+  const nvars_t ev_start  = basis->ord == 0 ? basis->rnv : 0;
+  const nvars_t ev_end    = basis->ord == 0 ? 0 : basis->rnv;
+
+  for (k = 0; k < basis->rnv-1; ++k) {
+    printf("%s, ", basis->vnames[k]);
+  }
+  printf("%s\n", basis->vnames[k]);
+  printf("%u\n", basis->mod);
+  /** prints groebner basis */
+  const nelts_t bs  = basis->fl;
+  int ctr = 0;
+  /* nelts_t bs  = basis->load - basis->st - basis->nred; */
+
+  for (i = basis->st; i < bs; ++i) {
+    exp = ht->exp + (ht->nv * basis->p[i][2]);
+    ctr = 0;
+    switch (basis->ord) {
+      case 0:
+        for (k = ev_start; k > ev_end; --k) {
+          if (exp[k-1] != 0) {
+            if (ctr == 0)
+              printf("%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
+            else
+              printf("*%s^%u", basis->vnames[basis->rnv-k], exp[k-1]);
+            ctr++;
+          }
+        }
+        break;
+      case 1:
+        for (k = ev_start; k < ev_end; ++k) {
+          if (exp[k] != 0) {
+            if (ctr == 0)
+              printf("%s^%u", basis->vnames[k], exp[k]);
+            else
+              printf("*%s^%u", basis->vnames[k], exp[k]);
+            ctr++;
+          }
+        }
+        break;
+      default:
+        abort();
+    }
+    printf("\n");
+  }
+}
+
 void print_basis(const gb_t *basis)
 {
   exp_t *exp = NULL;

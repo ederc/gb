@@ -93,13 +93,11 @@ static inline void final_basis_for_output(gb_t **basis_p)
     if (basis->red[i] == 0) {
       if (np < i) {
         basis->p[np]  = basis->p[i];
-        printf("%u => %u\n", i, np);
       }
       np++;
     } else {
       free(basis->p[i]);
       basis->p[i] = NULL;
-      printf("%u freed\n", i);
     }
   }
   /* free remaining entries */
@@ -393,6 +391,8 @@ void inverse_coefficient(cf_t *x, const cf_t modulus);
  * monomial order.
  */
 void print_basis(const gb_t *basis);
+
+void print_lead_ideal(const gb_t *basis);
 
 /**
  * \brief Prints resulting groebner basis in Singular style, sorted w.r.t. the

@@ -69,9 +69,10 @@ void print_help(void)
   printf("                DEFAULT: 0.\n");
   printf("\n");
   printf("    -p PRINT    Prints resulting groebner basis.\n");
-  printf("                0 -> no printing.\n");
-  printf("                1 -> default print out of basis.\n");
+  printf("                0 -> No printing.\n");
+  printf("                1 -> Simple printout of basis.\n");
   printf("                2 -> Singular format print out of basis.\n");
+  printf("                3 -> Print lead ideal.\n");
   printf("                DEFAULT: 0.\n");
   printf("\n");
   printf("    -r REDLA    Variant of linear algebra to be used (usually the matrix M\n");
@@ -191,7 +192,7 @@ int main(int argc, char *argv[])
         break;
       case 'p':
         print_gb = (int)strtol(optarg, NULL, 10);
-        if (print_gb > 2)
+        if (print_gb > 3)
           print_gb = 0;
         break;
       case 'r':
@@ -577,8 +578,6 @@ int main(int argc, char *argv[])
     final_basis_for_output(&basis);
   }
 
-  for (size_t l = 0; l < basis->load; ++l)
-    printf("%u %p\n", l, basis->p[l]);
   if (verbose > 0) {
     printf("---------------------------------------------------------------------------\n");
     printf("%-38s","Time for updating pairs ...");
@@ -638,6 +637,9 @@ int main(int argc, char *argv[])
       break;
     case 2:
       print_basis_in_singular_format(basis);
+      break;
+    case 3:
+      print_lead_ideal(basis);
       break;
     default:
       break;

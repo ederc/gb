@@ -82,9 +82,6 @@
 #define MEMCMP 1
 #endif
 
-#ifndef DIRECT_HASH_ENTRY
-#define DIRECT_HASH_ENTRY 0
-#endif
 /***************************
  * OUR HASH TABLE IS GLOBAL
  **************************/
@@ -193,7 +190,7 @@ static inline void recalculate_divmaps(ht_t *ht)
 
   /* get initial values for min and max from first hash table entry */
   for (nelts_t j=0; j<ht->ndv; ++j)
-    max_exponents[j]  = min_exponents[j]  = ht->exp[1][j]; 
+    max_exponents[j]  = min_exponents[j]  = ht->exp[1 * ht->nv + j];
   /* printf("max and min initial\n");
    * for (nelts_t i=0; i<ht->ndv; ++i)
    *   printf("%3u ", max_exponents[i]);
@@ -204,10 +201,10 @@ static inline void recalculate_divmaps(ht_t *ht)
   /* now calculate min and max over the full hash table */
   for (nelts_t i=2; i<ht->load; ++i) {
     for (nelts_t j=0; j<ht->ndv; ++j) {
-      if (ht->exp[i][j] > max_exponents[j])
-        max_exponents[j]  = ht->exp[i][j];
-      if (ht->exp[i][j] < min_exponents[j])
-        min_exponents[j]  = ht->exp[i][j];
+      if (ht->exp[i * ht->nv + j] > max_exponents[j])
+        max_exponents[j]  = ht->exp[i * ht->nv + j];
+      if (ht->exp[i * ht->nv + j] < min_exponents[j])
+        min_exponents[j]  = ht->exp[i * ht->nv + j];
     }
   }
   /* printf("max and min\n");
@@ -235,7 +232,7 @@ static inline void recalculate_divmaps(ht_t *ht)
    *   printf("%u | %u\n", i, ht->divmap[i]); */
   /* recalculate divmask entries for all elements in hash table */
   for (nelts_t i=1; i<ht->load; ++i) {
-    ht->dm[i] = generate_divmask(ht->exp[i], ht);
+    ht->dm[i] = generate_divmask(ht->exp + i * ht->nv, ht);
   }
 
   /* reset recalculate counter for divmaps */
@@ -277,11 +274,8 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   /* for easier divisibility checks we start at index 1. If the divisibility
    * check routines return 0, there is no division. */
   ht->load    = 1;
-#if DIRECT_HASH_ENTRY
-#else
   ht->lut     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
   ht->val     = (hash_t *)calloc(ht->sz, sizeof(hash_t));
-#endif
   ht->deg     = (deg_t *)calloc(ht->sz, sizeof(deg_t));
   ht->ld      = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
   ht->div     = (nelts_t *)calloc(ht->sz, sizeof(nelts_t));
@@ -306,15 +300,7 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   ht->ctr     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
 #endif
   ht->rand    = (hash_t *)malloc(ht->nv * sizeof(hash_t));
-#if DIRECT_HASH_ENTRY
-  ht->exp     = (exp_t **)calloc(ht->sz, sizeof(exp_t *));
-#else
-  ht->exp     = (exp_t **)malloc(ht->sz * sizeof(exp_t *));
-  /* get memory for each exponent */
-  for (i=0; i<ht->sz; ++i) {
-    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
-  }
-#endif
+  ht->exp     = (exp_t *)calloc(ht->sz * ht->nv, sizeof(exp_t));
   /* use random_seed, no zero values are allowed */
   set_random_seed(ht);
 
@@ -338,7 +324,7 @@ static inline void insert_while_enlarging(const hash_t hash, const ht_size_t pos
       break;
 #if HASH_DEBUG
       for (int i=0; i<ht->nv; ++i)
-        printf("%u ",ht->exp[pos][i]);
+        printf("%u ",ht->exp[pos * ht->nv + i]);
       printf(" ||| ");
       printf("%11u | %11u | %5u\n",hash, pos, ht->deg[pos]);
 #endif
@@ -380,10 +366,9 @@ static inline void enlarge_hash_table(ht_t *ht)
 #if HASH_CHECK
   memset(ht->ctr+old_sz, 0, (ht->sz-old_sz) * sizeof(ht_size_t));
 #endif
-  ht->exp   = realloc(ht->exp, ht->sz * sizeof(exp_t *));
-  for (i=old_sz; i<ht->sz; ++i) {
-    ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));
-  }
+  ht->exp   = realloc(ht->exp, ht->sz * ht->nv * sizeof(exp_t));
+  memset(ht->exp + (old_sz * ht->nv), 0,
+      (ht->sz - old_sz) * ht->nv *  sizeof(exp_t));
   /* re-insert all elements in block */
   memset(ht->lut+1, 0, (ht->sz-1) * sizeof(ht_size_t));
   for (i=1; i<ht->load; ++i) {
@@ -407,11 +392,8 @@ static inline void free_hash_table(ht_t **ht_in)
 
     hash_t i;
 
-#if DIRECT_HASH_ENTRY
-#else
     free(ht->lut);
     free(ht->val);
-#endif
     free(ht->rand);
     free(ht->deg);
     free(ht->div);
@@ -422,9 +404,6 @@ static inline void free_hash_table(ht_t **ht_in)
 #if HASH_CHECK
     free(ht->ctr);
 #endif
-    for (i=0; i<ht->sz; ++i) {
-      free(ht->exp[i]);
-    }
     free(ht->exp);
   }
 
@@ -495,11 +474,11 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  * ht->div and ht->idx are already initialized with 0, so nothing to do there */
   ht->val[ht->load]   = hash;
   ht->lut[pos]        = ht->load;
-  ht->dm[ht->load]  = generate_divmask(ht->exp[ht->load], ht);
+  ht->dm[ht->load]  = generate_divmask(ht->exp + (ht->load * ht->nv), ht);
   ht->rcdm--;
 #if HASH_DEBUG
   for (int i=0; i<ht->nv; ++i)
-    printf("%u ",ht->exp[ht->load][i]);
+    printf("%u ",ht->exp[(ht->load * ht->nv) + i]);
   printf(" ||| ");
   printf("%11u | %11u | %5u\n",hash, ht->load, ht->deg[ht->load]);
 #endif
@@ -507,7 +486,7 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
 
   /* we need to keep one place open in ht->exp since the next element to be
    * checked against the hash table will be intermediately stored there */
-  if (ht->load >= ht->sz)
+  if (ht->load >= ht->sz/2)
     enlarge_hash_table(ht);
 
   return (ht->load-1);
@@ -526,40 +505,12 @@ static inline hash_t insert_in_hash_table(const hash_t hash,
  *
  * \return position of hash of exp in table
  */
-#if DIRECT_HASH_ENTRY
-static inline hash_t check_in_hash_table(exp_t *exp, ht_t *ht)
-{
-  hash_t hash = get_hash(exp, ht);
-
-  ht_size_t pos;
-  /* remaining checks with probing */
-  for (size_t i = 0; i < ht->sz;  ++i) {
-    pos= (ht_size_t) (hash+i) & (ht->sz-1);
-    if (ht->exp[pos] == NULL) {
-      break;
-    }
-    if (memcmp(exp, ht->exp[pos], ht->nv*sizeof(exp_t)) == 0) {
-      free(exp);
-      exp = NULL;
-      return pos;
-    }
-  }
-  ht->exp[pos]  = exp;
-  for (size_t i = 0; i < ht->nv; ++i) {
-    ht->deg[pos]  +=  exp[i]
-  }
-  ht->dm[pos]   = generate_divmask(exp, ht);
-  ht->load++;
-
-  return pos;
-}
-#else
 static inline hash_t check_in_hash_table(ht_t *ht)
 {
   hash_t hash = ht->val[ht->load];
 
   ht_size_t tmp_h = 0, tmp_l = 0;
-  exp_t *exp  = ht->exp[ht->load];
+  exp_t *exp  = ht->exp + (ht->load * ht->nv);
 
   /* remaining checks with probing */
   for (size_t i = 0; i < ht->sz;  ++i) {
@@ -575,14 +526,14 @@ go_on:
 #if MEMCMP
     /* if (ht->deg[ht->load] != ht->deg[tmp_l])
      *   continue; */
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0) {
+    if (memcmp(exp, ht->exp + (tmp_l * ht->nv), ht->nv*sizeof(exp_t)) == 0) {
       return tmp_l;
     }
 #else
     /* if (ht->deg[ht->load] != ht->deg[tmp_l])
      *   continue; */
     for (size_t k = 0; k < ht->nv; ++k) {
-      if (exp[k] !=  ht->exp[tmp_l][k]) {
+      if (exp[k] !=  ht->exp[(tmp_l * ht->nv) + k]) {
         i++;
         goto go_on;
       }
@@ -595,7 +546,6 @@ go_on:
 
   return insert_in_hash_table(hash, tmp_h, ht);
 }
-#endif
 /**
  * \brief Finds the product of the given two monomial exponents is already
  * in the hash table.
@@ -624,7 +574,8 @@ static inline hash_t find_in_hash_table_product(const hash_t mon_1, const hash_t
   exp_t exp[ht->nv];
   deg_t deg = 0;
   for (i = 0; i < ht->nv; ++i) {
-    deg +=  exp[i]    = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+    deg +=  exp[i]    =
+      (exp_t)(ht->exp[(mon_1 * ht->nv) + i] + ht->exp[(mon_2 * ht->nv) + i]);
   }
   /* hash value of the product is the sum of the hash values in our setting */
   hash   = ht->val[mon_1] + ht->val[mon_2];
@@ -641,13 +592,13 @@ go_on:
 #if MEMCMP
     /* if (deg != ht->deg[tmp_l])
      *   continue; */
-    if (memcmp(exp, ht->exp[tmp_l], ht->nv*sizeof(exp_t)) == 0)
+    if (memcmp(exp, ht->exp + (tmp_l * ht->nv), ht->nv*sizeof(exp_t)) == 0)
       return tmp_l;
 #else
     /* if (deg != ht->deg[tmp_l])
      *   continue; */
     for (size_t k = 0; k < ht->nv; ++k) {
-      if (exp[k] !=  ht->exp[tmp_l][k]) {
+      if (exp[k] !=  ht->exp[(tmp_l * ht->nv) + k]) {
       i++;
       goto go_on;
       }
@@ -679,29 +630,19 @@ go_on:
  *
  * \return position of hash of exp in table
  */
-#if DIRECT_HASH_ENTRY
-static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
-    ht_t *ht)
-{
-  exp_t *exp  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
-  for (size_t i = 0; i < ht->nv; ++i) {
-    exp[i]  = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
-  }
-  return check_in_hash_table(exp, ht);
-}
-#else
 static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_t mon_2,
     ht_t *ht)
 {
   ht_size_t i;
   for (i = 0; i < ht->nv; ++i) {
-    ht->exp[ht->load][i]  = (exp_t)(ht->exp[mon_1][i] + ht->exp[mon_2][i]);
+    ht->exp[(ht->load * ht->nv) +i]  =
+      (exp_t)(ht->exp[(mon_1 * ht->nv) + i] +
+              ht->exp[(mon_2 * ht->nv) + i]);
   }
   ht->deg[ht->load] = ht->deg[mon_1] + ht->deg[mon_2];
   ht->val[ht->load] = ht->val[mon_1] + ht->val[mon_2];
   return check_in_hash_table(ht);
 }
-#endif
 
 /**
  * \brief Returns position of lcm of the exponents stored at position h1 and h2
@@ -715,30 +656,15 @@ static inline hash_t check_in_hash_table_product(const hash_t mon_1, const hash_
  *
  * \return position of lcm of generators h1 and h2 in hash table ht
  */
-#if DIRECT_HASH_ENTRY
-static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
-{
-
-  /* use first free entry in hash table ht to store possible new lcm monomial */
-  exp_t *lcm = (exp_t *)malloc(ht->nv * sizeof(exp_t));;
-  const exp_t *e1  = ht->exp[h1];
-  const exp_t *e2  = ht->exp[h2];
-
-  for (size_t i = 0; i < ht->nv; ++i) {
-    lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
-  }
-  return check_in_hash_table(lcm, ht);
-}
-#else
 static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
 {
   nvars_t i;
   deg_t deg = 0;
 
   /* use first free entry in hash table ht to store possible new lcm monomial */
-  exp_t *lcm = ht->exp[ht->load];
-  const exp_t *e1  = ht->exp[h1];
-  const exp_t *e2  = ht->exp[h2];
+  exp_t *lcm = ht->exp + (ht->load * ht->nv);
+  const exp_t *e1  = ht->exp + (h1 * ht->nv);
+  const exp_t *e2  = ht->exp + (h2 * ht->nv);
 
   for (i=0; i<ht->nv; ++i) {
     deg +=  lcm[i]  = e1[i] < e2[i] ? e2[i] : e1[i];
@@ -749,7 +675,6 @@ static inline hash_t get_lcm(const hash_t h1, const hash_t h2, ht_t *ht)
   ht->val[ht->load] = get_hash(lcm, ht);
   return check_in_hash_table(ht);
 }
-#endif
 
 #if 0
 /**
@@ -875,8 +800,8 @@ static inline int check_monomial_division(const hash_t h1, const hash_t h2, cons
  *     return 0;
  *   } */
   /* nvars_t i; */
-  const exp_t * const exp1  = ht->exp[h1];
-  const exp_t * const exp2  = ht->exp[h2];
+  const exp_t * const exp1  = ht->exp + (h1 * ht->nv);
+  const exp_t * const exp2  = ht->exp + (h2 * ht->nv);
 
   if (exp1[0] < exp2[0]) {
 #if COUNT_DIV_HITS
@@ -922,8 +847,8 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
   }
   /* do not do the degree check: for saturated polynomials we have not computed
    * the correct degree! */
-  const exp_t * const exp1  = ht->exp[h1];
-  const exp_t * const exp2  = ht->exp[h2];
+  const exp_t * const exp1  = ht->exp + (h1 * ht->nv);
+  const exp_t * const exp2  = ht->exp + (h2 * ht->nv);
 
   /* note that we explicitly do not check w.r.t. the last variable! */
   if (exp1[0] < exp2[0])
@@ -955,8 +880,8 @@ static inline int check_monomial_division_saturated(const hash_t h1, const hash_
 #if DIRECT_HASH_ENTRY
 static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 {
-  const exp_t * const e1  = ht->exp[h1];
-  const exp_t * const e2  = ht->exp[h2];
+  const exp_t * const e1  = ht->exp + (h1 * ht->nv);
+  const exp_t * const e2  = ht->exp + (h2 * ht->nv);
   exp_t *e  = (exp_t *)malloc(ht->nv * sizeof(exp_t));
 
   /* we know that exp e2 divides exp e1, so no check for e1[i] < e2[i] */
@@ -968,9 +893,9 @@ static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 #else
 static inline hash_t get_multiplier(const hash_t h1, const hash_t h2, ht_t *ht)
 {
-  exp_t *e  = ht->exp[ht->load];
-  const exp_t * const e1  = ht->exp[h1];
-  const exp_t * const e2  = ht->exp[h2];
+  exp_t *e  = ht->exp + (ht->load * ht->nv);
+  const exp_t * const e1  = ht->exp + (h1 * ht->nv);
+  const exp_t * const e2  = ht->exp + (h2 * ht->nv);
 
   /* we know that exp e2 divides exp e1, so no check for e1[i] < e2[i] */
   e[0]  = (exp_t)(e1[0] - e2[0]);

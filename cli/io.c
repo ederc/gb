@@ -182,7 +182,7 @@ inline void store_exponent(const char *term, const gb_t *basis, ht_t *ht)
 {
   nvars_t k;
   /** first we have to fill the buffers with zeroes */
-  memset(ht->exp[ht->load], 0, ht->nv * sizeof(exp_t));
+  memset(ht->exp + (ht->load * ht->nv), 0, ht->nv * sizeof(exp_t));
   const char mult_splicer = '*';
   const char exp_splicer  = '^';
   exp_t exp = 0;
@@ -233,9 +233,9 @@ inline void store_exponent(const char *term, const gb_t *basis, ht_t *ht)
       * the exponents in reverse order so that we can use memcmp to sort the terms
       * efficiently later on */
     if (basis->ord == 0)
-      deg +=  ht->exp[ht->load][ht->nv-1-k] = exp;
+      deg +=  ht->exp[(ht->load * ht->nv) + ht->nv-1-k] = exp;
     else
-      deg +=  ht->exp[ht->load][k] = exp;
+      deg +=  ht->exp[(ht->load * ht->nv) + k] = exp;
   }
   ht->deg[ht->load] = deg;
 }
@@ -461,12 +461,13 @@ void homogenize_input_polynomials(gb_t *basis, ht_t *ht) {
     * homogenize the terms correspondingly */
   for (i=1; i<basis->load; ++i) {
     for (j=0; j<basis->nt[i]; ++j) {
-      memcpy(ht->exp[ht->load], ht->exp[basis->eh[i][j]], ht->nv * sizeof(exp_t));
+      memcpy(ht->exp + (ht->load * ht->nv),
+          ht->exp + (basis->eh[i][j] * ht->nv), ht->nv * sizeof(exp_t));
       /** add homogenizing variable entry in exponent */
-      ht->exp[ht->load][ht->nv-1] = (exp_t)(basis->deg[i] -  ht->deg[basis->eh[i][j]]);
+      ht->exp[(ht->load * ht->nv) + ht->nv-1] = (exp_t)(basis->deg[i] -  ht->deg[basis->eh[i][j]]);
       /** add new exponent hash to table */
       ht->deg[ht->load] = basis->deg[i];
-      ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
+      ht->val[ht->load] = get_hash(ht->exp + (ht->load * ht->nv), ht);
       basis->eh[i][j] = check_in_hash_table(ht);
     }
   }
@@ -622,7 +623,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
       store_exponent(term, basis, ht);
       /** hash exponent and store degree */
       max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
-      ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
+      ht->val[ht->load] = get_hash(ht->exp + (ht->load * ht->nv), ht);
       basis->eh[i][0] = check_in_hash_table(ht);
 #if IO_DEBUG
       printf("cf[%lu] = %u | eh[%lu][%u] = %lu --> %lu\n",i,basis->cf[i][0],i,0,basis->eh[i][0], ht->val[basis->eh[i][0]]);
@@ -652,7 +653,7 @@ gb_t *load_input(const char *fn, const nvars_t nvars, const int order,
         store_exponent(term, basis, ht);
         /** hash exponent and store degree */
         max_deg         = max_deg > ht->deg[ht->load] ? max_deg : ht->deg[ht->load];
-      ht->val[ht->load] = get_hash(ht->exp[ht->load], ht);
+      ht->val[ht->load] = get_hash(ht->exp + (ht->load * ht->nv), ht);
         basis->eh[i][j] = check_in_hash_table(ht);
 #if IO_DEBUG
         printf("cf[%lu] = %u | eh[%lu][%lu] = %lu --> %lu\n",i,basis->cf[i][j],i,j,basis->eh[i][j], ht->val[basis->eh[i][j]]);
@@ -887,7 +888,7 @@ void print_lead_ideal(const gb_t *basis, const poly_t *fb)
     if (fb[i].red == 0) {
       /** we do the first term differently, since we do not have a "+" in front of
         * it */
-      exp = ht->exp[fb[i].eh[0]];
+      exp = ht->exp + (fb[i].eh[0] * ht->nv);
       ctr = 0;
       switch (basis->ord) {
         case 0:
@@ -948,7 +949,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
       /** we do the first term differently, since we do not have a "+" in front of
         * it */
       printf("%u", fb[i].cf[0]);
-      exp = ht->exp[fb[i].eh[0]];
+      exp = ht->exp + (fb[i].eh[0] * ht->nv);
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
@@ -969,7 +970,7 @@ void print_basis(const gb_t *basis, const poly_t *fb)
       }
       for (j=1; j<fb[i].nt; ++j) {
         printf("+%u", fb[i].cf[j]);
-        exp = ht->exp[fb[i].eh[j]];
+        exp = ht->exp + (fb[i].eh[j] * ht->nv);
         switch (basis->ord) {
           case 0:
             for (k=ev_start; k>ev_end; --k) {
@@ -1028,7 +1029,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     /** we do the first term differently, since we do not have a "+" in front of
       * it */
     printf("%u", basis->cf[i][0]);
-    exp = ht->exp[basis->eh[i][0]];
+    exp = ht->exp + (basis->eh[i][0] * ht->nv);
     switch (basis->ord) {
       case 0:
         for (k=ev_start; k>ev_end; --k) {
@@ -1049,7 +1050,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
     }
     for (j=1; j<basis->nt[i]; ++j) {
       printf("+%u", basis->cf[i][j]);
-      exp = ht->exp[basis->eh[i][j]];
+      exp = ht->exp + (basis->eh[i][j] * ht->nv);
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
@@ -1085,7 +1086,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       /** we do the first term differently, since we do not have a "+" in front of
         * it */
       printf("%u", fb[i].cf[0]);
-      exp = ht->exp[fb[i].eh[0]];
+      exp = ht->exp + (fb[i].eh[0] * ht->nv);
       switch (basis->ord) {
         case 0:
           for (k=ev_start; k>ev_end; --k) {
@@ -1106,7 +1107,7 @@ void print_basis_in_singular_format(const gb_t *basis, const poly_t *fb)
       }
       for (j=1; j<fb[i].nt; ++j) {
         printf("+%u", fb[i].cf[j]);
-        exp = ht->exp[fb[i].eh[j]];
+        exp = ht->exp + (fb[i].eh[j] * ht->nv);
         switch (basis->ord) {
           case 0:
             for (k=ev_start; k>ev_end; --k) {

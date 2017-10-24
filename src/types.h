@@ -937,14 +937,14 @@ typedef struct ht_t
   /* size and load counters */
   nvars_t nv;         /*!<  number of variables*/
   nvars_t offset;     /*!<  offset for loop starts: ht->nv == even => 0 else 1 */
-  ht_size_t load_ls;  /*!<  load of hash table after last step*/
-  ht_size_t load;     /*!<  load of hash table*/
-  ht_size_t sz;       /*!<  hash table size*/
+  hash_t load_ls;  /*!<  load of hash table after last step*/
+  hash_t load;     /*!<  load of hash table*/
+  hash_t sz;       /*!<  hash table size*/
   /* data and arrays for storage */
   ht_size_t *lut;     /*!<  lookup table between hash value and position in
                             exponent array*/
   hash_t *val;        /*!<  array of hash values*/
-  exp_t **exp;        /*!<  array of exponents, note that exp_t is possibly
+  exp_t *exp;         /*!<  array of exponents, note that exp_t is possibly
                             SSE/AVX vector if available*/
   hash_t *rand;       /*!<  array of random values for each variable
                             to generate hash values out of exponents*/
@@ -999,4 +999,5 @@ typedef struct src_tmp_t
 
 /* global meta_data */
 extern info_t *meta_data;
+
 #endif /* GB_TYPES_H */

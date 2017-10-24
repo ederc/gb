@@ -109,10 +109,10 @@ static inline void enter_not_multiplied_monomial_to_preprocessing_hash_list(cons
    * otherwise it has already been taken care of */
 #if SYMBOL_DEBUG
     for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[h1][i]);
+      printf("%u ",ht->exp[(h1 * ht->nv) + i]);
     printf("\n");
     for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[pos][i]);
+      printf("%u ",ht->exp[(pos * ht->nv) + i]);
     printf("\n");
 #endif
   ht->idx[pos]++;
@@ -166,13 +166,13 @@ static inline void enter_monomial_to_preprocessing_hash_list(
 #if SYMBOL_DEBUG
     printf("h1 %lu -- h2 %lu -- pos %lu\n", h1, h2, pos);
     for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[h1][i]);
+      printf("%u ",ht->exp[(h1 * ht->nv) + i]);
     printf("\n");
     for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[h2][i]);
+      printf("%u ",ht->exp[(h2 * ht->nv) + i]);
     printf("\n");
     for (int i=0; i<ht->nv; ++i)
-      printf("%u ",ht->exp[pos][i]);
+      printf("%u ",ht->exp[(pos * ht->nv) + i]);
     printf("\n");
 #endif
 #if HASH_CHECK
@@ -284,7 +284,8 @@ static inline int cmp_symbolic_preprocessing_monomials_by_lex(const void *a,
   const hash_t hb = *((hash_t *)b);
 
   /* else we have to check lexicographical */
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (hb * ht->nv),
+      ht->exp + (ha * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -311,7 +312,8 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_lex(const void
   const hash_t hb = *((hash_t *)b);
 
   /* else we have to check lexicographical */
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (ha * ht->nv),
+      ht->exp + (hb * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -341,7 +343,8 @@ static inline int cmp_symbolic_preprocessing_monomials_by_grevlex(const void *a,
   /* else we have to check reverse lexicographical
    * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
    * => we can use memcmp() here and still get reverse lexicographical ordering */
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (ha * ht->nv),
+      ht->exp + (hb * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -372,7 +375,8 @@ static inline int cmp_symbolic_preprocessing_monomials_by_inverse_grevlex(const 
     return (int)(ht->deg[ha]-ht->deg[hb]);
 
   /* else we have to check reverse lexicographical */
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (hb * ht->nv),
+      ht->exp + (ha * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -395,7 +399,8 @@ static inline int cmp_polynomials_by_lex(const void *a,
   const hash_t ha = pa.eh[0];
   const hash_t hb = pb.eh[0];
 
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (hb * ht->nv),
+      ht->exp + (ha * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -425,7 +430,8 @@ static inline int cmp_polynomials_by_grevlex(const void *a,
   /* else we have to check reverse lexicographical
    * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
    * => we can use memcmp() here and still get reverse lexicographical ordering */
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (ha * ht->nv),
+      ht->exp + (hb * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -448,7 +454,8 @@ static inline int cmp_polynomials_by_inverse_lex(const void *a,
   const hash_t ha = pa.eh[0];
   const hash_t hb = pb.eh[0];
 
-  return memcmp(ht->exp[ha], ht->exp[hb], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (ha * ht->nv),
+      ht->exp + (hb * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**
@@ -478,7 +485,8 @@ static inline int cmp_polynomials_by_inverse_grevlex(const void *a,
   /* else we have to check reverse lexicographical
    * NOTE: We store the exponents in reverse order in ht->exp and ht->ev
    * => we can use memcmp() here and still get reverse lexicographical ordering */
-  return memcmp(ht->exp[hb], ht->exp[ha], sizeof(exp_t) * ht->nv);
+  return memcmp(ht->exp + (hb * ht->nv),
+      ht->exp + (ha * ht->nv), sizeof(exp_t) * ht->nv);
 }
 
 /**

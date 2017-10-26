@@ -88,6 +88,32 @@ static inline void free_pair_set(ps_t **ps_in)
 }
 
 
+/* updates many pairs at once starting from the first index fidx
+ * up to the current basis->load */
+void update_pair_set_many(ps_t *ps, const gb_t *basis, const nelts_t fidx);
+
+/**
+ * \brief Gebauer-Moeller checks for product and chain criterion
+ *
+ * \param pair set ps
+ *
+ * \param intermediate groebner basis basis
+ *
+ * \param index in basis of newly added basis element idx
+ */
+void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
+
+/**
+ * \brief Remove spairs detected by either product or chain criterion
+ *
+ * \param pair set ps
+ *
+ * \param index of basis element the new pairs were generated with idx
+ *
+ * \return number of removed pairs
+ */
+nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
+
 /**
  * \brief Generates spair given by one input element. The first generator is 0.
  *
@@ -119,8 +145,81 @@ void generate_input_element_spair(ps_t *ps, const nelts_t gen1, const gb_t *inpu
  *
  * \return generated spair
  */
-void generate_spair(ps_t *ps, const nelts_t gen1, const nelts_t gen2,
-    const gb_t *basis, ht_t *ht);
+static inline void generate_all_spairs(ps_t *ps, const nelts_t new,
+    const gb_t *basis, ht_t *ht)
+{
+  const hash_t hash_new  = basis->p[new][2];
+  for (size_t i = basis->st; i < new; ++i) {
+    spair_t *sp = ps->pairs + ps->load + i - basis->st;
+    /* we have to fix the positions where the new basis element is put (gen2),
+     * since we are trying to remove as much as possible useless elements in
+     * select_pairs(). if we would dynamically adjust the positioning (as done in
+     * the below commented out code) we could no longer track this correctly. */
+    sp->gen1  = (nelts_t)i;
+    sp->gen2  = new;
+
+    /* if (basis->nt[gen1] < basis->nt[gen2]) {
+     *   sp->gen1  = gen1;
+     *   sp->gen2  = gen2;
+     * } else {
+     *   sp->gen1  = gen2;
+     *   sp->gen2  = gen1;
+     * } */
+
+    sp->lcm   = get_lcm(basis->p[i][2], hash_new, ht);
+    /* if (ht->ld[sp->lcm] == 0)
+     *   ht->ld[sp->lcm] = new; */
+
+    sp->deg   = ht->deg[sp->lcm];
+
+    /* if one of the generators is redundant we can stop already here and mark it
+     * with the CHAIN_CRIT in order to remove it later on */
+    /* else */
+    if (basis->red[i] > 0) {
+      /* printf("%u - %u || %u\n", gen2, gen1, ps->load + gen2 - basis->st); */
+      sp->crit  = CHAIN_CRIT;
+      /* eliminate(ps->spt[new], i); */
+      continue;
+    }
+    /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
+    if (sp->deg == ht->deg[basis->p[i][2]] + ht->deg[hash_new]) {
+      sp->crit  = PROD_CRIT;
+      /* eliminate(ps->spt[new], i); */
+      continue;
+    }
+    sp->crit  = NO_CRIT;
+  }
+}
+static inline void generate_spair(ps_t *ps, const nelts_t gen1,
+    const nelts_t gen2, const gb_t *basis, ht_t *ht)
+{
+  spair_t *sp = ps->pairs + ps->load + gen2 - basis->st;
+  /* we have to fix the positions where the new basis element is put (gen2),
+   * since we are trying to remove as much as possible useless elements in
+   * select_pairs(). if we would dynamically adjust the positioning (as done in
+   * the below commented out code) we could no longer track this correctly. */
+  sp->gen1  = gen2;
+  sp->gen2  = gen1;
+
+  sp->lcm   = get_lcm(basis->p[gen1][2], basis->p[gen2][2], ht);
+  sp->deg   = ht->deg[sp->lcm];
+  
+  /* if one of the generators is redundant we can stop already here and mark it
+   * with the CHAIN_CRIT in order to remove it later on */
+  /* else */
+  if (basis->red[gen2] > 0) {
+    /* printf("%u - %u || %u\n", gen2, gen1, ps->load + gen2 - basis->st); */
+    sp->crit  = CHAIN_CRIT;
+    return;
+  }
+  /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
+  if (sp->deg == ht->deg[basis->p[gen1][2]] + ht->deg[basis->p[gen2][2]]) {
+    sp->crit  = PROD_CRIT;
+    return;
+  }
+  sp->crit  = NO_CRIT;
+  return;
+}
 
 /**
  * \brief Updates pair set including Gebauer-Moeller criteria checks
@@ -131,33 +230,36 @@ void generate_spair(ps_t *ps, const nelts_t gen1, const nelts_t gen2,
  *
  * \param index of new element in gb idx
  */
-void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx);
+static inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
+{
+  /* we get maximal idx-1 new pairs */
+  if (ps->size <= ps->load + (idx-1))
+    enlarge_pair_set(ps, 2*ps->size);
+  /* generate spairs with the initial elements in basis
+   * See note on gb_t in src/types.h why we start at position 1 here. */
+  ps->load_ls = ps->load;
+  /* gettimeofday(&t_start, NULL); */
+  generate_all_spairs(ps, idx, basis, ht);
+/*   for (i=basis->st; i<idx; ++i) {
+ *     generate_spair(ps, idx, i, basis, ht);
+ * #if SPAIR_DEBUG
+ *     printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-basis->st]->deg);
+ * #endif
+ *   } */
+  /* t_gen_spair +=  walltime(t_start); */
+  /* printf("gen spairs %9.3f sec\n",
+   *     t_gen_spair / (1000000)); */
 
-/* updates many pairs at once starting from the first index fidx
- * up to the current basis->load */
-void update_pair_set_many(ps_t *ps, const gb_t *basis, const nelts_t fidx);
+  /* we do not update ps->load at the moment in order to be able to distinguish
+   * old and new pairs for the gebauer-moeller update following */
 
-/**
- * \brief Gebauer-Moeller checks for product and chain criterion
- *
- * \param pair set ps
- *
- * \param intermediate groebner basis basis
- *
- * \param index in basis of newly added basis element idx
- */
-void gebauer_moeller(ps_t *ps, const gb_t *basis,  const nelts_t idx);
+  /* check product and chain criterion in gebauer moeller style
+   * note that we have already marked the pairs for which the product criterion
+   * applies in generate_spair() */
+  if (idx > basis->st)
+    gebauer_moeller(ps, basis, idx);
 
-/**
- * \brief Remove spairs detected by either product or chain criterion
- *
- * \param pair set ps
- *
- * \param index of basis element the new pairs were generated with idx
- *
- * \return number of removed pairs
- */
-nelts_t remove_detected_pairs(ps_t *ps, const nelts_t idx);
+}
 
 /**
  * \brief Adjusts selection set size to new_size

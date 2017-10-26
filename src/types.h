@@ -686,6 +686,7 @@ typedef struct ps_t
 {
   /* global data */
   nelts_t size;     /*!<  memory allocated */
+  nelts_t load_ls;  /*!<  number of elements in pair list in the last step*/
   nelts_t load;     /*!<  number of elements in basis*/
   /* element data */
   spair_t *pairs;   /*!<  pointers of spairs */
@@ -879,6 +880,7 @@ typedef struct ht_t
 {
   /* size and load counters */
   nvars_t nv;         /*!<  number of variables*/
+  nvars_t offset;     /*!<  offset for loop starts: ht->nv == even => 0 else 1 */
   ht_size_t load_ls;  /*!<  load of hash table after last step */
   ht_size_t load;     /*!<  load of hash table*/
   ht_size_t sz;       /*!<  hash table size*/

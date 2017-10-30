@@ -75,7 +75,7 @@
 #endif
 
 #ifndef DIVMAP_RECALCULATE_COUNTER
-#define DIVMAP_RECALCULATE_COUNTER  100000
+#define DIVMAP_RECALCULATE_COUNTER  100000000
 #endif
 
 
@@ -83,6 +83,7 @@
  * OUR HASH TABLE IS GLOBAL
  **************************/
 extern ht_t *ht;
+extern hash_t *lms;
 
 /* global variables used as random seeds, initialized to max unsigned values
  * depending on available wordsize of the machine */
@@ -293,7 +294,7 @@ static inline ht_t *init_hash_table(const ht_size_t ht_si,
   ht->ctr     = (ht_size_t *)calloc(ht->sz, sizeof(ht_size_t));
 #endif
   ht->rand    = (hash_t *)malloc(ht->nv * sizeof(hash_t));
-  ht->exp     = (exp_t *)malloc(ht->sz * ht->nv * sizeof(exp_t));
+  ht->exp     = (exp_t *)calloc(ht->sz * ht->nv, sizeof(exp_t));
   /* get memory for each exponent */
   /* for (i=0; i<ht->sz; ++i) {
    *   ht->exp[i]  = (exp_t *)calloc(ht->nv, sizeof(exp_t));

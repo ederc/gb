@@ -717,8 +717,8 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
       memcpy(AB->row[AB->rk], basis->p[gens[k]],
           basis->p[gens[k]][1] * sizeof(src_t));
 #if NOT_ADDING_MUL_TO_HT
-      mul_hash = ht->val[lcm] - ht->val[basis->p[gens[k]][2]];
-      ed  = ht->exp + (ht->nv * basis->p[gens[k]][2]);
+      mul_hash = ht->val[lcm] - ht->val[lms[gens[k]]];
+      ed  = ht->exp + (ht->nv * lms[gens[k]]);
       for (size_t j = 0; j < ht->nv; ++j) {
         mul_exp[j]  = ev[j] - ed[j];
       }
@@ -727,7 +727,7 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
         mul_deg +=  mul_exp[j];
       }
 #else
-      hash_t mul = get_multiplier(lcm, basis->p[gens[k]][2], ht);
+      hash_t mul = get_multiplier(lcm, lms[gens[k]], ht);
 #endif
       /* printf("adds %u with mul %u to AB at row %u || lcm %u\n", gens[k], mul, AB->rk, lcm); */
       for (size_t i = 2; i < AB->row[AB->rk][1]; i = i+2) {
@@ -754,12 +754,12 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
     }
     /* add to lower matrix CD */
     for (l=k; l<load; l++) {
-      ed  = ht->exp + (ht->nv * basis->p[gens[l]][2]);
+      ed  = ht->exp + (ht->nv * lms[gens[l]]);
       CD->row[CD->rk] = (src_t *)malloc(basis->p[gens[l]][1] * sizeof(src_t));
       memcpy(CD->row[CD->rk], basis->p[gens[l]],
           basis->p[gens[l]][1] * sizeof(src_t));
 #if NOT_ADDING_MUL_TO_HT
-      mul_hash = ht->val[lcm] - ht->val[basis->p[gens[l]][2]];
+      mul_hash = ht->val[lcm] - ht->val[lms[gens[l]]];
       /* printf("LCM ");
        * for (size_t k = 0; k < ht->nv; ++k) {
        *   printf("%d ", ht->exp[lcm][k]);
@@ -778,7 +778,7 @@ static inline void select_pairs(ps_t *ps, smc_t *AB, smc_t *CD,
         mul_deg +=  mul_exp[j];
       }
 #else
-      hash_t mul = get_multiplier(lcm, basis->p[gens[l]][2], ht);
+      hash_t mul = get_multiplier(lcm, lms[gens[l]], ht);
 #endif
       /* printf("adds %u with mul %u to CD at row %u || lcm %u\n", gens[l], mul, CD->rk, lcm); */
       for (size_t i = 2; i < CD->row[CD->rk][1]; i = i+2) {

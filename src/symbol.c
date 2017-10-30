@@ -81,7 +81,7 @@ void symbolic_preprocessing(ps_t *ps, smc_t *AB, smc_t *CD,
     /* printf("i %u last divisor checked with to start sc\n", i); */
     while (i<basis->load) {
       /* printf("i %u\n", i); */
-      if (check_monomial_division(hash_pos, basis->p[i][2], ht)) {
+      if (check_monomial_division(hash_pos, lms[i], ht)) {
         while (basis->red[i] != 0)
           i = basis->red[i];
         ht->div[hash_pos] = i;
@@ -109,10 +109,10 @@ done:
     memcpy(AB->row[AB->rk], basis->p[i],
         basis->p[i][1] * sizeof(src_t));
     ev  = ht->exp + (ht->nv * hash_pos);
-    ed  = ht->exp + (ht->nv * basis->p[i][2]);
+    ed  = ht->exp + (ht->nv * lms[i]);
 #if NOT_ADDING_MUL_TO_HT
     /* printf("hash values: %d - %d = %d\n", ht->val[hash_pos], ht->val[basis->p[i][2]], mul_hash); */
-    mul_hash = ht->val[hash_pos] - ht->val[basis->p[i][2]];
+    mul_hash = ht->val[hash_pos] - ht->val[lms[i]];
     for (size_t j = 0; j < ht->nv; ++j) {
       mul_exp[j]  = ev[j] - ed[j];
     }
@@ -136,7 +136,7 @@ done:
       mul_deg +=  mul_exp[j];
     }
 #else
-    hash_t mul = get_multiplier(hash_pos, basis->p[i][2], ht);
+    hash_t mul = get_multiplier(hash_pos, lms[i], ht);
 #endif
 
     /* hash_t mul = get_multiplier_after_poly(

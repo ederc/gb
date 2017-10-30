@@ -155,8 +155,6 @@ static inline void generate_all_spairs(ps_t *ps, const nelts_t new,
      * since we are trying to remove as much as possible useless elements in
      * select_pairs(). if we would dynamically adjust the positioning (as done in
      * the below commented out code) we could no longer track this correctly. */
-    sp->gen1  = (nelts_t)i;
-    sp->gen2  = new;
 
     /* if (basis->nt[gen1] < basis->nt[gen2]) {
      *   sp->gen1  = gen1;
@@ -172,6 +170,8 @@ static inline void generate_all_spairs(ps_t *ps, const nelts_t new,
 
     sp->deg   = ht->deg[sp->lcm];
 
+    sp->gen1  = (nelts_t)i;
+    sp->gen2  = new;
     /* if one of the generators is redundant we can stop already here and mark it
      * with the CHAIN_CRIT in order to remove it later on */
     /* else */
@@ -183,6 +183,51 @@ static inline void generate_all_spairs(ps_t *ps, const nelts_t new,
     }
     /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
     if (sp->deg == ht->deg[basis->p[i][2]] + ht->deg[hash_new]) {
+      sp->crit  = PROD_CRIT;
+      /* eliminate(ps->spt[new], i); */
+      continue;
+    }
+    sp->crit  = NO_CRIT;
+  }
+}
+static inline void generate_all_spairs_test(ps_t *ps, const gb_t *basis, const nelts_t new,
+    const hash_t *lms, ht_t *ht)
+{
+  const hash_t hash_new  = lms[new];
+  for (size_t i = basis->st; i < new; ++i) {
+    spair_t *sp = ps->pairs + ps->load + i - basis->st;
+    /* we have to fix the positions where the new basis element is put (gen2),
+     * since we are trying to remove as much as possible useless elements in
+     * select_pairs(). if we would dynamically adjust the positioning (as done in
+     * the below commented out code) we could no longer track this correctly. */
+
+    /* if (basis->nt[gen1] < basis->nt[gen2]) {
+     *   sp->gen1  = gen1;
+     *   sp->gen2  = gen2;
+     * } else {
+     *   sp->gen1  = gen2;
+     *   sp->gen2  = gen1;
+     * } */
+
+    sp->lcm   = get_lcm(lms[i], hash_new, ht);
+    /* if (ht->ld[sp->lcm] == 0)
+     *   ht->ld[sp->lcm] = new; */
+
+    sp->deg   = ht->deg[sp->lcm];
+
+    sp->gen1  = (nelts_t)i;
+    sp->gen2  = new;
+    /* if one of the generators is redundant we can stop already here and mark it
+     * with the CHAIN_CRIT in order to remove it later on */
+    /* else */
+    if (basis->red[i] > 0) {
+      /* printf("%u - %u || %u\n", gen2, gen1, ps->load + gen2 - basis->st); */
+      sp->crit  = CHAIN_CRIT;
+      /* eliminate(ps->spt[new], i); */
+      continue;
+    }
+    /* check for product criterion and mark correspondingly, i.e. we set sp->deg=0 */
+    if (sp->deg == ht->deg[lms[i]] + ht->deg[hash_new]) {
       sp->crit  = PROD_CRIT;
       /* eliminate(ps->spt[new], i); */
       continue;
@@ -230,6 +275,35 @@ static inline void generate_spair(ps_t *ps, const nelts_t gen1,
  *
  * \param index of new element in gb idx
  */
+static inline void update_pair_set_test(ps_t *ps, const gb_t *basis, const hash_t *lms, const nelts_t idx)
+{
+  /* we get maximal idx-1 new pairs */
+  if (ps->size <= ps->load + (idx-1))
+    enlarge_pair_set(ps, 2*ps->size);
+  /* generate spairs with the initial elements in basis
+   * See note on gb_t in src/types.h why we start at position 1 here. */
+  /* gettimeofday(&t_start, NULL); */
+  generate_all_spairs_test(ps, basis, idx, lms, ht);
+/*   for (i=basis->st; i<idx; ++i) {
+ *     generate_spair(ps, idx, i, basis, ht);
+ * #if SPAIR_DEBUG
+ *     printf("pair %u, %u + %u | %u\n",idx,i,ps->load,ps->pairs[ps->load+i-basis->st]->deg);
+ * #endif
+ *   } */
+  /* t_gen_spair +=  walltime(t_start); */
+  /* printf("gen spairs %9.3f sec\n",
+   *     t_gen_spair / (1000000)); */
+
+  /* we do not update ps->load at the moment in order to be able to distinguish
+   * old and new pairs for the gebauer-moeller update following */
+
+  /* check product and chain criterion in gebauer moeller style
+   * note that we have already marked the pairs for which the product criterion
+   * applies in generate_spair() */
+  if (idx > basis->st)
+    gebauer_moeller(ps, basis, idx);
+
+}
 static inline void update_pair_set(ps_t *ps, const gb_t *basis, const nelts_t idx)
 {
   /* we get maximal idx-1 new pairs */

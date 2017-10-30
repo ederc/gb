@@ -283,6 +283,10 @@ int main(int argc, char *argv[])
   }
   /* input stores input data */
   gb_t *basis = load_input(fn, nvars, order, ht, max_spairs, verbose);
+  lms = (hash_t *)malloc(basis->load * sizeof(hash_t));
+  for (size_t i = 1; i < basis->st; ++i) {
+    lms[i]  = basis->p[i][2];
+  }
 
   if (verbose > 0) {
     gettimeofday(&t_load_start, NULL);

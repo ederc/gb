@@ -164,6 +164,7 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
    *   if (pivs[i] != NULL && pivs[i][0] == 0) {
    *     res = add_new_element_to_basis_all_pivs(basis, pivs[i], spd, ht); */
   /* for (size_t i = nc; i > mon->nlm; --i) { */
+  lms = realloc(lms, (basis->load + nc-mon->nlm) * sizeof(hash_t));
   for (size_t i = mon->nlm+1; i < nc+1; ++i) {
     if (pivs[i-1] != NULL && pivs[i-1][0] == 0) {
       res = add_new_element_to_basis(basis, pivs[i-1], mon, ht);
@@ -174,8 +175,11 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
         continue;
       if (res == 0)
         return 1;
+      lms[basis->load-1]  = basis->p[basis->load-1][2];
       /* printf("psl before generating with row %u: %u\n", rankDR-1-i, ps->load); */
-      update_pair_set(ps, basis, basis->load-1);
+      /* update_pair_set(ps, basis, basis->load-1); */
+      /* printf("lms %p\n", lms); */
+      update_pair_set_test(ps, basis, lms, basis->load-1);
       /* printf("psl after: %u\n", ps->load); */
       /* if elements are homogeneous we compute by degree, thus no redundancy can
        * appear */
@@ -187,6 +191,7 @@ static inline int update_basis_all_pivs(gb_t *basis, ps_t *ps,
   /* track load of basis at the end of this step */
   basis->load_ls  = basis->load;
   ht->load_ls     = ht->load;
+  lms = realloc(lms, basis->load * sizeof(hash_t));
   /* for (size_t i = 0; i < ps->load; ++i) {
    *   printf("sp %u | %u | %d -- ", ps->pairs[i].gen1, ps->pairs[i].gen2, ps->pairs[i].lcm);
    *   for (size_t j = 0; j < ht->nv; ++j) {

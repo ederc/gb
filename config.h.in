@@ -1,8 +1,5 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* WITH_FFLAS */
-#undef GBLA_WITH_FFLAS
-
 /* Define to 1 if the system has the `' built-in function */
 #undef HAVE_
 
@@ -146,57 +143,6 @@
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT8_T
-
-/* COLUMN_B */
-#undef __GBLA_COLUMN_B
-
-/* DENSITY_THRESHOLD */
-#undef __GBLA_DENSITY_THRESHOLD
-
-/* HAVE_OPEN_CL */
-#undef __GBLA_HAVE_OPENCL
-
-/* HYBRID_THRESHOLD */
-#undef __GBLA_HYBRID_THRESHOLD
-
-/* UNROLL_BIG */
-#undef __GBLA_LOOP_UNROLL_BIG
-
-/* UNROLL_SMALL */
-#undef __GBLA_LOOP_UNROLL_SMALL
-
-/* MINUS_ONE_16 */
-#undef __GBLA_MINUS_ONE_16
-
-/* MINUS_ONE_32 */
-#undef __GBLA_MINUS_ONE_32
-
-/* MINUS_ONE_8 */
-#undef __GBLA_MINUS_ONE_8
-
-/* MULTILINE */
-#undef __GBLA_NROWS_MULTILINE
-
-/* ROUND_DOWN */
-#undef __GBLA_ROUND_DOWN
-
-/* BLOCK_SIZE */
-#undef __GBLA_SIMD_BLOCK_SIZE
-
-/* BLOCK_SIZE_DIAG */
-#undef __GBLA_SIMD_BLOCK_SIZE_DIAG
-
-/* BLOCK_SIZE_RECT */
-#undef __GBLA_SIMD_BLOCK_SIZE_RECT
-
-/* BLOCKS_PER_ROW */
-#undef __GBLA_SIMD_INNER_BLOCKS_PER_ROW
-
-/* INNER_SIZE */
-#undef __GBLA_SIMD_INNER_SIZE
-
-/* WITH_FFLAS */
-#undef __GBLA_WITH_FFLAS
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */

@@ -20,6 +20,8 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
+#include <stdint.h>
+
 static double select_time = 0;
 static double symbol_time = 0;
 static double matrix_time = 0;
@@ -38,3 +40,25 @@ static int64_t num_reduced = 0;
 static int64_t num_useless = 0;
 static int64_t num_rowsred = 0;
 static int64_t num_zerored = 0;
+
+static void initialize_statistics()
+{
+	num_reduced = 0;
+  num_useless = 0;
+  num_rowsred = 0;
+  num_zerored = 0;
+
+	select_time = 0;
+  symbol_time = 0;
+  matrix_time = 0;
+  update_time = 0;
+  polmat_time = 0;
+  reduce_time = 0;
+
+	select_cput = 0;
+  symbol_cput = 0;
+  matrix_cput = 0;
+  update_cput = 0;
+  polmat_cput = 0;
+  reduce_cput = 0;
+}

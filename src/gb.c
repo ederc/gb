@@ -23,8 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "stat.c" /* computational statistics */
-#include "time.c" /* timing business */
+#include "stat.c"   /* computational statistics */
+#include "time.c"   /* timing business */
+#include "io.c"     /* input and output data handling */
 
-#include "data.c" /* general data types */
-#include "io.c"   /* input and output data handling */
+#include "basis.c"  /* basis and polynomial handling */
+#include "pairs.c"  /* pairset handling */

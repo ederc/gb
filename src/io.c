@@ -19,6 +19,9 @@
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+
+#include "data.h"
+
 static poly_t *import_seq_from_julia()
 {
 }

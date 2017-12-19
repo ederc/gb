@@ -14,41 +14,18 @@
  */
 
 /**
- * \file data.c
+ * \file basis.c
  * \brief General and global data
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
-#include "data.h";
 
-static void initialize()
+#include "data.h"
+
+static void initialize_basis(void)
 {
   bload = 0;
   bsize = 64;
 
-  pload = 0;
-  psize = 192;
-
   gb  = malloc(bsize * sizeof(poly_t));
-  ps  = malloc(psize * sizeof(spair_t));
-
-  /* statistics */
-	num_reduced = 0;
-  num_useless = 0;
-  num_rowsred = 0;
-  num_zerored = 0;
-
-	select_time = 0;
-  symbol_time = 0;
-  matrix_time = 0;
-  update_time = 0;
-  polmat_time = 0;
-  reduce_time = 0;
-
-	select_cput = 0;
-  symbol_cput = 0;
-  matrix_cput = 0;
-  update_cput = 0;
-  polmat_cput = 0;
-  reduce_cput = 0;
 }

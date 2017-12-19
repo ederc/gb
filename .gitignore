@@ -1,4 +1,6 @@
 *.a
+*.i
+*.s
 *.asm
 *.backup
 *.d
@@ -26,11 +28,13 @@ _configs.sed
 aclocal.m4
 autom4te.cache
 compile
+config.h
 config.guess
 config.log
 config.status
 config.sub
 configure
+configure.scan
 depcomp
 gb
 gb.pc

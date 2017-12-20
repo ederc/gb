@@ -14,25 +14,18 @@
  */
 
 /**
- * \file io.c
- * \brief Input and output handling
+ * \file io.h
+ * \brief Declarations of non-static IO routines
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "data.h"
+#ifndef GB_IO_H
+#define GB_IO_H
 
 int32_t *f4_julia(
     int32_t *generators,
     int32_t num_variables,
     int32_t num_generators
-    )
-{
-  int i;
-  for (i = 0; i < num_generators; ++i) {
-    printf("%d ", generators[i]);
-  }
-  printf("\n");
-
-  return generators;
-}
+    );
+#endif

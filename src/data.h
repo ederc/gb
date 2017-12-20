@@ -24,6 +24,7 @@
 #define GB_DATA_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 /* check if OpenMP is available */
 #if defined(ENABLE_OPENMP)
@@ -35,6 +36,8 @@ inline omp_int_t omp_get_max_threads(void) { return 1;}
 #endif
 
 /* computational data */
+typedef int32_t len_t;      /* length type for different structures */
+typedef int32_t exp_t;      /* exponent type */
 typedef int32_t hv_t;       /* hash values */
 typedef int32_t deg_t;      /* (total) degree of polynomial */
 typedef int32_t bi_t;       /* basis index of element */

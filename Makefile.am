@@ -19,14 +19,14 @@ AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 lib_LTLIBRARIES = libgb.la
 
 libgb_la_SOURCES = \
-	src/data.h \
 	src/gb.c
 
 BUILT_SOURCES = config.h
 
 pkgincludesubdir = $(includedir)/src
 pkgincludesub_HEADERS = \
-	src/data.h
+	src/data.h \
+	src/io.h
 
 nodist_pkgincludesub_HEADERS = config.h
 

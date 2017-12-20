@@ -20,20 +20,83 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "hash.h"
+#include "data.h"
 
-/****************************************************************************************
- * AVX/SSE stuff to try
- *
- * _mm256_add_epi8
- * _mm_add_epi8
- * _mm_adds_epu8 (unsigned with saturation)
- * _mm256_adds_epu8
- * _mm_subs_epu8 (unsigned with saturation)
- * _mm256_subs_epu8
- * _mm_cmplt_epi8 (-1 if true, 0 if false)
- * _mm256_cmpgt_epi8 (-1 if true, 0 if false)
- ***************************************************************************************/
-/** extern declaration in src/hash.h */
-ht_t *ht;
-hash_t *lms = NULL;
+/* The idea of the structure of the hash table is taken from an
+ * implementation by Roman Pearce and Michael Monagan in Maple. */
+
+static len_t nvars  = 0;
+
+/* exponent block includes after the exponents also: */
+#define HASH_DEG  (nvars+0) /* total degree */
+#define HASH_VAL  (nvars+1) /* hash value */
+#define HASH_DIV  (nvars+2) /* last divisor checked */
+#define HASH_IND  (nvars+3) /* index into GB matrix */
+#define HASH_LEN  (nvars+4) /* length of monomials */
+
+static exp_t *exp   = NULL;
+static len_t esize  = 0;
+static len_t eload  = 1;
+
+/* map with index from monomials to exponents */
+static len_t *map   = NULL;
+static len_t msize  = 0;
+
+/* random values for generating hash values */
+static hv_t *rand = NULL;
+
+/* pseudo random number generator for hash value
+ * generation */
+uint32_t rseed  = 2463534242;
+static hv_t pseudo_random_number_generator()
+{
+	rseed ^= (rseed << 13);
+	rseed ^= (rseed >> 17);
+	rseed ^= (rseed << 5);
+	return (hv_t)rseed;
+}
+
+static void intialize_hash_table(
+    len_t num_variables,
+    len_t hash_table_size
+    )
+{
+  int32_t i;
+
+  /* generate map */
+  nvars = num_variables;
+  msize = hash_table_size;
+  map   = calloc(msize * sizeof(len_t));
+
+  /* generate random values */
+  rand  = calloc(nvars, sizeof(hv_t));
+  for (i = nvars-1; i >= 0; ++i) {
+    /* random values should not be zero */
+    rand[i] = pseudo_random_number_generator() | 1;
+  }
+  /* generate exponent vector */
+  esize = HASH_LEN + (msize/2);
+  /* keep first entry empty for faster divisibility checks */
+  eload = HASH_LEN;
+  exp   = calloc(esize, sizeof(exp_t));
+}
+
+static void free_hash_table()
+{
+  if (map) {
+    free(map);
+    map = NULL;
+  }
+  if (rand) {
+    free(rand);
+    rand  = NULL;
+  }
+  if (exp) {
+    free(exp);
+    exp = NULL;
+  }
+  nvars = 0;
+  esize = 0;
+  eload = 0;
+  msize = 0;
+}

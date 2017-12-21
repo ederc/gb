@@ -25,7 +25,9 @@
 
 #include "stat.c"   /* computational statistics */
 #include "time.c"   /* timing business */
+#include "hash.c"   /* hash table stuff */
 #include "io.c"     /* input and output data handling */
 
 #include "basis.c"  /* basis and polynomial handling */
 #include "pairs.c"  /* pairset handling */
+#include "f4.c"     /* implemenation of f4 algorithm */

@@ -25,6 +25,8 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h> /* for memset et al. */
+#include <math.h>
 
 /* check if OpenMP is available */
 #if defined(ENABLE_OPENMP)
@@ -36,20 +38,20 @@ inline omp_int_t omp_get_max_threads(void) { return 1;}
 #endif
 
 /* computational data */
-typedef int32_t len_t;      /* length type for different structures */
-typedef int32_t exp_t;      /* exponent type */
-typedef int32_t hv_t;       /* hash values */
-typedef int32_t deg_t;      /* (total) degree of polynomial */
-typedef int32_t bi_t;       /* basis index of element */
-typedef unsigned long bl_t; /* basis load */
-typedef unsigned long pl_t; /* pair set load */
-typedef int32_t *poly_t;    /* polynomials are just arrays of coeffs
-                               and exponent hashes. They start with the
-                               length of the array and the second entry
-                               is used for distinguishing between known
-                               basis elements and new basis elements when
-                               applying the linear algebra. That means
-                               p = [len, known, cf1, eh1, cf2, eh2, ...] */
+typedef int32_t len_t;    /* length type for different structures */
+typedef int32_t exp_t;    /* exponent type */
+typedef int32_t val_t;    /* core values like hashes, coefficients, etc. */
+typedef int32_t deg_t;    /* (total) degree of polynomial */
+typedef int32_t bi_t;     /* basis index of element */
+typedef int32_t bl_t;     /* basis load */
+typedef int32_t pl_t;     /* pair set load */
+typedef int32_t *poly_t;  /* polynomials are just arrays of coeffs
+                             and exponent hashes. They start with the
+                             length of the array and the second entry
+                             is used for distinguishing between known
+                             basis elements and new basis elements when
+                             applying the linear algebra. That means
+                             p = [len, known, cf1, eh1, cf2, eh2, ...] */
 
 
 /* S-pair types */
@@ -59,7 +61,7 @@ struct spair_t
 {
   deg_t deg;   /* if criteria apply, information is stored here */
   spt_t type;
-  hv_t lcm;
+  val_t lcm;
   bi_t gen1;
   bi_t gen2;
 };
@@ -70,8 +72,19 @@ static pl_t pload   = 0;
 static pl_t psize   = 0;
 
 /* basis data */
-static poly_t *gb   = NULL;
-static bl_t bload   = 0;
-static bl_t bsize   = 0;
+static poly_t *bs = NULL;
+static bl_t bload = 0;
+static bl_t bsize = 0;
 
+/* -----------------------------------
+ * non-static functions and procedures
+ * ----------------------------------- */
+int32_t *f4_julia(
+    int32_t *lens,
+    int32_t *cfs,
+    int32_t *exps,
+    int32_t nr_vars,
+    int32_t nr_gens,
+    int32_t ht_size
+    );
 #endif

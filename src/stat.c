@@ -41,7 +41,9 @@ static int64_t num_useless = 0;
 static int64_t num_rowsred = 0;
 static int64_t num_zerored = 0;
 
-static void initialize_statistics()
+static void initialize_statistics(
+    void
+    )
 {
 	num_reduced = 0;
   num_useless = 0;

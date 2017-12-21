@@ -22,17 +22,31 @@
 
 #include "data.h"
 
-int32_t *f4_julia(
-    int32_t *generators,
-    int32_t num_variables,
-    int32_t num_generators
+static val_t **import_julia_data(
+    const int32_t *lens,
+    const int32_t *cfs,
+    const int32_t *exps,
+    const int32_t nr_gens
     )
 {
-  int i;
-  for (i = 0; i < num_generators; ++i) {
-    printf("%d ", generators[i]);
+  int32_t i, j;
+  int32_t off = 0; /* offset in arrays */
+  val_t **mat = malloc((unsigned long)nr_gens * sizeof(val_t *));
+  
+  for (i = 0; i < nr_gens; ++i) {
+    /* each matrix row has the following structure:
+     * [length | cf1 | eh1 | cf2 | eh2 | .. | cfl | ehl | piv?]
+     * where piv? is a label for being a known or an unknown pivot */
+    mat[i]    = malloc(2*(unsigned long)lens[i]+2 * sizeof(val_t));
+    mat[i][0] = 2*lens[i]+2;
+    for (j = off; j < off+lens[i]; ++j) {
+      mat[i][2*(j-off)+1] = cfs[j];
+      mat[i][2*(j-off)+2] = insert_in_local_hash_table(exps+(nvars*j));
+    }
+    /* mark initial generators, they have to be added to the basis first */
+    mat[i][2*lens[i]+1] = 1;
+    off +=  lens[i];
   }
-  printf("\n");
 
-  return generators;
+  return mat;
 }

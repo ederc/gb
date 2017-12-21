@@ -22,10 +22,27 @@
 
 #include "data.h"
 
-static void initialize_basis(void)
+static void initialize_basis(
+    int32_t ngens
+    )
 {
   bload = 0;
-  bsize = 64;
+  bsize = 2*ngens;
 
-  gb  = malloc(bsize * sizeof(poly_t));
+  bs  = malloc((unsigned long)bsize * sizeof(poly_t));
+}
+
+static void free_basis(
+    void
+    )
+{
+  int32_t i;
+  if (bs) {
+    for (i = 0; i < bload; ++i) {
+      free(bs[i]);
+    }
+    free(bs);
+    bload = 0;
+    bsize = 0;
+  }
 }

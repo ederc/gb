@@ -22,10 +22,12 @@
 
 #include "data.h"
 
-static void initialize_pairset(void)
+static void initialize_pairset(
+    void
+    )
 {
   pload = 0;
   psize = 192;
 
-  ps  = malloc(psize * sizeof(spair_t));
+  ps  = malloc((unsigned long)psize * sizeof(spair_t));
 }

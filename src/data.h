@@ -80,11 +80,11 @@ static bl_t bsize = 0;
  * non-static functions and procedures
  * ----------------------------------- */
 int32_t *f4_julia(
-    int32_t *lens,
-    int32_t *cfs,
-    int32_t *exps,
-    int32_t nr_vars,
-    int32_t nr_gens,
-    int32_t ht_size
+    const int32_t *lens,
+    const int32_t *cfs,
+    const int32_t *exps,
+    const int32_t nr_vars,
+    const int32_t nr_gens,
+    const int32_t ht_size
     );
 #endif

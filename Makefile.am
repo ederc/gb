@@ -37,6 +37,6 @@ pkgconfig_DATA = gb.pc
 libgb_la_LDFLAGS = $(LDFLAGS) -release $(RELEASE) -no-undefined -rdynamic
 libgb_la_LIBADD = $(LIBPNG_LIBADD)
 
-check_PROGRAMS	=	testsuite
-testsuite_SOURCES = test/io.c
-testsuite_LDADD = $(top_builddir)/libgb.la $(DEPS_LIBS) ${CL_LIBS} $(GBLA_LIBS) -lm
+check_PROGRAMS	=	tests
+tests_SOURCES = test/julia_io.c
+tests_LDADD = $(top_builddir)/libgb.la $(DEPS_LIBS) ${CL_LIBS} $(GBLA_LIBS) -lm

@@ -54,6 +54,7 @@ src/config.h.in
 src/gb_config.h
 src/stamp-h1
 tags
+tests
 test/read-jcf-matrix-density
 test/read-jcf-matrix-mod
 test/read-jcf-matrix-ncols

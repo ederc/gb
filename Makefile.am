@@ -1,4 +1,4 @@
-AUTOMAKE_OPTIONS = gnu subdir-objects
+AUTOMAKE_OPTIONS = gnu subdir-objects color-tests
 ACLOCAL_AMFLAGS	=	-I m4
 
 AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
@@ -36,3 +36,7 @@ pkgconfig_DATA = gb.pc
 
 libgb_la_LDFLAGS = $(LDFLAGS) -release $(RELEASE) -no-undefined -rdynamic
 libgb_la_LIBADD = $(LIBPNG_LIBADD)
+
+check_PROGRAMS	=	testsuite
+testsuite_SOURCES = test/io.c
+testsuite_LDADD = $(top_builddir)/libgb.la $(DEPS_LIBS) ${CL_LIBS} $(GBLA_LIBS) -lm

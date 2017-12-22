@@ -103,7 +103,6 @@ static void initialize_global_hash_table(
   rv  = calloc((unsigned long)nvars, sizeof(val_t));
   for (i = nvars-1; i >= 0; --i) {
     /* random values should not be zero */
-    printf("i %d\n", i);
     rv[i] = pseudo_random_number_generator() | 1;
   }
   /* generate exponent vector */

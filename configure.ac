@@ -77,5 +77,5 @@ AX_GCC_BUILTIN
 #AX_LLVM
 #AX_CACHE_SIZE
 
-AC_CONFIG_FILES([Makefile gb.pc])
+AC_CONFIG_FILES([Makefile test/Makefile gb.pc])
 AC_OUTPUT

@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h> /* for memset et al. */
+#include <limits.h>
 #include <math.h>
 
 /* check if OpenMP is available */
@@ -38,6 +39,7 @@ inline omp_int_t omp_get_max_threads(void) { return 1;}
 #endif
 
 /* computational data */
+typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
 typedef int32_t exp_t;    /* exponent type */
 typedef int32_t val_t;    /* core values like hashes, coefficients, etc. */

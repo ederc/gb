@@ -44,7 +44,9 @@
 /* The idea of the structure of the hash table is taken from an
  * implementation by Roman Pearce and Michael Monagan in Maple. */
 
-static len_t nvars  = 0;
+static len_t nvars  = 0; /* number of variables */
+static len_t bpv    = 0; /* bits per variable in divmask */
+static len_t ndvars = 0; /* number of variables for divmask */
 
 /* exponent block includes after the exponents also: */
 #define HASH_DEG  (nvars+0) /* total degree */
@@ -74,6 +76,9 @@ static len_t mlsize   = 0;
 /* random values for generating hash values */
 static val_t *rv  = NULL;
 
+/* divisor map for short divisibility tests */
+static sdm_t *dm  = NULL;
+
 /* pseudo random number generator for hash value
  * generation */
 uint32_t rseed  = 2463534242;
@@ -96,8 +101,16 @@ static void initialize_global_hash_table(
 
   /* generate map */
   nvars = nr_vars;
+  bpv   = (CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars;
+  if (bpv == 0)
+    bpv++;
+  ndvars  = (unsigned long)nvars < (CHAR_BIT * sizeof(sdm_t)) ?
+    nvars : (CHAR_BIT * sizeof(sdm_t));
   msize = (len_t)pow(2, ht_size);
   map   = calloc((unsigned long)msize, sizeof(len_t));
+
+  /* generate divmask map */
+  dm  = calloc((unsigned long)ndvars, sizeof(sdm_t));
 
   /* generate random values */
   rv  = calloc((unsigned long)nvars, sizeof(val_t));
@@ -232,6 +245,75 @@ static void enlarge_local_hash_table(
     }
   }
 }
+static inline sdm_t generate_short_divmask(
+    const exp_t *a
+    )
+{
+  int32_t i, j;
+  int32_t res = 0;
+  int32_t ctr = 0;
+
+  for (i = 0; i < ndvars; ++i) {
+    for (j = 0; j < bpv; ++j) {
+      if (a[i] >= dm[ctr]) {
+        res |= 1 << ctr;
+      }
+      ctr++;
+    }
+  }
+ 
+  return res;
+}
+
+static inline void recalculate_divmask(
+    void
+    )
+{
+  int32_t i, j, steps;
+  int32_t ctr = 0;
+  deg_t *max_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
+  deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
+
+  exp_t *e  = ev + HASH_LEN;
+
+  /* get initial values from first hash table entry */
+  for (i = 0; i < ndvars; ++i) {
+    max_exp[i]  = min_exp[i]  = e[i];
+  }
+
+  /* get maximal and minimal exponent element entries in hash table */
+  for (i = 2*HASH_LEN; i < eload; i = i + HASH_LEN) {
+    e = ev + i;
+    for (j = 0; j < ndvars; ++j) {
+      if (e[j] > max_exp[j]) {
+        max_exp[j]  = e[j];
+        continue;
+      }
+      if (e[j] < min_exp[j]) {
+        min_exp[j]  = e[j];
+      }
+    }
+  }
+
+  /* calculate average values for generating divmasks */
+  for (i = 0; i < ndvars; ++i) {
+    steps = (max_exp[i] - min_exp[i]) / bpv;
+    if (steps == 0)
+      steps++;
+    for (j = 0; j < bpv; ++j) {
+      dm[ctr++] = min_exp[i]++;
+    }
+  }
+
+  /* initialize divmasks for elements already added to hash table */
+  for (i = HASH_LEN; i < eload; i = i + HASH_LEN) {
+    e = ev + i;
+    e[HASH_SDM] = generate_short_divmask(e);
+  }
+
+  free(max_exp);
+  free(min_exp);
+}
 
 static inline len_t insert_in_global_hash_table(
     const exp_t *a
@@ -276,6 +358,7 @@ static inline len_t insert_in_global_hash_table(
     deg   +=  a[i];
   }
   e[HASH_DEG] = deg;
+  e[HASH_SDM] = generate_short_divmask(e);
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;

@@ -24,6 +24,7 @@ TESTS = 											\
 	test_initialize_hash_table	\
 	test_free_hash_table 				\
 	test_divmask								\
+	test_normalize_row					\
 	test_julia_io
 
 check_PROGRAMS = $(TESTS)

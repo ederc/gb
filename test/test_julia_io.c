@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../src/data.h"
+#include "../src/gb.c"
 
 int main(
     void

@@ -19,6 +19,7 @@ AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb -lm
 LDFLAGS = -no-install
 
 TESTS = \
-	test_julia_io
+	test_julia_io \
+	test_divmask
 
 check_PROGRAMS = $(TESTS)

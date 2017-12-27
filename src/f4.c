@@ -47,7 +47,7 @@ int32_t *f4_julia(
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
 
-  recalculate_divmask();
+  calculate_divmask();
   for (i = 0; i < nr_gens; ++i) {
     for (j = 1; j < mat[i][0]; ++j) {
       printf("%d ", mat[i][j]);

@@ -110,7 +110,7 @@ static void initialize_global_hash_table(
   map   = calloc((unsigned long)msize, sizeof(len_t));
 
   /* generate divmask map */
-  dm  = calloc((unsigned long)ndvars, sizeof(sdm_t));
+  dm  = calloc((unsigned long)(ndvars * bpv), sizeof(sdm_t));
 
   /* generate random values */
   rv  = calloc((unsigned long)nvars, sizeof(val_t));
@@ -265,7 +265,10 @@ static inline sdm_t generate_short_divmask(
   return res;
 }
 
-static inline void recalculate_divmask(
+/* note: we calculate the divmask after reading in the input generators. those
+ * are first stored in the local hash table. thus we use the local exponents to
+ * generate the divmask */
+static inline void calculate_divmask(
     void
     )
 {
@@ -274,7 +277,7 @@ static inline void recalculate_divmask(
   deg_t *max_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
   deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
 
-  exp_t *e  = ev + HASH_LEN;
+  exp_t *e  = evl + HASH_LEN;
 
   /* get initial values from first hash table entry */
   for (i = 0; i < ndvars; ++i) {
@@ -283,7 +286,7 @@ static inline void recalculate_divmask(
 
   /* get maximal and minimal exponent element entries in hash table */
   for (i = 2*HASH_LEN; i < eload; i = i + HASH_LEN) {
-    e = ev + i;
+    e = evl + i;
     for (j = 0; j < ndvars; ++j) {
       if (e[j] > max_exp[j]) {
         max_exp[j]  = e[j];
@@ -307,7 +310,7 @@ static inline void recalculate_divmask(
 
   /* initialize divmasks for elements already added to hash table */
   for (i = HASH_LEN; i < eload; i = i + HASH_LEN) {
-    e = ev + i;
+    e = evl + i;
     e[HASH_SDM] = generate_short_divmask(e);
   }
 

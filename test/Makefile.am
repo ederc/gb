@@ -18,8 +18,12 @@ STAGEDIR := $(realpath -s $(TOPBUILDDIR)/.libs)
 AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb -lm
 LDFLAGS = -no-install
 
-TESTS = \
-	test_julia_io \
-	test_divmask
+TESTS = 											\
+	test_initialize_basis 			\
+	test_free_basis							\
+	test_initialize_hash_table	\
+	test_free_hash_table 				\
+	test_divmask								\
+	test_julia_io
 
 check_PROGRAMS = $(TESTS)

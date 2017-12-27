@@ -42,6 +42,7 @@ static void free_basis(
       free(bs[i]);
     }
     free(bs);
+    bs    = NULL;
     bload = 0;
     bsize = 0;
   }

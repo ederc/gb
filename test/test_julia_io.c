@@ -15,6 +15,24 @@ int main(
   const int32_t nr_gens = 3;
   const int32_t ht_size = 12;
 
-  f4_julia(lens, cfs, exps, nr_vars, nr_gens, ht_size);
+  val_t **mat;
+  
+  /* initialize stuff */
+  initialize_basis(nr_gens);
+  initialize_global_hash_table(nr_vars, ht_size);
+  if (nvars != nr_vars) {
+    return 1;
+  }
+  initialize_local_hash_table(ht_size);
+  if (mlsize != msize) {
+    return 1;
+  }
+
+  mat = import_julia_data(lens, cfs, exps, nr_gens);
+
+  /* free and clean up */
+  free_local_hash_table();
+  free_global_hash_table();
+  free_basis();
   return 0;
 }

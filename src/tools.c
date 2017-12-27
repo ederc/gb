@@ -14,28 +14,39 @@
  */
 
 /**
- * \file la.c
- * \brief Implementation of linear algebra.
+ * \file tools.c
+ * \brief Implementation of smaller tools
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+
 #include "data.h"
 
-static inline void normalize_matrix_row(
-    val_t *row
+static inline int32_t mod_p_inverse_32(
+    const int32_t val,
+    const int32_t p
     )
 {
-  int32_t i;
+  int32_t a, b, c, d, e, f;
+  a =   p;
+  b =   val % p;
+  /* if b < 0 we shift correspondingly */
+  b +=  (b >> 31) & p;
+  c =   1;
+  d =   0;
 
-  const len_t len   = row[0];
-  const int64_t inv = (int64_t)mod_p_inverse_32(row[2], fc);
-  
-  i = (len-2)/2;
-  i = i & 1 ? 4 : 2;
-  for (; i < len; i = i+4) {
-    row[i]    = (val_t)(row[i] * inv) % fc;
-    row[i+2]  = (val_t)(row[i+2] * inv) % fc;
+  while (b != 0) {
+    f = b;
+    e = a/f;
+    b = a - e*f;
+    a = f;
+    f = c;
+    c = d - e*f;
+    d = f;
   }
-  /* probably we left out the first coefficient */
-  row[2]  = 1;
+
+  /* if d < 0 we shift correspondingly */
+  d +=  (d >> 31) & p;
+
+  return d;
 }

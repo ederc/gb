@@ -85,6 +85,7 @@ int32_t *f4_julia(
     const int32_t *lens,
     const int32_t *cfs,
     const int32_t *exps,
+    const int32_t field_char,
     const int32_t nr_vars,
     const int32_t nr_gens,
     const int32_t ht_size

@@ -32,27 +32,41 @@ int32_t *f4_julia(
     const int32_t *lens,
     const int32_t *cfs,
     const int32_t *exps,
+    const int32_t field_char,
     const int32_t nr_vars,
     const int32_t nr_gens,
     const int32_t ht_size
     )
 {
-  int i, j;
+  int32_t i, hts_safe;
   val_t **mat;
+
+  if (nr_gens == 0
+    || nr_vars == 0
+    || field_char == 0
+    || lens == NULL
+    || cfs == NULL
+    || exps == NULL) {
+    return NULL;
+  }
+
+  hts_safe  = ht_size;
+  if (hts_safe == 0) {
+    hts_safe  = 12;
+  }
   
   /* initialize stuff */
   initialize_basis(nr_gens);
-  initialize_global_hash_table(nr_vars, ht_size);
-  initialize_local_hash_table(ht_size);
+  initialize_global_hash_table(nr_vars, hts_safe, field_char);
+  initialize_local_hash_table(hts_safe);
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
 
   calculate_divmask();
+
+  /* normalize input generators */
   for (i = 0; i < nr_gens; ++i) {
-    for (j = 1; j < mat[i][0]; ++j) {
-      printf("%d ", mat[i][j]);
-    }
-    printf("\n");
+    normalize_matrix_row(mat[i]);
   }
 
   /* free and clean up */

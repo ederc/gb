@@ -8,7 +8,10 @@ int main(
     )
 {
   /* initialize stuff */
-  initialize_global_hash_table(34, 4);
+  initialize_global_hash_table(34, 4, 101);
+  if (fc != 101) {
+    return 1;
+  }
   if (nvars != 34) {
     return 1;
   }

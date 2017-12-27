@@ -8,7 +8,7 @@ int main(
     )
 {
   /* initialize stuff */
-  initialize_global_hash_table(34, 4);
+  initialize_global_hash_table(34, 4, 101);
   initialize_local_hash_table(4);
   free_local_hash_table();
   if (mlsize != 0) {
@@ -27,6 +27,9 @@ int main(
     return 1;
   }
   free_global_hash_table();
+  if (fc != 0) {
+    return 1;
+  }
   if (msize != 0) {
     return 1;
   }

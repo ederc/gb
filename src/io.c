@@ -47,6 +47,11 @@ static val_t **import_julia_data(
     mat[i][2*lens[i]+1] = 1;
     off +=  lens[i];
   }
+  npivs = nrows = nrall = nr_gens;
+
+  /* todo: this needs to be generalized for different monomial orders */
+  monomial_cmp  = monomial_cmp_drl;
+  lcm_cmp       = lcm_cmp_drl;
 
   return mat;
 }

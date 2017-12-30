@@ -56,22 +56,34 @@ int32_t *f4_julia(
   }
   
   /* initialize stuff */
+  initialize_statistics();
+
   initialize_basis(nr_gens);
+  initialize_pairset();
   initialize_global_hash_table(nr_vars, hts_safe, field_char);
   initialize_local_hash_table(hts_safe);
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
 
+  /* for faster divisibility checks, needs to be done after we have
+   * read some input data for applying heuristics */
   calculate_divmask();
 
   /* normalize input generators */
-  for (i = 0; i < nr_gens; ++i) {
+  for (i = 0; i < nrows; ++i) {
     normalize_matrix_row(mat[i]);
   }
+
+  update_basis(mat);
 
   /* free and clean up */
   free_local_hash_table();
   free_global_hash_table();
+  free_pairset();
+  /* note that all rows kept from mat during the overall computation are
+   * basis elements and thus we do not need to free the rows itself, but
+   * just the matrix structure */
+  free(mat);
   free_basis();
 
   return mat[0];

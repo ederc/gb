@@ -14,8 +14,8 @@
  */
 
 /**
- * \file pairs.c
- * \brief Pairset handling
+ * \file update.c
+ * \brief Update process and pairset handling
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
@@ -30,4 +30,163 @@ static void initialize_pairset(
   psize = 192;
 
   ps  = malloc((unsigned long)psize * sizeof(spair_t));
+  
+  initialize_lcm_hash_table();
+}
+
+static inline void check_enlarge_pairset(
+    int32_t added
+    )
+{
+  if (pload+added >= psize) {
+    psize = psize*2 > pload+added ? psize*2 : pload+added;
+    ps    = realloc(ps, (unsigned long)psize * sizeof(spair_t));
+    
+    enlarge_lcm_hash_table();
+  }
+}
+
+static void free_pairset(
+    void
+    )
+{
+  if (ps) {
+    free(ps);
+    ps    = NULL;
+    pload = 0;
+    psize = 0;
+  }
+  
+  free_lcm_hash_table();
+}
+
+static void insert_and_update_pairs(
+    val_t *nelt
+    )
+{
+  int32_t i, j, k, l;
+  val_t *b;
+
+  check_enlarge_pairset(bload);
+
+  /* create all possible new pairs */
+  for (i = 0, k = pload; i < bload; ++i, ++k) {
+    b = (val_t *)((long)bs[i] & bmask);
+    ps[k].gen1  = i;
+    ps[k].gen2  = bload;
+    ps[k].lcm   = get_lcm(b[1], nelt[1]);
+
+    if (b != bs[i]) {
+      ps[k].deg = -1; /* redundant pair */
+    } else {
+      if (ps[k].lcm == get_mult(b[1], nelt[1])) {
+        ps[k].deg = -2; /* criterion */
+      } else {
+        ps[k].deg = (evs + ps[k].lcm)[HASH_DEG];
+      }
+    }
+  }
+  
+  /* Gebauer-Moeller: check old pairs first */
+  for (i = 0; i < pload; ++i) {
+    k = ps[i].gen1;
+    l = ps[i].gen2;
+    if (ps[i].lcm != ps[pload+k].lcm
+        && ps[i].lcm != ps[pload+l].lcm
+        && check_monomial_division_lcm_basis(ps[i].lcm, nelt[1])) {
+      ps[i].deg = -1;
+    }
+  }
+
+  /* sort new pairs by increasing lcm, earlier polys coming first */
+  qsort(ps+pload, (unsigned long)bload, sizeof(spair_t), &spair_cmp);
+
+  /* check with earlier new pairs */
+  for (i = pload; i < k; ++i) {
+    if (ps[i].deg < 0) {
+      continue;
+    }
+    for (j = pload; j < i; ++j) {
+      if (ps[j].deg == -1) {
+        continue;
+      }
+      if (ps[i].lcm != ps[j].lcm
+          && check_monomial_division_lcm_lcm(ps[i].lcm, ps[j].lcm)) {
+        ps[i].deg = -1;
+        break;
+      }
+    }
+  }
+
+  /* note that k = pload + bload from very first loop */
+  for (i = pload; i < k; ++i) {
+    if (ps[i].deg == -1) {
+      continue;
+    }
+    if (ps[i].deg == -2) {
+      for (j = pload; j < k; ++j) {
+        /* note that if we always sort the pairs by lcm we can
+         * exchange the following "if" loop with a "while" loop. */
+        if (ps[j].lcm == ps[i].lcm) {
+          ps[j].deg = -1;
+        }
+      }
+      continue;
+    }
+    for (j = i-1; j >= pload; --j) {
+      if (ps[j].lcm == ps[i].lcm) {
+        ps[i].deg = -1;
+        break;
+      }
+    }
+  } 
+
+  /* remove useless pairs from pairset */
+  j = 0;
+  for (i = 0; i < k; ++i) {
+    if (ps[i].deg < 0) {
+      num_gb_crit++;
+      continue;
+    }
+    ps[j++] = ps[i];
+  }
+  pload = j;
+
+  /* mark redundant elements in basis */
+  for (i = 0; i < bload; ++i) {
+    if ((long)bs[i] & bred) {
+      continue;
+    }
+    if (check_monomial_division_basis_basis(bs[i][1], nelt[1])) {
+      bs[i] = (val_t *)((long)bs[i] | bred);
+      num_redundant++;
+    }
+  }
+  bs[bload] = nelt;
+  bload++;
+}
+
+static void update_basis(
+    val_t **mat
+    )
+{
+  int32_t i;
+  double ct0, ct1, rt0, rt1;
+
+  /* timings */
+  ct0 = cputime();
+  rt0 = realtime();
+
+  check_enlarge_basis(npivs);
+  check_enlarge_pairset(npivs);
+
+  for (i = 1; i <= npivs; ++i) {
+    insert_and_update_pairs(mat[nrows-i]);
+  } 
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  update_ctime  +=  ct1 - ct0;
+  update_rtime  +=  rt1 - rt0;
 }

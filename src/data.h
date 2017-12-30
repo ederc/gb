@@ -47,14 +47,6 @@ typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef int32_t bi_t;     /* basis index of element */
 typedef int32_t bl_t;     /* basis load */
 typedef int32_t pl_t;     /* pair set load */
-typedef int32_t *poly_t;  /* polynomials are just arrays of coeffs
-                             and exponent hashes. They start with the
-                             length of the array and the second entry
-                             is used for distinguishing between known
-                             basis elements and new basis elements when
-                             applying the linear algebra. That means
-                             p = [len, known, cf1, eh1, cf2, eh2, ...] */
-
 
 /* S-pair types */
 typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
@@ -74,9 +66,23 @@ static pl_t pload   = 0;
 static pl_t psize   = 0;
 
 /* basis data */
-static poly_t *bs = NULL;
+static val_t **bs = NULL;
 static bl_t bload = 0;
 static bl_t bsize = 0;
+
+static const long bred  = (long)1;  /* maRking redundant elements */
+static const long bmask = ~(long)1; /* maSking redundant elements */
+
+/* matrix data */
+static int32_t nrall  = 0; /* allocated rows for matrix */
+static int32_t nrows  = 0; /* rows used in the current round */
+static int32_t ncols  = 0; /* columns used in the current round */
+static int32_t npivs  = 0; /* new pivots in the current round */
+
+/* function pointers */
+int (*monomial_cmp)(const len_t a, const len_t b);
+int (*lcm_cmp)(const len_t a, const len_t b);
+
 
 /* -----------------------------------
  * non-static functions and procedures

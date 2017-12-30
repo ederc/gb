@@ -27,6 +27,7 @@ TESTS = 											\
 	test_free_hash_table 				\
 	test_divmask								\
 	test_normalize_row					\
-	test_julia_io
+	test_julia_io								\
+	test_pairset_update
 
 check_PROGRAMS = $(TESTS)

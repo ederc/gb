@@ -33,5 +33,12 @@ int main(
   }
   free_local_hash_table();
   free_global_hash_table();
+
+  psize = 138;
+  initialize_lcm_hash_table();
+  if (mssize != 138) {
+    return 1;
+  }
+  free_lcm_hash_table();
   return 0;
 }

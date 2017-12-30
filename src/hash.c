@@ -74,6 +74,14 @@ static len_t elload   = 1;
 static len_t *mapl    = NULL;
 static len_t mlsize   = 0;
 
+/* local hash table for lcms of spairs*/
+static exp_t *evs     = NULL;
+static len_t essize   = 0;
+static len_t esload   = 1;
+
+static len_t *maps    = NULL;
+static len_t mssize   = 0;
+
 /* random values for generating hash values */
 static val_t *rv  = NULL;
 
@@ -134,13 +142,28 @@ static void initialize_local_hash_table(
 {
   /* generate map */
   mlsize  = (len_t)pow(2, ht_size);
-  mapl    = calloc((unsigned long)msize, sizeof(len_t));
+  mapl    = calloc((unsigned long)mlsize, sizeof(len_t));
 
   /* generate exponent vector */
   elsize  = HASH_LEN + (msize/2);
   /* keep first entry empty for faster divisibility checks */
   elload  = HASH_LEN;
   evl     = calloc((unsigned long)elsize, sizeof(exp_t));
+}
+
+static void initialize_lcm_hash_table(
+    void
+    )
+{
+  /* generate map */
+  mssize  = psize;
+  maps    = calloc((unsigned long)mssize, sizeof(len_t));
+
+  /* generate exponent vector */
+  essize  = HASH_LEN + (mssize/2);
+  /* keep first entry empty for faster divisibility checks */
+  esload  = HASH_LEN;
+  evs     = calloc((unsigned long)essize, sizeof(exp_t));
 }
 
 static void free_global_hash_table(
@@ -150,6 +173,10 @@ static void free_global_hash_table(
   if (map) {
     free(map);
     map = NULL;
+  }
+  if (dm) {
+    free(dm);
+    dm  = NULL;
   }
   if (rv) {
     free(rv);
@@ -164,6 +191,23 @@ static void free_global_hash_table(
   esize = 0;
   eload = 0;
   msize = 0;
+}
+
+static void free_lcm_hash_table(
+    void
+    )
+{
+  if (maps) {
+    free(maps);
+    maps  = NULL;
+  }
+  if (evs) {
+    free(evs);
+    evs = NULL;
+  }
+  essize  = 0;
+  esload  = 0;
+  mssize  = 0;
 }
 
 static void free_local_hash_table(
@@ -217,6 +261,39 @@ static void enlarge_global_hash_table(
   }
 }
 
+static void enlarge_lcm_hash_table(
+    void
+    )
+{
+  int32_t h, i, j, k;
+  int32_t *e;
+
+  essize  = psize/2;
+  evs     = realloc(evs, (unsigned long)essize * sizeof(exp_t));
+
+  mssize  = psize;
+  maps    = realloc(maps, (unsigned long)mssize * sizeof(len_t));
+
+  memset(maps, 0, (unsigned long)mssize * sizeof(len_t));
+
+  /* reinsert known elements */
+  for (i = HASH_LEN; i < esload; i += HASH_LEN) {
+    e = evs + i;
+    h = e[HASH_VAL];
+
+    /* probing */
+    k = h;
+    for (j = 0; j < mssize; ++j) {
+      k = (k+h) & (mssize-1);
+      if (maps[k]) {
+        continue;
+      }
+      maps[k]  = i;
+      break;
+    }
+  }
+}
+
 static void enlarge_local_hash_table(
     void
     )
@@ -249,6 +326,7 @@ static void enlarge_local_hash_table(
     }
   }
 }
+
 static inline sdm_t generate_short_divmask(
     const exp_t *a
     )
@@ -435,6 +513,62 @@ static inline len_t insert_in_local_hash_table(
   return pos;
 }
 
+static inline len_t insert_in_lcm_hash_table(
+    const exp_t *a
+    )
+{
+  int32_t i, j, k, pos, deg;
+  int32_t *e;
+  int32_t h = 0;
+
+  /* generate hash value */
+  for (i = 0; i < nvars; ++i) {
+    h +=  rv[i] * a[i];
+  }
+
+  /* probing */
+  k = h;
+  for (i = 0; i < mssize; ++i) {
+    k = (k+i) & (mssize-1);
+    if (!maps[k]) {
+      break;
+    }
+    e = evs + maps[k];
+    if (e[HASH_VAL] != h) {
+      continue;
+    }
+    for (j = 0; j < nvars; ++j) {
+      if (e[i] != a[i]) {
+        break;
+      }
+    }
+    if (i == nvars) {
+      return maps[k];
+    }
+  }
+
+  /* add element to hash table */
+  pos = elload;
+  e   = evl + pos;
+  deg = 0;
+  for (i = 0; i < nvars; ++i) {
+    e[i]  =   a[i];
+    deg   +=  a[i];
+  }
+  e[HASH_DEG] = deg;
+  e[HASH_VAL] = h;
+  e[HASH_DIV] = 0;
+  e[HASH_IND] = 0;
+  mapl[k]     = pos;
+
+  elload  +=  HASH_LEN;
+  if (elload >= elsize) {
+    enlarge_local_hash_table();
+  }
+
+  return pos;
+}
+
 /* note that the product insertion, i.e. monomial x polynomial
  * is only needed for the local hash table. in the global one we
  * only add the basis elements, i.e. no multiplication is applied. */
@@ -487,4 +621,140 @@ static inline len_t insert_in_local_hash_table_product(
   }
 
   return pos;
+}
+
+static inline len_t get_lcm(
+    len_t a,
+    len_t b
+    )
+{
+  int32_t i;
+
+  /* exponents of basis elements, thus from global hash table */
+  exp_t *ea = ev + a;
+  exp_t *eb = ev + b;
+
+  exp_t *e  = alloca((unsigned long)nvars * sizeof(exp_t));
+  for (i = 0; i < nvars; ++i) {
+    e[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
+  }
+  /* goes into lcm hash table for spairs */
+  return insert_in_lcm_hash_table(e);
+}
+
+static inline len_t get_mult(
+    len_t a,
+    len_t b
+    )
+{
+  int32_t i;
+
+  /* exponents of basis elements, thus from global hash table */
+  exp_t *ea = ev + a;
+  exp_t *eb = ev + b;
+
+  exp_t *e  = alloca((unsigned long)nvars * sizeof(exp_t));
+  for (i = 0; i < nvars; ++i) {
+    e[i]  = ea[i] + eb[i];
+  }
+  /* goes into lcm hash table for spairs */
+  return insert_in_lcm_hash_table(e);
+}
+
+/* returns zero if a is not divisible by b, else 1 is returned */
+static len_t check_monomial_division_basis_basis(
+    const len_t a,  /* lead term of basis element, live in global hash table */
+    const len_t b   /* lead term of basis element, lives in global hash table */
+    )
+{
+  int32_t i;
+
+  const exp_t * const ea  = ev + a;
+  const exp_t * const eb  = ev + b;
+  /* short divisor mask check */
+  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
+    return 0;
+  }
+
+  /* degree check */
+  if (ea[HASH_DEG] < eb[HASH_DEG]) {
+    return 0;
+  }
+
+  /* exponent check */
+  if (ea[0] < eb[0]) {
+    return 0;
+  }
+  i = nvars & 1 ? 1 : 0;
+  for (; i < nvars; i += 2) {
+    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+/* returns zero if a is not divisible by b, else 1 is returned */
+static len_t check_monomial_division_lcm_lcm(
+    const len_t a,  /* lcm, lives in spair/lcm hash table */
+    const len_t b   /* lcm, lives in spair/lcm hash table */
+    )
+{
+  int32_t i;
+
+  const exp_t * const ea  = evs + a;
+  const exp_t * const eb  = evs + b;
+  /* short divisor mask check */
+  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
+    return 0;
+  }
+
+  /* degree check */
+  if (ea[HASH_DEG] < eb[HASH_DEG]) {
+    return 0;
+  }
+
+  /* exponent check */
+  if (ea[0] < eb[0]) {
+    return 0;
+  }
+  i = nvars & 1 ? 1 : 0;
+  for (; i < nvars; i += 2) {
+    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+      return 0;
+    }
+  }
+  return 1;
+}
+/* returns zero if a is not divisible by b, else 1 is returned */
+static len_t check_monomial_division_lcm_basis(
+    const len_t a,  /* lcm, lives in spair/lcm hash table */
+    const len_t b   /* lead term of basis element, lives in global hash table */
+    )
+{
+  int32_t i;
+
+  const exp_t * const ea  = evs + a;
+  const exp_t * const eb  = ev + b;
+  /* short divisor mask check */
+  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
+    return 0;
+  }
+
+  /* degree check */
+  if (ea[HASH_DEG] < eb[HASH_DEG]) {
+    return 0;
+  }
+
+  /* exponent check */
+  if (ea[0] < eb[0]) {
+    return 0;
+  }
+  i = nvars & 1 ? 1 : 0;
+  for (; i < nvars; i += 2) {
+    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+      return 0;
+    }
+  }
+  return 1;
 }

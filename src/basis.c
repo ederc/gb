@@ -29,7 +29,17 @@ static void initialize_basis(
   bload = 0;
   bsize = 2*ngens;
 
-  bs  = malloc((unsigned long)bsize * sizeof(poly_t));
+  bs  = (val_t **)malloc((unsigned long)bsize * sizeof(val_t *));
+}
+
+static inline void check_enlarge_basis(
+    int32_t added
+    )
+{
+  if (bload+added >= bsize) {
+    bsize = bsize*2 > bload+added ? bsize*2 : bload+added;
+    bs    = realloc(bs, (unsigned long)bsize * sizeof(val_t *));
+  }
 }
 
 static void free_basis(
@@ -39,6 +49,8 @@ static void free_basis(
   int32_t i;
   if (bs) {
     for (i = 0; i < bload; ++i) {
+      /* reset pointer of possible redundant elements */
+      bs[i] = (val_t *)((long)bs[i] & bmask);
       free(bs[i]);
     }
     free(bs);

@@ -22,45 +22,47 @@
 
 #include <stdint.h>
 
-static double select_time = 0;
-static double symbol_time = 0;
-static double matrix_time = 0;
-static double update_time = 0;
-static double polmat_time = 0;
-static double reduce_time = 0;
+static double select_rtime  = 0;
+static double symbol_rtime  = 0;
+static double matrix_rtime  = 0;
+static double update_rtime  = 0;
+static double polmat_rtime  = 0;
+static double reduce_rtime  = 0;
 
-static double select_cput = 0;
-static double symbol_cput = 0;
-static double matrix_cput = 0;
-static double update_cput = 0;
-static double polmat_cput = 0;
-static double reduce_cput = 0;
+static double select_ctime  = 0;
+static double symbol_ctime  = 0;
+static double matrix_ctime  = 0;
+static double update_ctime  = 0;
+static double polmat_ctime  = 0;
+static double reduce_ctime  = 0;
 
-static int64_t num_reduced = 0;
-static int64_t num_useless = 0;
-static int64_t num_rowsred = 0;
-static int64_t num_zerored = 0;
+static int64_t num_reduced    = 0;
+static int64_t num_gb_crit    = 0;
+static int64_t num_redundant  = 0;
+static int64_t num_rowsred    = 0;
+static int64_t num_zerored    = 0;
 
 static void initialize_statistics(
     void
     )
 {
-	num_reduced = 0;
-  num_useless = 0;
-  num_rowsred = 0;
-  num_zerored = 0;
+	num_reduced   = 0;
+  num_gb_crit   = 0;
+  num_redundant = 0;
+  num_rowsred   = 0;
+  num_zerored   = 0;
 
-	select_time = 0;
-  symbol_time = 0;
-  matrix_time = 0;
-  update_time = 0;
-  polmat_time = 0;
-  reduce_time = 0;
+	select_rtime  = 0;
+  symbol_rtime  = 0;
+  matrix_rtime  = 0;
+  update_rtime  = 0;
+  polmat_rtime  = 0;
+  reduce_rtime  = 0;
 
-	select_cput = 0;
-  symbol_cput = 0;
-  matrix_cput = 0;
-  update_cput = 0;
-  polmat_cput = 0;
-  reduce_cput = 0;
+	select_ctime  = 0;
+  symbol_ctime  = 0;
+  matrix_ctime  = 0;
+  update_ctime  = 0;
+  polmat_ctime  = 0;
+  reduce_ctime  = 0;
 }

@@ -22,29 +22,23 @@ int main(
   
   /* initialize stuff */
   initialize_basis(nr_gens);
+  initialize_pairset();
   initialize_global_hash_table(nr_vars, ht_size, field_char);
-  if (fc != field_char) {
-    return 1;
-  }
-  if (nvars != nr_vars) {
-    return 1;
-  }
   initialize_local_hash_table(ht_size);
-  if (mlsize != msize) {
-    return 1;
-  }
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
+  calculate_divmask();
+
+  for (i = 0; i < nrows; ++i) {
+    normalize_matrix_row(mat[i]);
+  }
+
+  update_basis(mat);
 
   /* free and clean up */
   free_local_hash_table();
   free_global_hash_table();
-  /* since we have not moved data from matrix to basis we have to
-   * free the matrix rows in this test case */
-  for (i = 0; i < nrall; ++i) {
-    free(mat[i]);
-    mat[i]  = NULL;
-  }
+  free_pairset();
   free(mat);
   free_basis();
   return 0;

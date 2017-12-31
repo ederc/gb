@@ -513,6 +513,15 @@ static inline len_t insert_in_local_hash_table(
   return pos;
 }
 
+static inline void clear_local_hash_table(
+    void
+    )
+{
+  memset(evl, 0, (unsigned long)(elload * HASH_LEN) * sizeof(exp_t));
+  memset(mapl, 0, (unsigned long)(mlsize) * sizeof(len_t));
+  elload  = mlsize  = 0;
+}
+
 static inline len_t insert_in_lcm_hash_table(
     const exp_t *a
     )
@@ -548,8 +557,8 @@ static inline len_t insert_in_lcm_hash_table(
   }
 
   /* add element to hash table */
-  pos = elload;
-  e   = evl + pos;
+  pos = esload;
+  e   = evs + pos;
   deg = 0;
   for (i = 0; i < nvars; ++i) {
     e[i]  =   a[i];
@@ -561,9 +570,9 @@ static inline len_t insert_in_lcm_hash_table(
   e[HASH_IND] = 0;
   mapl[k]     = pos;
 
-  elload  +=  HASH_LEN;
-  if (elload >= elsize) {
-    enlarge_local_hash_table();
+  esload  +=  HASH_LEN;
+  if (esload >= elsize) {
+    enlarge_lcm_hash_table();
   }
 
   return pos;
@@ -658,7 +667,7 @@ static inline len_t get_mult(
     e[i]  = ea[i] + eb[i];
   }
   /* goes into lcm hash table for spairs */
-  return insert_in_lcm_hash_table(e);
+  return insert_in_local_hash_table(e);
 }
 
 /* returns zero if a is not divisible by b, else 1 is returned */

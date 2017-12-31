@@ -69,6 +69,12 @@ static void insert_and_update_pairs(
 
   check_enlarge_pairset(bload);
 
+  bs[bload] = nelt;
+  /* move exponents to global hash table */
+  for (i = 1; i < nelt[0]; i = i+2) {
+    nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
+  }
+
   /* create all possible new pairs */
   for (i = 0, k = pload; i < bload; ++i, ++k) {
     b = (val_t *)((long)bs[i] & bmask);
@@ -89,7 +95,7 @@ static void insert_and_update_pairs(
   
   /* Gebauer-Moeller: check old pairs first */
   for (i = 0; i < pload; ++i) {
-    k = ps[i].gen1;
+    j = ps[i].gen1;
     l = ps[i].gen2;
     if (ps[i].lcm != ps[pload+k].lcm
         && ps[i].lcm != ps[pload+l].lcm
@@ -98,6 +104,7 @@ static void insert_and_update_pairs(
     }
   }
 
+  /* printf("k %d\n", k); */
   /* sort new pairs by increasing lcm, earlier polys coming first */
   qsort(ps+pload, (unsigned long)bload, sizeof(spair_t), &spair_cmp);
 
@@ -162,7 +169,6 @@ static void insert_and_update_pairs(
       num_redundant++;
     }
   }
-  bs[bload] = nelt;
   bload++;
 }
 
@@ -183,6 +189,8 @@ static void update_basis(
   for (i = 1; i <= npivs; ++i) {
     insert_and_update_pairs(mat[nrows-i]);
   } 
+
+  clear_local_hash_table();
 
   /* timings */
   ct1 = cputime();

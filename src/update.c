@@ -65,7 +65,7 @@ static void insert_and_update_spairs(
 
   bs[bload] = nelt;
   /* move exponents to global hash table */
-  for (i = 1; i < nelt[0]; i = i+2) {
+  for (i = 2; i < nelt[0]; i = i+2) {
     nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
   }
 
@@ -74,12 +74,12 @@ static void insert_and_update_spairs(
     b = (val_t *)((long)bs[i] & bmask);
     ps[k].gen1  = i;
     ps[k].gen2  = bload;
-    ps[k].lcm   = get_lcm(b[1], nelt[1]);
+    ps[k].lcm   = get_lcm(b[2], nelt[2]);
 
     if (b != bs[i]) {
       ps[k].deg = -1; /* redundant pair */
     } else {
-      if (lcm_equals_multiplication(b[1], nelt[1], ps[k].lcm)) {
+      if (lcm_equals_multiplication(b[2], nelt[2], ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
         ps[k].deg = (ev + ps[k].lcm)[HASH_DEG];
@@ -94,7 +94,7 @@ static void insert_and_update_spairs(
     l = ps[i].gen2;
     if (ps[i].lcm != ps[pload+k].lcm
         && ps[i].lcm != ps[pload+l].lcm
-        && check_monomial_division(ps[i].lcm, nelt[1])) {
+        && check_monomial_division(ps[i].lcm, nelt[2])) {
       ps[i].deg = -1;
     }
   }
@@ -159,7 +159,7 @@ static void insert_and_update_spairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division(bs[i][1], nelt[1])) {
+    if (check_monomial_division(bs[i][2], nelt[2])) {
       bs[i] = (val_t *)((long)bs[i] | bred);
       num_redundant++;
     }

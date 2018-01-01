@@ -78,15 +78,15 @@ static val_t **select_spairs_by_minimal_degree(
   num_reduced +=  n;
 
   /* generate matrix out of selected spairs */
-  tmp_lcm = (len_t *)malloc((unsigned long)n * sizeof(len_t));
-  tmp_gen = (len_t *)malloc((unsigned long)n * sizeof(len_t));
+  tmp_lcm = (len_t *)malloc(2 * (unsigned long)n * sizeof(len_t));
+  tmp_gen = (len_t *)malloc(2 * (unsigned long)n * sizeof(len_t));
   for (i = 0, j = 0; i < pload; ++i) {
     if (ps[i].deg != md) {
       continue;
     }
     tmp_gen[j]    = ps[i].gen1;
-    tmp_gen[j+1]  = ps[i].gen1;
-    tmp_lcm[j]  = tmp_lcm[j+1]  = ps[i].lcm;
+    tmp_gen[j+1]  = ps[i].gen2;
+    tmp_lcm[j]    = tmp_lcm[j+1]  = ps[i].lcm;
     j +=  2;
   }
   n = j;
@@ -98,10 +98,10 @@ static val_t **select_spairs_by_minimal_degree(
           && tmp_gen[i] == tmp_gen[j]) {
         break;
       }
-      if (j == k) {
-        tmp_lcm[k]    = tmp_lcm[i];
-        tmp_gen[k++]  = tmp_gen[i];
-      }
+    }
+    if (j == k) {
+      tmp_lcm[k]    = tmp_lcm[i];
+      tmp_gen[k++]  = tmp_gen[i];
     }
   }
   num_duplicates  +=  n-k;

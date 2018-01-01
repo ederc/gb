@@ -34,7 +34,7 @@ int main(
 
   calculate_divmask();
   for (i = 0; i < 16; ++i) {
-    if (dm[i] - 1 != i) {
+    if (dm[i] != i) {
       return 1;
     }
   }

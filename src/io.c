@@ -39,16 +39,16 @@ static val_t **import_julia_data(
   
   for (i = 0; i < nr_gens; ++i) {
     /* each matrix row has the following structure:
-     * [length | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl | piv?]
+     * [length | piv? | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
      * where piv? is a label for being a known or an unknown pivot */
     mat[i]    = malloc((2*(unsigned long)lens[i]+2) * sizeof(val_t));
     mat[i][0] = 2*lens[i]+2;
+    mat[i][1] = 1;
     for (j = off; j < off+lens[i]; ++j) {
-      mat[i][2*(j-off)+1] = insert_in_local_hash_table(exps+(nvars*j));
-      mat[i][2*(j-off)+2] = cfs[j];
+      mat[i][2*(j+1-off)]   = insert_in_local_hash_table(exps+(nvars*j));
+      mat[i][2*(j+1-off)+1] = cfs[j];
     }
     /* mark initial generators, they have to be added to the basis first */
-    mat[i][2*lens[i]+1] = 1;
     off +=  lens[i];
   }
   npivs = nrows = nrall = nr_gens;

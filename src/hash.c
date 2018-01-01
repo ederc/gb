@@ -287,6 +287,11 @@ static inline void calculate_divmask(
   deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
 
   exp_t *e  = evl + HASH_LEN;
+  printf("--\n");
+    for (j = 0; j < ndvars; ++j) {
+      printf("%d ", e[j]);
+    }
+    printf("\n");
 
   /* get initial values from first hash table entry */
   for (i = 0; i < ndvars; ++i) {
@@ -294,8 +299,13 @@ static inline void calculate_divmask(
   }
 
   /* get maximal and minimal exponent element entries in hash table */
-  for (i = 2*HASH_LEN; i < eload; i = i + HASH_LEN) {
+  for (i = 2*HASH_LEN; i < elload; i = i + HASH_LEN) {
     e = evl + i;
+  printf("--\n");
+    for (j = 0; j < ndvars; ++j) {
+      printf("%d ", e[j]);
+    }
+    printf("\n");
     for (j = 0; j < ndvars; ++j) {
       if (e[j] > max_exp[j]) {
         max_exp[j]  = e[j];
@@ -318,7 +328,7 @@ static inline void calculate_divmask(
   }
 
   /* initialize divmasks for elements already added to hash table */
-  for (i = HASH_LEN; i < eload; i = i + HASH_LEN) {
+  for (i = HASH_LEN; i < elload; i = i + HASH_LEN) {
     e = evl + i;
     e[HASH_SDM] = generate_short_divmask(e);
   }
@@ -389,6 +399,12 @@ static inline len_t insert_in_local_hash_table(
     )
 {
   int32_t i, j, k, pos, deg;
+  printf("inserted in local ht: ");
+  for (i = 0; i < ndvars; ++i) {
+    printf("%d ", a[i]);
+  }
+  printf("\n");
+  
   exp_t *e;
   int32_t h = 0;
 
@@ -446,7 +462,7 @@ static inline void clear_local_hash_table(
 {
   memset(evl, 0, (unsigned long)(elload * HASH_LEN) * sizeof(exp_t));
   memset(mapl, 0, (unsigned long)(mlsize) * sizeof(len_t));
-  elload  = mlsize  = 0;
+  elload  = 0;
 }
 
 /* note that the product insertion, i.e. monomial x polynomial
@@ -493,6 +509,7 @@ static inline len_t insert_in_local_hash_table_product(
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
+  printf("k %d | pos %d | mapl %p | mlsize %d\n", k, pos, mapl, mlsize);
   mapl[k]     = pos;
 
   elload  +=  HASH_LEN;
@@ -624,7 +641,8 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
 
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
   row[0]  = poly[0];
-  for (i = 1; i < poly[0]; i += 2) {
+  row[1]  = 0; /* no new piv */
+  for (i = 2; i < poly[0]; i += 2) {
     row[i]    = monomial_multiplication(mult, poly[i]);
     row[i+1]  = poly[i+1];
   }

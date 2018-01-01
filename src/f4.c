@@ -38,7 +38,7 @@ int32_t *f4_julia(
     const int32_t ht_size
     )
 {
-  int32_t i, hts_safe;
+  int32_t i, hts_safe, round;
   val_t **mat;
 
   if (nr_gens == 0
@@ -74,7 +74,20 @@ int32_t *f4_julia(
     normalize_matrix_row(mat[i]);
   }
 
+  /* move input generators to basis and generate first spairs */
   update_basis(mat);
+
+  free(mat);
+  mat = NULL;
+
+  /* let's start the f4 rounds,  we are done when no more spairs
+   * are left in the pairset */
+  for (round = 1; pload > 0; ++round) {
+    DEBUG(MATDBG, "rd %3d", round);
+
+    mat = select_spairs();
+  }
+
 
   /* free and clean up */
   free_local_hash_table();

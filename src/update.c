@@ -30,8 +30,6 @@ static void initialize_pairset(
   psize = 192;
 
   ps  = malloc((unsigned long)psize * sizeof(spair_t));
-  
-  initialize_lcm_hash_table();
 }
 
 static inline void check_enlarge_pairset(
@@ -41,8 +39,6 @@ static inline void check_enlarge_pairset(
   if (pload+added >= psize) {
     psize = psize*2 > pload+added ? psize*2 : pload+added;
     ps    = realloc(ps, (unsigned long)psize * sizeof(spair_t));
-    
-    enlarge_lcm_hash_table();
   }
 }
 
@@ -56,11 +52,9 @@ static void free_pairset(
     pload = 0;
     psize = 0;
   }
-  
-  free_lcm_hash_table();
 }
 
-static void insert_and_update_pairs(
+static void insert_and_update_spairs(
     val_t *nelt
     )
 {
@@ -85,21 +79,22 @@ static void insert_and_update_pairs(
     if (b != bs[i]) {
       ps[k].deg = -1; /* redundant pair */
     } else {
-      if (ps[k].lcm == get_mult(b[1], nelt[1])) {
+      if (lcm_equals_multiplication(b[1], nelt[1], ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
-        ps[k].deg = (evs + ps[k].lcm)[HASH_DEG];
+        ps[k].deg = (ev + ps[k].lcm)[HASH_DEG];
       }
     }
   }
   
+
   /* Gebauer-Moeller: check old pairs first */
   for (i = 0; i < pload; ++i) {
     j = ps[i].gen1;
     l = ps[i].gen2;
     if (ps[i].lcm != ps[pload+k].lcm
         && ps[i].lcm != ps[pload+l].lcm
-        && check_monomial_division_lcm_basis(ps[i].lcm, nelt[1])) {
+        && check_monomial_division(ps[i].lcm, nelt[1])) {
       ps[i].deg = -1;
     }
   }
@@ -118,7 +113,7 @@ static void insert_and_update_pairs(
         continue;
       }
       if (ps[i].lcm != ps[j].lcm
-          && check_monomial_division_lcm_lcm(ps[i].lcm, ps[j].lcm)) {
+          && check_monomial_division(ps[i].lcm, ps[j].lcm)) {
         ps[i].deg = -1;
         break;
       }
@@ -164,7 +159,7 @@ static void insert_and_update_pairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division_basis_basis(bs[i][1], nelt[1])) {
+    if (check_monomial_division(bs[i][1], nelt[1])) {
       bs[i] = (val_t *)((long)bs[i] | bred);
       num_redundant++;
     }
@@ -187,7 +182,7 @@ static void update_basis(
   check_enlarge_pairset(npivs);
 
   for (i = 1; i <= npivs; ++i) {
-    insert_and_update_pairs(mat[nrows-i]);
+    insert_and_update_spairs(mat[nrows-i]);
   } 
 
   clear_local_hash_table();

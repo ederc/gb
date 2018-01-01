@@ -22,6 +22,10 @@
 
 #include "data.h"
 
+
+/* note that depending on the input data we set the corresponding
+ * function pointers for monomial resp. spair comparisons, taking
+ * spairs by a given minimal property for symbolic preprocessing, etc. */
 static val_t **import_julia_data(
     const int32_t *lens,
     const int32_t *cfs,
@@ -51,7 +55,7 @@ static val_t **import_julia_data(
 
   /* todo: this needs to be generalized for different monomial orders */
   monomial_cmp  = monomial_cmp_drl;
-  lcm_cmp       = lcm_cmp_drl;
+  select_spairs = select_spairs_by_minimal_degree;
 
   return mat;
 }

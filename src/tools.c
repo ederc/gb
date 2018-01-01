@@ -50,15 +50,3 @@ static inline int32_t mod_p_inverse_32(
 
   return d;
 }
-
-static inline void free_matrix(
-    val_t **mat
-    )
-{
-  int32_t i;
-
-  for (i = 0; i < nrall; ++i) {
-    free(mat[i]);
-  }
-  free(mat);
-}

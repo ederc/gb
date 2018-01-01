@@ -74,14 +74,6 @@ static len_t elload   = 1;
 static len_t *mapl    = NULL;
 static len_t mlsize   = 0;
 
-/* local hash table for lcms of spairs*/
-static exp_t *evs     = NULL;
-static len_t essize   = 0;
-static len_t esload   = 1;
-
-static len_t *maps    = NULL;
-static len_t mssize   = 0;
-
 /* random values for generating hash values */
 static val_t *rv  = NULL;
 
@@ -151,21 +143,6 @@ static void initialize_local_hash_table(
   evl     = calloc((unsigned long)elsize, sizeof(exp_t));
 }
 
-static void initialize_lcm_hash_table(
-    void
-    )
-{
-  /* generate map */
-  mssize  = psize;
-  maps    = calloc((unsigned long)mssize, sizeof(len_t));
-
-  /* generate exponent vector */
-  essize  = HASH_LEN + (mssize/2);
-  /* keep first entry empty for faster divisibility checks */
-  esload  = HASH_LEN;
-  evs     = calloc((unsigned long)essize, sizeof(exp_t));
-}
-
 static void free_global_hash_table(
     void
     )
@@ -191,23 +168,6 @@ static void free_global_hash_table(
   esize = 0;
   eload = 0;
   msize = 0;
-}
-
-static void free_lcm_hash_table(
-    void
-    )
-{
-  if (maps) {
-    free(maps);
-    maps  = NULL;
-  }
-  if (evs) {
-    free(evs);
-    evs = NULL;
-  }
-  essize  = 0;
-  esload  = 0;
-  mssize  = 0;
 }
 
 static void free_local_hash_table(
@@ -256,39 +216,6 @@ static void enlarge_global_hash_table(
         continue;
       }
       map[k]  = i;
-      break;
-    }
-  }
-}
-
-static void enlarge_lcm_hash_table(
-    void
-    )
-{
-  int32_t h, i, j, k;
-  int32_t *e;
-
-  essize  = psize/2;
-  evs     = realloc(evs, (unsigned long)essize * sizeof(exp_t));
-
-  mssize  = psize;
-  maps    = realloc(maps, (unsigned long)mssize * sizeof(len_t));
-
-  memset(maps, 0, (unsigned long)mssize * sizeof(len_t));
-
-  /* reinsert known elements */
-  for (i = HASH_LEN; i < esload; i += HASH_LEN) {
-    e = evs + i;
-    h = e[HASH_VAL];
-
-    /* probing */
-    k = h;
-    for (j = 0; j < mssize; ++j) {
-      k = (k+h) & (mssize-1);
-      if (maps[k]) {
-        continue;
-      }
-      maps[k]  = i;
       break;
     }
   }
@@ -405,7 +332,7 @@ static inline len_t insert_in_global_hash_table(
     )
 {
   int32_t i, j, k, pos, deg;
-  int32_t *e;
+  exp_t *e;
   int32_t h = 0;
 
   /* generate hash value */
@@ -462,7 +389,7 @@ static inline len_t insert_in_local_hash_table(
     )
 {
   int32_t i, j, k, pos, deg;
-  int32_t *e;
+  exp_t *e;
   int32_t h = 0;
 
   /* generate hash value */
@@ -522,62 +449,6 @@ static inline void clear_local_hash_table(
   elload  = mlsize  = 0;
 }
 
-static inline len_t insert_in_lcm_hash_table(
-    const exp_t *a
-    )
-{
-  int32_t i, j, k, pos, deg;
-  int32_t *e;
-  int32_t h = 0;
-
-  /* generate hash value */
-  for (i = 0; i < nvars; ++i) {
-    h +=  rv[i] * a[i];
-  }
-
-  /* probing */
-  k = h;
-  for (i = 0; i < mssize; ++i) {
-    k = (k+i) & (mssize-1);
-    if (!maps[k]) {
-      break;
-    }
-    e = evs + maps[k];
-    if (e[HASH_VAL] != h) {
-      continue;
-    }
-    for (j = 0; j < nvars; ++j) {
-      if (e[i] != a[i]) {
-        break;
-      }
-    }
-    if (i == nvars) {
-      return maps[k];
-    }
-  }
-
-  /* add element to hash table */
-  pos = esload;
-  e   = evs + pos;
-  deg = 0;
-  for (i = 0; i < nvars; ++i) {
-    e[i]  =   a[i];
-    deg   +=  a[i];
-  }
-  e[HASH_DEG] = deg;
-  e[HASH_VAL] = h;
-  e[HASH_DIV] = 0;
-  e[HASH_IND] = 0;
-  mapl[k]     = pos;
-
-  esload  +=  HASH_LEN;
-  if (esload >= elsize) {
-    enlarge_lcm_hash_table();
-  }
-
-  return pos;
-}
-
 /* note that the product insertion, i.e. monomial x polynomial
  * is only needed for the local hash table. in the global one we
  * only add the basis elements, i.e. no multiplication is applied. */
@@ -587,7 +458,7 @@ static inline len_t insert_in_local_hash_table_product(
     )
 {
   int32_t i, j, k, pos;
-  int32_t *e;
+  exp_t *e;
 
   int32_t h = a1[HASH_VAL] + a2[HASH_VAL];
 
@@ -632,48 +503,66 @@ static inline len_t insert_in_local_hash_table_product(
   return pos;
 }
 
+/* we can check equality of lcm and multiplication of two monomials
+ * by their hash values. If both hash values are NOT the same, then
+ * the corresponding exponent vectors CANNOT be the same. */
+static inline int lcm_equals_multiplication(
+    const len_t a,
+    const len_t b,
+    const len_t lcm
+    )
+{
+  const exp_t * const ea  = ev + a;
+  const exp_t * const eb  = ev + b;
+  const exp_t * const el  = ev + lcm;
+
+  if (el[HASH_DEG] != (ea[HASH_DEG] + eb[HASH_DEG])) {
+    return 0;
+  }
+  if (el[HASH_VAL] != (ea[HASH_VAL] + eb[HASH_VAL])) {
+    return 0;
+  } else {
+    /* both have the same degree and the same hash value, either they
+     * are the same or our hashing is broken resp. really bad */
+    return 1;
+  }
+}
+
 static inline len_t get_lcm(
-    len_t a,
-    len_t b
+    const len_t a,
+    const len_t b
     )
 {
   int32_t i;
 
   /* exponents of basis elements, thus from global hash table */
-  exp_t *ea = ev + a;
-  exp_t *eb = ev + b;
+  const exp_t * const ea = ev + a;
+  const exp_t * const eb = ev + b;
 
   exp_t *e  = alloca((unsigned long)nvars * sizeof(exp_t));
   for (i = 0; i < nvars; ++i) {
     e[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
   }
-  /* goes into lcm hash table for spairs */
-  return insert_in_lcm_hash_table(e);
+  /* goes into global hash table for spairs */
+  return insert_in_global_hash_table(e);
 }
 
-static inline len_t get_mult(
-    len_t a,
-    len_t b
+static inline len_t monomial_multiplication(
+    const len_t a,
+    const len_t b
     )
 {
-  int32_t i;
-
   /* exponents of basis elements, thus from global hash table */
-  exp_t *ea = ev + a;
-  exp_t *eb = ev + b;
+  const exp_t * const ea = ev + a;
+  const exp_t * const eb = ev + b;
 
-  exp_t *e  = alloca((unsigned long)nvars * sizeof(exp_t));
-  for (i = 0; i < nvars; ++i) {
-    e[i]  = ea[i] + eb[i];
-  }
-  /* goes into lcm hash table for spairs */
-  return insert_in_local_hash_table(e);
+  return insert_in_local_hash_table_product(ea, eb);
 }
 
 /* returns zero if a is not divisible by b, else 1 is returned */
-static len_t check_monomial_division_basis_basis(
-    const len_t a,  /* lead term of basis element, live in global hash table */
-    const len_t b   /* lead term of basis element, lives in global hash table */
+static inline len_t check_monomial_division(
+    const len_t a,
+    const len_t b
     )
 {
   int32_t i;
@@ -703,67 +592,42 @@ static len_t check_monomial_division_basis_basis(
   return 1;
 }
 
-/* returns zero if a is not divisible by b, else 1 is returned */
-static len_t check_monomial_division_lcm_lcm(
-    const len_t a,  /* lcm, lives in spair/lcm hash table */
-    const len_t b   /* lcm, lives in spair/lcm hash table */
+/* it is assumed that b divides a, thus no tests for
+ * divisibility at all */
+static inline len_t monomial_division(
+    const len_t a,
+    const len_t b
     )
 {
   int32_t i;
 
-  const exp_t * const ea  = evs + a;
-  const exp_t * const eb  = evs + b;
-  /* short divisor mask check */
-  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
-    return 0;
-  }
-
-  /* degree check */
-  if (ea[HASH_DEG] < eb[HASH_DEG]) {
-    return 0;
-  }
-
-  /* exponent check */
-  if (ea[0] < eb[0]) {
-    return 0;
-  }
-  i = nvars & 1 ? 1 : 0;
-  for (; i < nvars; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
-    }
-  }
-  return 1;
-}
-/* returns zero if a is not divisible by b, else 1 is returned */
-static len_t check_monomial_division_lcm_basis(
-    const len_t a,  /* lcm, lives in spair/lcm hash table */
-    const len_t b   /* lead term of basis element, lives in global hash table */
-    )
-{
-  int32_t i;
-
-  const exp_t * const ea  = evs + a;
+  const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
-  /* short divisor mask check */
-  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
-    return 0;
-  }
 
-  /* degree check */
-  if (ea[HASH_DEG] < eb[HASH_DEG]) {
-    return 0;
-  }
+  exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
 
-  /* exponent check */
-  if (ea[0] < eb[0]) {
-    return 0;
-  }
   i = nvars & 1 ? 1 : 0;
   for (; i < nvars; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
-    }
+    e[i]    = ea[i]   - eb[i];
+    e[i+1]  = ea[i+1] - eb[i+1];
   }
-  return 1;
+  e[0]  = ea[0] - eb[0];
+  return insert_in_local_hash_table(e);
+}
+
+static inline val_t *multiplied_polynomial_to_matrix_row(
+    const len_t mult,
+    const val_t *poly
+    )
+{
+  int32_t i;
+
+  val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
+  row[0]  = poly[0];
+  for (i = 1; i < poly[0]; i += 2) {
+    row[i]    = monomial_multiplication(mult, poly[i]);
+    row[i+1]  = poly[i+1];
+  }
+
+  return row;
 }

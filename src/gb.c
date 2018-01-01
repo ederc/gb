@@ -23,13 +23,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "macros.c" /* macros for debug output, etc. */
 #include "stat.c"   /* computational statistics */
 #include "time.c"   /* timing business */
 #include "tools.c"  /* tools like inversion mod p, etc. */
 #include "hash.c"   /* hash table stuff */
 #include "order.c"  /* order and comparison procedures */
-#include "io.c"     /* input and output data handling */
 #include "basis.c"  /* basis and polynomial handling */
 #include "la.c"     /* linear algebra */
 #include "update.c" /* update process and pairset handling */
+#include "symbol.c" /* symbolic preprocessing */
+#include "io.c"     /* input and output data handling */
 #include "f4.c"     /* implemenation of f4 algorithm */

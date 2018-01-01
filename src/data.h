@@ -80,9 +80,14 @@ static int32_t ncols  = 0; /* columns used in the current round */
 static int32_t npivs  = 0; /* new pivots in the current round */
 
 /* function pointers */
-int (*monomial_cmp)(const len_t a, const len_t b);
-int (*lcm_cmp)(const len_t a, const len_t b);
+int (*monomial_cmp)(
+    const len_t a,
+    const len_t b
+    );
 
+val_t **(*select_spairs)(
+    void
+    );
 
 /* -----------------------------------
  * non-static functions and procedures

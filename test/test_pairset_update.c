@@ -35,40 +35,30 @@ int main(
 
   update_basis(mat);
 
-  if (pload != 3) {
+  if (pload != 2) {
     return 1;
   }
 
   if (ps[0].gen1 != 0) {
     return 1;
   }
-  if (ps[0].gen2 != 1) {
+  if (ps[0].gen2 != 2) {
     return 1;
   }
-  if (ps[0].deg != 4) {
+  if (ps[0].deg != 2) {
     return 1;
   }
 
-  if (ps[1].gen1 != 0) {
+  if (ps[1].gen1 != 1) {
     return 1;
   }
   if (ps[1].gen2 != 2) {
     return 1;
   }
-  if (ps[1].deg != 2) {
+  if (ps[1].deg != 3) {
     return 1;
   }
   
-  if (ps[2].gen1 != 1) {
-    return 1;
-  }
-  if (ps[2].gen2 != 2) {
-    return 1;
-  }
-  if (ps[2].deg != 3) {
-    return 1;
-  }
-
   /* free and clean up */
   free_local_hash_table();
   free_global_hash_table();

@@ -10,24 +10,6 @@ int main(
   /* initialize stuff */
   initialize_global_hash_table(34, 4, 101);
   initialize_local_hash_table(4);
-  psize = 120;
-  initialize_lcm_hash_table();
-  free_lcm_hash_table();
-  if (mssize != 0) {
-    return 1;
-  }
-  if (esload != 0) {
-    return 1;
-  }
-  if (essize != 0) {
-    return 1;
-  }
-  if (maps != NULL) {
-    return 1;
-  }
-  if (evs != NULL) {
-    return 1;
-  }
   free_local_hash_table();
   if (mlsize != 0) {
     return 1;

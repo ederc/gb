@@ -39,6 +39,7 @@ static double reduce_ctime  = 0;
 static int64_t num_reduced    = 0;
 static int64_t num_gb_crit    = 0;
 static int64_t num_redundant  = 0;
+static int64_t num_duplicates = 0;
 static int64_t num_rowsred    = 0;
 static int64_t num_zerored    = 0;
 
@@ -46,11 +47,12 @@ static void initialize_statistics(
     void
     )
 {
-	num_reduced   = 0;
-  num_gb_crit   = 0;
-  num_redundant = 0;
-  num_rowsred   = 0;
-  num_zerored   = 0;
+	num_reduced     = 0;
+  num_gb_crit     = 0;
+  num_redundant   = 0;
+  num_duplicates  = 0;
+  num_rowsred     = 0;
+  num_zerored     = 0;
 
 	select_rtime  = 0;
   symbol_rtime  = 0;

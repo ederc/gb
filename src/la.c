@@ -28,14 +28,14 @@ static inline void normalize_matrix_row(
   int32_t i;
 
   const len_t len   = row[0];
-  const int64_t inv = (int64_t)mod_p_inverse_32(row[2], fc);
+  const int64_t inv = (int64_t)mod_p_inverse_32(row[3], fc);
   
   i = (len-2)/2;
-  i = i & 1 ? 4 : 2;
+  i = i & 1 ? 5 : 3;
   for (; i < len; i = i+4) {
     row[i]    = (val_t)(row[i] * inv) % fc;
     row[i+2]  = (val_t)(row[i+2] * inv) % fc;
   }
   /* probably we left out the first coefficient */
-  row[2]  = 1;
+  row[3]  = 1;
 }

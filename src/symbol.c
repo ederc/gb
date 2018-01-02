@@ -75,7 +75,8 @@ static val_t **select_spairs_by_minimal_degree(
     }
   }
   DEBUG(SELDBG, "\t %6d/%6d pairs, deg %d", n, pload, md);
-  num_reduced +=  n;
+  /* statistics */
+  num_pairsred  +=  n;
 
   /* generate matrix out of selected spairs */
   tmp_lcm = (len_t *)malloc(2 * (unsigned long)n * sizeof(len_t));
@@ -107,6 +108,9 @@ static val_t **select_spairs_by_minimal_degree(
   num_duplicates  +=  n-k;
 
   n = k;
+  
+  /* statistics */
+  num_rowsred +=  n;
   
   mat = generate_matrix_from_spair_selection(tmp_lcm, tmp_gen, n);
 

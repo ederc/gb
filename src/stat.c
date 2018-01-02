@@ -36,7 +36,7 @@ static double update_ctime  = 0;
 static double polmat_ctime  = 0;
 static double reduce_ctime  = 0;
 
-static int64_t num_reduced    = 0;
+static int64_t num_pairsred   = 0;
 static int64_t num_gb_crit    = 0;
 static int64_t num_redundant  = 0;
 static int64_t num_duplicates = 0;
@@ -47,7 +47,7 @@ static void initialize_statistics(
     void
     )
 {
-	num_reduced     = 0;
+	num_pairsred    = 0;
   num_gb_crit     = 0;
   num_redundant   = 0;
   num_duplicates  = 0;

@@ -287,11 +287,6 @@ static inline void calculate_divmask(
   deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
 
   exp_t *e  = evl + HASH_LEN;
-  printf("--\n");
-    for (j = 0; j < ndvars; ++j) {
-      printf("%d ", e[j]);
-    }
-    printf("\n");
 
   /* get initial values from first hash table entry */
   for (i = 0; i < ndvars; ++i) {
@@ -301,11 +296,6 @@ static inline void calculate_divmask(
   /* get maximal and minimal exponent element entries in hash table */
   for (i = 2*HASH_LEN; i < elload; i = i + HASH_LEN) {
     e = evl + i;
-  printf("--\n");
-    for (j = 0; j < ndvars; ++j) {
-      printf("%d ", e[j]);
-    }
-    printf("\n");
     for (j = 0; j < ndvars; ++j) {
       if (e[j] > max_exp[j]) {
         max_exp[j]  = e[j];
@@ -399,12 +389,6 @@ static inline len_t insert_in_local_hash_table(
     )
 {
   int32_t i, j, k, pos, deg;
-  printf("inserted in local ht: ");
-  for (i = 0; i < ndvars; ++i) {
-    printf("%d ", a[i]);
-  }
-  printf("\n");
-  
   exp_t *e;
   int32_t h = 0;
 
@@ -509,7 +493,6 @@ static inline len_t insert_in_local_hash_table_product(
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
-  printf("k %d | pos %d | mapl %p | mlsize %d\n", k, pos, mapl, mlsize);
   mapl[k]     = pos;
 
   elload  +=  HASH_LEN;

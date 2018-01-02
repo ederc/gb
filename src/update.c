@@ -154,6 +154,12 @@ static void insert_and_update_spairs(
   }
   pload = j;
 
+  /* printf("===\n");
+   * for (i = 0; i < pload; ++i) {
+   *   printf("%d | %d %d %d\n", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
+   * }
+   * printf("===\n"); */
+
   /* mark redundant elements in basis */
   for (i = 0; i < bload; ++i) {
     if ((long)bs[i] & bred) {

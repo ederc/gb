@@ -20,26 +20,29 @@ int main(
     row[i]  = 300 - i;
   }
   normalize_matrix_row(row);
-  if (row[2] != 1) {
+
+  if (row[3] != 1) {
     return 1;
   }
-  if (row[4] != 62) {
+  if (row[5] != 35) {
     return 1;
   }
-  if (row[6] != 22) {
+  if (row[7] != 69) {
     return 1;
   }
-  if (row[8] != 83) {
+  if (row[9] != 2) {
     return 1;
   }
-  if (row[10] != 43) {
+  if (row[11] != 36) {
     return 1;
   }
-  if (row[12] != 3) {
+  if (row[13] != 70) {
     return 1;
   }
-  if (row[14] != 64) {
+  if (row[15] != 3) {
     return 1;
   }
+  free(row);
+
   return 0;
 }

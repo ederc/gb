@@ -79,10 +79,18 @@ static int32_t nrows  = 0; /* rows used in the current round */
 static int32_t ncols  = 0; /* columns used in the current round */
 static int32_t npivs  = 0; /* new pivots in the current round */
 
+/* linear algebra options */
+static int32_t laopt  = 0;
+
 /* function pointers */
 int (*monomial_cmp)(
     const len_t a,
     const len_t b
+    );
+
+int (*hcm_cmp)(
+    const void *a,
+    const void *b
     );
 
 val_t **(*select_spairs)(

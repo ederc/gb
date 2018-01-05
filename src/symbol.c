@@ -134,3 +134,89 @@ static val_t **select_spairs_by_minimal_degree(
   
   return mat;
 }
+
+static inline val_t *find_multiplied_reducer(
+    len_t m
+    )
+{
+  int32_t i;
+  len_t d;
+  val_t *b;
+
+  exp_t *e  = evl + m;
+
+  for (i = e[HASH_DIV]; i < bload; ++i) {
+    b = (val_t *)((long)bs[i] & bmask);
+    if (b != bs[i]) {
+      continue;
+    }
+    d = monomial_division(m, b[2]);
+    if (d == 0) {
+      continue;
+    }
+    e[HASH_DIV] = i;
+    return multiplied_polynomial_to_matrix_row(m, b);
+  }
+  e[HASH_DIV] = i;
+  return NULL;
+}
+
+static val_t **symbolic_preprocessing(
+    val_t **mat
+    )
+{
+  int32_t i, j;
+  exp_t *e;
+  val_t *red;
+
+  /* timings */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
+
+  /* mark leading monomials in HASH_IND entry */
+  for (i = 0; i < nrows; ++i) {
+    (evl + mat[i][2])[HASH_IND] = 1;
+  }
+
+  /* get reducers from basis */
+  for (i = 0; i < nrows; ++i) {
+    const len_t len = mat[i][0];
+    for (j = 4; j < len; j += 2) {
+      e = evl + mat[i][j];
+      if (e[HASH_IND]) {
+        continue;
+      }
+      e[HASH_IND] = 1;
+      red = find_multiplied_reducer(mat[i][j]);
+      if (!red) {
+        continue;
+      }
+      if (nrows == nrall) {
+        nrall = 2 * nrall;
+        mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));
+      }
+      /* add new reducer to matrix */
+      mat[nrows++]  = red;
+    }
+  }
+
+  /* clear markers */
+  for (i = 0; i < nrows; ++i) {
+    const len_t len = mat[i][0];
+    for (j = 2; j < len; j = j+2) {
+      (evl + mat[i][j])[HASH_IND] = 0;
+    }
+  }
+
+  /* realloc to real size */
+  mat = realloc(mat, (unsigned long)nrows * sizeof(val_t *));
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  symbol_ctime  +=  ct1 - ct0;
+  symbol_rtime  +=  rt1 - rt0;
+
+  return mat;
+}

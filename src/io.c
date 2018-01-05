@@ -55,7 +55,15 @@ static val_t **import_julia_data(
 
   /* todo: this needs to be generalized for different monomial orders */
   monomial_cmp  = monomial_cmp_drl;
+  hcm_cmp       = hcm_cmp_pivots_drl;
   select_spairs = select_spairs_by_minimal_degree;
+
+  /* todo: need to set the option which linear algebra routine should
+   *       be used in the f4 algorithm */
+  laopt = 1;
+
+  /* todo: need to set number of threads */
+  nthrds  = 1;
 
   return mat;
 }

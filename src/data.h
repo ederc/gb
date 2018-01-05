@@ -79,6 +79,11 @@ static int32_t nrows  = 0; /* rows used in the current round */
 static int32_t ncols  = 0; /* columns used in the current round */
 static int32_t npivs  = 0; /* new pivots in the current round */
 
+/* loop unrolling in sparse linear algebra:
+ * we store the offset of the first elements not unrolled
+ * in the second entry of the sparse row resp. sparse polynomial. */
+#define UNROLL  4
+
 /* threads data */
 static int32_t nthrds = 1; /* number of CPU threads */
 

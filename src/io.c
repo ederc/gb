@@ -39,11 +39,11 @@ static val_t **import_julia_data(
   
   for (i = 0; i < nr_gens; ++i) {
     /* each matrix row has the following structure:
-     * [length | piv? | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
+     * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
      * where piv? is a label for being a known or an unknown pivot */
     mat[i]    = malloc((2*(unsigned long)lens[i]+2) * sizeof(val_t));
     mat[i][0] = 2*lens[i]+2;
-    mat[i][1] = 1;
+    mat[i][1] = 2*(lens[j] % UNROLL)+2; /* offset for starting loop unrolling */
     for (j = off; j < off+lens[i]; ++j) {
       mat[i][2*(j+1-off)]   = insert_in_local_hash_table(exps+(nvars*j));
       mat[i][2*(j+1-off)+1] = cfs[j];

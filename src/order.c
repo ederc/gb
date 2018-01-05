@@ -22,7 +22,93 @@
 
 #include "data.h"
 
+/* sorting stuff for matrices */
+static int columns_cmp(
+    const void *a,
+    const void *b
+    )
+{
+  const val_t ca  = *((val_t *)a);
+  const val_t cb  = *((val_t *)b);
+
+  return (int)(ca - cb);
+}
+
+static int matrix_row_cmp(
+    const void *a,
+    const void *b
+    )
+{
+  val_t va, vb;
+  /* compare pivot resp. column index */
+  va  = ((val_t **)a)[0][2];
+  vb  = ((val_t **)b)[0][2];
+  if (va > vb) {
+    return 1;
+  }
+  if (va < vb) {
+    return -1;
+  }
+  /* same column index => compare density of row */
+  va  = ((val_t **)a)[0][0];
+  vb  = ((val_t **)b)[0][0];
+  if (va > vb) {
+    return 1;
+  }
+  if (va < vb) {
+    return -1;
+  }
+  return 0;
+}
+
+static inline val_t **sort_matrix_rows(
+    val_t **mat)
+{
+  qort(mat, nrows, sizeof(val_t *), &matrix_row_cmp);
+  return mat;
+}
+
 /* comparison for monomials (in local hash table) */
+static int monomial_cmp_pivots_drl(
+    const len_t a,
+    const len_t b
+    )
+{
+  int32_t i;
+
+  const exp_t * const ea  = evl + a;
+  const exp_t * const eb  = evl + b;
+
+  /* first known pivots vs. tail terms */
+  if (ea[HASH_IND] > eb[HASH_IND]) {
+    return 1;
+  } else {
+    if (ea[HASH_IND] != eb[HASH_IND]) {
+      return -1;
+    }
+  }
+
+  /* then DRL */
+  if (ea[HASH_DEG] > eb[HASH_DEG]) {
+    return 1;
+  } else {
+    if (ea[HASH_DEG] != eb[HASH_DEG]) {
+      return -1;
+    }
+  }
+
+  for (i = nvars-1; i >= 0; --i) {
+    if (ea[i] < eb[i]) {
+      return 1;
+    } else {
+      if (ea[i] != eb[i]) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int monomial_cmp_drl(
     const len_t a,
     const len_t b
@@ -53,6 +139,17 @@ static int monomial_cmp_drl(
   return 0;
 }
 
+/* comparison for hash-column-maps */
+static int hcm_cmp_pivots_drl(
+    const void *a,
+    const void *b
+    )
+{
+  const len_t ma  = ((len_t *)a)[0];
+  const len_t mb  = ((len_t *)b)[0];
+
+  return monomial_cmp_pivots_drl(ma, mb);
+}
 
 /* comparison for s-pairs */
 static int spair_cmp(

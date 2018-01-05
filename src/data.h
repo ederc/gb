@@ -79,6 +79,9 @@ static int32_t nrows  = 0; /* rows used in the current round */
 static int32_t ncols  = 0; /* columns used in the current round */
 static int32_t npivs  = 0; /* new pivots in the current round */
 
+/* threads data */
+static int32_t nthrds = 1; /* number of CPU threads */
+
 /* linear algebra options */
 static int32_t laopt  = 0;
 

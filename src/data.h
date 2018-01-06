@@ -78,6 +78,10 @@ static int32_t nrall  = 0; /* allocated rows for matrix */
 static int32_t nrows  = 0; /* rows used in the current round */
 static int32_t ncols  = 0; /* columns used in the current round */
 static int32_t npivs  = 0; /* new pivots in the current round */
+static int32_t nru    = 0; /* number of upper rows (in ABCD splicing) */
+static int32_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
+static int32_t ncl    = 0; /* number of left columns(in ABCD splicing) */
+static int32_t ncr    = 0; /* number of right columns(in ABCD splicing) */
 
 /* loop unrolling in sparse linear algebra:
  * we store the offset of the first elements not unrolled

@@ -39,3 +39,94 @@ static inline void normalize_matrix_row(
   /* probably we left out the first coefficient */
   row[3]  = 1;
 }
+
+static val_t **sparse_linear_algebra_16_bit(
+    val_t **mat
+    )
+{
+  int32_t i, j;
+  double ct0, ct1, rt0, rt1;
+  val_t *npiv; /* new pivot row */
+
+  /* timings */
+  ct0 = cputime();
+  rt0 = realtime();
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  la_ctime  +=  ct1 - ct0;
+  la_rtime  +=  rt1 - rt0;
+
+  /* all pivots, first we can only fill in all known lead terms */
+  val_t **pivs  = (val_t **)calloc((unsigned long)nrows, sizeof(val_t *));
+  /* unkown pivot rows we have to reduce with the known pivots first */
+  val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
+
+  i = 0;
+  j = 1;
+  while (i < nrows) {
+    if (!pivs[mat[i][2]]) {
+      pivs[mat[i][2]] = mat[i];
+    } else {
+      /* shorter rows first */
+      pivs[nru-j] = mat[i];
+      j++;
+    }
+  }
+
+  free(mat);
+  mat = NULL;
+  const unsigned long nc  = (unsigned long)(ncl + ncr);
+  int64_t *dr = (int64_t *)malloc(nc * sizeof(int64_t));
+#pragma omp parallel for num_threads(nthrds) private(dr)
+  for (i = 0; i < nrl; ++i) {
+    /* load next row to dense format for further reduction */
+    memset(dr, 0, nc * sizeof(int64_t));
+    for (j = 2; j < upivs[i][0]; j += 2) {
+      dr[upivs[i][j]] = (int64_t)upivs[i][j+1];
+    }
+    free(upivs[i]);
+    upivs[i]  = NULL;
+    /* do the reduction */
+    do {
+      npiv  = reduce_dense_row_by_known_pivots(dr, pivs);
+      if (!npiv) {
+        break;
+      }
+      j = __sync_bool_comparse_and_swap(&pivs[npiv[2]], NULL, npiv);
+    } while (j);
+  }
+
+  /* we do not need the old pivots anymore */
+  for (i = 0; i < nru; ++i) {
+    free(pivs[i]);
+    pivs[i] = NULL
+  }
+
+  npivs = 0; /* number of new pivots */
+
+  /* interreduce new pivots, i.e. pivs[ncl + ...] */
+  for (i = (ncl+ncr-1); i > ncl+1; ++i) {
+    if (pivs[i]) {
+      memset(dr, 0, nc * sizeof(int64_t));
+      for (j = 2; j < pivs[i][0]; j += 2) {
+        dr[pivs[i][j]] = (int64_t)pivs[i][j+1];
+      }
+      free(pivs[i]);
+      pivs[i] = NULL;
+      mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs);
+    }
+  }
+  mat = realloc(mat, (unsigned long)npivs * sizeof(val_t *);
+
+  free(dr);
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  la_ctime  +=  ct1 - ct0;
+  la_rtime  +=  rt1 - rt0;
+
+  return mat;
+}

@@ -24,14 +24,14 @@
 
 static double select_ctime  = 0;
 static double symbol_ctime  = 0;
-static double matrix_ctime  = 0;
+static double la_ctime      = 0;
 static double update_ctime  = 0;
 static double convert_ctime = 0;
 static double reduce_ctime  = 0;
 
 static double select_rtime  = 0;
 static double symbol_rtime  = 0;
-static double matrix_rtime  = 0;
+static double la_rtime      = 0;
 static double update_rtime  = 0;
 static double convert_rtime = 0;
 static double reduce_rtime  = 0;
@@ -58,14 +58,14 @@ static void initialize_statistics(
 
 	select_rtime  = 0;
   symbol_rtime  = 0;
-  matrix_rtime  = 0;
+  la_rtime      = 0;
   update_rtime  = 0;
   convert_rtime = 0;
   reduce_rtime  = 0;
 
 	select_ctime  = 0;
   symbol_ctime  = 0;
-  matrix_ctime  = 0;
+  la_ctime      = 0;
   update_ctime  = 0;
   convert_ctime = 0;
   reduce_ctime  = 0;

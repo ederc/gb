@@ -1687,6 +1687,8 @@ void linear_algebra_all_pivs_16_bit(gb_t *basis, smc_t *AB, smc_t *CD,
       for (size_t j = 2; j < CD->row[i][1]; j = j+2) {
         dr[CD->row[i][j]] = (bf_t)CD->row[i][j+1];
       }
+      free(CD->row[i]);
+      CD->row[i]  = NULL;
       /* reduce the dense random row w.r.t. to the already known pivots  */
       done = 0;
       while (!done) {

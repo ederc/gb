@@ -552,9 +552,11 @@ static inline len_t monomial_multiplication(
     const len_t b
     )
 {
-  /* exponents of basis elements, thus from global hash table */
-  const exp_t * const ea = ev + a;
-  const exp_t * const eb = ev + b;
+  /* a is the multiplier monomial living the local table,
+   * b is a monomial from a polynomial in the basis thus
+   * living in the global table */
+  const exp_t * const ea = evl  + a;
+  const exp_t * const eb = ev   + b;
 
   return insert_in_local_hash_table_product(ea, eb);
 }

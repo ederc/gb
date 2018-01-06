@@ -83,9 +83,28 @@ int32_t *f4_julia(
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
-    DEBUG(MATDBG, "rd %3d", round);
+    DEBUG(MATDBG, "rd %3d", ound);
 
+    /* preprocess data for next reduction round */
     mat = select_spairs();
+    mat = symbolic_preprocessing(mat);
+    /* exponent hashes mapped to column indices for linear algebra */
+    mat = convert_hashes_to_columns(&mat);
+    /* sort matrix rows by decreasing pivots */
+    mat = sort_matrix_rows(mat);
+
+    /* here starts the linear algebra part depending on
+     * the chosen options */
+    switch (laopt) {
+      case 1:
+        mat = sparse_linear_algebra(mat);
+        break;
+      case default:
+        mat = sparse_linear_algebra(mat);
+    }
+
+    convert_columns_to_hashes(mat);
+
   }
 
   /* free and clean up */

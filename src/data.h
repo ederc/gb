@@ -109,6 +109,11 @@ val_t **(*select_spairs)(
     void
     );
 
+/* linear algebra routines */
+val_t **(*sparse_linear_algebra)(
+    val_t **mat
+    );
+
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */

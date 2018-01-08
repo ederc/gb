@@ -75,9 +75,11 @@ static len_t *convert_hashes_to_columns(
   while ((evl+hcm[j])[HASH_IND] == 2) {
     j++;
   }
+  /* set number of rows and columns in ABCD splicing */
   nru = ncl = j;
   nrl = nrows - nru;
   ncr = k - ncl;
+  nc  = ncl + ncr;
 
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < k; ++i) {

@@ -40,6 +40,13 @@ static inline void normalize_matrix_row(
   row[3]  = 1;
 }
 
+static val_t *reduce_dense_row_by_known_pivots_16_bit(
+    int64_t *dr,
+    val_t **pivs
+    )
+{
+}
+
 static val_t **sparse_linear_algebra_16_bit(
     val_t **mat
     )
@@ -90,7 +97,7 @@ static val_t **sparse_linear_algebra_16_bit(
     upivs[i]  = NULL;
     /* do the reduction */
     do {
-      npiv  = reduce_dense_row_by_known_pivots(dr, pivs);
+      npiv  = reduce_dense_row_by_known_pivots_16_bit(dr, pivs);
       if (!npiv) {
         break;
       }
@@ -101,7 +108,7 @@ static val_t **sparse_linear_algebra_16_bit(
   /* we do not need the old pivots anymore */
   for (i = 0; i < nru; ++i) {
     free(pivs[i]);
-    pivs[i] = NULL
+    pivs[i] = NULL;
   }
 
   npivs = 0; /* number of new pivots */
@@ -115,10 +122,11 @@ static val_t **sparse_linear_algebra_16_bit(
       }
       free(pivs[i]);
       pivs[i] = NULL;
-      mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs);
+      mat[npivs++] = reduce_dense_row_by_known_pivots_16_bit(dr, pivs);
     }
   }
-  mat = realloc(mat, (unsigned long)npivs * sizeof(val_t *);
+  mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
+  nrows = nrall = npivs;
 
   free(dr);
 

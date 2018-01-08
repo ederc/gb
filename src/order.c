@@ -64,7 +64,7 @@ static int matrix_row_cmp(
 static inline val_t **sort_matrix_rows(
     val_t **mat)
 {
-  qort(mat, nrows, sizeof(val_t *), &matrix_row_cmp);
+  qsort(mat, (unsigned long)nrows, sizeof(val_t *), &matrix_row_cmp);
   return mat;
 }
 

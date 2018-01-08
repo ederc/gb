@@ -58,6 +58,8 @@ static val_t **import_julia_data(
   hcm_cmp       = hcm_cmp_pivots_drl;
   select_spairs = select_spairs_by_minimal_degree;
 
+  /* todo: linear algebra routines, depending on bit size of prime */
+  sparse_linear_algebra = sparse_linear_algebra_16_bit;
   /* todo: need to set the option which linear algebra routine should
    *       be used in the f4 algorithm */
   laopt = 1;

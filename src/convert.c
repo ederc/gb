@@ -32,6 +32,8 @@ static len_t *convert_hashes_to_columns(
     )
 {
   int32_t i, j, k;
+  val_t *row;
+  exp_t *e;
   len_t *hcm; /* hash-to-column map */
   uint64_t nterms = 0;
 
@@ -48,7 +50,7 @@ static len_t *convert_hashes_to_columns(
 
   for (i = 0, k = 0; i < nrows; ++i) {
     row     =   mat[i];
-    nterms  +=  row[0];
+    nterms  +=  (uint64_t)row[0];
     /* first monomial is special: gives us all known pivots */
     (evl + row[2])[HASH_IND]  = 2;
     for (j = 4; j < row[0]; j += 2) {
@@ -63,7 +65,7 @@ static len_t *convert_hashes_to_columns(
   hcm = realloc(hcm, (unsigned long)k * sizeof(len_t));
 
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
-  qsort(hcm, k, sizeof(len_t), &hcm_cmp);
+  qsort(hcm, (unsigned long)k, sizeof(len_t), hcm_cmp);
   
   /* get number of known pivots, i.e. number of upper rows and number of
    * left columns in ABCD splicing of GBLA matrix. moreover, from this
@@ -71,7 +73,7 @@ static len_t *convert_hashes_to_columns(
    * number of right columns */
   j = 0;
   while ((evl+hcm[j])[HASH_IND] == 2) {
-    j++:
+    j++;
   }
   nru = ncl = j;
   nrl = nrows - nru;
@@ -94,8 +96,9 @@ static len_t *convert_hashes_to_columns(
    * to known / unkown pivots */
 #pragma omp parallel for num_threads(nthrds)
   for (int32_t l = 0; l < nrows; ++l) {
-  qsort(mat[l]+2, (unsigned long)(mat[l][0]-2)/2, 2 * sizeof(val_t),
-      columns_cmp);
+    qsort(mat[l]+2, (unsigned long)(mat[l][0]-2)/2, 2 * sizeof(val_t),
+        columns_cmp);
+  }
   /* compute density of matrix */
   density = (double)nterms / (double)(nrows * k);
 
@@ -104,6 +107,8 @@ static len_t *convert_hashes_to_columns(
   rt1 = realtime();
   convert_ctime +=  ct1 - ct0;
   convert_rtime +=  rt1 - rt0;
+
+  return hcm;
 }
 
 static val_t **convert_columns_to_hashes(

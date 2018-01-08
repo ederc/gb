@@ -89,7 +89,7 @@ int32_t *f4_julia(
     mat = select_spairs();
     mat = symbolic_preprocessing(mat);
     /* exponent hashes mapped to column indices for linear algebra */
-    mat = convert_hashes_to_columns(&mat);
+    mat = convert_hashes_to_columns(mat);
     /* sort matrix rows by decreasing pivots */
     mat = sort_matrix_rows(mat);
 

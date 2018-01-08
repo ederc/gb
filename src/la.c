@@ -108,6 +108,7 @@ static val_t **sparse_linear_algebra_16_bit(
     )
 {
   int32_t i, j;
+  val_t sc  = 0; /* starting column */
   double ct0, ct1, rt0, rt1;
   val_t *npiv; /* new pivot row */
 
@@ -148,11 +149,12 @@ static val_t **sparse_linear_algebra_16_bit(
     for (j = 2; j < upivs[i][0]; j += 2) {
       dr[upivs[i][j]] = (int64_t)upivs[i][j+1];
     }
+    sc  = upivs[i][2];
     free(upivs[i]);
     upivs[i]  = NULL;
     /* do the reduction */
     do {
-      npiv  = reduce_dense_row_by_known_pivots_16_bit(dr, pivs, upivs[i][2]);
+      npiv  = reduce_dense_row_by_known_pivots_16_bit(dr, pivs, sc);
       if (!npiv) {
         break;
       }
@@ -175,9 +177,10 @@ static val_t **sparse_linear_algebra_16_bit(
       for (j = 2; j < pivs[i][0]; j += 2) {
         dr[pivs[i][j]] = (int64_t)pivs[i][j+1];
       }
+      sc  = pivs[i][2];
       free(pivs[i]);
       pivs[i] = NULL;
-      mat[npivs++] = reduce_dense_row_by_known_pivots_16_bit(dr, pivs);
+      mat[npivs++] = reduce_dense_row_by_known_pivots_16_bit(dr, pivs, sc);
     }
   }
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));

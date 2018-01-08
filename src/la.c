@@ -101,7 +101,7 @@ static val_t **sparse_linear_algebra_16_bit(
       if (!npiv) {
         break;
       }
-      j = __sync_bool_comparse_and_swap(&pivs[npiv[2]], NULL, npiv);
+      j = compare_and_swap(pivs[npiv[2]], 0, npiv[2]);
     } while (j);
   }
 

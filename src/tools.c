@@ -50,3 +50,18 @@ static inline int32_t mod_p_inverse_32(
 
   return d;
 }
+
+static inline val_t compare_and_swap(
+    val_t *ptr,
+    val_t old,
+    val_t new
+    )
+{
+  val_t *prev;
+
+  __asm__ __volatile__(
+      "lock; cmpxchgq %2, %1" : "=a"(prev),
+      "+m"(*ptr) : "r"(new), "0"(old) : "memory");
+
+  return prev;
+}

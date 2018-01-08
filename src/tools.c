@@ -57,7 +57,7 @@ static inline val_t compare_and_swap(
     val_t new
     )
 {
-  val_t *prev;
+  val_t prev;
 
   __asm__ __volatile__(
       "lock; cmpxchgq %2, %1" : "=a"(prev),

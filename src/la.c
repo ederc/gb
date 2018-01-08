@@ -42,9 +42,65 @@ static inline void normalize_matrix_row(
 
 static val_t *reduce_dense_row_by_known_pivots_16_bit(
     int64_t *dr,
-    val_t **pivs
+    val_t *const *pivs,
+    const val_t dpiv   /* pivot of dense row at the beginning */
     )
 {
+  int32_t i, j, k;
+
+  for (k = 0, i = dpiv; i < nc; ++i) {
+    if (dr[i] != 0) {
+      dr[i] = dr[i] % fc;
+    }
+    if (dr[i] == 0) {
+      continue;
+    }
+    if (pivs[i] == NULL) {
+      k++;
+      continue;
+    }
+
+    /* found reducer row, get multiplier */
+    const int64_t mul = (int64_t)(fc) - dr[i];
+
+    for (j = 2; j < pivs[i][1]; j += 2) {
+      dr[pivs[i][j]]  +=  mul * pivs[i][j+1];
+    }
+    /* UNROLL is set to be 4 in src/data.h */
+    for (; j < pivs[i][0]; j += 8) {
+      dr[pivs[i][j]]    +=  mul * pivs[i][j+1];
+      dr[pivs[i][j+2]]  +=  mul * pivs[i][j+3];
+      dr[pivs[i][j+4]]  +=  mul * pivs[i][j+5];
+      dr[pivs[i][j+6]]  +=  mul * pivs[i][j+7];
+    }
+  }
+  if (k == 0) {
+    return NULL;
+  }
+
+  /* dense row is not reduced to zero, thus generate new sparse
+   * pivot row and normalize it */
+  val_t *row  = (val_t *)malloc(
+      (unsigned long)(2*(nc-dpiv)+2) * sizeof(val_t));
+  j = 2;
+  for (i = dpiv; i < nc; ++i) {
+    if (dr[i] != 0) {
+      dr[i] = dr[i] % fc;
+      if (dr[i] != 0) {
+        row[j++]  = (val_t)i;
+        row[j++]  = (val_t)dr[i];
+      }
+    }
+  }
+  row[0]  = j;
+  row[1]  = 2 * (((j-2)/2) % UNROLL) + 2;
+  row     = realloc(row, (unsigned long)row[0] * sizeof(val_t));
+
+  if (row[3] != 1) {
+    normalize_matrix_row(row);
+  }
+
+  return row;
 }
 
 static val_t **sparse_linear_algebra_16_bit(
@@ -84,12 +140,11 @@ static val_t **sparse_linear_algebra_16_bit(
 
   free(mat);
   mat = NULL;
-  const unsigned long nc  = (unsigned long)(ncl + ncr);
-  int64_t *dr = (int64_t *)malloc(nc * sizeof(int64_t));
+  int64_t *dr = (int64_t *)malloc((unsigned long)nc * sizeof(int64_t));
 #pragma omp parallel for num_threads(nthrds) private(dr)
   for (i = 0; i < nrl; ++i) {
     /* load next row to dense format for further reduction */
-    memset(dr, 0, nc * sizeof(int64_t));
+    memset(dr, 0, (unsigned long)nc * sizeof(int64_t));
     for (j = 2; j < upivs[i][0]; j += 2) {
       dr[upivs[i][j]] = (int64_t)upivs[i][j+1];
     }
@@ -97,7 +152,7 @@ static val_t **sparse_linear_algebra_16_bit(
     upivs[i]  = NULL;
     /* do the reduction */
     do {
-      npiv  = reduce_dense_row_by_known_pivots_16_bit(dr, pivs);
+      npiv  = reduce_dense_row_by_known_pivots_16_bit(dr, pivs, upivs[i][2]);
       if (!npiv) {
         break;
       }
@@ -114,9 +169,9 @@ static val_t **sparse_linear_algebra_16_bit(
   npivs = 0; /* number of new pivots */
 
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (ncl+ncr-1); i > ncl+1; ++i) {
+  for (i = (nc-1); i > ncl+1; ++i) {
     if (pivs[i]) {
-      memset(dr, 0, nc * sizeof(int64_t));
+      memset(dr, 0, (unsigned long)nc * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {
         dr[pivs[i][j]] = (int64_t)pivs[i][j+1];
       }

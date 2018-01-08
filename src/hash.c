@@ -44,7 +44,6 @@
 /* The idea of the structure of the hash table is taken from an
  * implementation by Roman Pearce and Michael Monagan in Maple. */
 
-static val_t fc     = 0; /* field characteristic */
 static len_t nvars  = 0; /* number of variables */
 static len_t bpv    = 0; /* bits per variable in divmask */
 static len_t ndvars = 0; /* number of variables for divmask */

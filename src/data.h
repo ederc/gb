@@ -65,6 +65,9 @@ static spair_t *ps  = NULL;
 static pl_t pload   = 0;
 static pl_t psize   = 0;
 
+/* field characteristic */
+static val_t fc = 0;
+
 /* basis data */
 static val_t **bs = NULL;
 static bl_t bload = 0;

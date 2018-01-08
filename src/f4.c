@@ -26,8 +26,9 @@
  * 1.  an array of the lengths of each generator
  * 2.  an array of all coefficients of all generators in the order:
  *     first all coefficients of generator 1, then all of generator 2, ...
- * 2.  an array of all exponents of all generators in the order:
- *     first all exponents of generator 1, then all of generator 2, ... */
+ * 3.  an array of all exponents of all generators in the order:
+ *     first all exponents of generator 1, then all of generator 2, ...
+ *     MORE TODO */
 int32_t *f4_julia(
     const int32_t *lens,
     const int32_t *cfs,

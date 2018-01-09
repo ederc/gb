@@ -38,7 +38,7 @@ static inline val_t **generate_matrix_from_spair_selection(
 
   for (i = 0; i < nr; ++i) {
     b       = (val_t *)((long)bs[gens[i]] & bmask);
-    m       = monomial_division(lcms[i], b[1]);
+    m       = monomial_division_no_check(lcms[i], b[2]);
     mat[i]  = multiplied_polynomial_to_matrix_row(m, b);
   }
 
@@ -111,6 +111,11 @@ static val_t **select_spairs_by_minimal_degree(
   
   /* statistics */
   num_rowsred +=  n;
+
+  /* move lcms to local hash table */
+  for (i = 0; i < n; ++i) {
+    tmp_lcm[i]  = insert_in_local_hash_table(ev+tmp_lcm[i]);
+  }
   
   mat = generate_matrix_from_spair_selection(tmp_lcm, tmp_gen, n);
 
@@ -150,7 +155,7 @@ static inline val_t *find_multiplied_reducer(
     if (b != bs[i]) {
       continue;
     }
-    d = monomial_division(m, b[2]);
+    d = monomial_division_with_check(m, b[2]);
     if (d == 0) {
       continue;
     }
@@ -210,7 +215,8 @@ static val_t **symbolic_preprocessing(
   }
 
   /* realloc to real size */
-  mat = realloc(mat, (unsigned long)nrows * sizeof(val_t *));
+  mat   = realloc(mat, (unsigned long)nrows * sizeof(val_t *));
+  nrall = nrows;
 
   /* timings */
   ct1 = cputime();

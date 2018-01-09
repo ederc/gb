@@ -568,7 +568,7 @@ static inline len_t check_monomial_division(
 {
   int32_t i;
 
-  const exp_t * const ea  = ev + a;
+  const exp_t * const ea  = evl + a;
   const exp_t * const eb  = ev + b;
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
@@ -593,16 +593,56 @@ static inline len_t check_monomial_division(
   return 1;
 }
 
-/* it is assumed that b divides a, thus no tests for
- * divisibility at all */
-static inline len_t monomial_division(
+/* we try monomial division including check if divisibility is
+ * fulfilled. */
+static inline len_t monomial_division_with_check(
     const len_t a,
     const len_t b
     )
 {
   int32_t i;
 
-  const exp_t * const ea  = ev + a;
+  const exp_t * const ea  = evl + a;
+  const exp_t * const eb  = ev + b;
+  /* short divisor mask check */
+  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
+    return 0;
+  }
+
+  /* degree check */
+  if (ea[HASH_DEG] < eb[HASH_DEG]) {
+    return 0;
+  }
+
+  /* exponent check */
+  if (ea[0] < eb[0]) {
+    return 0;
+  }
+
+  exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
+
+  i = nvars & 1 ? 1 : 0;
+  for (; i < nvars; i += 2) {
+    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+      return 0;
+    } else {
+      e[i]    = ea[i] - eb[i];
+      e[i+1]  = ea[i+1] - eb[i+1];
+    }
+  }
+  return insert_in_local_hash_table(e);
+}
+
+/* it is assumed that b divides a, thus no tests for
+ * divisibility at all */
+static inline len_t monomial_division_no_check(
+    const len_t a,
+    const len_t b
+    )
+{
+  int32_t i;
+
+  const exp_t * const ea  = evl + a;
   const exp_t * const eb  = ev + b;
 
   exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
@@ -624,8 +664,8 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
   int32_t i;
 
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
-  row[0]  = poly[0];
-  row[1]  = 0; /* no new piv */
+  row[0]  = poly[0]; /* length */
+  row[1]  = poly[1]; /* loop unroll offset */
   for (i = 2; i < poly[0]; i += 2) {
     row[i]    = monomial_multiplication(mult, poly[i]);
     row[i+1]  = poly[i+1];

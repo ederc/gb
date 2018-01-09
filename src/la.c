@@ -103,7 +103,7 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
   return row;
 }
 
-static val_t **sparse_linear_algebra_16_bit(
+static val_t **sparse_linear_algebra(
     val_t **mat
     )
 {

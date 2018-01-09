@@ -59,7 +59,13 @@ static val_t **import_julia_data(
   select_spairs = select_spairs_by_minimal_degree;
 
   /* todo: linear algebra routines, depending on bit size of prime */
-  sparse_linear_algebra = sparse_linear_algebra_16_bit;
+  if (fc < pow(2, 16)) {
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
+  } else {
+    /* TODO: 32 bit implementation */
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
+  }
+
   /* todo: need to set the option which linear algebra routine should
    *       be used in the f4 algorithm */
   laopt = 1;

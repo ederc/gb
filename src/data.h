@@ -114,8 +114,10 @@ val_t **(*select_spairs)(
     );
 
 /* linear algebra routines */
-val_t **(*sparse_linear_algebra)(
-    val_t **mat
+val_t *(*reduce_dense_row_by_known_pivots)(
+    int64_t *dr,
+    val_t *const *pivs,
+    const val_t dpiv
     );
 
 /* -----------------------------------

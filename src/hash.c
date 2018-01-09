@@ -570,7 +570,7 @@ static inline len_t check_monomial_division(
 {
   int32_t i;
 
-  const exp_t * const ea  = evl + a;
+  const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {

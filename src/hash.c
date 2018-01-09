@@ -351,11 +351,11 @@ static inline len_t insert_in_global_hash_table(
       continue;
     }
     for (j = 0; j < nvars; ++j) {
-      if (e[i] != a[i]) {
+      if (e[j] != a[j]) {
         break;
       }
     }
-    if (i == nvars) {
+    if (j == nvars) {
       return map[k];
     }
   }
@@ -395,24 +395,34 @@ static inline len_t insert_in_local_hash_table(
   for (i = 0; i < nvars; ++i) {
     h +=  rv[i] * a[i];
   }
+  printf("inserting in local hash table:\n");
+  for (i = 0; i < nvars; ++i) {
+    printf("%d", a[i]);
+  }
+  printf("\n");
+
+  printf("hash %d\n", h);
 
   /* probing */
   k = h;
   for (i = 0; i < mlsize; ++i) {
     k = (k+i) & (mlsize-1);
+    printf("k %d\n", k);
     if (!mapl[k]) {
+      printf("map[%d] = %d\n", k, mapl[k]);
       break;
     }
     e = evl + mapl[k];
+    printf("--map[%d] = %d -- hash %d\n", k, mapl[k], e[HASH_VAL]);
     if (e[HASH_VAL] != h) {
       continue;
     }
     for (j = 0; j < nvars; ++j) {
-      if (e[i] != a[i]) {
+      if (e[j] != a[j]) {
         break;
       }
     }
-    if (i == nvars) {
+    if (j == nvars) {
       return mapl[k];
     }
   }
@@ -426,6 +436,7 @@ static inline len_t insert_in_local_hash_table(
     deg   +=  a[i];
   }
   e[HASH_DEG] = deg;
+  e[HASH_SDM] = generate_short_divmask(e);
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
@@ -443,9 +454,16 @@ static inline void clear_local_hash_table(
     void
     )
 {
+  for (int32_t i = 0; i < elload; i += HASH_LEN) {
+    printf("h %d\n", (evl+i)[HASH_VAL]);
+  }
   memset(evl, 0, (unsigned long)(elload * HASH_LEN) * sizeof(exp_t));
+  printf(" \n");
+  for (int32_t i = 0; i < elload; i += HASH_LEN) {
+    printf("h %d\n", (evl+i)[HASH_VAL]);
+  }
   memset(mapl, 0, (unsigned long)(mlsize) * sizeof(len_t));
-  elload  = 0;
+  elload  = HASH_LEN;
 }
 
 /* note that the product insertion, i.e. monomial x polynomial
@@ -459,25 +477,42 @@ static inline len_t insert_in_local_hash_table_product(
   int32_t i, j, k, pos;
   exp_t *e;
 
-  int32_t h = a1[HASH_VAL] + a2[HASH_VAL];
+  for (int32_t i = 0; i < elload; i += HASH_LEN) {
+    printf("h %d\n", (evl+i)[HASH_VAL]);
+  }
+  const int32_t h = a1[HASH_VAL] + a2[HASH_VAL];
+  printf("inserting product in local hash table:\n");
+  for (i = 0; i < nvars; ++i) {
+    printf("%d", a1[i]);
+  }
+  printf("  ");
+  for (i = 0; i < nvars; ++i) {
+    printf("%d", a2[i]);
+  }
+  printf("\n");
 
+  printf("hash %d\n", h);
   /* probing */
   k = h;
   for (i = 0; i < mlsize; ++i) {
     k = (k+i) & (mlsize-1);
+    printf("k %d\n", k);
     if (!mapl[k]) {
+      printf("map[%d] = %d\n", k, mapl[k]);
       break;
     }
     e = evl + mapl[k];
+    printf("--map[%d] = %d -- hash %d\n", k, mapl[k], e[HASH_VAL]);
     if (e[HASH_VAL] != h) {
       continue;
     }
     for (j = 0; j < nvars; ++j) {
-      if (e[i] != a1[i] + a2[i]) {
+      if (e[j] != a1[j] + a2[j]) {
+        printf("%d != %d + %d\n", e[j], a1[j], a2[j]);
         break;
       }
     }
-    if (i == nvars) {
+    if (j == nvars) {
       return mapl[k];
     }
   }
@@ -489,6 +524,7 @@ static inline len_t insert_in_local_hash_table_product(
     e[i]  =   a1[i] + a2[i];
   }
   e[HASH_DEG] = a1[HASH_DEG] + a2[HASH_DEG];
+  e[HASH_SDM] = generate_short_divmask(e);
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
@@ -606,20 +642,24 @@ static inline len_t monomial_division_with_check(
   const exp_t * const eb  = ev + b;
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
+    printf("raus 1\n");
     return 0;
   }
 
   /* degree check */
   if (ea[HASH_DEG] < eb[HASH_DEG]) {
+    printf("raus 2\n");
     return 0;
   }
 
   /* exponent check */
   if (ea[0] < eb[0]) {
+    printf("raus 3\n");
     return 0;
   }
 
   exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
+  e[0]  = ea[0] - eb[0];
 
   i = nvars & 1 ? 1 : 0;
   for (; i < nvars; i += 2) {
@@ -663,13 +703,20 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
 {
   int32_t i;
 
+  printf("mulitplied row: ");
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
   row[0]  = poly[0]; /* length */
   row[1]  = poly[1]; /* loop unroll offset */
   for (i = 2; i < poly[0]; i += 2) {
     row[i]    = monomial_multiplication(mult, poly[i]);
+    for (int32_t j = 0; j < nvars; ++j) {
+      printf("%d", (evl+row[i])[j]);
+    }
+    printf(" (%d)", row[i]);
+    printf(" ");
     row[i+1]  = poly[i+1];
   }
+  printf("\n");
 
   return row;
 }

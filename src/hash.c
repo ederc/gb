@@ -395,25 +395,15 @@ static inline len_t insert_in_local_hash_table(
   for (i = 0; i < nvars; ++i) {
     h +=  rv[i] * a[i];
   }
-  printf("inserting in local hash table:\n");
-  for (i = 0; i < nvars; ++i) {
-    printf("%d", a[i]);
-  }
-  printf("\n");
-
-  printf("hash %d\n", h);
 
   /* probing */
   k = h;
   for (i = 0; i < mlsize; ++i) {
     k = (k+i) & (mlsize-1);
-    printf("k %d\n", k);
     if (!mapl[k]) {
-      printf("map[%d] = %d\n", k, mapl[k]);
       break;
     }
     e = evl + mapl[k];
-    printf("--map[%d] = %d -- hash %d\n", k, mapl[k], e[HASH_VAL]);
     if (e[HASH_VAL] != h) {
       continue;
     }
@@ -454,14 +444,7 @@ static inline void clear_local_hash_table(
     void
     )
 {
-  for (int32_t i = 0; i < elload; i += HASH_LEN) {
-    printf("h %d\n", (evl+i)[HASH_VAL]);
-  }
   memset(evl, 0, (unsigned long)(elload * HASH_LEN) * sizeof(exp_t));
-  printf(" \n");
-  for (int32_t i = 0; i < elload; i += HASH_LEN) {
-    printf("h %d\n", (evl+i)[HASH_VAL]);
-  }
   memset(mapl, 0, (unsigned long)(mlsize) * sizeof(len_t));
   elload  = HASH_LEN;
 }
@@ -477,38 +460,21 @@ static inline len_t insert_in_local_hash_table_product(
   int32_t i, j, k, pos;
   exp_t *e;
 
-  for (int32_t i = 0; i < elload; i += HASH_LEN) {
-    printf("h %d\n", (evl+i)[HASH_VAL]);
-  }
   const int32_t h = a1[HASH_VAL] + a2[HASH_VAL];
-  printf("inserting product in local hash table:\n");
-  for (i = 0; i < nvars; ++i) {
-    printf("%d", a1[i]);
-  }
-  printf("  ");
-  for (i = 0; i < nvars; ++i) {
-    printf("%d", a2[i]);
-  }
-  printf("\n");
 
-  printf("hash %d\n", h);
   /* probing */
   k = h;
   for (i = 0; i < mlsize; ++i) {
     k = (k+i) & (mlsize-1);
-    printf("k %d\n", k);
     if (!mapl[k]) {
-      printf("map[%d] = %d\n", k, mapl[k]);
       break;
     }
     e = evl + mapl[k];
-    printf("--map[%d] = %d -- hash %d\n", k, mapl[k], e[HASH_VAL]);
     if (e[HASH_VAL] != h) {
       continue;
     }
     for (j = 0; j < nvars; ++j) {
       if (e[j] != a1[j] + a2[j]) {
-        printf("%d != %d + %d\n", e[j], a1[j], a2[j]);
         break;
       }
     }

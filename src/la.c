@@ -131,6 +131,7 @@ static val_t **sparse_linear_algebra(
       pivs[nru-j] = mat[i];
       j++;
     }
+    i++;
   }
 
   free(mat);

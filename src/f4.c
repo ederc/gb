@@ -41,6 +41,7 @@ int32_t *f4_julia(
 {
   int32_t i, hts_safe, round;
   val_t **mat;
+  len_t *hcm; /* hash-column-map */
 
   if (nr_gens == 0
     || nr_vars == 0
@@ -90,7 +91,7 @@ int32_t *f4_julia(
     mat = select_spairs();
     mat = symbolic_preprocessing(mat);
     /* exponent hashes mapped to column indices for linear algebra */
-    mat = convert_hashes_to_columns(mat);
+    hcm = convert_hashes_to_columns(mat);
     /* sort matrix rows by decreasing pivots */
     mat = sort_matrix_rows(mat);
 
@@ -104,8 +105,12 @@ int32_t *f4_julia(
         mat = sparse_linear_algebra(mat);
     }
 
-    convert_columns_to_hashes(mat);
+    mat = convert_columns_to_hashes(mat, hcm);
 
+    free(hcm);
+    hcm = NULL;
+
+    update_basis(mat);
   }
 
   /* free and clean up */

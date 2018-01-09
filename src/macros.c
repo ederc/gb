@@ -30,4 +30,4 @@
 #define UPDDBG  1 /* update process */
 #define TIMDBG  1 /* timings */
 
-#define DEBUG(s,...) do { if (s) printf(__VA_ARGS__); } while (0)
+#define GB_DEBUG(s,...) do { if (s) printf(__VA_ARGS__); } while (0)

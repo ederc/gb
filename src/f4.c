@@ -84,7 +84,7 @@ int32_t *f4_julia(
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
-    DEBUG(MATDBG, "rd %3d", round);
+    GB_DEBUG(MATDBG, "rd %3d", round);
 
     /* preprocess data for next reduction round */
     mat = select_spairs();

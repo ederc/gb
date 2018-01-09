@@ -171,9 +171,9 @@ static void update_basis(
     )
 {
   int32_t i;
-  double ct0, ct1, rt0, rt1;
 
   /* timings */
+  double ct0, ct1, rt0, rt1;
   ct0 = cputime();
   rt0 = realtime();
 

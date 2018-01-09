@@ -109,18 +109,12 @@ static val_t **sparse_linear_algebra(
 {
   int32_t i, j;
   val_t sc  = 0; /* starting column */
-  double ct0, ct1, rt0, rt1;
   val_t *npiv; /* new pivot row */
 
   /* timings */
+  double ct0, ct1, rt0, rt1;
   ct0 = cputime();
   rt0 = realtime();
-
-  /* timings */
-  ct1 = cputime();
-  rt1 = realtime();
-  la_ctime  +=  ct1 - ct0;
-  la_rtime  +=  rt1 - rt0;
 
   /* all pivots, first we can only fill in all known lead terms */
   val_t **pivs  = (val_t **)calloc((unsigned long)nrows, sizeof(val_t *));

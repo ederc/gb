@@ -35,11 +35,30 @@ static inline val_t **generate_matrix_from_spair_selection(
   val_t **mat = (val_t **)malloc(2 * (unsigned long)nr * sizeof(val_t *));
   nrall = 2 * nr;
   nrows = nr;
+  nc    = ncl = ncr = 0;
 
   for (i = 0; i < nr; ++i) {
     b       = (val_t *)((long)bs[gens[i]] & bmask);
+    printf("poly: ");
+    for (int32_t j = 0; j < nvars; ++j) {
+      printf("%d", (ev+b[2])[j]);
+    }
+    printf("\n");
     m       = monomial_division_no_check(lcms[i], b[2]);
+    printf("multiplier: ");
+    for (int32_t j = 0; j < nvars; ++j) {
+      printf("%d", (evl+m)[j]);
+    }
+    printf("\n");
     mat[i]  = multiplied_polynomial_to_matrix_row(m, b);
+    printf("row[%d] ", i);
+    for (int32_t j = 2; j < mat[i][0]; j += 2) {
+      for (int32_t k = 0; k < nvars; ++k) {
+        printf("%d", (evl+mat[i][j])[k]);
+      }
+      printf(" ");
+    }
+    printf("\n");
   }
 
   return mat;
@@ -117,7 +136,15 @@ static val_t **select_spairs_by_minimal_degree(
     tmp_lcm[i]  = insert_in_local_hash_table(ev+tmp_lcm[i]);
   }
   
+  printf("\n");
+  for (i = 0; i < n; ++i) {
+    for (j = 0; j < nvars; ++j) {
+      printf("%d", (ev+tmp_lcm[i])[j]);
+    }
+    printf(" for generator %d\n", tmp_gen[i]);
+  }
   mat = generate_matrix_from_spair_selection(tmp_lcm, tmp_gen, n);
+  printf("nrows %d | nrall %d\n", nrows, nrall);
 
   free(tmp_lcm);
   free(tmp_gen);
@@ -149,18 +176,32 @@ static inline val_t *find_multiplied_reducer(
   val_t *b;
 
   exp_t *e  = evl + m;
+  printf("to be divided: ");
+  for (int32_t j = 0; j < nvars; ++j) {
+    printf("%d",e[j]);
+  }
+  printf("\n");
 
   for (i = e[HASH_DIV]; i < bload; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
     if (b != bs[i]) {
       continue;
     }
+    printf("test divisor: ");
+    for (int32_t j = 0; j < nvars; ++j) {
+      printf("%d", (ev+b[2])[j]);
+    }
     d = monomial_division_with_check(m, b[2]);
     if (d == 0) {
       continue;
     }
     e[HASH_DIV] = i;
-    return multiplied_polynomial_to_matrix_row(m, b);
+    printf("divisor found: ");
+    for (int32_t j = 0; j < nvars; ++j) {
+      printf("%d", (ev+b[2])[j]);
+    }
+    printf("\n");
+    return multiplied_polynomial_to_matrix_row(d, b);
   }
   e[HASH_DIV] = i;
   return NULL;
@@ -181,7 +222,7 @@ static val_t **symbolic_preprocessing(
 
   /* mark leading monomials in HASH_IND entry */
   for (i = 0; i < nrows; ++i) {
-    (evl + mat[i][2])[HASH_IND] = 1;
+    (evl + mat[i][2])[HASH_IND] = 2;
   }
 
   /* get reducers from basis */
@@ -192,25 +233,19 @@ static val_t **symbolic_preprocessing(
       if (e[HASH_IND]) {
         continue;
       }
+      nc++;
       e[HASH_IND] = 1;
       red = find_multiplied_reducer(mat[i][j]);
       if (!red) {
         continue;
       }
+      e[HASH_IND] = 2;
       if (nrows == nrall) {
         nrall = 2 * nrall;
         mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));
       }
       /* add new reducer to matrix */
       mat[nrows++]  = red;
-    }
-  }
-
-  /* clear markers */
-  for (i = 0; i < nrows; ++i) {
-    const len_t len = mat[i][0];
-    for (j = 2; j < len; j = j+2) {
-      (evl + mat[i][j])[HASH_IND] = 0;
     }
   }
 

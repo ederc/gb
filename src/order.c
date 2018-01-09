@@ -80,7 +80,7 @@ static int monomial_cmp_pivots_drl(
   const exp_t * const eb  = evl + b;
 
   /* first known pivots vs. tail terms */
-  if (ea[HASH_IND] > eb[HASH_IND]) {
+  if (ea[HASH_IND] < eb[HASH_IND]) {
     return 1;
   } else {
     if (ea[HASH_IND] != eb[HASH_IND]) {
@@ -90,15 +90,16 @@ static int monomial_cmp_pivots_drl(
 
   /* then DRL */
   if (ea[HASH_DEG] > eb[HASH_DEG]) {
-    return 1;
+    return -1;
   } else {
     if (ea[HASH_DEG] != eb[HASH_DEG]) {
-      return -1;
+      return 1;
     }
   }
 
+  /* note: reverse lexicographical */
   for (i = nvars-1; i >= 0; --i) {
-    if (ea[i] < eb[i]) {
+    if (ea[i] > eb[i]) {
       return 1;
     } else {
       if (ea[i] != eb[i]) {

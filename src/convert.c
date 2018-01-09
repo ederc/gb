@@ -33,7 +33,6 @@ static len_t *convert_hashes_to_columns(
 {
   int32_t i, j, k;
   val_t *row;
-  exp_t *e;
   len_t *hcm; /* hash-to-column map */
   uint64_t nterms = 0;
 
@@ -46,43 +45,39 @@ static len_t *convert_hashes_to_columns(
    * have in the local hash table since we do not which of
    * them are corresponding to multipliers and which are
    * corresponding to the multiplied terms in reducers. */
-  hcm = (len_t *)malloc((unsigned long)(elload/HASH_LEN) * sizeof(len_t));
-
-  for (i = 0, k = 0; i < nrows; ++i) {
-    row     =   mat[i];
-    nterms  +=  (uint64_t)row[0];
-    /* first monomial is special: gives us all known pivots */
-    (evl + row[2])[HASH_IND]  = 2;
-    for (j = 4; j < row[0]; j += 2) {
-      e = evl + row[j];
-      if (e[HASH_IND]) {
-        continue;
+  hcm = (len_t *)malloc((unsigned long)nc * sizeof(len_t));
+  /* j counts all columns, k counts known pivots */
+  for (j = 0, k = 0, i = HASH_LEN; i < elload; i += HASH_LEN) {
+    if ((evl+i)[HASH_IND] != 0) {
+      hcm[j++]  = i;
+      if ((evl+i)[HASH_IND] == 2) {
+        k++;
       }
-      e[HASH_IND] = 1;
-      hcm[k++]    = row[j];
     }
   }
-  hcm = realloc(hcm, (unsigned long)k * sizeof(len_t));
+  printf("hcm: ");
+  for (int32_t l = 0; l < j; ++l) {
+    printf("%d ", hcm[l]);
+  }
+  printf("\n");
 
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
-  qsort(hcm, (unsigned long)k, sizeof(len_t), hcm_cmp);
+  qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
   
-  /* get number of known pivots, i.e. number of upper rows and number of
-   * left columns in ABCD splicing of GBLA matrix. moreover, from this
-   * information we can also compute the number of lower rows and the
-   * number of right columns */
-  j = 0;
-  while ((evl+hcm[j])[HASH_IND] == 2) {
-    j++;
+  printf("hcm sorted: ");
+  for (int32_t l = 0; l < j; ++l) {
+    printf("%d ", hcm[l]);
   }
+  printf("\n");
+
   /* set number of rows and columns in ABCD splicing */
-  nru = ncl = j;
+  nru = ncl = k;
   nrl = nrows - nru;
-  ncr = k - ncl;
+  ncr = j - ncl;
   nc  = ncl + ncr;
 
   /* store the other direction (hash -> column) in HASH_IND */
-  for (i = 0; i < k; ++i) {
+  for (i = 0; i < j; ++i) {
     (evl + hcm[i])[HASH_IND]  = i;
   }
   
@@ -97,8 +92,8 @@ static len_t *convert_hashes_to_columns(
   /* next we sort each row by the new colum order due
    * to known / unkown pivots */
 #pragma omp parallel for num_threads(nthrds)
-  for (int32_t l = 0; l < nrows; ++l) {
-    qsort(mat[l]+2, (unsigned long)(mat[l][0]-2)/2, 2 * sizeof(val_t),
+  for (i = 0; i < nrows; ++i) {
+    qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
         columns_cmp);
   }
   /* compute density of matrix */

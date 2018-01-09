@@ -115,21 +115,36 @@ static len_t *convert_hashes_to_columns(
 
 static val_t **convert_columns_to_hashes(
     val_t **mat,
-    len_t *hcm
+    const len_t *hcm
     )
 {
-  int32_t i, j, k;
+  int32_t i, j;
+  val_t *row;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
   ct0 = cputime();
   rt0 = realtime();
 
-  /* TODO */
+  for (i = 0; i < nrows; ++i) {
+    row = mat[i];
+    for (j = 2; j < row[1]; j += 2) {
+      row[j]  = hcm[row[j]];
+    }
+    /* loop unrolling, UNROLL = 4 */
+    for (; j < row[0]; j += 8) {
+      row[j]    = hcm[row[j]];
+      row[j+2]  = hcm[row[j+2]];
+      row[j+4]  = hcm[row[j+4]];
+      row[j+6]  = hcm[row[j+6]];
+    }
+  }
 
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
   convert_ctime +=  ct1 - ct0;
   convert_rtime +=  rt1 - rt0;
+
+  return mat;
 }

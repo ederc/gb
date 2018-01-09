@@ -222,7 +222,11 @@ static val_t **symbolic_preprocessing(
 
   /* mark leading monomials in HASH_IND entry */
   for (i = 0; i < nrows; ++i) {
-    (evl + mat[i][2])[HASH_IND] = 2;
+    e = evl + mat[i][2];
+    if (!e[HASH_IND]) {
+      e[HASH_IND] = 2;
+      nc++;
+    }
   }
 
   /* get reducers from basis */

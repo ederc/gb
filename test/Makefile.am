@@ -29,6 +29,7 @@ TESTS = 											\
 	test_normalize_row					\
 	test_julia_io								\
 	test_pairset_update					\
-	test_select_spairs
+	test_select_spairs					\
+	test_f4
 
 check_PROGRAMS = $(TESTS)

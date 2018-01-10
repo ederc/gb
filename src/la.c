@@ -165,8 +165,9 @@ static val_t **sparse_linear_algebra(
 
   npivs = 0; /* number of new pivots */
 
+  mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (nc-1); i > ncl+1; ++i) {
+  for (i = (nc-1); i >= ncl; --i) {
     if (pivs[i]) {
       memset(dr, 0, (unsigned long)nc * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {

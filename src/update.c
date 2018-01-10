@@ -63,11 +63,11 @@ static void insert_and_update_spairs(
 
   check_enlarge_pairset(bload);
 
-  bs[bload] = nelt;
   /* move exponents to global hash table */
   for (i = 2; i < nelt[0]; i = i+2) {
     nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
   }
+  bs[bload] = nelt;
 
   /* create all possible new pairs */
   for (i = 0, k = pload; i < bload; ++i, ++k) {

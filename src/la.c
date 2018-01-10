@@ -73,6 +73,7 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
       dr[pivs[i][j+4]]  +=  mul * pivs[i][j+5];
       dr[pivs[i][j+6]]  +=  mul * pivs[i][j+7];
     }
+    dr[i] = 0;
   }
   if (k == 0) {
     return NULL;
@@ -117,21 +118,20 @@ static val_t **sparse_linear_algebra(
   rt0 = realtime();
 
   /* all pivots, first we can only fill in all known lead terms */
-  val_t **pivs  = (val_t **)calloc((unsigned long)nrows, sizeof(val_t *));
+  val_t **pivs  = (val_t **)calloc((unsigned long)nc, sizeof(val_t *));
   /* unkown pivot rows we have to reduce with the known pivots first */
   val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
 
   i = 0;
   j = 1;
-  while (i < nrows) {
+  for (i = 0; i < nrows; ++i) {
     if (!pivs[mat[i][2]]) {
       pivs[mat[i][2]] = mat[i];
     } else {
       /* shorter rows first */
-      pivs[nru-j] = mat[i];
+      upivs[nrl-j]  = mat[i];
       j++;
     }
-    i++;
   }
 
   free(mat);
@@ -153,7 +153,7 @@ static val_t **sparse_linear_algebra(
       if (!npiv) {
         break;
       }
-      j = compare_and_swap(pivs[npiv[2]], 0, npiv[2]);
+      j = compare_and_swap((void *)(&pivs[npiv[2]]), 0, (long)npiv);
     } while (j);
   }
 

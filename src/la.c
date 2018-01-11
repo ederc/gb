@@ -48,7 +48,7 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
 {
   int32_t i, j, k;
 
-  for (k = 0, i = dpiv; i < nc; ++i) {
+  for (k = 0, i = dpiv; i < ncols; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % fc;
     }
@@ -82,9 +82,9 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
   val_t *row  = (val_t *)malloc(
-      (unsigned long)(2*(nc-dpiv)+2) * sizeof(val_t));
+      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(val_t));
   j = 2;
-  for (i = dpiv; i < nc; ++i) {
+  for (i = dpiv; i < ncols; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % fc;
       if (dr[i] != 0) {
@@ -118,7 +118,7 @@ static val_t **sparse_linear_algebra(
   rt0 = realtime();
 
   /* all pivots, first we can only fill in all known lead terms */
-  val_t **pivs  = (val_t **)calloc((unsigned long)nc, sizeof(val_t *));
+  val_t **pivs  = (val_t **)calloc((unsigned long)ncols, sizeof(val_t *));
   /* unkown pivot rows we have to reduce with the known pivots first */
   val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
 
@@ -136,11 +136,11 @@ static val_t **sparse_linear_algebra(
 
   free(mat);
   mat = NULL;
-  int64_t *dr = (int64_t *)malloc((unsigned long)nc * sizeof(int64_t));
+  int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
 #pragma omp parallel for num_threads(nthrds) private(dr)
   for (i = 0; i < nrl; ++i) {
     /* load next row to dense format for further reduction */
-    memset(dr, 0, (unsigned long)nc * sizeof(int64_t));
+    memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
     for (j = 2; j < upivs[i][0]; j += 2) {
       dr[upivs[i][j]] = (int64_t)upivs[i][j+1];
     }
@@ -167,9 +167,9 @@ static val_t **sparse_linear_algebra(
 
   mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (nc-1); i >= ncl; --i) {
+  for (i = (ncols-1); i >= ncl; --i) {
     if (pivs[i]) {
-      memset(dr, 0, (unsigned long)nc * sizeof(int64_t));
+      memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {
         dr[pivs[i][j]] = (int64_t)pivs[i][j+1];
       }

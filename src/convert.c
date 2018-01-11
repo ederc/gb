@@ -45,7 +45,7 @@ static len_t *convert_hashes_to_columns(
    * have in the local hash table since we do not which of
    * them are corresponding to multipliers and which are
    * corresponding to the multiplied terms in reducers. */
-  hcm = (len_t *)malloc((unsigned long)nc * sizeof(len_t));
+  hcm = (len_t *)malloc((unsigned long)ncols * sizeof(len_t));
   /* j counts all columns, k counts known pivots */
   for (j = 0, k = 0, i = HASH_LEN; i < elload; i += HASH_LEN) {
     if ((evl+i)[HASH_IND] != 0) {
@@ -74,7 +74,6 @@ static len_t *convert_hashes_to_columns(
   nru = ncl = k;
   nrl = nrows - nru;
   ncr = j - ncl;
-  nc  = ncl + ncr;
 
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < j; ++i) {

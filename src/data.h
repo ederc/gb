@@ -78,12 +78,11 @@ static const long bmask = ~(long)1; /* maSking redundant elements */
 
 /* matrix data */
 static int32_t nrall  = 0; /* allocated rows for matrix */
+static int32_t npivs  = 0; /* new pivots in the current round */
 static int32_t nrows  = 0; /* rows used in the current round */
 static int32_t ncols  = 0; /* columns used in the current round */
-static int32_t npivs  = 0; /* new pivots in the current round */
 static int32_t nru    = 0; /* number of upper rows (in ABCD splicing) */
 static int32_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
-static int32_t nc     = 0; /* number of columns(in ABCD splicing) */
 static int32_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
 static int32_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
 

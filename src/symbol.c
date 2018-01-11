@@ -35,7 +35,7 @@ static inline val_t **generate_matrix_from_spair_selection(
   val_t **mat = (val_t **)malloc(2 * (unsigned long)nr * sizeof(val_t *));
   nrall = 2 * nr;
   nrows = nr;
-  nc    = ncl = ncr = 0;
+  ncols = ncl = ncr = 0;
 
   for (i = 0; i < nr; ++i) {
     b       = (val_t *)((long)bs[gens[i]] & bmask);
@@ -225,7 +225,7 @@ static val_t **symbolic_preprocessing(
     e = evl + mat[i][2];
     if (!e[HASH_IND]) {
       e[HASH_IND] = 2;
-      nc++;
+      ncols++;
     }
   }
 
@@ -237,7 +237,7 @@ static val_t **symbolic_preprocessing(
       if (e[HASH_IND]) {
         continue;
       }
-      nc++;
+      ncols++;
       e[HASH_IND] = 1;
       red = find_multiplied_reducer(mat[i][j]);
       if (!red) {

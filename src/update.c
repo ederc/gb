@@ -39,6 +39,7 @@ static inline void check_enlarge_pairset(
   if (pload+added >= psize) {
     psize = psize*2 > pload+added ? psize*2 : pload+added;
     ps    = realloc(ps, (unsigned long)psize * sizeof(spair_t));
+    memset(ps+pload, 0, (unsigned long)(psize-pload) * sizeof(spair_t));
   }
 }
 

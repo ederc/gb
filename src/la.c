@@ -109,8 +109,8 @@ static val_t **sparse_linear_algebra(
     )
 {
   int32_t i, j;
-  val_t sc  = 0; /* starting column */
-  val_t *npiv; /* new pivot row */
+  val_t sc  = 0;  /* starting column */
+  val_t *npiv;    /* new pivot row */
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -136,7 +136,9 @@ static val_t **sparse_linear_algebra(
 
   free(mat);
   mat = NULL;
-  int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
+  /* we need to allocate dr statically for openmp */
+  int64_t dr[ncols];
+  /* int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t)); */
 #pragma omp parallel for num_threads(nthrds) private(dr)
   for (i = 0; i < nrl; ++i) {
     /* load next row to dense format for further reduction */
@@ -193,8 +195,6 @@ static val_t **sparse_linear_algebra(
 
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
   nrows = nrall = npivs;
-
-  free(dr);
 
   /* timings */
   ct1 = cputime();

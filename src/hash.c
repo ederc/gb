@@ -103,11 +103,11 @@ static void initialize_global_hash_table(
   /* generate map */
   nvars = nr_vars;
   fc    = field_char;
-  bpv   = (CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars;
+  bpv   = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
   if (bpv == 0)
     bpv++;
   ndvars  = (unsigned long)nvars < (CHAR_BIT * sizeof(sdm_t)) ?
-    nvars : (CHAR_BIT * sizeof(sdm_t));
+    nvars : (len_t)((CHAR_BIT * sizeof(sdm_t)));
   msize = (len_t)pow(2, ht_size);
   map   = calloc((unsigned long)msize, sizeof(len_t));
 

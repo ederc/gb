@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS	=	-I m4
 
 AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wpointer-arith -Wcast-align -Wstrict-prototypes \
-						-Wmissing-prototypes -Wstrict-overflow=5 -Wwrite-strings \
+						-Wmissing-prototypes -Wstrict-overflow=1 -Wwrite-strings \
 						-Waggregate-return -Wswitch-default \
 						-Wswitch-enum -Wconversion -Wunreachable-code \
 						-Wno-unused-result -save-temps -fverbose-asm -masm=intel \

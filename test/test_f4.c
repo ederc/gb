@@ -22,6 +22,9 @@ int main(
   const int32_t field_char  = 101;
 
   val_t **mat;
+
+  nthrds  = 1;
+  laopt   = 1;
   
   /* initialize stuff */
   initialize_basis(nr_gens);

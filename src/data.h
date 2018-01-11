@@ -129,6 +129,8 @@ int32_t *f4_julia(
     const int32_t field_char,
     const int32_t nr_vars,
     const int32_t nr_gens,
-    const int32_t ht_size
+    const int32_t ht_size,
+    const int32_t nr_threads,
+    const int32_t la_option
     );
 #endif

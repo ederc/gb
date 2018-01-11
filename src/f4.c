@@ -36,7 +36,9 @@ int32_t *f4_julia(
     const int32_t field_char,
     const int32_t nr_vars,
     const int32_t nr_gens,
-    const int32_t ht_size
+    const int32_t ht_size,
+    const int32_t nr_threads,
+    const int32_t la_option
     )
 {
   int32_t i, hts_safe, round;
@@ -52,11 +54,26 @@ int32_t *f4_julia(
     return NULL;
   }
 
+  /* set hash table size */
   hts_safe  = ht_size;
-  if (hts_safe == 0) {
+  if (hts_safe <= 0) {
     hts_safe  = 12;
   }
-  
+
+  /* set number of threads */
+  if (nr_threads <= 0) {
+    nthrds  = 1;
+  } else {
+    nthrds  = nr_threads;
+  }
+
+  /* set linear algebra option */
+  if (la_option <= 0) {
+    laopt = 1;
+  } else {
+    laopt = la_option;
+  }
+
   /* initialize stuff */
   initialize_statistics();
 

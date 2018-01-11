@@ -128,6 +128,9 @@ int32_t *f4_julia(
     hcm = NULL;
 
     update_basis(mat);
+
+    free(mat);
+    mat = NULL;
   }
 
   /* free and clean up */

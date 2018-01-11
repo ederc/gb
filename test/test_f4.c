@@ -108,6 +108,25 @@ int main(
       printf("\n");
     }
     update_basis(mat);
+
+    free(mat);
+    mat = NULL;
+  }
+
+  printf("basis:\n");
+  for (i = 0; i < bload; ++i) {
+    if ((long)bs[i] & bred) {
+      continue;
+    } else {
+      for (j = 2; j < bs[i][0]; j += 2) {
+        printf("%d ", bs[i][j+1]);
+        for (k = 0; k < nvars; ++k) {
+          printf("%d", (ev+bs[i][j])[k]);
+        }
+        printf(" | ");
+      }
+      printf("\n");
+    }
   }
 
   /* free and clean up */
@@ -117,7 +136,6 @@ int main(
   /* note that all rows kept from mat during the overall computation are
    * basis elements and thus we do not need to free the rows itself, but
    * just the matrix structure */
-  free(mat);
   free_basis();
 
   return 0;

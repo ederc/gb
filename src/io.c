@@ -126,7 +126,7 @@ static int32_t *export_julia_data(
     void
     )
 {
-  int32_t i, j, k, ctr;
+  int32_t i, j, k, ctr_lengths, ctr_elements;
 
   uint64_t len  = 0; /* complete length of exported array */
   uint64_t nb   = 0; /* # elemnts in basis */
@@ -164,20 +164,21 @@ static int32_t *export_julia_data(
     return NULL;
   }
 
-  ctr = 0;
+  ctr_lengths   = 2;
+  ctr_elements  = (int32_t)nb + 1 + 1;
 
-  basis[ctr++]  = (int32_t)len;
-  basis[ctr++]  = (int32_t)nb;
+  basis[0]  = (int32_t)len;
+  basis[1]  = (int32_t)nb;
   for (i = 0; i < bload; ++i) {
     if ((long)bs[i] & bred) {
       continue;
     } else {
       /* length of polynomial including this length entry itself */
-      basis[ctr++]  = (bs[i][0]-2)/2 * lterm + 1;
+      basis[ctr_lengths++]  = (bs[i][0]-2)/2 * lterm + 1;
       for (j = 2; j < bs[i][0]; j += 2) {
-        basis[ctr++]  = bs[i][j+1]; /* coefficient */
+        basis[ctr_elements++] = bs[i][j+1]; /* coefficient */
         for (k = 0; k < nvars; ++k) {
-          basis[ctr++]  = (ev + bs[i][j])[k];
+          basis[ctr_elements++] = (ev + bs[i][j])[k];
         }
       }
     }

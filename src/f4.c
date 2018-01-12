@@ -133,6 +133,8 @@ int32_t *f4_julia(
     mat = NULL;
   }
 
+  int32_t *basis  = export_julia_data();
+
   /* free and clean up */
   free_local_hash_table();
   free_global_hash_table();
@@ -143,5 +145,5 @@ int32_t *f4_julia(
   free(mat);
   free_basis();
 
-  return mat[0];
+  return basis;
 }

@@ -17,19 +17,25 @@ int main(
   const int32_t nr_gens     = 3;
   const int32_t ht_size     = 12;
   const int32_t field_char  = 101;
+  const int32_t nr_threads  = 2;
+  const int32_t la_option   = 1;
 
+  if (check_and_set_meta_data(lens, cfs, exps, field_char, nr_vars,
+      nr_gens, ht_size, nr_threads, la_option)) {
+    return 1;
+  }
   val_t **mat;
   
   /* initialize stuff */
   initialize_basis(nr_gens);
-  initialize_global_hash_table(nr_vars, ht_size, field_char);
+  initialize_global_hash_table();
   if (fc != field_char) {
     return 1;
   }
   if (nvars != nr_vars) {
     return 1;
   }
-  initialize_local_hash_table(ht_size);
+  initialize_local_hash_table();
   if (mlsize != msize) {
     return 1;
   }

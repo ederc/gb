@@ -44,6 +44,7 @@
 /* The idea of the structure of the hash table is taken from an
  * implementation by Roman Pearce and Michael Monagan in Maple. */
 
+static len_t htes   = 0;  /* hash table exponent at start */
 static len_t nvars  = 0; /* number of variables */
 static len_t bpv    = 0; /* bits per variable in divmask */
 static len_t ndvars = 0; /* number of variables for divmask */
@@ -93,22 +94,17 @@ static val_t pseudo_random_number_generator(
 }
 
 static void initialize_global_hash_table(
-    len_t nr_vars,
-    len_t ht_size,
-    val_t field_char
     )
 {
   int32_t i;
 
   /* generate map */
-  nvars = nr_vars;
-  fc    = field_char;
   bpv   = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
   if (bpv == 0)
     bpv++;
   ndvars  = (unsigned long)nvars < (CHAR_BIT * sizeof(sdm_t)) ?
     nvars : (len_t)((CHAR_BIT * sizeof(sdm_t)));
-  msize = (len_t)pow(2, ht_size);
+  msize = (len_t)pow(2, htes);
   map   = calloc((unsigned long)msize, sizeof(len_t));
 
   /* generate divmask map */
@@ -128,11 +124,10 @@ static void initialize_global_hash_table(
 }
 
 static void initialize_local_hash_table(
-    len_t ht_size
     )
 {
   /* generate map */
-  mlsize  = (len_t)pow(2, ht_size);
+  mlsize  = (len_t)pow(2, htes);
   mapl    = calloc((unsigned long)mlsize, sizeof(len_t));
 
   /* generate exponent vector */

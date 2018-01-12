@@ -8,7 +8,11 @@ int main(
     )
 {
   /* initialize stuff */
-  initialize_global_hash_table(34, 4, 101);
+  nvars = 34;
+  fc    = 101;
+  htes  = 4;
+
+  initialize_global_hash_table();
   if (fc != 101) {
     return 1;
   }
@@ -24,7 +28,7 @@ int main(
   if (eload != HASH_LEN) {
     return 1;
   }
-  initialize_local_hash_table(4);
+  initialize_local_hash_table();
   if (mlsize != msize) {
     return 1;
   }

@@ -20,25 +20,20 @@ int main(
   const int32_t nr_gens     = 3;
   const int32_t ht_size     = 12;
   const int32_t field_char  = 101;
+  const int32_t nr_threads  = 1;
+  const int32_t la_option   = 1;
+
+  if (check_and_set_meta_data(lens, cfs, exps, field_char, nr_vars,
+      nr_gens, ht_size, nr_threads, la_option)) {
+    return 1;
+  }
 
   val_t **mat;
-
-  nthrds  = 1;
-  laopt   = 1;
   
   /* initialize stuff */
   initialize_basis(nr_gens);
-  initialize_global_hash_table(nr_vars, ht_size, field_char);
-  if (fc != field_char) {
-    return 1;
-  }
-  if (nvars != nr_vars) {
-    return 1;
-  }
-  initialize_local_hash_table(ht_size);
-  if (mlsize != msize) {
-    return 1;
-  }
+  initialize_global_hash_table();
+  initialize_local_hash_table();
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
 
@@ -113,21 +108,24 @@ int main(
     mat = NULL;
   }
 
-  printf("basis:\n");
-  for (i = 0; i < bload; ++i) {
-    if ((long)bs[i] & bred) {
-      continue;
-    } else {
-      for (j = 2; j < bs[i][0]; j += 2) {
-        printf("%d ", bs[i][j+1]);
-        for (k = 0; k < nvars; ++k) {
-          printf("%d", (ev+bs[i][j])[k]);
-        }
-        printf(" | ");
-      }
-      printf("\n");
-    }
-  }
+  int32_t *test = export_julia_data();
+  free(test);
+  test = NULL;
+  /* printf("basis:\n");
+   * for (i = 0; i < bload; ++i) {
+   *   if ((long)bs[i] & bred) {
+   *     continue;
+   *   } else {
+   *     for (j = 2; j < bs[i][0]; j += 2) {
+   *       printf("%d ", bs[i][j+1]);
+   *       for (k = 0; k < nvars; ++k) {
+   *         printf("%d", (ev+bs[i][j])[k]);
+   *       }
+   *       printf(" | ");
+   *     }
+   *     printf("\n");
+   *   }
+   * } */
 
   /* free and clean up */
   free_local_hash_table();

@@ -22,6 +22,72 @@
 
 #include "data.h"
 
+static inline void set_function_pointers(
+    void
+    )
+{
+  /* todo: this needs to be generalized for different monomial orders */
+  monomial_cmp  = monomial_cmp_drl;
+  hcm_cmp       = hcm_cmp_pivots_drl;
+  select_spairs = select_spairs_by_minimal_degree;
+
+  /* todo: linear algebra routines, depending on bit size of prime */
+  if (fc < pow(2, 16)) {
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
+  } else {
+    /* TODO: 32 bit implementation */
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
+  }
+}
+
+static inline int32_t check_and_set_meta_data(
+    const int32_t *lens,
+    const int32_t *cfs,
+    const int32_t *exps,
+    const int32_t field_char,
+    const int32_t nr_vars,
+    const int32_t nr_gens,
+    const int32_t ht_size,
+    const int32_t nr_threads,
+    const int32_t la_option
+    )
+{
+  if (nr_gens <= 0
+    || nr_vars <= 0
+    || field_char <= 0
+    || lens == NULL
+    || cfs == NULL
+    || exps == NULL) {
+    return 1;
+  }
+
+  nvars = nr_vars;
+  /* TODO: add prime check */
+  fc    = field_char;
+  /* set hash table size */
+  htes  = ht_size;
+  if (htes <= 0) {
+    htes  = 12;
+  }
+
+  /* set number of threads */
+  if (nr_threads <= 0) {
+    nthrds  = 1;
+  } else {
+    nthrds  = nr_threads;
+  }
+
+  /* set linear algebra option */
+  if (la_option <= 0) {
+    laopt = 1;
+  } else {
+    laopt = la_option;
+  }
+
+  set_function_pointers();
+
+  return 0;
+}
 
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
@@ -52,19 +118,6 @@ static val_t **import_julia_data(
     off +=  lens[i];
   }
   npivs = nrows = nrall = nr_gens;
-
-  /* todo: this needs to be generalized for different monomial orders */
-  monomial_cmp  = monomial_cmp_drl;
-  hcm_cmp       = hcm_cmp_pivots_drl;
-  select_spairs = select_spairs_by_minimal_degree;
-
-  /* todo: linear algebra routines, depending on bit size of prime */
-  if (fc < pow(2, 16)) {
-    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
-  } else {
-    /* TODO: 32 bit implementation */
-    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
-  }
 
   return mat;
 }

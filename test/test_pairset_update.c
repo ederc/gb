@@ -17,14 +17,21 @@ int main(
   const int32_t nr_gens     = 3;
   const int32_t ht_size     = 12;
   const int32_t field_char  = 101;
+  const int32_t nr_threads  = 2;
+  const int32_t la_option   = 1;
+
+  if (check_and_set_meta_data(lens, cfs, exps, field_char, nr_vars,
+      nr_gens, ht_size, nr_threads, la_option)) {
+    return 1;
+  }
 
   val_t **mat;
   
   /* initialize stuff */
   initialize_basis(nr_gens);
   initialize_pairset();
-  initialize_global_hash_table(nr_vars, ht_size, field_char);
-  initialize_local_hash_table(ht_size);
+  initialize_global_hash_table();
+  initialize_local_hash_table();
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
   calculate_divmask();

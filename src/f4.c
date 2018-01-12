@@ -41,37 +41,15 @@ int32_t *f4_julia(
     const int32_t la_option
     )
 {
-  int32_t i, hts_safe, round;
+  int32_t i, round;
   val_t **mat;
   len_t *hcm; /* hash-column-map */
 
-  if (nr_gens == 0
-    || nr_vars == 0
-    || field_char == 0
-    || lens == NULL
-    || cfs == NULL
-    || exps == NULL) {
+  /* checks and set all meta data. if a nonzero value is returned then
+   * some of the input data is corrupted. */
+  if (check_and_set_meta_data(lens, cfs, exps, field_char, nr_vars,
+      nr_gens, ht_size, nr_threads, la_option)) {
     return NULL;
-  }
-
-  /* set hash table size */
-  hts_safe  = ht_size;
-  if (hts_safe <= 0) {
-    hts_safe  = 12;
-  }
-
-  /* set number of threads */
-  if (nr_threads <= 0) {
-    nthrds  = 1;
-  } else {
-    nthrds  = nr_threads;
-  }
-
-  /* set linear algebra option */
-  if (la_option <= 0) {
-    laopt = 1;
-  } else {
-    laopt = la_option;
   }
 
   /* initialize stuff */
@@ -79,8 +57,8 @@ int32_t *f4_julia(
 
   initialize_basis(nr_gens);
   initialize_pairset();
-  initialize_global_hash_table(nr_vars, hts_safe, field_char);
-  initialize_local_hash_table(hts_safe);
+  initialize_global_hash_table();
+  initialize_local_hash_table();
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
 

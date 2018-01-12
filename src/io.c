@@ -138,16 +138,18 @@ static int32_t *export_julia_data(
     if ((long)bs[i] & bred) {
       continue;
     } else {
-      len +=  (bs[i][0]-2)/2;
+      len +=  (uint64_t)((bs[i][0]-2)/2);
       nb++;
     }
   }
 
   /* compute the length considering the number of variables per exponent */
-  len = len * lterm;
+  len = len * (uint64_t)lterm;
   /* add storage for length of each element */
   len = len + nb;
   /* add storage for length of complete array */
+  len++;
+  /* add storage for number of generators in basis */
   len++;
 
   int32_t *basis  = (int32_t *)malloc(len * sizeof(int32_t));
@@ -157,9 +159,15 @@ static int32_t *export_julia_data(
     return NULL;
   }
 
+  if (nb > (uint64_t)(pow(2, 31))) {
+    printf("basis too big\n");
+    return NULL;
+  }
+
   ctr = 0;
 
   basis[ctr++]  = (int32_t)len;
+  basis[ctr++]  = (int32_t)nb;
   for (i = 0; i < bload; ++i) {
     if ((long)bs[i] & bred) {
       continue;
@@ -175,7 +183,7 @@ static int32_t *export_julia_data(
     }
   }
 
-  for (i = 0; i < len; ++i) {
+  for (i = 0; i < basis[0]; ++i) {
     printf("%d ", basis[i]);
   }
   printf("\n");

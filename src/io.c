@@ -66,12 +66,66 @@ static val_t **import_julia_data(
     reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
   }
 
-  /* todo: need to set the option which linear algebra routine should
-   *       be used in the f4 algorithm */
-  laopt = 1;
-
-  /* todo: need to set number of threads */
-  nthrds  = 1;
-
   return mat;
+}
+
+static int32_t *export_julia_data(
+    void
+    )
+{
+  int32_t i, j, k, ctr;
+
+  uint64_t len  = 0; /* complete length of exported array */
+  uint64_t nb   = 0; /* # elemnts in basis */
+
+  const int32_t lterm = 1 + nvars; /* length of a term */
+
+  /* compute number of terms */
+  for (i = 0; i < bload; ++i) {
+    if ((long)bs[i] & bred) {
+      continue;
+    } else {
+      len +=  (bs[i][0]-2)/2;
+      nb++;
+    }
+  }
+
+  /* compute the length considering the number of variables per exponent */
+  len = len * lterm;
+  /* add storage for length of each element */
+  len = len + nb;
+  /* add storage for length of complete array */
+  len++;
+
+  int32_t *basis  = (int32_t *)malloc(len * sizeof(int32_t));
+
+  if (len > (uint64_t)(pow(2, 31))) {
+    printf("basis too big\n");
+    return NULL;
+  }
+
+  ctr = 0;
+
+  basis[ctr++]  = (int32_t)len;
+  for (i = 0; i < bload; ++i) {
+    if ((long)bs[i] & bred) {
+      continue;
+    } else {
+      /* length of polynomial including this length entry itself */
+      basis[ctr++]  = (bs[i][0]-2)/2 * lterm + 1;
+      for (j = 2; j < bs[i][0]; j += 2) {
+        basis[ctr++]  = bs[i][j+1]; /* coefficient */
+        for (k = 0; k < nvars; ++k) {
+          basis[ctr++]  = (ev + bs[i][j])[k];
+        }
+      }
+    }
+  }
+
+  for (i = 0; i < len; ++i) {
+    printf("%d ", basis[i]);
+  }
+  printf("\n");
+
+  return basis;
 }

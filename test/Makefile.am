@@ -27,9 +27,14 @@ TESTS = 											\
 	test_free_hash_table 				\
 	test_divmask								\
 	test_normalize_row					\
+	test_input_meta_data				\
+	xtest_input_meta_data				\
 	test_julia_io								\
 	test_pairset_update					\
 	test_select_spairs					\
 	test_f4
 
-check_PROGRAMS = $(TESTS)
+XFAIL_TESTS = 								\
+	xtest_input_meta_data
+
+check_PROGRAMS = $(TESTS) $(XFAIL_TESTS)

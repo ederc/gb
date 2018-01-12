@@ -139,7 +139,7 @@ int main(
 
   int32_t *test = export_julia_data();
 
-  int32_t val[13] = {13, 2, 7, 4, 1, 1, 0, 1, 0, 1, 1, 0, 1};
+  int32_t val[13] = {13, 2, 6, 3, 1, 1, 0, 1, 0, 1, 1, 0, 1};
 
   int32_t failure = 0;
   for (i = 0; i < val[0]; ++i) {

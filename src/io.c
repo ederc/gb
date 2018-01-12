@@ -174,7 +174,7 @@ static int32_t *export_julia_data(
       continue;
     } else {
       /* length of polynomial including this length entry itself */
-      basis[ctr_lengths++]  = (bs[i][0]-2)/2 * lterm + 1;
+      basis[ctr_lengths++]  = (bs[i][0]-2)/2 * lterm;
       for (j = 2; j < bs[i][0]; j += 2) {
         basis[ctr_elements++] = bs[i][j+1]; /* coefficient */
         for (k = 0; k < nvars; ++k) {

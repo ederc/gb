@@ -71,10 +71,39 @@ int main(
     /* preprocess data for next reduction round */
     mat = select_spairs();
     mat = symbolic_preprocessing(mat);
+    printf("before conversion\n");
+    for (int32_t l = 0; l < nrows; ++l) {
+      for (int32_t m = 0; m < mat[l][0]; ++m) {
+        printf("%d ", mat[l][m]);
+        if (m > 0 && m % 2 == 0) {
+          printf("(");
+          for (int32_t o = 0; o < nvars; ++o) {
+            printf("%d", (evl+mat[l][m])[o]);
+          }
+          printf(",%d)  ",(evl+mat[l][m])[HASH_IND]);
+        }
+
+      }
+      printf("\n");
+    }
     /* exponent hashes mapped to column indices for linear algebra */
     hcm = convert_hashes_to_columns(mat);
+    printf("after conversion\n");
+    for (int32_t l = 0; l < nrows; ++l) {
+      for (int32_t m = 0; m < mat[l][0]; ++m) {
+        printf("%d ", mat[l][m]);
+      }
+      printf("\n");
+    }
     /* sort matrix rows by decreasing pivots */
     mat = sort_matrix_rows(mat);
+    printf("after sorting\n");
+    for (int32_t l = 0; l < nrows; ++l) {
+      for (int32_t m = 0; m < mat[l][0]; ++m) {
+        printf("%d ", mat[l][m]);
+      }
+      printf("\n");
+    }
 
     /* here starts the linear algebra part depending on
      * the chosen options */
@@ -111,21 +140,6 @@ int main(
   int32_t *test = export_julia_data();
   free(test);
   test = NULL;
-  /* printf("basis:\n");
-   * for (i = 0; i < bload; ++i) {
-   *   if ((long)bs[i] & bred) {
-   *     continue;
-   *   } else {
-   *     for (j = 2; j < bs[i][0]; j += 2) {
-   *       printf("%d ", bs[i][j+1]);
-   *       for (k = 0; k < nvars; ++k) {
-   *         printf("%d", (ev+bs[i][j])[k]);
-   *       }
-   *       printf(" | ");
-   *     }
-   *     printf("\n");
-   *   }
-   * } */
 
   /* free and clean up */
   free_local_hash_table();

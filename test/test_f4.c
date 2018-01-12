@@ -138,6 +138,16 @@ int main(
   }
 
   int32_t *test = export_julia_data();
+
+  int32_t val[13] = {13, 2, 7, 1, 1, 0, 1, 0, 1, 4, 1, 0, 1};
+
+  int32_t failure = 0;
+  for (i = 0; i < val[0]; ++i) {
+    if (val[i] != test[i]) {
+      failure = 1;
+      break;
+    }
+  }
   free(test);
   test = NULL;
 
@@ -150,5 +160,5 @@ int main(
    * just the matrix structure */
   free_basis();
 
-  return 0;
+  return failure;
 }

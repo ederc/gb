@@ -93,7 +93,7 @@ static void insert_and_update_spairs(
   for (i = 0; i < pload; ++i) {
     j = ps[i].gen1;
     l = ps[i].gen2;
-    if (ps[i].lcm != ps[pload+k].lcm
+    if (ps[i].lcm != ps[pload+j].lcm
         && ps[i].lcm != ps[pload+l].lcm
         && check_monomial_division(ps[i].lcm, nelt[2])) {
       ps[i].deg = -1;

@@ -40,6 +40,9 @@ int main(
   /* for faster divisibility checks, needs to be done after we have
    * read some input data for applying heuristics */
   calculate_divmask();
+  /* sort initial elements, smallest lead term first */
+  qsort(mat, (unsigned long)nrows, sizeof(val_t *),
+      matrix_row_initial_input_cmp);
 
   /* normalize input generators */
   for (i = 0; i < nrows; ++i) {

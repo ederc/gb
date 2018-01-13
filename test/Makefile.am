@@ -32,7 +32,8 @@ TESTS = 											\
 	test_julia_io								\
 	test_pairset_update					\
 	test_select_spairs					\
-	test_f4
+	test_f4											\
+	test_cyclic_4
 
 XFAIL_TESTS = 								\
 	xtest_input_meta_data

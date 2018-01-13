@@ -66,6 +66,9 @@ int32_t *f4_julia(
    * read some input data for applying heuristics */
   calculate_divmask();
 
+  /* sort initial elements, smallest lead term first */
+  qsort(mat, (unsigned long)nrows, sizeof(val_t *),
+      matrix_row_initial_input_cmp);
   /* normalize input generators */
   for (i = 0; i < nrows; ++i) {
     normalize_matrix_row(mat[i]);

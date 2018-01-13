@@ -34,6 +34,42 @@ static int columns_cmp(
   return (int)(ca - cb);
 }
 
+static int matrix_row_initial_input_cmp_drl(
+    const void *a,
+    const void *b
+    )
+{
+  int32_t i;
+  val_t va, vb;
+
+  va  = ((val_t **)a)[0][2];
+  vb  = ((val_t **)b)[0][2];
+
+  const exp_t * const ea  = evl + va;
+  const exp_t * const eb  = evl + vb;
+
+  /* DRL */
+  if (ea[HASH_DEG] < eb[HASH_DEG]) {
+    return -1;
+  } else {
+    if (ea[HASH_DEG] != eb[HASH_DEG]) {
+      return 1;
+    }
+  }
+
+  /* note: reverse lexicographical */
+  for (i = nvars-1; i >= 0; --i) {
+    if (ea[i] < eb[i]) {
+      return -1;
+    } else {
+      if (ea[i] != eb[i]) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int matrix_row_cmp(
     const void *a,
     const void *b

@@ -35,6 +35,9 @@ int main(
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
   calculate_divmask();
+  /* sort initial elements, smallest lead term first */
+  qsort(mat, (unsigned long)nrows, sizeof(val_t *),
+      matrix_row_initial_input_cmp);
 
   for (i = 0; i < nrows; ++i) {
     normalize_matrix_row(mat[i]);
@@ -52,20 +55,20 @@ int main(
   if (ps[0].gen2 != 2) {
     return 1;
   }
-  if (ps[0].deg != 2) {
+  if (ps[0].deg != 3) {
     return 1;
   }
-
+  
   if (ps[1].gen1 != 1) {
     return 1;
   }
   if (ps[1].gen2 != 2) {
     return 1;
   }
-  if (ps[1].deg != 3) {
+  if (ps[1].deg != 2) {
     return 1;
   }
-  
+
   /* free and clean up */
   free_local_hash_table();
   free_global_hash_table();

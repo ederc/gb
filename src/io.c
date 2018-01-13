@@ -27,6 +27,8 @@ static inline void set_function_pointers(
     )
 {
   /* todo: this needs to be generalized for different monomial orders */
+  matrix_row_initial_input_cmp  =
+    matrix_row_initial_input_cmp_drl;
   monomial_cmp  = monomial_cmp_drl;
   hcm_cmp       = hcm_cmp_pivots_drl;
   select_spairs = select_spairs_by_minimal_degree;

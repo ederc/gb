@@ -98,6 +98,11 @@ static int32_t nthrds = 1; /* number of CPU threads */
 static int32_t laopt  = 0;
 
 /* function pointers */
+int (*matrix_row_initial_input_cmp)(
+    const void *a,
+    const void *b
+    );
+
 int (*monomial_cmp)(
     const len_t a,
     const len_t b

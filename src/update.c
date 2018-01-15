@@ -69,6 +69,15 @@ static void insert_and_update_spairs(
     nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
   }
   bs[bload] = nelt;
+  /* printf("element added to basis: ");
+   * for (int32_t o = 2; o < nelt[0]; o += 2) {
+   *   printf("%d ", nelt[o+1]);
+   *   for (int32_t p = 0; p < nvars; ++p) {
+   *     printf("%d",(ev+nelt[o])[p]);
+   *   }
+   *   printf(" | ");
+   * }
+   * printf("\n"); */
 
   /* create all possible new pairs */
   for (i = 0, k = pload; i < bload; ++i, ++k) {

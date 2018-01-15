@@ -603,19 +603,16 @@ static inline len_t monomial_division_with_check(
   const exp_t * const eb  = ev + b;
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
-    printf("raus 1\n");
     return 0;
   }
 
   /* degree check */
   if (ea[HASH_DEG] < eb[HASH_DEG]) {
-    printf("raus 2\n");
     return 0;
   }
 
   /* exponent check */
   if (ea[0] < eb[0]) {
-    printf("raus 3\n");
     return 0;
   }
 

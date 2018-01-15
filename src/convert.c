@@ -55,20 +55,20 @@ static len_t *convert_hashes_to_columns(
       }
     }
   }
-  printf("hcm: ");
-  for (int32_t l = 0; l < j; ++l) {
-    printf("%d ", hcm[l]);
-  }
-  printf("\n");
+  /* printf("hcm: ");
+   * for (int32_t l = 0; l < j; ++l) {
+   *   printf("%d ", hcm[l]);
+   * }
+   * printf("\n"); */
 
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
   qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
   
-  printf("hcm sorted: ");
-  for (int32_t l = 0; l < j; ++l) {
-    printf("%d ", hcm[l]);
-  }
-  printf("\n");
+  /* printf("hcm sorted: ");
+   * for (int32_t l = 0; l < j; ++l) {
+   *   printf("%d ", hcm[l]);
+   * }
+   * printf("\n"); */
 
   /* set number of rows and columns in ABCD splicing */
   nru = ncl = k;
@@ -122,10 +122,18 @@ static val_t **convert_columns_to_hashes(
   ct0 = cputime();
   rt0 = realtime();
 
+  /* printf("hcm for remapping: ");
+   * for (int32_t l = 0; l < ncols; ++l) {
+   *   printf("%d ", hcm[l]);
+   * }
+   * printf("\n"); */
+
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
     for (j = 2; j < row[1]; j += 2) {
+      /* printf("row[%d] = %d => ", j, row[j]);  */
       row[j]  = hcm[row[j]];
+      /* printf("%d\n", row[j]); */
     }
     /* loop unrolling, UNROLL = 4 */
     for (; j < row[0]; j += 8) {

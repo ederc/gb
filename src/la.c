@@ -59,6 +59,94 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
     )
 {
   int32_t i, j, k;
+  const uint64_t mod  = (uint64_t)fc;
+
+  for (k = 0, i = dpiv; i < ncols; ++i) {
+    if (dr[i] != 0) {
+      dr[i] = dr[i] % mod;
+    }
+    if (dr[i] == 0) {
+      continue;
+    }
+    if (pivs[i] == NULL) {
+      k++;
+      continue;
+    }
+
+    printf("dr before reduction with piv %d\n", i);
+    for (int32_t l = 0; l < ncols; ++l) {
+      printf("%ld ", dr[l]);
+    }
+    printf("\n");
+    /* found reducer row, get multiplier */
+    const uint64_t mul = mod - dr[i];
+    printf("mul %ld\n", mul);
+
+    for (j = 2; j < pivs[i][1]; j += 2) {
+      dr[pivs[i][j]]  +=  mul * (uint64_t)pivs[i][j+1];
+    }
+    /* UNROLL is set to be 4 in src/data.h */
+    for (; j < pivs[i][0]; j += 8) {
+      dr[pivs[i][j]]    +=  mul * (uint64_t)pivs[i][j+1];
+      dr[pivs[i][j+2]]  +=  mul * (uint64_t)pivs[i][j+3];
+      dr[pivs[i][j+4]]  +=  mul * (uint64_t)pivs[i][j+5];
+      dr[pivs[i][j+6]]  +=  mul * (uint64_t)pivs[i][j+7];
+    }
+    dr[i] = 0;
+    printf("dr after reduction with piv %d\n", i);
+    for (int32_t l = 0; l < ncols; ++l) {
+      printf("%ld ", dr[l]);
+    }
+    printf("\n");
+  }
+  printf("k %d\n", k);
+  if (k == 0) {
+    return NULL;
+  }
+
+  /* dense row is not reduced to zero, thus generate new sparse
+   * pivot row and normalize it */
+  val_t *row  = (val_t *)malloc(
+      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(val_t));
+  j = 2;
+  for (i = dpiv; i < ncols; ++i) {
+    if (dr[i] != 0) {
+      dr[i] = dr[i] % mod;
+      if (dr[i] != 0) {
+        row[j++]  = (val_t)i;
+        row[j++]  = (val_t)dr[i];
+      }
+    }
+  }
+  row[0]  = j;
+  row[1]  = 2 * (((j-2)/2) % UNROLL) + 2;
+  row     = realloc(row, (unsigned long)row[0] * sizeof(val_t));
+
+  for (int32_t l = 0; l < row[0]; ++l) {
+    printf("%2d ", row[l]);
+  }
+  printf("\n");
+
+  if (row[3] != 1) {
+    normalize_matrix_row(row);
+  }
+
+  for (int32_t l = 0; l < row[0]; ++l) {
+    printf("%2d ", row[l]);
+  }
+  printf("\n");
+
+  return row;
+}
+
+static val_t *reduce_dense_row_by_known_pivots_32_bit(
+    int64_t *dr,
+    val_t *const *pivs,
+    const val_t dpiv   /* pivot of dense row at the beginning */
+    )
+{
+  int32_t i, j, k;
+  const int64_t mod2  = (int64_t)fc * fc;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
     if (dr[i] != 0) {
@@ -73,17 +161,21 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
     }
 
     /* found reducer row, get multiplier */
-    const int64_t mul = (int64_t)(fc) - dr[i];
+    const int64_t mul = (int64_t)dr[i];
 
     for (j = 2; j < pivs[i][1]; j += 2) {
-      dr[pivs[i][j]]  +=  mul * pivs[i][j+1];
+      dr[pivs[i][j]]    -=  mul * pivs[i][j+1];
+      dr[pivs[i][j]]    +=  (dr[pivs[i][j]] >> 63) & mod2;
     }
-    /* UNROLL is set to be 4 in src/data.h */
     for (; j < pivs[i][0]; j += 8) {
-      dr[pivs[i][j]]    +=  mul * pivs[i][j+1];
-      dr[pivs[i][j+2]]  +=  mul * pivs[i][j+3];
-      dr[pivs[i][j+4]]  +=  mul * pivs[i][j+5];
-      dr[pivs[i][j+6]]  +=  mul * pivs[i][j+7];
+      dr[pivs[i][j]]    -=  mul * pivs[i][j+1];
+      dr[pivs[i][j]]    +=  (dr[pivs[i][j]] >> 63) & mod2;
+      dr[pivs[i][j+2]]  -=  mul * pivs[i][j+3];
+      dr[pivs[i][j+2]]  +=  (dr[pivs[i][j+2]] >> 63) & mod2;
+      dr[pivs[i][j+4]]  -=  mul * pivs[i][j+5];
+      dr[pivs[i][j+4]]  +=  (dr[pivs[i][j+4]] >> 63) & mod2;
+      dr[pivs[i][j+6]]  -=  mul * pivs[i][j+7];
+      dr[pivs[i][j+6]]  +=  (dr[pivs[i][j+6]] >> 63) & mod2;
     }
     dr[i] = 0;
   }
@@ -161,9 +253,14 @@ static val_t **sparse_linear_algebra(
     sc  = upivs[i][2];
     free(upivs[i]);
     upivs[i]  = NULL;
+    printf("sc %d: ", sc);
+    for (int32_t o = 0; o < ncols; ++o) {
+      printf("%ld ", dr[o]);
+    }
+    printf("\n");
     /* do the reduction */
     do {
-      npiv  = reduce_dense_row_by_known_pivots_16_bit(dr, pivs, sc);
+      npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
       if (!npiv) {
         break;
       }
@@ -199,12 +296,13 @@ static val_t **sparse_linear_algebra(
       sc  = pivs[i][2];
       free(pivs[i]);
       pivs[i] = NULL;
-      mat[npivs++] = reduce_dense_row_by_known_pivots_16_bit(dr, pivs, sc);
+      mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
     }
   }
   free(pivs);
   pivs  = NULL;
 
+  printf("NPIVS %d\n", npivs);
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
   nrows = nrall = npivs;
 

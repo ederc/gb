@@ -83,7 +83,7 @@ int32_t *f4_julia(
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
-    GB_DEBUG(MATDBG, "rd %3d", round);
+    GB_DEBUG(GBDBG, "rd %3d", round);
 
     /* preprocess data for next reduction round */
     mat = select_spairs();
@@ -112,6 +112,7 @@ int32_t *f4_julia(
 
     free(mat);
     mat = NULL;
+    GB_DEBUG(GBDBG, "\n");
   }
 
   int32_t *basis  = export_julia_data();

@@ -83,6 +83,7 @@ static len_t *convert_hashes_to_columns(
   /* map column positions to matrix rows */
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
+    nterms  +=  (uint64_t)row[0];
     for (j = 2; j < row[0]; j += 2) {
       row[j]  = (evl + row[j])[HASH_IND];
     }
@@ -103,6 +104,7 @@ static len_t *convert_hashes_to_columns(
   rt1 = realtime();
   convert_ctime +=  ct1 - ct0;
   convert_rtime +=  rt1 - rt0;
+  GB_DEBUG(SYMDBG, "\t %6d x %6d mat - %5.3f%%", nrows, ncols, density);
 
   return hcm;
 }

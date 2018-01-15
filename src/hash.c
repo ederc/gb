@@ -664,20 +664,20 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
 {
   int32_t i;
 
-  printf("mulitplied row: ");
+  /* printf("mulitplied row: "); */
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
   row[0]  = poly[0]; /* length */
   row[1]  = poly[1]; /* loop unroll offset */
   for (i = 2; i < poly[0]; i += 2) {
     row[i]    = monomial_multiplication(mult, poly[i]);
-    for (int32_t j = 0; j < nvars; ++j) {
-      printf("%d", (evl+row[i])[j]);
-    }
-    printf(" (%d)", row[i]);
-    printf(" ");
+    /* for (int32_t j = 0; j < nvars; ++j) {
+     *   printf("%d", (evl+row[i])[j]);
+     * }
+     * printf(" (%d)", row[i]);
+     * printf(" "); */
     row[i+1]  = poly[i+1];
   }
-  printf("\n");
+  /* printf("\n"); */
 
   return row;
 }

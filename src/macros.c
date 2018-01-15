@@ -24,9 +24,10 @@
  *       and michael monagans maple mgb implementation */
 
 /* debug macros */
+#define GBDBG   1 /* overall debugging */
 #define SYMDBG  1 /* symbolic preprocessing */
 #define SELDBG  1 /* spair selection */
-#define MATDBG  1 /* matrix / linear algebra*/
+#define LADBG   1 /* matrix / linear algebra*/
 #define UPDDBG  1 /* update process */
 #define TIMDBG  1 /* timings */
 

@@ -30,7 +30,7 @@ static inline void normalize_matrix_row(
 
   const int32_t inv = mod_p_inverse_32(row[3], fc);
   
-  for (i = 5; i < row[1]; i += 2) {
+  for (i = 3; i < row[1]; i += 2) {
     tmp1    =   ((int64_t)row[i] * inv) % fc;
     tmp1    +=  (tmp1 >> 63) & fc;
     row[i]  =   (val_t)tmp1;

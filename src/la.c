@@ -26,17 +26,29 @@ static inline void normalize_matrix_row(
     )
 {
   int32_t i;
+  int64_t tmp1, tmp2, tmp3, tmp4;
 
-  const len_t len   = row[0];
-  const int64_t inv = (int64_t)mod_p_inverse_32(row[3], fc);
+  const int32_t inv = mod_p_inverse_32(row[3], fc);
   
-  i = (len-2)/2;
-  i = i & 1 ? 5 : 3;
-  for (; i < len; i = i+4) {
-    row[i]    = (val_t)(row[i] * inv) % fc;
-    row[i+2]  = (val_t)(row[i+2] * inv) % fc;
+  for (i = 5; i < row[1]; i += 2) {
+    tmp1    =   ((int64_t)row[i] * inv) % fc;
+    tmp1    +=  (tmp1 >> 63) & fc;
+    row[i]  =   (val_t)tmp1;
   }
-  /* probably we left out the first coefficient */
+  for (; i < row[0]; i += 8) {
+    tmp1      =   ((int64_t)row[i] * inv) % fc;
+    tmp2      =   ((int64_t)row[i+2] * inv) % fc;
+    tmp3      =   ((int64_t)row[i+4] * inv) % fc;
+    tmp4      =   ((int64_t)row[i+6] * inv) % fc;
+    tmp1      +=  (tmp1 >> 63) & fc;
+    tmp2      +=  (tmp2 >> 63) & fc;
+    tmp3      +=  (tmp3 >> 63) & fc;
+    tmp4      +=  (tmp4 >> 63) & fc;
+    row[i]    =   (val_t)tmp1;
+    row[i+2]  =   (val_t)tmp2;
+    row[i+4]  =   (val_t)tmp3;
+    row[i+6]  =   (val_t)tmp4;
+  }
   row[3]  = 1;
 }
 

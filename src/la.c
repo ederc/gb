@@ -59,7 +59,7 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
     )
 {
   int32_t i, j, k;
-  const uint64_t mod  = (uint64_t)fc;
+  const int64_t mod = (int64_t)fc;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
     if (dr[i] != 0) {
@@ -73,24 +73,24 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
       continue;
     }
 
-    printf("dr before reduction with piv %d\n", i);
+    printf("16-bit dr before reduction with piv %d\n", i);
     for (int32_t l = 0; l < ncols; ++l) {
       printf("%ld ", dr[l]);
     }
     printf("\n");
     /* found reducer row, get multiplier */
-    const uint64_t mul = mod - dr[i];
+    const int64_t mul = mod - dr[i];
     printf("mul %ld\n", mul);
 
     for (j = 2; j < pivs[i][1]; j += 2) {
-      dr[pivs[i][j]]  +=  mul * (uint64_t)pivs[i][j+1];
+      dr[pivs[i][j]]  +=  mul * (int64_t)pivs[i][j+1];
     }
     /* UNROLL is set to be 4 in src/data.h */
     for (; j < pivs[i][0]; j += 8) {
-      dr[pivs[i][j]]    +=  mul * (uint64_t)pivs[i][j+1];
-      dr[pivs[i][j+2]]  +=  mul * (uint64_t)pivs[i][j+3];
-      dr[pivs[i][j+4]]  +=  mul * (uint64_t)pivs[i][j+5];
-      dr[pivs[i][j+6]]  +=  mul * (uint64_t)pivs[i][j+7];
+      dr[pivs[i][j]]    +=  mul * (int64_t)pivs[i][j+1];
+      dr[pivs[i][j+2]]  +=  mul * (int64_t)pivs[i][j+3];
+      dr[pivs[i][j+4]]  +=  mul * (int64_t)pivs[i][j+5];
+      dr[pivs[i][j+6]]  +=  mul * (int64_t)pivs[i][j+7];
     }
     dr[i] = 0;
     printf("dr after reduction with piv %d\n", i);

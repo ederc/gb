@@ -16,10 +16,19 @@ int main(
   int32_t *row  = (int32_t *)malloc(16 * sizeof(int32_t));
 
   row[0]  = 16;
+  row[1]  = 8;
   for (i = 1; i < 16; ++i) {
     row[i]  = 300 - i;
   }
+  for (i=1; i < 16; ++i) {
+    printf("%d ", row[i]);
+  }
+  printf("\n");
   normalize_matrix_row(row);
+  for (i=1; i < 16; ++i) {
+    printf("%d ", row[i]);
+  }
+  printf("\n");
 
   if (row[3] != 1) {
     return 1;

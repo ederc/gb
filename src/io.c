@@ -35,10 +35,10 @@ static inline void set_function_pointers(
 
   /* todo: linear algebra routines, depending on bit size of prime */
   if (fc < pow(2, 16)) {
-    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_32_bit;
   } else {
     /* TODO: 32 bit implementation */
-    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_32_bit;
   }
 }
 

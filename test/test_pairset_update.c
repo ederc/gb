@@ -49,23 +49,23 @@ int main(
     return 1;
   }
 
-  if (ps[0].gen1 != 0) {
+  if (ps[0].gen1 != 1) {
     return 1;
   }
   if (ps[0].gen2 != 2) {
     return 1;
   }
-  if (ps[0].deg != 3) {
+  if (ps[0].deg != 2) {
     return 1;
   }
   
-  if (ps[1].gen1 != 1) {
+  if (ps[1].gen1 != 0) {
     return 1;
   }
   if (ps[1].gen2 != 2) {
     return 1;
   }
-  if (ps[1].deg != 2) {
+  if (ps[1].deg != 3) {
     return 1;
   }
 

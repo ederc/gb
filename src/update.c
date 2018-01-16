@@ -97,7 +97,6 @@ static void insert_and_update_spairs(
     }
   }
   
-
   /* Gebauer-Moeller: check old pairs first */
   for (i = 0; i < pload; ++i) {
     j = ps[i].gen1;
@@ -188,7 +187,6 @@ static void update_basis(
   rt0 = realtime();
 
   check_enlarge_basis(npivs);
-  check_enlarge_pairset(npivs);
 
   for (i = 1; i <= npivs; ++i) {
     insert_and_update_spairs(mat[nrows-i]);

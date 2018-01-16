@@ -117,7 +117,7 @@ static void initialize_global_hash_table(
     rv[i] = pseudo_random_number_generator() | 1;
   }
   /* generate exponent vector */
-  esize = HASH_LEN + (msize/2);
+  esize = HASH_LEN * (msize/2);
   /* keep first entry empty for faster divisibility checks */
   eload = HASH_LEN;
   ev    = calloc((unsigned long)esize, sizeof(exp_t));
@@ -131,7 +131,7 @@ static void initialize_local_hash_table(
   mapl    = calloc((unsigned long)mlsize, sizeof(len_t));
 
   /* generate exponent vector */
-  elsize  = HASH_LEN + (msize/2);
+  elsize  = HASH_LEN * (msize/2);
   /* keep first entry empty for faster divisibility checks */
   elload  = HASH_LEN;
   evl     = calloc((unsigned long)elsize, sizeof(exp_t));
@@ -439,8 +439,8 @@ static inline void clear_local_hash_table(
     void
     )
 {
-  memset(evl, 0, (unsigned long)(elload * HASH_LEN) * sizeof(exp_t));
-  memset(mapl, 0, (unsigned long)(mlsize) * sizeof(len_t));
+  memset(evl, 0, (unsigned long)elload * sizeof(exp_t));
+  memset(mapl, 0, (unsigned long)mlsize * sizeof(len_t));
   elload  = HASH_LEN;
 }
 

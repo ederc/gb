@@ -153,8 +153,8 @@ static int monomial_cmp_drl(
 {
   int32_t i;
 
-  const exp_t * const ea  = evl + a;
-  const exp_t * const eb  = evl + b;
+  const exp_t * const ea  = ev + a;
+  const exp_t * const eb  = ev + b;
 
   if (ea[HASH_DEG] > eb[HASH_DEG]) {
     return 1;

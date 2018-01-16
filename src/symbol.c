@@ -175,14 +175,13 @@ static inline val_t *find_multiplied_reducer(
   len_t d;
   val_t *b;
 
-  exp_t *e  = evl + m;
   /* printf("to be divided: ");
    * for (int32_t j = 0; j < nvars; ++j) {
    *   printf("%d",e[j]);
    * }
    * printf("\n"); */
 
-  for (i = e[HASH_DIV]; i < bload; ++i) {
+  for (i = (evl+m)[HASH_DIV]; i < bload; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
     if (b != bs[i]) {
       continue;
@@ -195,7 +194,7 @@ static inline val_t *find_multiplied_reducer(
     if (d == 0) {
       continue;
     }
-    e[HASH_DIV] = i;
+    (evl+m)[HASH_DIV] = i;
     /* printf("divisor found: ");
      * for (int32_t j = 0; j < nvars; ++j) {
      *   printf("%d", (ev+b[2])[j]);
@@ -203,7 +202,7 @@ static inline val_t *find_multiplied_reducer(
      * printf("\n"); */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
-  e[HASH_DIV] = i;
+  (evl+m)[HASH_DIV] = i;
   return NULL;
 }
 
@@ -212,7 +211,6 @@ static val_t **symbolic_preprocessing(
     )
 {
   int32_t i, j;
-  exp_t *e;
   val_t *red;
 
   /* timings */
@@ -222,9 +220,8 @@ static val_t **symbolic_preprocessing(
 
   /* mark leading monomials in HASH_IND entry */
   for (i = 0; i < nrows; ++i) {
-    e = evl + mat[i][2];
-    if (!e[HASH_IND]) {
-      e[HASH_IND] = 2;
+    if (!(evl+mat[i][2])[HASH_IND]) {
+      (evl+mat[i][2])[HASH_IND] = 2;
       ncols++;
     }
   }
@@ -233,17 +230,16 @@ static val_t **symbolic_preprocessing(
   for (i = 0; i < nrows; ++i) {
     const len_t len = mat[i][0];
     for (j = 4; j < len; j += 2) {
-      e = evl + mat[i][j];
-      if (e[HASH_IND]) {
+      if ((evl+mat[i][j])[HASH_IND]) {
         continue;
       }
       ncols++;
-      e[HASH_IND] = 1;
+      (evl+mat[i][j])[HASH_IND] = 1;
       red = find_multiplied_reducer(mat[i][j]);
       if (!red) {
         continue;
       }
-      e[HASH_IND] = 2;
+      (evl+mat[i][j])[HASH_IND] = 2;
       if (nrows == nrall) {
         nrall = 2 * nrall;
         mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));

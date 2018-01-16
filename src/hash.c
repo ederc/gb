@@ -191,10 +191,10 @@ static void enlarge_global_hash_table(
 
   esize = 2 * esize;
   ev    = realloc(ev, (unsigned long)esize * sizeof(exp_t));
+  memset(ev+eload, 0, (unsigned long)(esize-eload) * sizeof(exp_t));
 
   msize = 2 * msize;
   map   = realloc(map, (unsigned long)msize * sizeof(len_t));
-
   memset(map, 0, (unsigned long)msize * sizeof(len_t));
 
   /* reinsert known elements */
@@ -224,10 +224,10 @@ static void enlarge_local_hash_table(
 
   elsize  = 2 * elsize;
   evl     = realloc(evl, (unsigned long)elsize * sizeof(exp_t));
+  memset(evl+elload, 0, (unsigned long)(elsize-elload) * sizeof(exp_t));
 
   mlsize  = 2 * mlsize;
   mapl    = realloc(mapl, (unsigned long)mlsize * sizeof(len_t));
-
   memset(mapl, 0, (unsigned long)mlsize * sizeof(len_t));
 
   /* reinsert known elements */

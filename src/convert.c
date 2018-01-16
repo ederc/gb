@@ -97,8 +97,7 @@ static len_t *convert_hashes_to_columns(
         columns_cmp);
   }
   /* compute density of matrix */
-  density = (double)nterms / (double)(nrows * k);
-  printf("nterms %ld | k %d | nrows %d\n", nterms, k, nrows);
+  density = (double)nterms / (double)nrows / (double)k;
 
   /* timings */
   ct1 = cputime();

@@ -186,10 +186,10 @@ static int32_t *export_julia_data(
     }
   }
 
-  for (i = 0; i < basis[0]; ++i) {
-    printf("%d ", basis[i]);
-  }
-  printf("\n");
+  /* for (i = 0; i < basis[0]; ++i) {
+   *   printf("%d ", basis[i]);
+   * }
+   * printf("\n"); */
 
   return basis;
 }

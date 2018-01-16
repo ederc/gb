@@ -34,7 +34,7 @@ static len_t *convert_hashes_to_columns(
   int32_t i, j, k;
   val_t *row;
   len_t *hcm; /* hash-to-column map */
-  uint64_t nterms = 0;
+  int64_t nterms = 0;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -83,7 +83,7 @@ static len_t *convert_hashes_to_columns(
   /* map column positions to matrix rows */
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
-    nterms  +=  (uint64_t)row[0];
+    nterms  +=  (int64_t)row[0];
     for (j = 2; j < row[0]; j += 2) {
       row[j]  = (evl + row[j])[HASH_IND];
     }
@@ -98,13 +98,14 @@ static len_t *convert_hashes_to_columns(
   }
   /* compute density of matrix */
   density = (double)nterms / (double)(nrows * k);
+  printf("nterms %ld | k %d | nrows %d\n", nterms, k, nrows);
 
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
   convert_ctime +=  ct1 - ct0;
   convert_rtime +=  rt1 - rt0;
-  GB_DEBUG(SYMDBG, "\t %6d x %6d mat - %5.3f%%", nrows, ncols, density);
+  GB_DEBUG(SYMDBG, "\t %6d x %6d mat - %6.3f%%", nrows, ncols, density);
 
   return hcm;
 }

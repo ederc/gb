@@ -60,12 +60,13 @@ int32_t *f4_julia(
   /* initialize stuff */
   initialize_statistics();
   GB_DEBUG(GBDBG, "--------------------------\n");
-  GB_DEBUG(GBDBG, "#variables            %15d\n", nvars);
-  GB_DEBUG(GBDBG, "#equations            %15d\n", nr_gens);
-  GB_DEBUG(GBDBG, "field characteristic  %15d\n", fc);
-  GB_DEBUG(GBDBG, "linear algebra option %15d\n", laopt);
-  GB_DEBUG(GBDBG, "hash table size       %15d (2^%d)\n", msize, htes);
-  GB_DEBUG(GBDBG, "#threads              %15d\n", nthrds);
+  GB_DEBUG(GBDBG, "#variables             %15d\n", nvars);
+  GB_DEBUG(GBDBG, "#equations             %15d\n", nr_gens);
+  GB_DEBUG(GBDBG, "field characteristic   %15d\n", fc);
+  GB_DEBUG(GBDBG, "linear algebra option  %15d\n", laopt);
+  GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
+      (int32_t)pow(2,htes), htes);
+  GB_DEBUG(GBDBG, "#threads               %15d\n", nthrds);
   GB_DEBUG(GBDBG, "--------------------------\n");
 
   initialize_basis(nr_gens);
@@ -131,16 +132,6 @@ int32_t *f4_julia(
 
   int32_t *basis  = export_julia_data();
 
-  /* free and clean up */
-  free_local_hash_table();
-  free_global_hash_table();
-  free_pairset();
-  /* note that all rows kept from mat during the overall computation are
-   * basis elements and thus we do not need to free the rows itself, but
-   * just the matrix structure */
-  free(mat);
-  free_basis();
-
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
@@ -151,11 +142,25 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "convert %9.3f sec\n", convert_rtime);
   GB_DEBUG(GBDBG, "la      %9.3f sec\n", la_rtime);
   GB_DEBUG(GBDBG, "--------------------------\n");
-  GB_DEBUG(GBDBG, "#pairs reduced   %7ld\n", num_pairsred);
-  GB_DEBUG(GBDBG, "#GM criterion    %7ld\n", num_gb_crit);
-  GB_DEBUG(GBDBG, "#redundant       %7ld\n", num_redundant);
-  GB_DEBUG(GBDBG, "#rows reduced    %7ld\n", num_rowsred);
-  GB_DEBUG(GBDBG, "#zero reductions %7ld\n", num_zerored);
+  GB_DEBUG(GBDBG, "#pairs reduced        %7ld\n", num_pairsred);
+  GB_DEBUG(GBDBG, "#GM criterion         %7ld\n", num_gb_crit);
+  GB_DEBUG(GBDBG, "#redundant            %7ld\n", num_redundant);
+  GB_DEBUG(GBDBG, "#rows reduced         %15ld\n", num_rowsred);
+  GB_DEBUG(GBDBG, "#zero reductions      %15ld\n", num_zerored);
+  GB_DEBUG(GBDBG, "global hash table size %15d (2^%d)\n",
+  GB_DEBUG(GBDBG, "global hash table size %15d (2^%d)\n",
+      mlsize, (int32_t)(log(mlsize)/log(2));
+      mlsize, (int32_t)(log(mlsize)/log(2));
+
+  /* free and clean up */
+  free_local_hash_table();
+  free_global_hash_table();
+  free_pairset();
+  /* note that all rows kept from mat during the overall computation are
+   * basis elements and thus we do not need to free the rows itself, but
+   * just the matrix structure */
+  free(mat);
+  free_basis();
 
   return basis;
 }

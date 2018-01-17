@@ -121,15 +121,6 @@ int32_t *f4_julia(
     GB_DEBUG(GBDBG, "\n");
   }
 
-  /* timings */
-  ct1 = cputime();
-  rt1 = realtime();
-  GB_DEBUG(GBDBG, "-------------------------------------\n");
-  GB_DEBUG(GBDBG, "overall timings %9.3f sec | %9.3f sec\n", rt1-rt0, ct1-ct0);
-
-  /* timings */
-  ct0 = cputime();
-  rt0 = realtime();
 
   int32_t *basis  = export_julia_data();
 
@@ -146,7 +137,8 @@ int32_t *f4_julia(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  GB_DEBUG(GBDBG, "export timings %9.3f sec | %9.3f sec\n", rt1-rt0, ct1-ct0);
+  GB_DEBUG(GBDBG, "-------------------------------------\n");
+  GB_DEBUG(GBDBG, "overall timings %9.3f sec | %9.3f sec\n", rt1-rt0, ct1-ct0);
 
   return basis;
 }

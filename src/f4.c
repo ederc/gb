@@ -59,7 +59,7 @@ int32_t *f4_julia(
 
   /* initialize stuff */
   initialize_statistics();
-  GB_DEBUG(GBDBG, "--------------------------\n");
+  GB_DEBUG(GBDBG, "-------------------------------------------------\n");
   GB_DEBUG(GBDBG, "#variables             %15d\n", nvars);
   GB_DEBUG(GBDBG, "#equations             %15d\n", nr_gens);
   GB_DEBUG(GBDBG, "field characteristic   %15d\n", fc);
@@ -67,7 +67,7 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
       (int32_t)pow(2,htes), htes);
   GB_DEBUG(GBDBG, "#threads               %15d\n", nthrds);
-  GB_DEBUG(GBDBG, "--------------------------\n");
+  GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   initialize_basis(nr_gens);
   initialize_pairset();
@@ -135,22 +135,23 @@ int32_t *f4_julia(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  GB_DEBUG(GBDBG, "--------------------------\n");
-  GB_DEBUG(GBDBG, "overall %9.3f sec\n", rt1-rt0);
-  GB_DEBUG(GBDBG, "symbol  %9.3f sec\n", symbol_rtime);
-  GB_DEBUG(GBDBG, "update  %9.3f sec\n", update_rtime);
-  GB_DEBUG(GBDBG, "convert %9.3f sec\n", convert_rtime);
-  GB_DEBUG(GBDBG, "la      %9.3f sec\n", la_rtime);
-  GB_DEBUG(GBDBG, "--------------------------\n");
-  GB_DEBUG(GBDBG, "#pairs reduced        %7ld\n", num_pairsred);
-  GB_DEBUG(GBDBG, "#GM criterion         %7ld\n", num_gb_crit);
-  GB_DEBUG(GBDBG, "#redundant            %7ld\n", num_redundant);
-  GB_DEBUG(GBDBG, "#rows reduced         %15ld\n", num_rowsred);
-  GB_DEBUG(GBDBG, "#zero reductions      %15ld\n", num_zerored);
+  GB_DEBUG(GBDBG, "-------------------------------------------------\n");
+  GB_DEBUG(GBDBG, "overall                %15.3f sec\n", rt1-rt0);
+  GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", symbol_rtime);
+  GB_DEBUG(GBDBG, "update                 %15.3f sec\n", update_rtime);
+  GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
+  GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
+  GB_DEBUG(GBDBG, "-------------------------------------------------\n");
+  GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", num_pairsred);
+  GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", num_gb_crit);
+  GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);
+  GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
+  GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
   GB_DEBUG(GBDBG, "global hash table size %15d (2^%d)\n",
       msize, (int32_t)(log(msize)/log(2)));
-  GB_DEBUG(GBDBG, "global hash table size %15d (2^%d)\n",
+  GB_DEBUG(GBDBG, "local hash table size %15d (2^%d)\n",
       mlsize, (int32_t)(log(mlsize)/log(2)));
+  GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   /* free and clean up */
   free_local_hash_table();

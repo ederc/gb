@@ -93,7 +93,7 @@ static val_t **select_spairs_by_minimal_degree(
       }
     }
   }
-  GB_DEBUG(SELDBG, "\t %6d/%6d pairs - deg %2d", n, pload, md);
+  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", n, pload, md);
   /* statistics */
   num_pairsred  +=  n;
 

@@ -297,6 +297,7 @@ static val_t **sparse_linear_algebra(
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
   nrows = nrall = npivs;
 
+  num_zerored += (nrl - npivs);
   /* timings */
   ct1 = cputime();
   rt1 = realtime();

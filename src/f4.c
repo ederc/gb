@@ -132,6 +132,14 @@ int32_t *f4_julia(
 
   int32_t *basis  = export_julia_data();
 
+  int64_t basis_terms = 0;
+
+  for (int32_t o = 0; o < bload; ++o) {
+    basis_terms += bs[i][0];
+  }
+
+  printf("basis_terms: %ld - 2^%d\n", basis_terms, (int32_t)(log(basis_terms)/log(2)));
+
   /* timings */
   ct1 = cputime();
   rt1 = realtime();

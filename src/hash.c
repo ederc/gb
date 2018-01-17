@@ -131,7 +131,7 @@ static void initialize_local_hash_table(
   mapl    = calloc((unsigned long)mlsize, sizeof(len_t));
 
   /* generate exponent vector */
-  elsize  = HASH_LEN * (msize/2);
+  elsize  = HASH_LEN * (mlsize/2);
   /* keep first entry empty for faster divisibility checks */
   elload  = HASH_LEN;
   evl     = calloc((unsigned long)elsize, sizeof(exp_t));
@@ -248,6 +248,12 @@ static void enlarge_local_hash_table(
       break;
     }
   }
+  /* for (i = 0 ; i < elsize/2; ++i) {
+   *   if (evl[i] != evl_cpy[i]) {
+   *     printf("difference at %d\n", i);
+   *   }
+   * }
+   * free(evl_cpy); */
 }
 
 static inline sdm_t generate_short_divmask(
@@ -498,6 +504,7 @@ static inline len_t insert_in_local_hash_table_product(
     enlarge_local_hash_table();
   }
 
+  /* printf("hier raus %d\n", pos); */
   return pos;
 }
 

@@ -41,6 +41,11 @@ int32_t *f4_julia(
     const int32_t la_option
     )
 {
+  /* timings */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
+
   int32_t i, round;
   val_t **mat;
   len_t *hcm; /* hash-column-map */
@@ -80,6 +85,7 @@ int32_t *f4_julia(
   free(mat);
   mat = NULL;
 
+  printf("nthrds %d\n", nthrds);
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
@@ -115,6 +121,16 @@ int32_t *f4_julia(
     GB_DEBUG(GBDBG, "\n");
   }
 
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  GB_DEBUG(GBDBG, "-------------------------------------\n");
+  GB_DEBUG(GBDBG, "overall timings %9.3f sec | %9.3f sec\n", rt1-rt0, ct1-ct0);
+
+  /* timings */
+  ct0 = cputime();
+  rt0 = realtime();
+
   int32_t *basis  = export_julia_data();
 
   /* free and clean up */
@@ -126,6 +142,11 @@ int32_t *f4_julia(
    * just the matrix structure */
   free(mat);
   free_basis();
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  GB_DEBUG(GBDBG, "export timings %9.3f sec | %9.3f sec\n", rt1-rt0, ct1-ct0);
 
   return basis;
 }

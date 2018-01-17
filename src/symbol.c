@@ -212,6 +212,7 @@ static val_t **symbolic_preprocessing(
 {
   int32_t i, j;
   val_t *red;
+  val_t m;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -230,16 +231,17 @@ static val_t **symbolic_preprocessing(
   for (i = 0; i < nrows; ++i) {
     const len_t len = mat[i][0];
     for (j = 4; j < len; j += 2) {
-      if ((evl+mat[i][j])[HASH_IND]) {
+      m = mat[i][j];
+      if ((evl+m)[HASH_IND]) {
         continue;
       }
       ncols++;
-      (evl+mat[i][j])[HASH_IND] = 1;
-      red = find_multiplied_reducer(mat[i][j]);
+      (evl+m)[HASH_IND] = 1;
+      red = find_multiplied_reducer(m);
       if (!red) {
         continue;
       }
-      (evl+mat[i][j])[HASH_IND] = 2;
+      (evl+m)[HASH_IND] = 2;
       if (nrows == nrall) {
         nrall = 2 * nrall;
         mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));

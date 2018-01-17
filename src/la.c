@@ -226,6 +226,9 @@ static val_t **sparse_linear_algebra(
   /* unkown pivot rows we have to reduce with the known pivots first */
   val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
 
+  /* for (i = 0; i < ncols; ++i) {
+   *   printf("3%d %p\n", i, pivs[i]);
+   * } */
   i = 0;
   j = 1;
   for (i = 0; i < nrows; ++i) {
@@ -253,11 +256,6 @@ static val_t **sparse_linear_algebra(
     sc  = upivs[i][2];
     free(upivs[i]);
     upivs[i]  = NULL;
-    /* printf("sc %d: ", sc);
-     * for (int32_t o = 0; o < ncols; ++o) {
-     *   printf("%ld ", dr[o]);
-     * }
-     * printf("\n"); */
     /* do the reduction */
     do {
       npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
@@ -271,17 +269,11 @@ static val_t **sparse_linear_algebra(
   free(upivs);
   upivs = NULL;
 
-  /* for (i = 0; i < ncols; ++i) {
-   *   printf("pivs[%d] = %p\n", i, pivs[i]);
-   * } */
   /* we do not need the old pivots anymore */
   for (i = 0; i < nru; ++i) {
     free(pivs[i]);
     pivs[i] = NULL;
   }
-  /* for (i = 0; i < ncols; ++i) {
-   *   printf("pivs[%d] = %p\n", i, pivs[i]);
-   * } */
 
   npivs = 0; /* number of new pivots */
 
@@ -302,7 +294,6 @@ static val_t **sparse_linear_algebra(
   free(pivs);
   pivs  = NULL;
 
-  /* printf("NPIVS %d\n", npivs); */
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
   nrows = nrall = npivs;
 

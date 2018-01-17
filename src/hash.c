@@ -60,7 +60,7 @@ static len_t ndvars = 0; /* number of variables for divmask */
 /* global hash table for storing elements in basis */
 static exp_t *ev    = NULL;
 static len_t esize  = 0;
-static len_t eload  = 1;
+static len_t eload  = 0;
 
 /* map with index from monomials to exponents */
 static len_t *map   = NULL;
@@ -69,7 +69,7 @@ static len_t msize  = 0;
 /* local hash table during symbolic preprocessing */
 static exp_t *evl     = NULL;
 static len_t elsize   = 0;
-static len_t elload   = 1;
+static len_t elload   = 0;
 
 static len_t *mapl    = NULL;
 static len_t mlsize   = 0;
@@ -205,7 +205,7 @@ static void enlarge_global_hash_table(
     /* probing */
     k = h;
     for (j = 0; j < msize; ++j) {
-      k = (k+h) & (msize-1);
+      k = (k+j) & (msize-1);
       if (map[k]) {
         continue;
       }
@@ -222,9 +222,11 @@ static void enlarge_local_hash_table(
   int32_t h, i, j, k;
   int32_t *e;
 
+  /* exp_t *evl_cpy = malloc((unsigned long)elsize * sizeof(exp_t));
+   * memcpy(evl_cpy, evl, (unsigned long)elsize * sizeof(exp_t)); */
   elsize  = 2 * elsize;
   evl     = realloc(evl, (unsigned long)elsize * sizeof(exp_t));
-  memset(evl+elload, 0, (unsigned long)(elsize-elload) * sizeof(exp_t));
+  /* memset(evl+elload, 0, (unsigned long)(elsize-elload) * sizeof(exp_t)); */
 
   mlsize  = 2 * mlsize;
   mapl    = realloc(mapl, (unsigned long)mlsize * sizeof(len_t));
@@ -238,7 +240,7 @@ static void enlarge_local_hash_table(
     /* probing */
     k = h;
     for (j = 0; j < mlsize; ++j) {
-      k = (k+h) & (mlsize-1);
+      k = (k+j) & (mlsize-1);
       if (mapl[k]) {
         continue;
       }

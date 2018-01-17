@@ -42,7 +42,7 @@
  * it is an OK-ish trade-off between memory and speed. */
 
 /* The idea of the structure of the hash table is taken from an
- * implementation by Roman Pearce and Michael Monagan in Maple. */
+ * implementation by Roman Pearce and Michael Monagan in mape. */
 
 static len_t htes   = 0;  /* hash table exponent at start */
 static len_t nvars  = 0; /* number of variables */
@@ -127,14 +127,14 @@ static void initialize_local_hash_table(
     )
 {
   /* generate map */
-  mlsize  = (len_t)pow(2, htes);
-  mapl    = calloc((unsigned long)mlsize, sizeof(len_t));
+  msize  = (len_t)pow(2, htes);
+  map    = calloc((unsigned long)msize, sizeof(len_t));
 
   /* generate exponent vector */
-  elsize  = HASH_LEN * (mlsize/2);
+  esize  = HASH_LEN * (msize/2);
   /* keep first entry empty for faster divisibility checks */
-  elload  = HASH_LEN;
-  evl     = calloc((unsigned long)elsize, sizeof(exp_t));
+  eload  = HASH_LEN;
+  ev     = calloc((unsigned long)esize, sizeof(exp_t));
 }
 
 static void free_global_hash_table(
@@ -168,17 +168,17 @@ static void free_local_hash_table(
     void
     )
 {
-  if (mapl) {
-    free(mapl);
-    mapl  = NULL;
+  if (map) {
+    free(map);
+    map  = NULL;
   }
-  if (evl) {
-    free(evl);
-    evl = NULL;
+  if (ev) {
+    free(ev);
+    ev = NULL;
   }
-  elsize  = 0;
-  elload  = 0;
-  mlsize  = 0;
+  esize  = 0;
+  eload  = 0;
+  msize  = 0;
 }
 
 /* we just double the hash table size */
@@ -222,38 +222,38 @@ static void enlarge_local_hash_table(
   int32_t h, i, j, k;
   int32_t *e;
 
-  /* exp_t *evl_cpy = malloc((unsigned long)elsize * sizeof(exp_t));
-   * memcpy(evl_cpy, evl, (unsigned long)elsize * sizeof(exp_t)); */
-  elsize  = 2 * elsize;
-  evl     = realloc(evl, (unsigned long)elsize * sizeof(exp_t));
-  /* memset(evl+elload, 0, (unsigned long)(elsize-elload) * sizeof(exp_t)); */
+  /* exp_t *ev_cpy = malloc((unsigned long)esize * sizeof(exp_t));
+   * memcpy(ev_cpy, ev, (unsigned long)esize * sizeof(exp_t)); */
+  esize  = 2 * esize;
+  ev     = realloc(ev, (unsigned long)esize * sizeof(exp_t));
+  /* memset(ev+eload, 0, (unsigned long)(esize-eload) * sizeof(exp_t)); */
 
-  mlsize  = 2 * mlsize;
-  mapl    = realloc(mapl, (unsigned long)mlsize * sizeof(len_t));
-  memset(mapl, 0, (unsigned long)mlsize * sizeof(len_t));
+  msize  = 2 * msize;
+  map    = realloc(map, (unsigned long)msize * sizeof(len_t));
+  memset(map, 0, (unsigned long)msize * sizeof(len_t));
 
   /* reinsert known elements */
-  for (i = HASH_LEN; i < elload; i += HASH_LEN) {
-    e = evl + i;
+  for (i = HASH_LEN; i < eload; i += HASH_LEN) {
+    e = ev + i;
     h = e[HASH_VAL];
 
     /* probing */
     k = h;
-    for (j = 0; j < mlsize; ++j) {
-      k = (k+j) & (mlsize-1);
-      if (mapl[k]) {
+    for (j = 0; j < msize; ++j) {
+      k = (k+j) & (msize-1);
+      if (map[k]) {
         continue;
       }
-      mapl[k]  = i;
+      map[k]  = i;
       break;
     }
   }
-  /* for (i = 0 ; i < elsize/2; ++i) {
-   *   if (evl[i] != evl_cpy[i]) {
+  /* for (i = 0 ; i < esize/2; ++i) {
+   *   if (ev[i] != ev_cpy[i]) {
    *     printf("difference at %d\n", i);
    *   }
    * }
-   * free(evl_cpy); */
+   * free(ev_cpy); */
 }
 
 static inline sdm_t generate_short_divmask(
@@ -288,7 +288,7 @@ static inline void calculate_divmask(
   deg_t *max_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
   deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
 
-  exp_t *e  = evl + HASH_LEN;
+  exp_t *e  = ev + HASH_LEN;
 
   /* get initial values from first hash table entry */
   for (i = 0; i < ndvars; ++i) {
@@ -296,8 +296,8 @@ static inline void calculate_divmask(
   }
 
   /* get maximal and minimal exponent element entries in hash table */
-  for (i = 2*HASH_LEN; i < elload; i = i + HASH_LEN) {
-    e = evl + i;
+  for (i = 2*HASH_LEN; i < eload; i = i + HASH_LEN) {
+    e = ev + i;
     for (j = 0; j < ndvars; ++j) {
       if (e[j] > max_exp[j]) {
         max_exp[j]  = e[j];
@@ -320,8 +320,8 @@ static inline void calculate_divmask(
   }
 
   /* initialize divmasks for elements already added to hash table */
-  for (i = HASH_LEN; i < elload; i = i + HASH_LEN) {
-    e = evl + i;
+  for (i = HASH_LEN; i < eload; i = i + HASH_LEN) {
+    e = ev + i;
     e[HASH_SDM] = generate_short_divmask(e);
   }
 
@@ -401,12 +401,12 @@ static inline len_t insert_in_local_hash_table(
 
   /* probing */
   k = h;
-  for (i = 0; i < mlsize; ++i) {
-    k = (k+i) & (mlsize-1);
-    if (!mapl[k]) {
+  for (i = 0; i < msize; ++i) {
+    k = (k+i) & (msize-1);
+    if (!map[k]) {
       break;
     }
-    e = evl + mapl[k];
+    e = ev + map[k];
     if (e[HASH_VAL] != h) {
       continue;
     }
@@ -416,13 +416,13 @@ static inline len_t insert_in_local_hash_table(
       }
     }
     if (j == nvars) {
-      return mapl[k];
+      return map[k];
     }
   }
 
   /* add element to hash table */
-  pos = elload;
-  e   = evl + pos;
+  pos = eload;
+  e   = ev + pos;
   deg = 0;
   for (i = 0; i < nvars; ++i) {
     e[i]  =   a[i];
@@ -433,10 +433,10 @@ static inline len_t insert_in_local_hash_table(
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
-  mapl[k]     = pos;
+  map[k]     = pos;
 
-  elload  +=  HASH_LEN;
-  if (elload >= elsize) {
+  eload  +=  HASH_LEN;
+  if (eload >= esize) {
     enlarge_local_hash_table();
   }
 
@@ -447,9 +447,9 @@ static inline void clear_local_hash_table(
     void
     )
 {
-  memset(evl, 0, (unsigned long)elload * sizeof(exp_t));
-  memset(mapl, 0, (unsigned long)mlsize * sizeof(len_t));
-  elload  = HASH_LEN;
+  /* memset(ev, 0, (unsigned long)eload * sizeof(exp_t));
+   * memset(map, 0, (unsigned long)msize * sizeof(len_t));
+   * eload  = HASH_LEN; */
 }
 
 /* note that the product insertion, i.e. monomial x polynomial
@@ -467,12 +467,12 @@ static inline len_t insert_in_local_hash_table_product(
 
   /* probing */
   k = h;
-  for (i = 0; i < mlsize; ++i) {
-    k = (k+i) & (mlsize-1);
-    if (!mapl[k]) {
+  for (i = 0; i < msize; ++i) {
+    k = (k+i) & (msize-1);
+    if (!map[k]) {
       break;
     }
-    e = evl + mapl[k];
+    e = ev + map[k];
     if (e[HASH_VAL] != h) {
       continue;
     }
@@ -482,13 +482,13 @@ static inline len_t insert_in_local_hash_table_product(
       }
     }
     if (j == nvars) {
-      return mapl[k];
+      return map[k];
     }
   }
 
   /* add element to hash table */
-  pos = elload;
-  e   = evl + pos;
+  pos = eload;
+  e   = ev + pos;
   for (i = 0; i < nvars; ++i) {
     e[i]  =   a1[i] + a2[i];
   }
@@ -497,10 +497,10 @@ static inline len_t insert_in_local_hash_table_product(
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
-  mapl[k]     = pos;
+  map[k]     = pos;
 
-  elload  +=  HASH_LEN;
-  if (elload >= elsize) {
+  eload  +=  HASH_LEN;
+  if (eload >= esize) {
     enlarge_local_hash_table();
   }
 
@@ -560,7 +560,7 @@ static inline len_t monomial_multiplication(
   /* a is the multiplier monomial living the local table,
    * b is a monomial from a polynomial in the basis thus
    * living in the global table */
-  const exp_t * const ea = evl  + a;
+  const exp_t * const ea = ev  + a;
   const exp_t * const eb = ev   + b;
 
   return insert_in_local_hash_table_product(ea, eb);
@@ -608,7 +608,7 @@ static inline len_t monomial_division_with_check(
 {
   int32_t i;
 
-  const exp_t * const ea  = evl + a;
+  const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
@@ -649,7 +649,7 @@ static inline len_t monomial_division_no_check(
 {
   int32_t i;
 
-  const exp_t * const ea  = evl + a;
+  const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
 
   exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
@@ -677,7 +677,7 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
   for (i = 2; i < poly[0]; i += 2) {
     row[i]    = monomial_multiplication(mult, poly[i]);
     /* for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (evl+row[i])[j]);
+     *   printf("%d", (ev+row[i])[j]);
      * }
      * printf(" (%d)", row[i]);
      * printf(" "); */

@@ -47,10 +47,10 @@ static len_t *convert_hashes_to_columns(
    * corresponding to the multiplied terms in reducers. */
   hcm = (len_t *)malloc((unsigned long)ncols * sizeof(len_t));
   /* j counts all columns, k counts known pivots */
-  for (j = 0, k = 0, i = HASH_LEN; i < elload; i += HASH_LEN) {
-    if ((evl+i)[HASH_IND] != 0) {
+  for (j = 0, k = 0, i = HASH_LEN; i < eload; i += HASH_LEN) {
+    if ((ev+i)[HASH_IND] != 0) {
       hcm[j++]  = i;
-      if ((evl+i)[HASH_IND] == 2) {
+      if ((ev+i)[HASH_IND] == 2) {
         k++;
       }
     }
@@ -77,7 +77,7 @@ static len_t *convert_hashes_to_columns(
 
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < j; ++i) {
-    (evl + hcm[i])[HASH_IND]  = i;
+    (ev + hcm[i])[HASH_IND]  = i;
   }
   
   /* map column positions to matrix rows */
@@ -85,7 +85,7 @@ static len_t *convert_hashes_to_columns(
     row = mat[i];
     nterms  +=  (int64_t)row[0];
     for (j = 2; j < row[0]; j += 2) {
-      row[j]  = (evl + row[j])[HASH_IND];
+      row[j]  = (ev + row[j])[HASH_IND];
     }
   }
 
@@ -128,11 +128,15 @@ static val_t **convert_columns_to_hashes(
    * }
    * printf("\n"); */
 
+  for (i = 0; i < ncols; ++i) {
+    (ev+hcm[i])[HASH_IND]  = 0;
+  }
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
     for (j = 2; j < row[1]; j += 2) {
       /* printf("row[%d] = %d => ", j, row[j]);  */
       row[j]  = hcm[row[j]];
+      /* (ev+row[j])[HASH_IND] = 0; */
       /* printf("%d\n", row[j]); */
     }
     /* loop unrolling, UNROLL = 4 */

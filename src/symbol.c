@@ -39,26 +39,8 @@ static inline val_t **generate_matrix_from_spair_selection(
 
   for (i = 0; i < nr; ++i) {
     b       = (val_t *)((long)bs[gens[i]] & bmask);
-    /* printf("poly: ");
-     * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (ev+b[2])[j]);
-     * }
-     * printf("\n"); */
     m       = monomial_division_no_check(lcms[i], b[2]);
-    /* printf("multiplier: ");
-     * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (evl+m)[j]);
-     * }
-     * printf("\n"); */
     mat[i]  = multiplied_polynomial_to_matrix_row(m, b);
-    /* printf("row[%d] ", i);
-     * for (int32_t j = 2; j < mat[i][0]; j += 2) {
-     *   for (int32_t k = 0; k < nvars; ++k) {
-     *     printf("%d", (evl+mat[i][j])[k]);
-     *   }
-     *   printf(" ");
-     * }
-     * printf("\n"); */
   }
 
   return mat;
@@ -181,7 +163,7 @@ static inline val_t *find_multiplied_reducer(
    * }
    * printf("\n"); */
 
-  for (i = (evl+m)[HASH_DIV]; i < bload; ++i) {
+  for (i = (ev+m)[HASH_DIV]; i < bload; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
     if (b != bs[i]) {
       continue;
@@ -194,7 +176,7 @@ static inline val_t *find_multiplied_reducer(
     if (d == 0) {
       continue;
     }
-    (evl+m)[HASH_DIV] = i;
+    (ev+m)[HASH_DIV] = i;
     /* printf("divisor found: ");
      * for (int32_t j = 0; j < nvars; ++j) {
      *   printf("%d", (ev+b[2])[j]);
@@ -202,7 +184,7 @@ static inline val_t *find_multiplied_reducer(
      * printf("\n"); */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
-  (evl+m)[HASH_DIV] = i;
+  (ev+m)[HASH_DIV] = i;
   return NULL;
 }
 
@@ -221,8 +203,8 @@ static val_t **symbolic_preprocessing(
 
   /* mark leading monomials in HASH_IND entry */
   for (i = 0; i < nrows; ++i) {
-    if (!(evl+mat[i][2])[HASH_IND]) {
-      (evl+mat[i][2])[HASH_IND] = 2;
+    if (!(ev+mat[i][2])[HASH_IND]) {
+      (ev+mat[i][2])[HASH_IND] = 2;
       ncols++;
     }
   }
@@ -232,16 +214,16 @@ static val_t **symbolic_preprocessing(
     const len_t len = mat[i][0];
     for (j = 4; j < len; j += 2) {
       m = mat[i][j];
-      if ((evl+m)[HASH_IND]) {
+      if ((ev+m)[HASH_IND]) {
         continue;
       }
       ncols++;
-      (evl+m)[HASH_IND] = 1;
+      (ev+m)[HASH_IND] = 1;
       red = find_multiplied_reducer(m);
       if (!red) {
         continue;
       }
-      (evl+m)[HASH_IND] = 2;
+      (ev+m)[HASH_IND] = 2;
       if (nrows == nrall) {
         nrall = 2 * nrall;
         mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));

@@ -35,7 +35,7 @@ int main(
   /* initialize stuff */
   initialize_basis(nr_gens);
   initialize_global_hash_table();
-  initialize_local_hash_table();
+  /* initialize_local_hash_table(); */
 
   mat = import_julia_data(lens, cfs, exps, nr_gens);
 
@@ -51,17 +51,17 @@ int main(
     normalize_matrix_row(mat[i]);
   }
 
-    /* printf("new elements (round %d):\n", round);
-     * for (i = 0; i < npivs; ++i) {
-     *   for (j = 2; j < mat[i][0]; j += 2) {
-     *     printf("%3d | ", mat[i][j+1]);
-     *     for (k = 0; k < nvars; ++k) {
-     *       printf("%d", (evl+mat[i][j])[k]);
-     *     }
-     *     printf(" || ");
-     *   }
-     *   printf("\n");
-     * } */
+    printf("new elements (round %d):\n", round);
+    for (i = 0; i < npivs; ++i) {
+      for (j = 2; j < mat[i][0]; j += 2) {
+        printf("%3d | ", mat[i][j+1]);
+        for (k = 0; k < nvars; ++k) {
+          printf("%d", (ev+mat[i][j])[k]);
+        }
+        printf(" || ");
+      }
+      printf("\n");
+    }
 
   /* move input generators to basis and generate first spairs */
   update_basis(mat);
@@ -74,41 +74,46 @@ int main(
   for (round = 1; pload > 0; ++round) {
     GB_DEBUG(GBDBG, "%3d", round);
 
+    for (int32_t o = 0; o < eload; o += HASH_LEN) {
+      if ((ev+o)[HASH_IND] != 0) {
+        printf("1 HASH_IND = %d at position %d\n", (ev+o)[HASH_IND], o);
+      }
+    }
     /* preprocess data for next reduction round */
     mat = select_spairs();
     mat = symbolic_preprocessing(mat);
-/*     printf("before conversion\n");
- *     for (int32_t l = 0; l < nrows; ++l) {
- *       for (int32_t m = 0; m < mat[l][0]; ++m) {
- *         printf("%d ", mat[l][m]);
- *         if (m > 0 && m % 2 == 0) {
- *           printf("(");
- *           for (int32_t o = 0; o < nvars; ++o) {
- *             printf("%d", (evl+mat[l][m])[o]);
- *           }
- *           printf(",%d)  ",(evl+mat[l][m])[HASH_IND]);
- *         }
- *       }
- *       printf("\n");
- *     } */
+    printf("before conversion\n");
+    for (int32_t l = 0; l < nrows; ++l) {
+      for (int32_t m = 0; m < mat[l][0]; ++m) {
+        printf("%d ", mat[l][m]);
+        if (m > 0 && m % 2 == 0) {
+          printf("(");
+          for (int32_t o = 0; o < nvars; ++o) {
+            printf("%d", (ev+mat[l][m])[o]);
+          }
+          printf(",%d)  ",(ev+mat[l][m])[HASH_IND]);
+        }
+      }
+      printf("\n");
+    }
     /* exponent hashes mapped to column indices for linear algebra */
     hcm = convert_hashes_to_columns(mat);
-    /* printf("after conversion\n");
-     * for (int32_t l = 0; l < nrows; ++l) {
-     *   for (int32_t m = 0; m < mat[l][0]; ++m) {
-     *     printf("%d ", mat[l][m]);
-     *   }
-     *   printf("\n");
-     * } */
+    printf("after conversion\n");
+    for (int32_t l = 0; l < nrows; ++l) {
+      for (int32_t m = 0; m < mat[l][0]; ++m) {
+        printf("%d ", mat[l][m]);
+      }
+      printf("\n");
+    }
     /* sort matrix rows by decreasing pivots */
     mat = sort_matrix_rows(mat);
-    /* printf("after sorting\n");
-     * for (int32_t l = 0; l < nrows; ++l) {
-     *   for (int32_t m = 0; m < mat[l][0]; ++m) {
-     *     printf("%d ", mat[l][m]);
-     *   }
-     *   printf("\n");
-     * } */
+    printf("after sorting\n");
+    for (int32_t l = 0; l < nrows; ++l) {
+      for (int32_t m = 0; m < mat[l][0]; ++m) {
+        printf("%d ", mat[l][m]);
+      }
+      printf("\n");
+    }
 
     /* here starts the linear algebra part depending on
      * the chosen options */
@@ -124,18 +129,23 @@ int main(
     
     free(hcm);
     hcm = NULL;
+    for (int32_t o = 0; o < eload; o += HASH_LEN) {
+      if ((ev+o)[HASH_IND] != 0) {
+        printf("2 HASH_IND = %d at position %d\n", (ev+o)[HASH_IND], o);
+      }
+    }
 
-    /* printf("new elements (round %d):\n", round);
-     * for (i = 0; i < npivs; ++i) {
-     *   for (j = 2; j < mat[i][0]; j += 2) {
-     *     printf("%3d | ", mat[i][j+1]);
-     *     for (k = 0; k < nvars; ++k) {
-     *       printf("%d", (evl+mat[i][j])[k]);
-     *     }
-     *     printf(" || ");
-     *   }
-     *   printf("\n");
-     * } */
+    printf("new elements (round %d):\n", round);
+    for (i = 0; i < npivs; ++i) {
+      for (j = 2; j < mat[i][0]; j += 2) {
+        printf("%3d | ", mat[i][j+1]);
+        for (k = 0; k < nvars; ++k) {
+          printf("%d", (ev+mat[i][j])[k]);
+        }
+        printf(" || ");
+      }
+      printf("\n");
+    }
     update_basis(mat);
 
     free(mat);
@@ -159,7 +169,7 @@ int main(
   test = NULL;
 
   /* free and clean up */
-  free_local_hash_table();
+  /* free_local_hash_table(); */
   free_global_hash_table();
   free_pairset();
   /* note that all rows kept from mat during the overall computation are

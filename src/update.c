@@ -65,9 +65,9 @@ static void insert_and_update_spairs(
   check_enlarge_pairset(bload);
 
   /* move exponents to global hash table */
-  for (i = 2; i < nelt[0]; i = i+2) {
-    nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
-  }
+  /* for (i = 2; i < nelt[0]; i = i+2) {
+   *   nelt[i] = insert_in_global_hash_table(ev + nelt[i]);
+   * } */
   bs[bload] = nelt;
   /* printf("element added to basis: ");
    * for (int32_t o = 2; o < nelt[0]; o += 2) {

@@ -104,7 +104,7 @@ static len_t *convert_hashes_to_columns(
   rt1 = realtime();
   convert_ctime +=  ct1 - ct0;
   convert_rtime +=  rt1 - rt0;
-  GB_DEBUG(SYMDBG, "\t %6d x %6d mat - %6.3f%%", nrows, ncols, density);
+  GB_DEBUG(SYMDBG, " %7d x %7d mat - %6.3f%%", nrows, ncols, density);
 
   return hcm;
 }

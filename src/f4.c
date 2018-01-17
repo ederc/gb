@@ -59,6 +59,14 @@ int32_t *f4_julia(
 
   /* initialize stuff */
   initialize_statistics();
+  GB_DEBUG(GBDBG, "--------------------------\n");
+  GB_DEBUG(GBDBG, "#variables            %15d\n", nvars);
+  GB_DEBUG(GBDBG, "#equations            %15d\n", nr_gens);
+  GB_DEBUG(GBDBG, "field characteristic  %15d\n", fc);
+  GB_DEBUG(GBDBG, "linear algebra option %15d\n", laopt);
+  GB_DEBUG(GBDBG, "hash table size       %15d (2^%d)\n", msize, htes);
+  GB_DEBUG(GBDBG, "#threads              %15d\n", nthrds);
+  GB_DEBUG(GBDBG, "--------------------------\n");
 
   initialize_basis(nr_gens);
   initialize_pairset();
@@ -85,7 +93,6 @@ int32_t *f4_julia(
   free(mat);
   mat = NULL;
 
-  printf("nthrds %d\n", nthrds);
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
@@ -137,8 +144,18 @@ int32_t *f4_julia(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  GB_DEBUG(GBDBG, "-------------------------------------\n");
-  GB_DEBUG(GBDBG, "overall timings %9.3f sec | %9.3f sec\n", rt1-rt0, ct1-ct0);
+  GB_DEBUG(GBDBG, "--------------------------\n");
+  GB_DEBUG(GBDBG, "overall %9.3f sec\n", rt1-rt0);
+  GB_DEBUG(GBDBG, "symbol  %9.3f sec\n", symbol_rtime);
+  GB_DEBUG(GBDBG, "update  %9.3f sec\n", update_rtime);
+  GB_DEBUG(GBDBG, "convert %9.3f sec\n", convert_rtime);
+  GB_DEBUG(GBDBG, "la      %9.3f sec\n", la_rtime);
+  GB_DEBUG(GBDBG, "--------------------------\n");
+  GB_DEBUG(GBDBG, "#pairs reduced   %7ld\n", num_pairsred);
+  GB_DEBUG(GBDBG, "#GM criterion    %7ld\n", num_gb_crit);
+  GB_DEBUG(GBDBG, "#redundant       %7ld\n", num_redundant);
+  GB_DEBUG(GBDBG, "#rows reduced    %7ld\n", num_rowsred);
+  GB_DEBUG(GBDBG, "#zero reductions %7ld\n", num_zerored);
 
   return basis;
 }

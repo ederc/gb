@@ -109,13 +109,17 @@ int32_t *f4_julia(
 
     /* here starts the linear algebra part depending on
      * the chosen options */
-    switch (laopt) {
-      case 1:
-        mat = sparse_linear_algebra(mat);
-        break;
-      default:
-        mat = sparse_linear_algebra(mat);
-    }
+    /* switch (laopt) {
+     *   case 1:
+     *     mat = sparse_linear_algebra(mat);
+     *     break;
+     *   case 42:
+     *     mat = probabilistic_sparse_linear_algebra(mat);
+     *     break;
+     *   default:
+     *     mat = sparse_linear_algebra(mat);
+     * } */
+    mat = linear_algebra(mat);
 
     mat = convert_columns_to_hashes(mat, hcm);
 
@@ -142,6 +146,7 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
+  GB_DEBUG(GBDBG, "size of basis          %15d\n", basis[0]);
   GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", num_pairsred);
   GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", num_gb_crit);
   GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);
@@ -151,6 +156,9 @@ int32_t *f4_julia(
       msize, (int32_t)(log(msize)/log(2)));
   GB_DEBUG(GBDBG, "local hash table size  %15d (2^%d)\n",
       mlsize, (int32_t)(log(mlsize)/log(2)));
+  if (laopt == 42) {
+    GB_DEBUG(GBDBG, "#probable blocks fail  %15ld\n", num_prob_fail);
+  }
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   /* free and clean up */

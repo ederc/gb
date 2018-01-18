@@ -33,7 +33,17 @@ static inline void set_function_pointers(
   hcm_cmp       = hcm_cmp_pivots_drl;
   select_spairs = select_spairs_by_minimal_degree;
 
-  /* todo: linear algebra routines, depending on bit size of prime */
+  switch (laopt) {
+    case 1:
+      linear_algebra  = sparse_linear_algebra;
+      break;
+    case 42:
+      linear_algebra  = probabilistic_sparse_linear_algebra;
+      break;
+    default:
+      linear_algebra  = sparse_linear_algebra;
+  }
+  
   if (fc < pow(2, 16)) {
     reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
   } else {

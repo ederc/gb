@@ -146,7 +146,7 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
-  GB_DEBUG(GBDBG, "size of basis          %15d\n", basis[0]);
+  GB_DEBUG(GBDBG, "size of basis          %15d\n", basis[1]);
   GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", num_pairsred);
   GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", num_gb_crit);
   GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);

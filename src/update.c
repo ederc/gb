@@ -101,9 +101,10 @@ static void insert_and_update_spairs(
   for (i = 0; i < pload; ++i) {
     j = ps[i].gen1;
     l = ps[i].gen2;
-    if (ps[i].lcm != ps[pload+j].lcm
+    /* if (ps[i].lcm != ps[pload+j].lcm */
+    if (check_monomial_division(ps[i].lcm, nelt[2])
         && ps[i].lcm != ps[pload+l].lcm
-        && check_monomial_division(ps[i].lcm, nelt[2])) {
+        && ps[i].lcm != ps[pload+j].lcm) {
       ps[i].deg = -1;
     }
   }
@@ -133,6 +134,12 @@ static void insert_and_update_spairs(
     if (ps[i].deg == -1) {
       continue;
     }
+    j = i+1;
+    while (j < k && ps[j].lcm == ps[i].lcm) {
+      ps[j++].deg = -1;
+    }
+    i = j-1;
+#if 0
     if (ps[i].deg == -2) {
       for (j = pload; j < k; ++j) {
         /* note that if we always sort the pairs by lcm we can
@@ -149,18 +156,20 @@ static void insert_and_update_spairs(
         break;
       }
     }
+#endif
   } 
 
   /* remove useless pairs from pairset */
   j = 0;
   for (i = 0; i < k; ++i) {
     if (ps[i].deg < 0) {
-      num_gb_crit++;
+      /* num_gb_crit++; */
       continue;
     }
     ps[j++] = ps[i];
   }
-  pload = j;
+  num_gb_crit = k - j;
+  pload       = j;
 
   /* mark redundant elements in basis */
   for (i = 0; i < bload; ++i) {

@@ -33,7 +33,11 @@ TESTS = 											\
 	test_pairset_update					\
 	test_select_spairs					\
 	test_f4											\
-	test_cyclic_4
+	test_cyclic_4								\
+	test_cyclic_7								\
+	test_cyclic_9								\
+	test_pearson_9							\
+	test_mayr_42
 
 XFAIL_TESTS = 								\
 	xtest_input_meta_data

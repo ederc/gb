@@ -243,10 +243,10 @@ static val_t **sparse_linear_algebra(
 
   free(mat);
   mat = NULL;
-  /* we need to allocate dr statically for openmp */
-  int64_t dr[ncols];
-  /* int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t)); */
-#pragma omp parallel for num_threads(nthrds) private(dr)
+#pragma omp parallel num_threads(nthrds)
+{
+  int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
+#pragma omp parallel for num_threads(nthrds)
   for (i = 0; i < nrl; ++i) {
     /* load next row to dense format for further reduction */
     memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
@@ -291,6 +291,8 @@ static val_t **sparse_linear_algebra(
       mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
     }
   }
+  free(dr);
+}
   free(pivs);
   pivs  = NULL;
 
@@ -350,14 +352,11 @@ static val_t **probabilistic_sparse_linear_algebra(
   const int32_t rpb = (nrl / nb) + rem;
 
   /* we need to allocate dr statically for openmp */
-  int64_t drg[ncols]; /* for global last check at the end */
-  memset(drg, 0, (unsigned long)ncols * sizeof(int64_t));
-  int64_t dr[ncols]; /* for each thread */
-  val_t mul[rpb]; /* list of multipliers for linear combinations */
+  int64_t *dr   = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
+  int64_t *mul  = (int64_t *)malloc((unsigned long)rpb * sizeof(int64_t));
 
-again:
-#pragma omp parallel for num_threads(nthrds) shared(drg) \
-  private(j, k, dr, mul)
+/* #pragma omp parallel for num_threads(nthrds) shared(drg) \
+ *   private(j, k, dr, mul) */
   for (i = 0; i < nb; ++i) {
     const int32_t nbl   = (int32_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
     const int32_t nrbl  = (int32_t) (nbl - i*rpb);
@@ -369,7 +368,7 @@ again:
       while (bctr < nrbl) {
         /* fill random value array */
         for (j = 0; j < nrbl; ++j) {
-          mul[j]  = (val_t)rand() % fc;
+          mul[j]  = (int64_t)rand() % fc;
         }
 
         /* generate one dense row as random linear combination
@@ -379,7 +378,7 @@ again:
         for (j = i*rpb; j < nbl; ++j) {
           sc  = sc < upivs[j][2] ? sc : upivs[j][2];
           for (k = 2; k < upivs[j][0]; k = k+2) {
-            dr[upivs[j][k]]  +=  (int64_t)mul[ctr] * upivs[j][k+1];
+            dr[upivs[j][k]]  +=  mul[ctr] * upivs[j][k+1];
           }
           ctr++;
         }
@@ -388,34 +387,33 @@ again:
         do {
           npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
           if (!npiv) {
-            goto block_done;
+            bctr  = nrbl;
+            break;
           }
           j = compare_and_swap((void *)(&pivs[npiv[2]]), 0, (long)npiv);
         } while (j);
         bctr++;
       }
-block_done:
       /* fill global dense row for final check at the end */
-      for (j = 0; j < nrbl; ++j)
-        mul[j]  = (val_t)rand() % fc;
-      for (j = i*rpb; j < nbl; ++j)
-        for (k = 2; k < upivs[j][0]; k = k+2)
-          drg[upivs[j][k]]  +=  (int64_t)mul[j] * upivs[j][k+1];
-
+      /* for (j = 0; j < nrbl; ++j) {
+       *   mul[j]  = (val_t)rand() % fc;
+       * }
+       * for (j = i*rpb; j < nbl; ++j) {
+       *   for (k = 2; k < upivs[j][0]; k = k+2) {
+       *     if (upivs[j][k] >= ncols) {
+       *       printf("upivs[%d][%d] = %d > %d\n", j, k, upivs[j][k], ncols);
+       *     }
+       *     drg[upivs[j][k]]  +=  mul[j] * upivs[j][k+1];
+       *   }
+       * }
+       * printf("drg2\n");
+       * for (i = 0; i < ncols; ++i) {
+       *   printf("%ld ", drg[i]);
+       * }
+       * printf("\n"); */
     }
   }
   /* do final check, go back if check fails */
-  for (i = 0; i < ncols; ++i) {
-    if (drg[i] != 0) {
-      sc  = i;
-      break;
-    }
-  }
-  val_t *final  = reduce_dense_row_by_known_pivots(drg, pivs, sc);
-  if (final) {
-    num_prob_fail++;
-    goto again;
-  }
 
   for (i = 0; i < nrl; ++i) {
     free(upivs[i]);
@@ -446,6 +444,8 @@ block_done:
       mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
     }
   }
+  free(dr);
+  free(mul);
   free(pivs);
   pivs  = NULL;
 

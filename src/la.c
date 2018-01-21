@@ -243,11 +243,13 @@ static val_t **sparse_linear_algebra(
 
   free(mat);
   mat = NULL;
+  printf("nthrds %d\n", nthrds);
 #pragma omp parallel num_threads(nthrds)
-{
+  {
   int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
 #pragma omp parallel for num_threads(nthrds)
   for (i = 0; i < nrl; ++i) {
+    printf("num of threads running %d\n", omp_get_num_threads());
     /* load next row to dense format for further reduction */
     memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
     for (j = 2; j < upivs[i][0]; j += 2) {
@@ -262,14 +264,17 @@ static val_t **sparse_linear_algebra(
       if (!npiv) {
         break;
       }
-      j = compare_and_swap((void *)(&pivs[npiv[2]]), 0, (long)npiv);
+      /* j = compare_and_swap((void *)(&pivs[npiv[2]]), 0, (long)npiv); */
+      j  = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
     } while (j);
   }
-
+  free(dr);
+  }
   free(upivs);
   upivs = NULL;
 
   /* we do not need the old pivots anymore */
+  int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
   for (i = 0; i < nru; ++i) {
     free(pivs[i]);
     pivs[i] = NULL;
@@ -292,7 +297,6 @@ static val_t **sparse_linear_algebra(
     }
   }
   free(dr);
-}
   free(pivs);
   pivs  = NULL;
 

@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([GB], [0.0.1], [ederc@mathematik.uni-kl.de])
 AM_INIT_AUTOMAKE([foreign color-tests -Wall -Werror])
-AM_SILENT_RULES([yes])
+# AM_SILENT_RULES([yes])
 
 # Include maintainer mode targets
 AM_MAINTAINER_MODE

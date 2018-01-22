@@ -91,7 +91,7 @@ static len_t *convert_hashes_to_columns(
 
   /* next we sort each row by the new colum order due
    * to known / unkown pivots */
-#pragma omp parallel for num_threads(nthrds)
+/* #pragma omp parallel for num_threads(nthrds) */
   for (i = 0; i < nrows; ++i) {
     qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
         columns_cmp);

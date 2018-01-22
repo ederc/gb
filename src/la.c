@@ -212,7 +212,7 @@ static val_t **sparse_linear_algebra(
     val_t **mat
     )
 {
-  int32_t i, j;
+  int32_t i, j, k;
   val_t sc  = 0;  /* starting column */
   val_t *npiv;    /* new pivot row */
 
@@ -243,13 +243,9 @@ static val_t **sparse_linear_algebra(
 
   free(mat);
   mat = NULL;
-  printf("nthrds %d\n", nthrds);
-#pragma omp parallel num_threads(nthrds)
-  {
   int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
-#pragma omp parallel for num_threads(nthrds)
   for (i = 0; i < nrl; ++i) {
-    printf("num of threads running %d\n", omp_get_num_threads());
+    /* printf("i %d | upivs[0] %p\n", ip, upivs[0]); */
     /* load next row to dense format for further reduction */
     memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
     for (j = 2; j < upivs[i][0]; j += 2) {
@@ -258,6 +254,7 @@ static val_t **sparse_linear_algebra(
     sc  = upivs[i][2];
     free(upivs[i]);
     upivs[i]  = NULL;
+    k = 0;
     /* do the reduction */
     do {
       npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
@@ -265,16 +262,15 @@ static val_t **sparse_linear_algebra(
         break;
       }
       /* j = compare_and_swap((void *)(&pivs[npiv[2]]), 0, (long)npiv); */
-      j  = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
-    } while (j);
-  }
-  free(dr);
+      k  = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
+    } while (k);
   }
   free(upivs);
   upivs = NULL;
 
+    /* dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t)); */
   /* we do not need the old pivots anymore */
-  int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
+  /* int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t)); */
   for (i = 0; i < nru; ++i) {
     free(pivs[i]);
     pivs[i] = NULL;
@@ -296,8 +292,9 @@ static val_t **sparse_linear_algebra(
       mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
     }
   }
-  free(dr);
+  /* free(dr); */
   free(pivs);
+  free(dr);
   pivs  = NULL;
 
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
@@ -319,7 +316,7 @@ static val_t **probabilistic_sparse_linear_algebra(
     val_t **mat
     )
 {
-  int32_t i, j, k;
+  int32_t i, j, k, l;
   val_t sc  = 0;  /* starting column */
   val_t *npiv;    /* new pivot row */
 
@@ -356,68 +353,78 @@ static val_t **probabilistic_sparse_linear_algebra(
   const int32_t rpb = (nrl / nb) + rem;
 
   /* we need to allocate dr statically for openmp */
+  int64_t *drg  = (int64_t *)calloc((unsigned long)ncols, sizeof(int64_t));
   int64_t *dr   = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
   int64_t *mul  = (int64_t *)malloc((unsigned long)rpb * sizeof(int64_t));
+  
+  val_t *final  = NULL;
 
 /* #pragma omp parallel for num_threads(nthrds) shared(drg) \
  *   private(j, k, dr, mul) */
-  for (i = 0; i < nb; ++i) {
-    const int32_t nbl   = (int32_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
-    const int32_t nrbl  = (int32_t) (nbl - i*rpb);
+  do {
+    free(final);
+    final = NULL;
+    for (i = 0; i < nb; ++i) {
+      const int32_t nbl   = (int32_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
+      const int32_t nrbl  = (int32_t) (nbl - i*rpb);
 
-    sc  = 0;
+      sc  = 0;
 
-    if (nrbl != 0) {
-      int32_t bctr  = 0;
-      while (bctr < nrbl) {
-        /* fill random value array */
+      if (nrbl != 0) {
+        int32_t bctr  = 0;
+        while (bctr < nrbl) {
+          /* fill random value array */
+          for (j = 0; j < nrbl; ++j) {
+            mul[j]  = (int64_t)rand() % fc;
+          }
+
+          /* generate one dense row as random linear combination
+           * of the rows of the block */
+          memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
+          for (l = 0, j = i*rpb; j < nbl; ++j) {
+            sc  = sc < upivs[j][2] ? sc : upivs[j][2];
+            for (k = 2; k < upivs[j][0]; k = k+2) {
+              dr[upivs[j][k]]  +=  mul[l] * upivs[j][k+1];
+            }
+            l++;
+          }
+          k = 0;
+          /* do the reduction */
+          do {
+            npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
+            if (!npiv) {
+              bctr  = nrbl;
+              break;
+            }
+            k  = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
+          } while (k);
+          bctr++;
+        }
+        /* fill global dense row for final check at the end */
         for (j = 0; j < nrbl; ++j) {
-          mul[j]  = (int64_t)rand() % fc;
+          mul[j]  = (val_t)rand() % fc;
         }
-
-        /* generate one dense row as random linear combination
-        * of the rows of the block */
-        memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
-        int32_t ctr = 0;
-        for (j = i*rpb; j < nbl; ++j) {
-          sc  = sc < upivs[j][2] ? sc : upivs[j][2];
+        for (l = 0, j = i*rpb; j < nbl; ++j) {
           for (k = 2; k < upivs[j][0]; k = k+2) {
-            dr[upivs[j][k]]  +=  mul[ctr] * upivs[j][k+1];
+            drg[upivs[j][k]]  +=  mul[l] * upivs[j][k+1];
           }
-          ctr++;
+          l++;
         }
-
-        /* do the reduction */
-        do {
-          npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
-          if (!npiv) {
-            bctr  = nrbl;
-            break;
-          }
-          j = compare_and_swap((void *)(&pivs[npiv[2]]), 0, (long)npiv);
-        } while (j);
-        bctr++;
       }
-      /* fill global dense row for final check at the end */
-      /* for (j = 0; j < nrbl; ++j) {
-       *   mul[j]  = (val_t)rand() % fc;
-       * }
-       * for (j = i*rpb; j < nbl; ++j) {
-       *   for (k = 2; k < upivs[j][0]; k = k+2) {
-       *     if (upivs[j][k] >= ncols) {
-       *       printf("upivs[%d][%d] = %d > %d\n", j, k, upivs[j][k], ncols);
-       *     }
-       *     drg[upivs[j][k]]  +=  mul[j] * upivs[j][k+1];
-       *   }
-       * }
-       * printf("drg2\n");
-       * for (i = 0; i < ncols; ++i) {
-       *   printf("%ld ", drg[i]);
-       * }
-       * printf("\n"); */
     }
-  }
-  /* do final check, go back if check fails */
+    /* do final check, go back if check fails */
+    sc  = 0;
+    for (i = 0; i < ncols; ++i) {
+      if (drg[i] != 0) {
+        sc  = i;
+        break;
+      }
+    }
+    final  = reduce_dense_row_by_known_pivots(drg, pivs, sc);
+  } while (final);
+
+  free(drg);
+  free(mul);
 
   for (i = 0; i < nrl; ++i) {
     free(upivs[i]);
@@ -449,7 +456,7 @@ static val_t **probabilistic_sparse_linear_algebra(
     }
   }
   free(dr);
-  free(mul);
+  dr  = NULL;
   free(pivs);
   pivs  = NULL;
 

@@ -268,9 +268,7 @@ static val_t **sparse_linear_algebra(
   free(upivs);
   upivs = NULL;
 
-    /* dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t)); */
   /* we do not need the old pivots anymore */
-  /* int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t)); */
   for (i = 0; i < nru; ++i) {
     free(pivs[i]);
     pivs[i] = NULL;
@@ -289,12 +287,12 @@ static val_t **sparse_linear_algebra(
       sc  = pivs[i][2];
       free(pivs[i]);
       pivs[i] = NULL;
-      mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
+      pivs[i] = mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
     }
   }
-  /* free(dr); */
-  free(pivs);
   free(dr);
+  dr  = NULL;
+  free(pivs);
   pivs  = NULL;
 
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
@@ -352,7 +350,6 @@ static val_t **probabilistic_sparse_linear_algebra(
   const int32_t rem = (nrl % nb == 0) ? 0 : 1;
   const int32_t rpb = (nrl / nb) + rem;
 
-  /* we need to allocate dr statically for openmp */
   int64_t *drg  = (int64_t *)calloc((unsigned long)ncols, sizeof(int64_t));
   int64_t *dr   = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
   int64_t *mul  = (int64_t *)malloc((unsigned long)rpb * sizeof(int64_t));
@@ -448,11 +445,12 @@ static val_t **probabilistic_sparse_linear_algebra(
       memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {
         dr[pivs[i][j]] = (int64_t)pivs[i][j+1];
+
       }
       sc  = pivs[i][2];
       free(pivs[i]);
       pivs[i] = NULL;
-      mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
+      pivs[i] = mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
     }
   }
   free(dr);

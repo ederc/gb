@@ -38,6 +38,7 @@ int32_t *f4_julia(
     const int32_t nr_gens,
     const int32_t ht_size,
     const int32_t nr_threads,
+    const int32_t max_nr_pairs,
     const int32_t la_option
     )
 {
@@ -53,7 +54,7 @@ int32_t *f4_julia(
   /* checks and set all meta data. if a nonzero value is returned then
    * some of the input data is corrupted. */
   if (check_and_set_meta_data(lens, cfs, exps, field_char, nr_vars,
-      nr_gens, ht_size, nr_threads, la_option)) {
+      nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
     return NULL;
   }
 
@@ -66,6 +67,7 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "linear algebra option  %15d\n", laopt);
   GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
       (int32_t)pow(2,htes), htes);
+  GB_DEBUG(GBDBG, "maximal pair selection %15d\n", mnsel);
   GB_DEBUG(GBDBG, "#threads               %15d\n", nthrds);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 

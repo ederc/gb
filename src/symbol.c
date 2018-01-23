@@ -68,7 +68,7 @@ static val_t **select_spairs_by_minimal_degree(
     void
     )
 {
-  int32_t i, j, k, md, n;
+  int32_t i, j, k, n, md, npairs;
   val_t **mat;
   len_t *tmp_lcm, *tmp_gen;
 
@@ -77,39 +77,41 @@ static val_t **select_spairs_by_minimal_degree(
   ct0 = cputime();
   rt0 = realtime();
 
+  /* sort pair set */
+  qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_cmp);
   /* get minimal degree */
-  md  = (int32_t)1 << 30;
-  n   = 0;
+  md  = ps[0].deg;
 
+  /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
-    if (ps[i].deg > md) {
-      continue;
-    } else {
-      if (ps[i].deg == md) {
-        n++;
-      } else {
-        md  = ps[i].deg;
-        n   = 1;
-      }
+    if (ps[i].deg > md || i > mnsel) {
+      break;
     }
   }
-  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", n, pload, md);
+  npairs  = i;
+  /* if we stopped due to maximal selection size we still get the following
+   * pairs of the same lcm in this matrix */
+  if (i > mnsel) {
+    j = i+1;
+    while (ps[j].lcm == ps[i].lcm) {
+      ++j;
+    }
+    npairs = j;
+  }
+  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
   /* statistics */
-  num_pairsred  +=  n;
+  num_pairsred  +=  npairs;
 
   /* generate matrix out of selected spairs */
-  tmp_lcm = (len_t *)malloc(2 * (unsigned long)n * sizeof(len_t));
-  tmp_gen = (len_t *)malloc(2 * (unsigned long)n * sizeof(len_t));
-  for (i = 0, j = 0; i < pload; ++i) {
-    if (ps[i].deg != md) {
-      continue;
-    }
-    tmp_gen[j]    = ps[i].gen1;
-    tmp_gen[j+1]  = ps[i].gen2;
-    tmp_lcm[j]    = tmp_lcm[j+1]  = ps[i].lcm;
-    j +=  2;
+  tmp_lcm = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
+  tmp_gen = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
+  for (k = 0, j = 0; j < npairs; ++j) {
+    tmp_gen[k]    = ps[j].gen1;
+    tmp_gen[k+1]  = ps[j].gen2;
+    tmp_lcm[k]    = tmp_lcm[k+1]  = ps[j].lcm;
+    k +=  2;
   }
-  n = j;
+  n = k;
 
   /* remove duplicates */
   for (i = 0, k = 0; i < n; ++i) {
@@ -150,13 +152,10 @@ static val_t **select_spairs_by_minimal_degree(
   free(tmp_gen);
 
   /* remove selected spairs from pairset */
-  for (i = 0, j = 0; i < pload; ++i) {
-    if (ps[i].deg == md) {
-      continue;
-    }
-    ps[j++] = ps[i];
+  for (j = npairs; j < pload; ++j) {
+    ps[j-npairs]  = ps[j];
   }
-  pload = j;
+  pload = pload - npairs;
 
   /* timings */
   ct1 = cputime();

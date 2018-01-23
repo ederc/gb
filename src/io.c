@@ -61,6 +61,7 @@ static inline int32_t check_and_set_meta_data(
     const int32_t nr_gens,
     const int32_t ht_size,
     const int32_t nr_threads,
+    const int32_t max_nr_pairs,
     const int32_t la_option
     )
 {
@@ -87,6 +88,12 @@ static inline int32_t check_and_set_meta_data(
     nthrds  = 1;
   } else {
     nthrds  = nr_threads;
+  }
+
+  if (max_nr_pairs <= 0) {
+    mnsel = 2147483647; /* 2^31-1 */
+  } else {
+    mnsel = max_nr_pairs;
   }
 
   /* set linear algebra option */

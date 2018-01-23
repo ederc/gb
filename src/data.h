@@ -61,9 +61,10 @@ struct spair_t
 };
 
 /* pair set data */
-static spair_t *ps  = NULL;
-static pl_t pload   = 0;
-static pl_t psize   = 0;
+static spair_t *ps    = NULL;
+static pl_t pload     = 0;
+static pl_t psize     = 0;
+static int32_t mnsel  = 0; /* maximal number of pairs to be selected */
 
 /* field characteristic */
 static val_t fc = 0;
@@ -140,6 +141,7 @@ int32_t *f4_julia(
     const int32_t nr_gens,
     const int32_t ht_size,
     const int32_t nr_threads,
+    const int32_t max_nr_pairs,
     const int32_t la_option
     );
 #endif

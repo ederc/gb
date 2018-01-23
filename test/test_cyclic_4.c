@@ -23,7 +23,7 @@ int main(
   const int32_t ht_size       = 12;
   const int32_t field_char    = 65521;
   const int32_t nr_threads    = 1;
-  const int32_t la_option     = 42;
+  const int32_t la_option     = 1;
   const int32_t max_nr_pairs  = 0;
 
   int32_t *basis = f4_julia(

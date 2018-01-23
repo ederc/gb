@@ -213,8 +213,6 @@ static val_t **sparse_linear_algebra(
     )
 {
   int32_t i, j, k;
-  val_t sc  = 0;  /* starting column */
-  val_t *npiv;    /* new pivot row */
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -243,28 +241,37 @@ static val_t **sparse_linear_algebra(
 
   free(mat);
   mat = NULL;
-  int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
+  int64_t *dr  = (int64_t *)malloc((unsigned long)nthrds * ncols * sizeof(int64_t));
+#pragma omp parallel for num_threads(nthrds) private(i, j, k) shared(pivs)
   for (i = 0; i < nrl; ++i) {
+    /* printf("thread number %d\n", omp_get_thread_num()); */
+    int64_t *drl  = dr + (omp_get_thread_num() * ncols);
     /* printf("i %d | upivs[0] %p\n", ip, upivs[0]); */
     /* load next row to dense format for further reduction */
-    memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
+    memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
     for (j = 2; j < upivs[i][0]; j += 2) {
-      dr[upivs[i][j]] = (int64_t)upivs[i][j+1];
+      drl[upivs[i][j]] = (int64_t)upivs[i][j+1];
     }
-    sc  = upivs[i][2];
+    val_t sc  = upivs[i][2];
     free(upivs[i]);
     upivs[i]  = NULL;
     k = 0;
     /* do the reduction */
     do {
-      npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
+      val_t *npiv  = reduce_dense_row_by_known_pivots(drl, pivs, sc);
       if (!npiv) {
         break;
       }
       /* j = compare_and_swap((void *)(&pivs[npiv[2]]), 0, (long)npiv); */
       k  = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
-    } while (k);
+      memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
+      for (j = 2; j < npiv[0]; j += 2) {
+        drl[npiv[j]] = (int64_t)npiv[j+1];
+      }
+      sc  = npiv[2];
+    } while (!k);
   }
+
   free(upivs);
   upivs = NULL;
 
@@ -276,6 +283,7 @@ static val_t **sparse_linear_algebra(
 
   npivs = 0; /* number of new pivots */
 
+  dr  = realloc(dr, (unsigned long)ncols * sizeof(int64_t));
   mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
   for (i = (ncols-1); i >= ncl; --i) {
@@ -284,17 +292,17 @@ static val_t **sparse_linear_algebra(
       for (j = 2; j < pivs[i][0]; j += 2) {
         dr[pivs[i][j]] = (int64_t)pivs[i][j+1];
       }
-      sc  = pivs[i][2];
+      val_t sc  = pivs[i][2];
       free(pivs[i]);
       pivs[i] = NULL;
       pivs[i] = mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
     }
   }
-  free(dr);
-  dr  = NULL;
   free(pivs);
   pivs  = NULL;
 
+  free(dr);
+  dr  = NULL;
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
   nrows = nrall = npivs;
 
@@ -356,7 +364,7 @@ static val_t **probabilistic_sparse_linear_algebra(
   
   val_t *final  = NULL;
 
-/* #pragma omp parallel for num_threads(nthrds) shared(drg) \
+/* #pragma omp arallel for num_threads(nthrds) shared(drg) \
  *   private(j, k, dr, mul) */
   do {
     free(final);

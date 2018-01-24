@@ -241,7 +241,7 @@ static val_t **sparse_linear_algebra(
 
   free(mat);
   mat = NULL;
-  int64_t *dr  = (int64_t *)malloc((unsigned long)nthrds * ncols * sizeof(int64_t));
+  int64_t *dr  = (int64_t *)malloc((unsigned long)(nthrds * ncols) * sizeof(int64_t));
 #pragma omp parallel for num_threads(nthrds) private(i, j, k) shared(pivs)
   for (i = 0; i < nrl; ++i) {
     /* printf("thread number %d\n", omp_get_thread_num()); */

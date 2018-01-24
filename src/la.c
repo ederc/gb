@@ -408,16 +408,16 @@ static val_t **probabilistic_sparse_linear_algebra(
         } while (!k);
         bctr++;
       }
+      for (j = i*rpb; j < nbl; ++j) {
+        free(upivs[j]);
+        upivs[j]  = NULL;
+      }
     }
   }
 
   free(mul);
   mul = NULL;
 
-  for (i = 0; i < nrl; ++i) {
-    free(upivs[i]);
-    upivs[i] = NULL;
-  }
   free(upivs);
   upivs = NULL;
 

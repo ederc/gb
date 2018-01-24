@@ -319,8 +319,8 @@ static val_t **probabilistic_sparse_linear_algebra(
     )
 {
   int32_t i, j, k, l;
-  val_t sc  = 0;  /* starting column */
-  val_t *npiv;    /* new pivot row */
+  val_t sc    = 0;    /* starting column */
+  val_t *npiv = NULL; /* new pivot row */
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -343,7 +343,6 @@ static val_t **probabilistic_sparse_linear_algebra(
       j++;
     }
   }
-
   free(mat);
   mat = NULL;
 
@@ -354,78 +353,66 @@ static val_t **probabilistic_sparse_linear_algebra(
   const int32_t rem = (nrl % nb == 0) ? 0 : 1;
   const int32_t rpb = (nrl / nb) + rem;
 
-  int64_t *drg  = (int64_t *)calloc((unsigned long)ncols, sizeof(int64_t));
-  int64_t *dr   = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
-  int64_t *mul  = (int64_t *)malloc((unsigned long)rpb * sizeof(int64_t));
-  
-  val_t *final  = NULL;
+  int64_t *dr   = (int64_t *)malloc(
+      (unsigned long)(nthrds * ncols) * sizeof(int64_t));
+  int64_t *mul  = (int64_t *)malloc(
+      (unsigned long)(nthrds * rpb) * sizeof(int64_t));
 
-/* #pragma omp arallel for num_threads(nthrds) shared(drg) \
- *   private(j, k, dr, mul) */
-  do {
-    free(final);
-    final = NULL;
-    for (i = 0; i < nb; ++i) {
-      const int32_t nbl   = (int32_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
-      const int32_t nrbl  = (int32_t) (nbl - i*rpb);
+#pragma omp parallel for num_threads(nthrds) \
+  private(i, j, k,l, sc, npiv) shared(pivs)
+  for (i = 0; i < nb; ++i) {
+    int64_t *drl  = dr + (omp_get_thread_num() * ncols);
+    int64_t *mull = mul + (omp_get_thread_num() * rpb);
 
-      sc  = 0;
+    const int32_t nbl   = (int32_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
+    const int32_t nrbl  = (int32_t) (nbl - i*rpb);
 
-      if (nrbl != 0) {
-        int32_t bctr  = 0;
-        while (bctr < nrbl) {
-          /* fill random value array */
-          for (j = 0; j < nrbl; ++j) {
-            mul[j]  = (int64_t)rand() % fc;
-          }
+    sc  = 0;
 
-          /* generate one dense row as random linear combination
-           * of the rows of the block */
-          memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
-          for (l = 0, j = i*rpb; j < nbl; ++j) {
-            sc  = sc < upivs[j][2] ? sc : upivs[j][2];
-            for (k = 2; k < upivs[j][0]; k = k+2) {
-              dr[upivs[j][k]]  +=  mul[l] * upivs[j][k+1];
-            }
-            l++;
-          }
-          k = 0;
-          /* do the reduction */
-          do {
-            npiv  = reduce_dense_row_by_known_pivots(dr, pivs, sc);
-            if (!npiv) {
-              bctr  = nrbl;
-              break;
-            }
-            k  = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
-          } while (k);
-          bctr++;
-        }
-        /* fill global dense row for final check at the end */
+    if (nrbl != 0) {
+      int32_t bctr  = 0;
+      while (bctr < nrbl) {
+        /* fill random value array */
         for (j = 0; j < nrbl; ++j) {
-          mul[j]  = (val_t)rand() % fc;
+          mull[j] = (int64_t)rand() % fc;
         }
+
+        /* generate one dense row as random linear combination
+         * of the rows of the block */
+        memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
         for (l = 0, j = i*rpb; j < nbl; ++j) {
+          sc  = sc < upivs[j][2] ? sc : upivs[j][2];
           for (k = 2; k < upivs[j][0]; k = k+2) {
-            drg[upivs[j][k]]  +=  mul[l] * upivs[j][k+1];
+            drl[upivs[j][k]]  +=  mull[l] * upivs[j][k+1];
           }
           l++;
         }
+        k = 0;
+        val_t *npiv;
+        /* do the reduction */
+        do {
+          npiv = reduce_dense_row_by_known_pivots(drl, pivs, sc);
+          if (!npiv) {
+            bctr  = nrbl;
+            break;
+          }
+          k  = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
+          if (!k) {
+            memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
+            for (j = 2; j < npiv[0]; j += 2) {
+              drl[npiv[j]] = (int64_t)npiv[j+1];
+            }
+            sc  = npiv[2];
+            free(npiv);
+          }
+        } while (!k);
+        bctr++;
       }
     }
-    /* do final check, go back if check fails */
-    sc  = 0;
-    for (i = 0; i < ncols; ++i) {
-      if (drg[i] != 0) {
-        sc  = i;
-        break;
-      }
-    }
-    final  = reduce_dense_row_by_known_pivots(drg, pivs, sc);
-  } while (final);
+  }
 
-  free(drg);
   free(mul);
+  mul = NULL;
 
   for (i = 0; i < nrl; ++i) {
     free(upivs[i]);
@@ -440,6 +427,7 @@ static val_t **probabilistic_sparse_linear_algebra(
     pivs[i] = NULL;
   }
 
+  dr  = realloc(dr, (unsigned long)ncols * sizeof(int64_t));
   npivs = 0; /* number of new pivots */
 
   mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
@@ -458,8 +446,8 @@ static val_t **probabilistic_sparse_linear_algebra(
     }
   }
   free(dr);
-  dr  = NULL;
   free(pivs);
+  dr    = NULL;
   pivs  = NULL;
 
   mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));

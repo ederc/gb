@@ -158,9 +158,6 @@ int32_t *f4_julia(
       msize, (int32_t)(log(msize)/log(2)));
   GB_DEBUG(GBDBG, "local hash table size  %15d (2^%d)\n",
       mlsize, (int32_t)(log(mlsize)/log(2)));
-  if (laopt == 42) {
-    GB_DEBUG(GBDBG, "#probable blocks fail  %15ld\n", num_prob_fail);
-  }
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   /* free and clean up */

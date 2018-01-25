@@ -42,7 +42,6 @@ static int64_t num_redundant  = 0;
 static int64_t num_duplicates = 0;
 static int64_t num_rowsred    = 0;
 static int64_t num_zerored    = 0;
-static int64_t num_prob_fail  = 0;
 
 static double density = 0;
 
@@ -56,7 +55,6 @@ static void initialize_statistics(
   num_duplicates  = 0;
   num_rowsred     = 0;
   num_zerored     = 0;
-  num_prob_fail   = 0;
 
 	select_rtime  = 0;
   symbol_rtime  = 0;

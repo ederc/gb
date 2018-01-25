@@ -134,9 +134,11 @@ static val_t **select_spairs_by_minimal_degree(
   num_rowsred +=  n;
 
   /* move lcms to local hash table */
-  for (i = 0; i < n; ++i) {
-    tmp_lcm[i]  = insert_in_local_hash_table(ev+tmp_lcm[i]);
-  }
+
+  /* they are already in the local hash table */
+  /* for (i = 0; i < n; ++i) {
+   *   tmp_lcm[i]  = insert_in_local_hash_table(ev+tmp_lcm[i]);
+   * } */
   
   /* printf("\n");
    * for (i = 0; i < n; ++i) {

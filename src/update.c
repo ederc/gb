@@ -98,6 +98,7 @@ static void insert_and_update_spairs(
   }
   
   /* Gebauer-Moeller: check old pairs first */
+  /* note: old pairs are sorted by the given spair order */
   for (i = 0; i < pload; ++i) {
     j = ps[i].gen1;
     l = ps[i].gen2;
@@ -113,22 +114,24 @@ static void insert_and_update_spairs(
   qsort(ps+pload, (unsigned long)bload, sizeof(spair_t), &spair_cmp);
 
   /* check with earlier new pairs */
-  for (i = pload; i < k; ++i) {
-    if (ps[i].deg < 0) {
-      continue;
-    }
-    for (j = pload; j < i; ++j) {
-      if (ps[j].deg == -1) {
-        continue;
+  for (j = pload; j < k; ++j) {
+    l = j;
+    if (ps[j].deg != -1) {
+      i = j+1;
+      while (i < k && ps[i].lcm == ps[j].lcm)
+        ++i;
+      l = i-1;
+      while (i < k) {
+        /* if (check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) { */
+        if (ps[i].deg >= 0 &&
+            check_monomial_division(ps[i].lcm, ps[j].lcm) != 0) {
+          ps[i].deg  = -1;
+        }
+        ++i;
       }
-      if (ps[i].lcm != ps[j].lcm
-          && check_monomial_division(ps[i].lcm, ps[j].lcm)) {
-        ps[i].deg = -1;
-        break;
-      }
     }
+    j = l;
   }
-
   /* note that k = pload + bload from very first loop */
   for (i = pload; i < k; ++i) {
     if (ps[i].deg == -1) {
@@ -139,31 +142,12 @@ static void insert_and_update_spairs(
       ps[j++].deg = -1;
     }
     i = j-1;
-#if 0
-    if (ps[i].deg == -2) {
-      for (j = pload; j < k; ++j) {
-        /* note that if we always sort the pairs by lcm we can
-         * exchange the following "if" loop with a "while" loop. */
-        if (ps[j].lcm == ps[i].lcm) {
-          ps[j].deg = -1;
-        }
-      }
-      continue;
-    }
-    for (j = i-1; j >= pload; --j) {
-      if (ps[j].lcm == ps[i].lcm) {
-        ps[i].deg = -1;
-        break;
-      }
-    }
-#endif
   } 
 
   /* remove useless pairs from pairset */
   j = 0;
   for (i = 0; i < k; ++i) {
     if (ps[i].deg < 0) {
-      /* num_gb_crit++; */
       continue;
     }
     ps[j++] = ps[i];
@@ -199,7 +183,7 @@ static void update_basis(
 
   for (i = 1; i <= npivs; ++i) {
     insert_and_update_spairs(mat[nrows-i]);
-  } 
+  }
 
   clear_local_hash_table();
 

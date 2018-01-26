@@ -549,7 +549,7 @@ static inline len_t get_lcm(
     e[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
   }
   /* goes into global hash table for spairs */
-  return insert_in_local_hash_table(e);
+  return insert_in_global_hash_table(e);
 }
 
 static inline len_t monomial_multiplication(

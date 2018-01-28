@@ -152,8 +152,8 @@ static void insert_and_update_spairs(
     }
     ps[j++] = ps[i];
   }
-  num_gb_crit = k - j;
-  pload       = j;
+  num_gb_crit +=  k - j;
+  pload       =   j;
 
   /* mark redundant elements in basis */
   for (i = 0; i < bload; ++i) {

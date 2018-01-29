@@ -141,10 +141,10 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);
   GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
   GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
-  GB_DEBUG(GBDBG, "global hash table size %15d (2^%d)\n",
-      msize, (int32_t)(log(msize)/log(2)));
-  GB_DEBUG(GBDBG, "local hash table size  %15d (2^%d)\n",
-      mlsize, (int32_t)(log(mlsize)/log(2)));
+  GB_DEBUG(GBDBG, "global hash table size %15d <= 2^%d\n",
+      eload/HASH_LEN, (int32_t)((ceil(log(eload/HASH_LEN)/log(2)))));
+  GB_DEBUG(GBDBG, "local hash table size  %15d <= 2^%d\n",
+      elload/HASH_LEN, (int32_t)(ceil(log(elload/HASH_LEN)/log(2))));
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   /* free and clean up */

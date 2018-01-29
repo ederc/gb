@@ -108,21 +108,9 @@ int32_t *f4_julia(
     hcm = convert_hashes_to_columns(mat);
     /* sort matrix rows by decreasing pivots */
     mat = sort_matrix_rows(mat);
-
-    /* here starts the linear algebra part depending on
-     * the chosen options */
-    /* switch (laopt) {
-     *   case 1:
-     *     mat = sparse_linear_algebra(mat);
-     *     break;
-     *   case 42:
-     *     mat = probabilistic_sparse_linear_algebra(mat);
-     *     break;
-     *   default:
-     *     mat = sparse_linear_algebra(mat);
-     * } */
+    /* linear algebra, depending on choice, see set_function_pointers() */
     mat = linear_algebra(mat);
-
+    /* columns indices are mapped back to exponent hashes */
     mat = convert_columns_to_hashes(mat, hcm);
 
     free(hcm);
@@ -134,7 +122,6 @@ int32_t *f4_julia(
     mat = NULL;
     GB_DEBUG(GBDBG, "\n");
   }
-
 
   int32_t *basis  = export_julia_data();
 

@@ -31,7 +31,7 @@ static len_t *convert_hashes_to_columns(
     val_t **mat
     )
 {
-  int32_t i, j, k;
+  int32_t i, j, k, l;
   val_t *row;
   len_t *hcm; /* hash-to-column map */
   int64_t nterms = 0;
@@ -47,6 +47,22 @@ static len_t *convert_hashes_to_columns(
    * corresponding to the multiplied terms in reducers. */
   hcm = (len_t *)malloc((unsigned long)ncols * sizeof(len_t));
   /* j counts all columns, k counts known pivots */
+#if 1
+  for (j = 0, k = 0, i = 0; i < nrows; ++i) {
+    row = mat[i];
+    for (l = 2; l < row[0]; l += 2) {
+      if ((ev+row[l])[HASH_IND] > 0) {
+        hcm[j++]  = row[l];
+        if ((ev+row[l])[HASH_IND] == 2) {
+          k++;
+          (ev+row[l])[HASH_IND]  = -1;
+        } else {
+          (ev+row[l])[HASH_IND]  = -2;
+        }
+      }
+    }
+  }
+#else
   for (j = 0, k = 0, i = HASH_LEN; i < eload; i += HASH_LEN) {
     if ((ev+i)[HASH_IND] != 0) {
       hcm[j++]  = i;
@@ -55,7 +71,14 @@ static len_t *convert_hashes_to_columns(
       }
     }
   }
-
+#endif
+  /* for (int32_t o = 0; o < ncols; ++o) {
+   *   printf("hcm[%d] = %d ", o, hcm[o]);
+   *   for (int32_t p = 0; p < nvars; ++p) {
+   *     printf("%d ", (ev+hcm[o])[p]);
+   *   }
+   *   printf("\n");
+   * } */
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
   qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
   
@@ -81,6 +104,7 @@ static len_t *convert_hashes_to_columns(
     nterms  +=  (int64_t)row[0];
     for (j = 2; j < row[0]; j += 2) {
       row[j]  = (ev + row[j])[HASH_IND];
+      /* printf("%d \n", row[j]); */
     }
   }
 

@@ -130,7 +130,7 @@ static val_t **import_julia_data(
     mat[i][0] = 2*lens[i]+2;
     mat[i][1] = 2*(lens[i] % UNROLL)+2; /* offset for starting loop unrolling */
     for (j = off; j < off+lens[i]; ++j) {
-      mat[i][2*(j+1-off)]   = insert_in_local_hash_table(exps+(nvars*j));
+      mat[i][2*(j+1-off)]   = insert_in_global_hash_table(exps+(nvars*j));
       mat[i][2*(j+1-off)+1] = cfs[j];
     }
     /* mark initial generators, they have to be added to the basis first */

@@ -288,7 +288,7 @@ static inline void calculate_divmask(
   deg_t *max_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
   deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
 
-  exp_t *e  = evl + HASH_LEN;
+  exp_t *e  = ev + HASH_LEN;
 
   /* get initial values from first hash table entry */
   for (i = 0; i < ndvars; ++i) {
@@ -296,8 +296,8 @@ static inline void calculate_divmask(
   }
 
   /* get maximal and minimal exponent element entries in hash table */
-  for (i = 2*HASH_LEN; i < elload; i = i + HASH_LEN) {
-    e = evl + i;
+  for (i = 2*HASH_LEN; i < eload; i = i + HASH_LEN) {
+    e = ev + i;
     for (j = 0; j < ndvars; ++j) {
       if (e[j] > max_exp[j]) {
         max_exp[j]  = e[j];
@@ -320,8 +320,8 @@ static inline void calculate_divmask(
   }
 
   /* initialize divmasks for elements already added to hash table */
-  for (i = HASH_LEN; i < elload; i = i + HASH_LEN) {
-    e = evl + i;
+  for (i = HASH_LEN; i < eload; i = i + HASH_LEN) {
+    e = ev + i;
     e[HASH_SDM] = generate_short_divmask(e);
   }
 
@@ -455,7 +455,7 @@ static inline void clear_local_hash_table(
 /* note that the product insertion, i.e. monomial x polynomial
  * is only needed for the local hash table. in the global one we
  * only add the basis elements, i.e. no multiplication is applied. */
-static inline len_t insert_in_local_hash_table_product(
+static inline len_t insert_in_global_hash_table_product(
     const exp_t *a1,
     const exp_t *a2
     )
@@ -467,12 +467,12 @@ static inline len_t insert_in_local_hash_table_product(
 
   /* probing */
   k = h;
-  for (i = 0; i < mlsize; ++i) {
-    k = (k+i) & (mlsize-1);
-    if (!mapl[k]) {
+  for (i = 0; i < msize; ++i) {
+    k = (k+i) & (msize-1);
+    if (!map[k]) {
       break;
     }
-    e = evl + mapl[k];
+    e = ev + map[k];
     if (e[HASH_VAL] != h) {
       continue;
     }
@@ -482,13 +482,13 @@ static inline len_t insert_in_local_hash_table_product(
       }
     }
     if (j == nvars) {
-      return mapl[k];
+      return map[k];
     }
   }
 
   /* add element to hash table */
-  pos = elload;
-  e   = evl + pos;
+  pos = eload;
+  e   = ev + pos;
   for (i = 0; i < nvars; ++i) {
     e[i]  =   a1[i] + a2[i];
   }
@@ -497,11 +497,11 @@ static inline len_t insert_in_local_hash_table_product(
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
-  mapl[k]     = pos;
+  map[k]      = pos;
 
-  elload  +=  HASH_LEN;
-  if (elload >= elsize) {
-    enlarge_local_hash_table();
+  eload  +=  HASH_LEN;
+  if (eload >= esize) {
+    enlarge_global_hash_table();
   }
 
   /* printf("hier raus %d\n", pos); */
@@ -560,10 +560,10 @@ static inline len_t monomial_multiplication(
   /* a is the multiplier monomial living the local table,
    * b is a monomial from a polynomial in the basis thus
    * living in the global table */
-  const exp_t * const ea = evl  + a;
-  const exp_t * const eb = ev   + b;
+  const exp_t * const ea = ev + a;
+  const exp_t * const eb = ev + b;
 
-  return insert_in_local_hash_table_product(ea, eb);
+  return insert_in_global_hash_table_product(ea, eb);
 }
 
 /* returns zero if a is not divisible by b, else 1 is returned */
@@ -608,7 +608,7 @@ static inline len_t monomial_division_with_check(
 {
   int32_t i;
 
-  const exp_t * const ea  = evl + a;
+  const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
@@ -637,7 +637,7 @@ static inline len_t monomial_division_with_check(
       e[i+1]  = ea[i+1] - eb[i+1];
     }
   }
-  return insert_in_local_hash_table(e);
+  return insert_in_global_hash_table(e);
 }
 
 /* it is assumed that b divides a, thus no tests for
@@ -649,7 +649,7 @@ static inline len_t monomial_division_no_check(
 {
   int32_t i;
 
-  const exp_t * const ea  = evl + a;
+  const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
 
   exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
@@ -660,7 +660,7 @@ static inline len_t monomial_division_no_check(
     e[i+1]  = ea[i+1] - eb[i+1];
   }
   e[0]  = ea[0] - eb[0];
-  return insert_in_local_hash_table(e);
+  return insert_in_global_hash_table(e);
 }
 
 static inline val_t *multiplied_polynomial_to_matrix_row(

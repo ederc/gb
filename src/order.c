@@ -45,8 +45,8 @@ static int matrix_row_initial_input_cmp_drl(
   va  = ((val_t **)a)[0][2];
   vb  = ((val_t **)b)[0][2];
 
-  const exp_t * const ea  = evl + va;
-  const exp_t * const eb  = evl + vb;
+  const exp_t * const ea  = ev + va;
+  const exp_t * const eb  = ev + vb;
 
   /* DRL */
   if (ea[HASH_DEG] < eb[HASH_DEG]) {
@@ -112,8 +112,8 @@ static int monomial_cmp_pivots_drl(
 {
   int32_t i;
 
-  const exp_t * const ea  = evl + a;
-  const exp_t * const eb  = evl + b;
+  const exp_t * const ea  = ev + a;
+  const exp_t * const eb  = ev + b;
 
   /* first known pivots vs. tail terms */
   if (ea[HASH_IND] < eb[HASH_IND]) {

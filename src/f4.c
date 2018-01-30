@@ -136,14 +136,16 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
   GB_DEBUG(GBDBG, "size of basis          %15d\n", basis[1]);
+  GB_DEBUG(GBDBG, "#terms in basis        %15d\n", 
+      (basis[0]-basis[1]-1-1)/(1+nvars));
   GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", num_pairsred);
   GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", num_gb_crit);
   GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);
   GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
   GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
-  GB_DEBUG(GBDBG, "global hash table size %15d <= 2^%d\n",
+  GB_DEBUG(GBDBG, "global hash table load %15d <= 2^%d\n",
       eload/HASH_LEN, (int32_t)((ceil(log(eload/HASH_LEN)/log(2)))));
-  GB_DEBUG(GBDBG, "local hash table size  %15d <= 2^%d\n",
+  GB_DEBUG(GBDBG, "local hash table load  %15d <= 2^%d\n",
       elload/HASH_LEN, (int32_t)(ceil(log(elload/HASH_LEN)/log(2))));
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 

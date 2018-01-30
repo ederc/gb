@@ -519,7 +519,7 @@ static inline int lcm_equals_multiplication(
 {
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
-  const exp_t * const el  = ev + lcm;
+  const exp_t * const el  = evl + lcm;
 
   if (el[HASH_DEG] != (ea[HASH_DEG] + eb[HASH_DEG])) {
     return 0;
@@ -548,8 +548,8 @@ static inline len_t get_lcm(
   for (i = 0; i < nvars; ++i) {
     e[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
   }
-  /* goes into global hash table for spairs */
-  return insert_in_global_hash_table(e);
+  /* goes into local hash table for spairs */
+  return insert_in_local_hash_table(e);
 }
 
 static inline len_t monomial_multiplication(
@@ -568,14 +568,12 @@ static inline len_t monomial_multiplication(
 
 /* returns zero if a is not divisible by b, else 1 is returned */
 static inline len_t check_monomial_division(
-    const len_t a,
-    const len_t b
+    const exp_t *const ea,
+    const exp_t *const eb
     )
 {
   int32_t i;
 
-  const exp_t * const ea  = ev + a;
-  const exp_t * const eb  = ev + b;
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
     return 0;

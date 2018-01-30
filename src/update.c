@@ -92,7 +92,7 @@ static void insert_and_update_spairs(
       if (lcm_equals_multiplication(b[2], nelt[2], ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
-        ps[k].deg = (ev + ps[k].lcm)[HASH_DEG];
+        ps[k].deg = (evl + ps[k].lcm)[HASH_DEG];
       }
     }
   }
@@ -103,15 +103,18 @@ static void insert_and_update_spairs(
     j = ps[i].gen1;
     l = ps[i].gen2;
     /* if (ps[i].lcm != ps[pload+j].lcm */
-    if (check_monomial_division(ps[i].lcm, nelt[2])
-        && ps[i].lcm != ps[pload+l].lcm
-        && ps[i].lcm != ps[pload+j].lcm) {
+    if (check_monomial_division(ev+ps[i].lcm, ev+nelt[2])
+        && memcmp(ev+ps[i].lcm, evl+ps[pload+j].lcm,
+          (unsigned long)nvars * sizeof(exp_t))
+        && memcmp(ev+ps[i].lcm, evl+ps[pload+l].lcm,
+          (unsigned long)nvars * sizeof(exp_t))) {
+        /* && ps[i].lcm != ps[pload+j].lcm) { */
       ps[i].deg = -1;
     }
   }
 
   /* sort new pairs by increasing lcm, earlier polys coming first */
-  qsort(ps+pload, (unsigned long)bload, sizeof(spair_t), &spair_cmp);
+  qsort(ps+pload, (unsigned long)bload, sizeof(spair_t), &spair_local_cmp);
 
   /* check with earlier new pairs */
   for (j = pload; j < k; ++j) {
@@ -124,7 +127,7 @@ static void insert_and_update_spairs(
       while (i < k) {
         /* if (check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) { */
         if (ps[i].deg >= 0 &&
-            check_monomial_division(ps[i].lcm, ps[j].lcm) != 0) {
+            check_monomial_division(evl+ps[i].lcm, evl+ps[j].lcm) != 0) {
           ps[i].deg  = -1;
         }
         ++i;
@@ -150,8 +153,12 @@ static void insert_and_update_spairs(
     if (ps[i].deg < 0) {
       continue;
     }
+    if (ps[i].gen2 == bload) {
+      ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm);
+    }
     ps[j++] = ps[i];
   }
+  clear_local_hash_table();
   num_gb_crit +=  k - j;
   pload       =   j;
 
@@ -160,7 +167,7 @@ static void insert_and_update_spairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division(bs[i][2], nelt[2])) {
+    if (check_monomial_division(ev+bs[i][2], ev+nelt[2])) {
       bs[i] = (val_t *)((long)bs[i] | bred);
       num_redundant++;
     }

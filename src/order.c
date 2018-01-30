@@ -147,14 +147,11 @@ static int monomial_cmp_pivots_drl(
 }
 
 static int monomial_cmp_drl(
-    const len_t a,
-    const len_t b
+    const exp_t * const ea,
+    const exp_t * const eb
     )
 {
   int32_t i;
-
-  const exp_t * const ea  = ev + a;
-  const exp_t * const eb  = ev + b;
 
   if (ea[HASH_DEG] > eb[HASH_DEG]) {
     return 1;
@@ -188,7 +185,7 @@ static int hcm_cmp_pivots_drl(
   return monomial_cmp_pivots_drl(ma, mb);
 }
 
-/* comparison for s-pairs */
+/* comparison for s-pairs once their lcms are in the global hash table */
 static int spair_cmp(
     const void *a,
     const void *b
@@ -198,7 +195,31 @@ static int spair_cmp(
   spair_t *sb = (spair_t *)b;
 
   if (sa->lcm != sb->lcm) {
-    return (int)monomial_cmp(sa->lcm, sb->lcm);
+    return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+  } else {
+    if (sa->deg != sb->deg) {
+      return (sa->deg < sb->deg) ? -1 : 1;
+    } else {
+      if (sa->gen1 != sb ->gen1) {
+        return (sa->gen1 < sb->gen1) ? -1 : 1;
+      } else {
+        return 0;
+      }
+    }
+  }
+}
+
+/* comparison for s-pairs while their lcms are in the local hash table */
+static int spair_local_cmp(
+    const void *a,
+    const void *b
+    )
+{
+  spair_t *sa = (spair_t *)a;
+  spair_t *sb = (spair_t *)b;
+
+  if (sa->lcm != sb->lcm) {
+    return (int)monomial_cmp(evl+sa->lcm, evl+sb->lcm);
   } else {
     if (sa->deg != sb->deg) {
       return (sa->deg < sb->deg) ? -1 : 1;

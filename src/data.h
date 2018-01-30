@@ -105,8 +105,8 @@ int (*matrix_row_initial_input_cmp)(
     );
 
 int (*monomial_cmp)(
-    const len_t a,
-    const len_t b
+    const exp_t * const ea,
+    const exp_t * const eb
     );
 
 int (*hcm_cmp)(

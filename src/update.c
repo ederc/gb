@@ -62,9 +62,6 @@ static void insert_and_update_spairs(
   int32_t i, j, k, l;
   val_t *b;
 
-  check_enlarge_pairset(bload);
-  reset_local_hash_table(bload);
-
   /* move exponents to global hash table */
   /* for (i = 2; i < nelt[0]; i = i+2) {
    *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
@@ -187,6 +184,14 @@ static void update_basis(
   rt0 = realtime();
 
   check_enlarge_basis(npivs);
+
+  /* compute number of new pairs we need to handle at most */
+  len_t np  = bload * npivs;
+  for (i = 1; i < npivs; ++i) {
+    np  = np + i;
+  }
+  check_enlarge_pairset(np);
+  reset_local_hash_table(np);
 
   for (i = 1; i <= npivs; ++i) {
     insert_and_update_spairs(mat[nrows-i]);

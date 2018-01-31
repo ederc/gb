@@ -47,9 +47,9 @@ static len_t *convert_hashes_to_columns(
    * corresponding to the multiplied terms in reducers. */
   hcm = (len_t *)malloc((unsigned long)ncols * sizeof(len_t));
   /* j counts all columns, k counts known pivots */
-#if 1
   for (j = 0, k = 0, i = 0; i < nrows; ++i) {
-    row = mat[i];
+    row     =   mat[i];
+    nterms  +=  (int64_t)row[0];
     for (l = 2; l < row[0]; l += 2) {
       if ((ev+row[l])[HASH_IND] > 0) {
         hcm[j++]  = row[l];
@@ -62,32 +62,9 @@ static len_t *convert_hashes_to_columns(
       }
     }
   }
-#else
-  for (j = 0, k = 0, i = HASH_LEN; i < eload; i += HASH_LEN) {
-    if ((ev+i)[HASH_IND] != 0) {
-      hcm[j++]  = i;
-      if ((ev+i)[HASH_IND] == 2) {
-        k++;
-      }
-    }
-  }
-#endif
-  /* for (int32_t o = 0; o < ncols; ++o) {
-   *   printf("hcm[%d] = %d ", o, hcm[o]);
-   *   for (int32_t p = 0; p < nvars; ++p) {
-   *     printf("%d ", (ev+hcm[o])[p]);
-   *   }
-   *   printf("\n");
-   * } */
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
   qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
   
-  /* printf("hcm sorted: ");
-   * for (int32_t l = 0; l < j; ++l) {
-   *   printf("%d ", hcm[l]);
-   * }
-   * printf("\n"); */
-
   /* set number of rows and columns in ABCD splicing */
   nru = ncl = k;
   nrl = nrows - nru;
@@ -99,9 +76,9 @@ static len_t *convert_hashes_to_columns(
   }
   
   /* map column positions to matrix rows */
+#pragma omp parallel for num_threads(nthrds) private(i, j)
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
-    nterms  +=  (int64_t)row[0];
     for (j = 2; j < row[0]; j += 2) {
       row[j]  = (ev + row[j])[HASH_IND];
       /* printf("%d \n", row[j]); */
@@ -110,7 +87,7 @@ static len_t *convert_hashes_to_columns(
 
   /* next we sort each row by the new colum order due
    * to known / unkown pivots */
-/* #pragma omp parallel for num_threads(nthrds) */
+#pragma omp parallel for num_threads(nthrds) private(i)
   for (i = 0; i < nrows; ++i) {
     qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
         columns_cmp);
@@ -141,16 +118,11 @@ static val_t **convert_columns_to_hashes(
   ct0 = cputime();
   rt0 = realtime();
 
-  /* printf("hcm for remapping: ");
-   * for (int32_t l = 0; l < ncols; ++l) {
-   *   printf("%d ", hcm[l]);
-   * }
-   * printf("\n"); */
-
   for (i = 0; i < ncols; ++i) {
     (ev+hcm[i])[HASH_IND] = 0;
   }
 
+#pragma omp parallel for num_threads(nthrds) private(i, j)
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
     for (j = 2; j < row[1]; j += 2) {

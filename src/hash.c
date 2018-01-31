@@ -127,7 +127,7 @@ static void initialize_local_hash_table(
     )
 {
   /* generate map */
-  mlsize  = (len_t)pow(2, htes) / 8;
+  mlsize  = (len_t)pow(2, htes-5);
   mapl    = calloc((unsigned long)mlsize, sizeof(len_t));
 
   /* generate exponent vector */

@@ -127,7 +127,7 @@ static void initialize_local_hash_table(
     )
 {
   /* generate map */
-  mlsize  = (len_t)pow(2, htes);
+  mlsize  = (len_t)pow(2, htes) / 8;
   mapl    = calloc((unsigned long)mlsize, sizeof(len_t));
 
   /* generate exponent vector */
@@ -436,20 +436,32 @@ static inline len_t insert_in_local_hash_table(
   mapl[k]     = pos;
 
   elload  +=  HASH_LEN;
-  if (elload >= elsize) {
-    enlarge_local_hash_table();
-  }
+  /* if (elload >= elsize) {
+   *   enlarge_local_hash_table();
+   * } */
 
   return pos;
 }
 
-static inline void clear_local_hash_table(
-    void
+static inline void reset_local_hash_table(
+    const len_t size
     )
 {
-  memset(evl, 0, (unsigned long)elload * sizeof(exp_t));
-  memset(mapl, 0, (unsigned long)mlsize * sizeof(len_t));
-  elload  = HASH_LEN;
+  /* is there still enough space in the local table? */
+  if (size >= (elsize-elload)/HASH_LEN) {
+    if (2*size >= mlsize) {
+      while (2*size >= mlsize) {
+        elsize  = 2 * elsize;
+        mlsize  = 2 * mlsize;
+      }
+      evl   = realloc(evl, (unsigned long)elsize * sizeof(exp_t));
+      mapl  = realloc(mapl, (unsigned long)mlsize * sizeof(len_t));
+    }
+    memset(evl, 0, (unsigned long)elsize * sizeof(exp_t));
+    memset(mapl, 0, (unsigned long)mlsize * sizeof(len_t));
+
+    elload  = HASH_LEN;
+  }
 }
 
 /* note that the product insertion, i.e. monomial x polynomial

@@ -63,6 +63,7 @@ static void insert_and_update_spairs(
   val_t *b;
 
   check_enlarge_pairset(bload);
+  reset_local_hash_table(bload);
 
   /* move exponents to global hash table */
   /* for (i = 2; i < nelt[0]; i = i+2) {
@@ -158,7 +159,6 @@ static void insert_and_update_spairs(
     }
     ps[j++] = ps[i];
   }
-  clear_local_hash_table();
   num_gb_crit +=  k - j;
   pload       =   j;
 
@@ -191,8 +191,6 @@ static void update_basis(
   for (i = 1; i <= npivs; ++i) {
     insert_and_update_spairs(mat[nrows-i]);
   }
-
-  clear_local_hash_table();
 
   /* timings */
   ct1 = cputime();

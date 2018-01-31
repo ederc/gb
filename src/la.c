@@ -321,6 +321,7 @@ static val_t **probabilistic_sparse_linear_algebra(
   int32_t i, j, k, l;
   val_t sc    = 0;    /* starting column */
   val_t *npiv = NULL; /* new pivot row */
+  const int64_t mod2  = (int64_t)fc * fc;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -383,7 +384,9 @@ static val_t **probabilistic_sparse_linear_algebra(
         for (l = 0, j = i*rpb; j < nbl; ++j) {
           sc  = sc < upivs[j][2] ? sc : upivs[j][2];
           for (k = 2; k < upivs[j][0]; k = k+2) {
-            drl[upivs[j][k]]  +=  mull[l] * upivs[j][k+1];
+            /* we need to do it in this way in order to support 32-bit primes */
+            drl[upivs[j][k]]  -=  mull[l] * upivs[j][k+1];
+            drl[upivs[j][k]]  +=  (drl[upivs[j][k]] >> 63) & mod2;
           }
           l++;
         }

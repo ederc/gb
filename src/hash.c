@@ -215,47 +215,6 @@ static void enlarge_global_hash_table(
   }
 }
 
-static void enlarge_local_hash_table(
-    void
-    )
-{
-  int32_t h, i, j, k;
-  int32_t *e;
-
-  /* exp_t *evl_cpy = malloc((unsigned long)elsize * sizeof(exp_t));
-   * memcpy(evl_cpy, evl, (unsigned long)elsize * sizeof(exp_t)); */
-  elsize  = 2 * elsize;
-  evl     = realloc(evl, (unsigned long)elsize * sizeof(exp_t));
-  /* memset(evl+elload, 0, (unsigned long)(elsize-elload) * sizeof(exp_t)); */
-
-  mlsize  = 2 * mlsize;
-  mapl    = realloc(mapl, (unsigned long)mlsize * sizeof(len_t));
-  memset(mapl, 0, (unsigned long)mlsize * sizeof(len_t));
-
-  /* reinsert known elements */
-  for (i = HASH_LEN; i < elload; i += HASH_LEN) {
-    e = evl + i;
-    h = e[HASH_VAL];
-
-    /* probing */
-    k = h;
-    for (j = 0; j < mlsize; ++j) {
-      k = (k+j) & (mlsize-1);
-      if (mapl[k]) {
-        continue;
-      }
-      mapl[k]  = i;
-      break;
-    }
-  }
-  /* for (i = 0 ; i < elsize/2; ++i) {
-   *   if (evl[i] != evl_cpy[i]) {
-   *     printf("difference at %d\n", i);
-   *   }
-   * }
-   * free(evl_cpy); */
-}
-
 static inline sdm_t generate_short_divmask(
     const exp_t *a
     )

@@ -32,7 +32,7 @@ int main(
   initialize_basis(nr_gens);
   initialize_global_hash_table();
   initialize_local_hash_table();
-  if (mlsize != msize) {
+  if (msize/mlsize != 32) {
     return 1;
   }
 

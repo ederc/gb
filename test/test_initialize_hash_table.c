@@ -10,7 +10,7 @@ int main(
   /* initialize stuff */
   nvars = 34;
   fc    = 101;
-  htes  = 4;
+  htes  = 10;
 
   initialize_global_hash_table();
   if (fc != 101) {
@@ -29,7 +29,7 @@ int main(
     return 1;
   }
   initialize_local_hash_table();
-  if (mlsize != msize) {
+  if (msize/mlsize != mlsize) {
     return 1;
   }
   if (elload != HASH_LEN) {

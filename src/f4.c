@@ -130,6 +130,7 @@ int32_t *f4_julia(
   rt1 = realtime();
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
   GB_DEBUG(GBDBG, "overall                %15.3f sec\n", rt1-rt0);
+  GB_DEBUG(GBDBG, "select                 %15.3f sec\n", select_rtime);
   GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", symbol_rtime);
   GB_DEBUG(GBDBG, "update                 %15.3f sec\n", update_rtime);
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);

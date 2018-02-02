@@ -174,13 +174,14 @@ static inline val_t *find_multiplied_reducer(
   len_t d;
   val_t *b;
 
+  const int32_t bl  = bload;
   /* printf("to be divided: ");
    * for (int32_t j = 0; j < nvars; ++j) {
    *   printf("%d",e[j]);
    * }
    * printf("\n"); */
 
-  for (i = (ev+m)[HASH_DIV]; i < bload; ++i) {
+  for (i = (ev+m)[HASH_DIV]; i < bl; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
     if (b != bs[i]) {
       continue;

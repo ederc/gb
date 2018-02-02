@@ -288,6 +288,37 @@ static inline void calculate_divmask(
   free(min_exp);
 }
 
+/* returns zero if a is not divisible by b, else 1 is returned */
+static inline len_t check_monomial_division(
+    const exp_t *const ea,
+    const exp_t *const eb
+    )
+{
+  int32_t i;
+
+  /* short divisor mask check */
+  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
+    return 0;
+  }
+
+  /* degree check */
+  /* if (ea[HASH_DEG] < eb[HASH_DEG]) {
+   *   return 0;
+   * } */
+
+  /* exponent check */
+  if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
+    return 0;
+  }
+  i = nvars & 1 ? 1 : 0;
+  for (; i < nvars; i += 2) {
+    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 static inline len_t insert_in_global_hash_table(
     const exp_t *a
     )
@@ -334,6 +365,12 @@ static inline len_t insert_in_global_hash_table(
   e[HASH_SDM] = generate_short_divmask(e);
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
+  /* for (i = 0; i < bload; ++i) {
+   *   if (check_monomial_division(e, ev+bs[i][2])) {
+   *     e[HASH_DIV] = i;
+   *     break;
+   *   }
+   * } */
   e[HASH_IND] = 0;
   map[k]      = pos;
 
@@ -537,37 +574,6 @@ static inline len_t monomial_multiplication(
   return insert_in_global_hash_table_product(ea, eb);
 }
 
-/* returns zero if a is not divisible by b, else 1 is returned */
-static inline len_t check_monomial_division(
-    const exp_t *const ea,
-    const exp_t *const eb
-    )
-{
-  int32_t i;
-
-  /* short divisor mask check */
-  if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
-    return 0;
-  }
-
-  /* degree check */
-  if (ea[HASH_DEG] < eb[HASH_DEG]) {
-    return 0;
-  }
-
-  /* exponent check */
-  if (ea[0] < eb[0]) {
-    return 0;
-  }
-  i = nvars & 1 ? 1 : 0;
-  for (; i < nvars; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
-    }
-  }
-  return 1;
-}
-
 /* we try monomial division including check if divisibility is
  * fulfilled. */
 static inline len_t monomial_division_with_check(
@@ -585,12 +591,12 @@ static inline len_t monomial_division_with_check(
   }
 
   /* degree check */
-  if (ea[HASH_DEG] < eb[HASH_DEG]) {
-    return 0;
-  }
+  /* if (ea[HASH_DEG] < eb[HASH_DEG]) {
+   *   return 0;
+   * } */
 
   /* exponent check */
-  if (ea[0] < eb[0]) {
+  if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
     return 0;
   }
 

@@ -62,6 +62,9 @@ static void insert_and_update_spairs(
   int32_t i, j, k, l;
   val_t *b;
 
+  const len_t pl  = pload;
+  const len_t bl  = bload;
+
   reset_local_hash_table(bload);
   /* move exponents to global hash table */
   /* for (i = 2; i < nelt[0]; i = i+2) {
@@ -79,7 +82,7 @@ static void insert_and_update_spairs(
    * printf("\n"); */
 
   /* create all possible new pairs */
-  for (i = 0, k = pload; i < bload; ++i, ++k) {
+  for (i = 0, k = pl; i < bl; ++i, ++k) {
     b = (val_t *)((long)bs[i] & bmask);
     ps[k].gen1  = i;
     ps[k].gen2  = bload;
@@ -96,34 +99,43 @@ static void insert_and_update_spairs(
     }
   }
   
+  const len_t nl  = k;
   /* Gebauer-Moeller: check old pairs first */
   /* note: old pairs are sorted by the given spair order */
-  for (i = 0; i < pload; ++i) {
+  for (i = 0; i < pl; ++i) {
     j = ps[i].gen1;
     l = ps[i].gen2;
     /* if (ps[i].lcm != ps[pload+j].lcm */
     if (check_monomial_division(ev+ps[i].lcm, ev+nelt[2])
-        && memcmp(ev+ps[i].lcm, evl+ps[pload+j].lcm,
-          (unsigned long)nvars * sizeof(exp_t))
-        && memcmp(ev+ps[i].lcm, evl+ps[pload+l].lcm,
-          (unsigned long)nvars * sizeof(exp_t))) {
+        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+j].lcm)[HASH_VAL]
+        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+l].lcm)[HASH_VAL]
+        ) {
         /* && ps[i].lcm != ps[pload+j].lcm) { */
       ps[i].deg = -1;
     }
   }
 
+  /* timings */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
   /* sort new pairs by increasing lcm, earlier polys coming first */
-  qsort(ps+pload, (unsigned long)bload, sizeof(spair_t), &spair_local_cmp);
+  qsort(ps+pl, (unsigned long)bl, sizeof(spair_t), &spair_local_cmp);
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  update_ctime  +=  ct1 - ct0;
+  update_rtime  +=  rt1 - rt0;
 
   /* check with earlier new pairs */
-  for (j = pload; j < k; ++j) {
+  for (j = pl; j < nl; ++j) {
     l = j;
     if (ps[j].deg != -1) {
       i = j+1;
-      while (i < k && ps[i].lcm == ps[j].lcm)
+      while (i < nl && ps[i].lcm == ps[j].lcm)
         ++i;
       l = i-1;
-      while (i < k) {
+      while (i < nl) {
         /* if (check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) { */
         if (ps[i].deg >= 0 &&
             check_monomial_division(evl+ps[i].lcm, evl+ps[j].lcm) != 0) {
@@ -135,7 +147,7 @@ static void insert_and_update_spairs(
     j = l;
   }
   /* note that k = pload + bload from very first loop */
-  for (i = pload; i < k; ++i) {
+  for (i = pl; i < nl; ++i) {
     if (ps[i].deg == -1) {
       continue;
     }
@@ -148,7 +160,7 @@ static void insert_and_update_spairs(
 
   /* remove useless pairs from pairset */
   j = 0;
-  for (i = 0; i < k; ++i) {
+  for (i = 0; i < nl; ++i) {
     if (ps[i].deg < 0) {
       continue;
     }
@@ -157,11 +169,11 @@ static void insert_and_update_spairs(
     }
     ps[j++] = ps[i];
   }
-  num_gb_crit +=  k - j;
+  num_gb_crit +=  nl - j;
   pload       =   j;
 
   /* mark redundant elements in basis */
-  for (i = 0; i < bload; ++i) {
+  for (i = 0; i < bl; ++i) {
     if ((long)bs[i] & bred) {
       continue;
     }
@@ -180,9 +192,9 @@ static void update_basis(
   int32_t i;
 
   /* timings */
-  double ct0, ct1, rt0, rt1;
-  ct0 = cputime();
-  rt0 = realtime();
+  /* double ct0, ct1, rt0, rt1;
+   * ct0 = cputime();
+   * rt0 = realtime(); */
 
   check_enlarge_basis(npivs);
 
@@ -198,8 +210,8 @@ static void update_basis(
   }
 
   /* timings */
-  ct1 = cputime();
-  rt1 = realtime();
-  update_ctime  +=  ct1 - ct0;
-  update_rtime  +=  rt1 - rt0;
+  /* ct1 = cputime();
+   * rt1 = realtime();
+   * update_ctime  +=  ct1 - ct0;
+   * update_rtime  +=  rt1 - rt0; */
 }

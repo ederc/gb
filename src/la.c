@@ -391,7 +391,6 @@ static val_t **probabilistic_sparse_linear_algebra(
           l++;
         }
         k = 0;
-        val_t *npiv;
         /* do the reduction */
         do {
           npiv = reduce_dense_row_by_known_pivots(drl, pivs, sc);

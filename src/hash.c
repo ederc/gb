@@ -382,6 +382,7 @@ static inline len_t insert_in_global_hash_table(
   return pos;
 }
 
+
 static inline len_t insert_in_local_hash_table(
     const exp_t *a
     )

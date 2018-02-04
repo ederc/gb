@@ -54,10 +54,10 @@ typedef struct spair_t spair_t;
 struct spair_t
 {
   deg_t deg;   /* if criteria apply, information is stored here */
-  spt_t type;
   val_t lcm;
   bi_t gen1;
   bi_t gen2;
+  spt_t type;
 };
 
 /* pair set data */

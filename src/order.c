@@ -206,5 +206,18 @@ static int spair_local_cmp(
   spair_t *sa = (spair_t *)a;
   spair_t *sb = (spair_t *)b;
 
-  return (int)monomial_cmp(evl+sa->lcm, evl+sb->lcm);
+  if (sa->lcm != sb->lcm) {
+    return (int)monomial_cmp(evl+sa->lcm, evl+sb->lcm);
+  } else {
+    if (sa->deg != sb->deg) {
+      return (sa->deg < sb->deg) ? -1 : 1;
+    } else {
+      if (sa->gen1 != sb ->gen1) {
+        return (sa->gen1 < sb->gen1) ? -1 : 1;
+      } else {
+        return 0;
+      }
+    }
+  }
+  /* return (int)monomial_cmp(evl+sa->lcm, evl+sb->lcm); */
 }

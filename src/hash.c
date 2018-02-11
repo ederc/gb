@@ -346,14 +346,6 @@ static inline len_t insert_in_global_hash_table(
     if (memcmp(e, a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
       return map[k];
     }
-    /* for (j = 0; j < nvars; ++j) {
-     *   if (e[j] != a[j]) {
-     *     break;
-     *   }
-     * }
-     * if (j == nvars) {
-     *   return map[k];
-     * } */
   }
 
   /* add element to hash table */
@@ -367,15 +359,6 @@ static inline len_t insert_in_global_hash_table(
   e[HASH_DEG] = deg;
   e[HASH_SDM] = generate_short_divmask(e);
   e[HASH_VAL] = h;
-  e[HASH_DIV] = 0;
-  /* for (i = 0; i < bload; ++i) {
-   *   if (check_monomial_division(e, ev+bs[i][2])) {
-   *     e[HASH_DIV] = i;
-   *     break;
-   *   }
-   * } */
-  e[HASH_IND] = 0;
-  /* map[k]      = pos; */
 
   eload +=  HASH_LEN;
   if (eload >= esize) {
@@ -413,14 +396,6 @@ static inline len_t insert_in_local_hash_table(
     if (memcmp(e, a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
       return mapl[k];
     }
-    /* for (j = 0; j < nvars; ++j) {
-     *   if (e[j] != a[j]) {
-     *     break;
-     *   }
-     * }
-     * if (j == nvars) {
-     *   return mapl[k];
-     * } */
   }
 
   /* add element to hash table */
@@ -434,14 +409,8 @@ static inline len_t insert_in_local_hash_table(
   e[HASH_DEG] = deg;
   e[HASH_SDM] = generate_short_divmask(e);
   e[HASH_VAL] = h;
-  e[HASH_DIV] = 0;
-  e[HASH_IND] = 0;
-  /* mapl[k]     = pos; */
 
   elload  +=  HASH_LEN;
-  /* if (elload >= elsize) {
-   *   enlarge_local_hash_table();
-   * } */
 
   return pos;
 }
@@ -498,34 +467,18 @@ static inline len_t insert_in_global_hash_table_product(
     if (memcmp(n, e, (unsigned long)nvars * sizeof(exp_t)) == 0) {
       return map[k];
     }
-    /* for (j = 0; j < nvars; ++j) {
-     *   if (e[j] != n[j]) {
-     *     break;
-     *   }
-     * }
-     * if (j == nvars) {
-     *   return map[k];
-     * } */
   }
 
   /* add element to hash table */
   map[k]  = pos = eload;
-  /* for (i = 0; i < nvars; ++i) {
-   *   e[i]  =   a1[i] + a2[i];
-   * } */
   n[HASH_DEG] = a1[HASH_DEG] + a2[HASH_DEG];
   n[HASH_SDM] = generate_short_divmask(n);
   n[HASH_VAL] = h;
-  n[HASH_DIV] = 0;
-  n[HASH_IND] = 0;
-  /* map[k]      = pos; */
 
   eload  +=  HASH_LEN;
   if (eload >= esize) {
     enlarge_global_hash_table();
   }
-
-  /* printf("hier raus %d\n", pos); */
   return pos;
 }
 

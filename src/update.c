@@ -115,17 +115,8 @@ static void insert_and_update_spairs(
     }
   }
 
-  /* timings */
-  double ct0, ct1, rt0, rt1;
-  ct0 = cputime();
-  rt0 = realtime();
   /* sort new pairs by increasing lcm, earlier polys coming first */
   qsort(ps+pl, (unsigned long)bl, sizeof(spair_t), &spair_local_cmp);
-  /* timings */
-  ct1 = cputime();
-  rt1 = realtime();
-  update_ctime  +=  ct1 - ct0;
-  update_rtime  +=  rt1 - rt0;
 
   /* check with earlier new pairs */
   for (j = pl; j < nl; ++j) {
@@ -192,9 +183,9 @@ static void update_basis(
   int32_t i;
 
   /* timings */
-  /* double ct0, ct1, rt0, rt1;
-   * ct0 = cputime();
-   * rt0 = realtime(); */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
 
   check_enlarge_basis(npivs);
 
@@ -210,8 +201,8 @@ static void update_basis(
   }
 
   /* timings */
-  /* ct1 = cputime();
-   * rt1 = realtime();
-   * update_ctime  +=  ct1 - ct0;
-   * update_rtime  +=  rt1 - rt0; */
+  ct1 = cputime();
+  rt1 = realtime();
+  update_ctime  +=  ct1 - ct0;
+  update_rtime  +=  rt1 - rt0;
 }

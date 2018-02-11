@@ -343,18 +343,21 @@ static inline len_t insert_in_global_hash_table(
     if (e[HASH_VAL] != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-      if (e[j] != a[j]) {
-        break;
-      }
-    }
-    if (j == nvars) {
+    if (memcmp(e, a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
       return map[k];
     }
+    /* for (j = 0; j < nvars; ++j) {
+     *   if (e[j] != a[j]) {
+     *     break;
+     *   }
+     * }
+     * if (j == nvars) {
+     *   return map[k];
+     * } */
   }
 
   /* add element to hash table */
-  pos = eload;
+  map[k]  = pos = eload;
   e   = ev + pos;
   deg = 0;
   for (i = 0; i < nvars; ++i) {
@@ -372,7 +375,7 @@ static inline len_t insert_in_global_hash_table(
    *   }
    * } */
   e[HASH_IND] = 0;
-  map[k]      = pos;
+  /* map[k]      = pos; */
 
   eload +=  HASH_LEN;
   if (eload >= esize) {
@@ -407,18 +410,21 @@ static inline len_t insert_in_local_hash_table(
     if (e[HASH_VAL] != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-      if (e[j] != a[j]) {
-        break;
-      }
-    }
-    if (j == nvars) {
+    if (memcmp(e, a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
       return mapl[k];
     }
+    /* for (j = 0; j < nvars; ++j) {
+     *   if (e[j] != a[j]) {
+     *     break;
+     *   }
+     * }
+     * if (j == nvars) {
+     *   return mapl[k];
+     * } */
   }
 
   /* add element to hash table */
-  pos = elload;
+  mapl[k] = pos = elload;
   e   = evl + pos;
   deg = 0;
   for (i = 0; i < nvars; ++i) {
@@ -430,7 +436,7 @@ static inline len_t insert_in_local_hash_table(
   e[HASH_VAL] = h;
   e[HASH_DIV] = 0;
   e[HASH_IND] = 0;
-  mapl[k]     = pos;
+  /* mapl[k]     = pos; */
 
   elload  +=  HASH_LEN;
   /* if (elload >= elsize) {
@@ -470,10 +476,14 @@ static inline len_t insert_in_global_hash_table_product(
     )
 {
   int32_t i, j, k, pos;
-  exp_t *e;
+  exp_t *e, *n;
 
   const int32_t h = a1[HASH_VAL] + a2[HASH_VAL];
 
+  n = ev + eload;
+  for (i = 0; i < nvars; ++i) {
+    n[i]  = a1[i] + a2[i];
+  }
   /* probing */
   k = h;
   for (i = 0; i < msize; ++i) {
@@ -485,28 +495,30 @@ static inline len_t insert_in_global_hash_table_product(
     if (e[HASH_VAL] != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-      if (e[j] != a1[j] + a2[j]) {
-        break;
-      }
-    }
-    if (j == nvars) {
+    if (memcmp(n, e, (unsigned long)nvars * sizeof(exp_t)) == 0) {
       return map[k];
     }
+    /* for (j = 0; j < nvars; ++j) {
+     *   if (e[j] != n[j]) {
+     *     break;
+     *   }
+     * }
+     * if (j == nvars) {
+     *   return map[k];
+     * } */
   }
 
   /* add element to hash table */
-  pos = eload;
-  e   = ev + pos;
-  for (i = 0; i < nvars; ++i) {
-    e[i]  =   a1[i] + a2[i];
-  }
-  e[HASH_DEG] = a1[HASH_DEG] + a2[HASH_DEG];
-  e[HASH_SDM] = generate_short_divmask(e);
-  e[HASH_VAL] = h;
-  e[HASH_DIV] = 0;
-  e[HASH_IND] = 0;
-  map[k]      = pos;
+  map[k]  = pos = eload;
+  /* for (i = 0; i < nvars; ++i) {
+   *   e[i]  =   a1[i] + a2[i];
+   * } */
+  n[HASH_DEG] = a1[HASH_DEG] + a2[HASH_DEG];
+  n[HASH_SDM] = generate_short_divmask(n);
+  n[HASH_VAL] = h;
+  n[HASH_DIV] = 0;
+  n[HASH_IND] = 0;
+  /* map[k]      = pos; */
 
   eload  +=  HASH_LEN;
   if (eload >= esize) {

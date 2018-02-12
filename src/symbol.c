@@ -22,55 +22,17 @@
 
 #include "data.h"
 
-static inline val_t **generate_matrix_from_spair_selection(
-    const len_t *lcms,
-    const len_t *gens,
-    const int32_t nr
-    )
-{
-  int32_t i;
-  len_t m;
-  val_t *b;
-  
-  val_t **mat = (val_t **)malloc(2 * (unsigned long)nr * sizeof(val_t *));
-  nrall = 2 * nr;
-  nrows = nr;
-  ncols = ncl = ncr = 0;
-
-  for (i = 0; i < nr; ++i) {
-    b       = (val_t *)((long)bs[gens[i]] & bmask);
-    /* printf("poly: ");
-     * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (ev+b[2])[j]);
-     * }
-     * printf("\n"); */
-    m       = monomial_division_no_check(lcms[i], b[2]);
-    /* printf("multiplier: ");
-     * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (evl+m)[j]);
-     * }
-     * printf("\n"); */
-    mat[i]  = multiplied_polynomial_to_matrix_row(m, b);
-    /* printf("row[%d] ", i);
-     * for (int32_t j = 2; j < mat[i][0]; j += 2) {
-     *   for (int32_t k = 0; k < nvars; ++k) {
-     *     printf("%d", (evl+mat[i][j])[k]);
-     *   }
-     *   printf(" ");
-     * }
-     * printf("\n"); */
-  }
-
-  return mat;
-}
-
 static val_t **select_spairs_by_minimal_degree(
     void
     )
 {
-  int32_t i, j, k, n, md, npairs;
+  int32_t i, j, k, md, npairs;
+  val_t *b;
+  len_t m;
+
+  len_t lcm = 0, load = 0, load_old = 0;
   val_t **mat;
-  len_t *tmp_lcm, *tmp_gen;
+  len_t *gens;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -101,55 +63,58 @@ static val_t **select_spairs_by_minimal_degree(
   GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
   /* statistics */
   num_pairsred  +=  npairs;
+  
+  gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
-  /* generate matrix out of selected spairs */
-  tmp_lcm = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
-  tmp_gen = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
-  for (k = 0, j = 0; j < npairs; ++j) {
-    tmp_gen[k]    = ps[j].gen1;
-    tmp_gen[k+1]  = ps[j].gen2;
-    tmp_lcm[k]    = tmp_lcm[k+1]  = ps[j].lcm;
-    k +=  2;
-  }
-  n = k;
+  /* preset matrix meta data */
+  mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *));
+  nrall = 2 * npairs;
+  ncols = ncl = ncr = 0;
+  nrows = 0;
 
-  /* remove duplicates */
-  for (i = 0, k = 0; i < n; ++i) {
-    for (j = 0; j < k; ++j) {
-      if (tmp_lcm[i] == tmp_lcm[j]
-          && tmp_gen[i] == tmp_gen[j]) {
-        break;
+  /* for (i = 0; i < npairs; ++i) {
+   *   printf("pair %d | lcm %d | gen1 %d | gen2 %d\n", i, ps[i].lcm, ps[i].gen1, ps[i].gen2);
+   * } */
+  i = 0;
+  while (i < npairs) {
+    load_old  = load;
+    lcm   = ps[i].lcm;
+    gens[load++] = ps[i].gen1;
+    gens[load++] = ps[i].gen2;
+    j = i+1;
+    while (j < npairs && ps[j].lcm == lcm) {
+      for (k = load_old; k < load; ++k) {
+        if (ps[j].gen1 == gens[k]) {
+          break;
+        }
       }
+      if (k == load) {
+        gens[load++]  = ps[j].gen1;
+      }
+      for (k = load_old; k < load; ++k) {
+        if (ps[j].gen2 == gens[k]) {
+          break;
+        }
+      }
+      if (k == load) {
+        gens[load++]  = ps[j].gen2;
+      }
+      j++;
     }
-    if (j == k) {
-      tmp_lcm[k]    = tmp_lcm[i];
-      tmp_gen[k++]  = tmp_gen[i];
+    for (k = load_old; k < load; ++k) {
+      b = (val_t *)((long)bs[gens[k]] & bmask);
+      m = monomial_division_no_check(lcm, b[2]);
+      /* printf("adds lcm %d | b %d | row %d\n", lcm, gens[k], nrows); */
+      mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
     }
+
+    i = j;
   }
-  num_duplicates  +=  n-k;
 
-  n = k;
-  
-  /* statistics */
-  num_rowsred +=  n;
+  num_duplicates  +=  2*npairs - load;
+  num_rowsred     +=  load;
 
-  /* move lcms to local hash table */
-  /* for (i = 0; i < n; ++i) {
-   *   tmp_lcm[i]  = insert_in_local_hash_table(ev+tmp_lcm[i]);
-   * } */
-  
-  /* printf("\n");
-   * for (i = 0; i < n; ++i) {
-   *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d", (ev+tmp_lcm[i])[j]);
-   *   }
-   *   printf(" for generator %d\n", tmp_gen[i]);
-   * } */
-  mat = generate_matrix_from_spair_selection(tmp_lcm, tmp_gen, n);
-  /* printf("nrows %d | nrall %d\n", nrows, nrall); */
-
-  free(tmp_lcm);
-  free(tmp_gen);
+  free(gens);
 
   /* remove selected spairs from pairset */
   for (j = npairs; j < pload; ++j) {
@@ -164,6 +129,7 @@ static val_t **select_spairs_by_minimal_degree(
   select_rtime  +=  rt1 - rt0;
   
   return mat;
+  
 }
 
 static inline val_t *find_multiplied_reducer(

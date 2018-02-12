@@ -323,7 +323,7 @@ static inline len_t insert_in_global_hash_table(
     const exp_t *a
     )
 {
-  int32_t i, j, k, pos, deg;
+  int32_t i, k, pos, deg;
   exp_t *e;
   int32_t h = 0;
 
@@ -373,7 +373,7 @@ static inline len_t insert_in_local_hash_table(
     const exp_t *a
     )
 {
-  int32_t i, j, k, pos, deg;
+  int32_t i, k, pos, deg;
   exp_t *e;
   int32_t h = 0;
 
@@ -444,7 +444,7 @@ static inline len_t insert_in_global_hash_table_product(
     const exp_t *a2
     )
 {
-  int32_t i, j, k, pos;
+  int32_t i, k, pos;
   exp_t *e, *n;
 
   const int32_t h = a1[HASH_VAL] + a2[HASH_VAL];

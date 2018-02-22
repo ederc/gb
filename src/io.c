@@ -167,8 +167,6 @@ static int64_t export_julia_data(
   len = len * (int64_t)lterm;
   /* add storage for length of each element */
   len = len + nb;
-  /* add storage for length of complete array */
-  len++;
   /* add storage for number of generators in basis */
   len++;
 

@@ -24,10 +24,12 @@ int main(
   const int32_t la_option     = 42;
   const int32_t max_nr_pairs  = 0;
 
-  int32_t *basis = f4_julia(
-      lens, cfs, exps, field_char, nr_vars, nr_gens, ht_size,
-      nr_threads, max_nr_pairs, la_option);
+  int32_t **basis = (int32_t **)malloc(sizeof(int32_t *));
+  int64_t len     = f4_julia(
+      basis, lens, cfs, exps, field_char, nr_vars, nr_gens,
+      ht_size, nr_threads, max_nr_pairs, la_option);
 
+  free(*basis);
   free(basis);
 
   return 0;

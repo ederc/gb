@@ -140,20 +140,23 @@ int main(
     free(mat);
     mat = NULL;
   }
+  
+  int32_t **basis = (int32_t **)malloc(sizeof(int32_t *));
+  int64_t len = export_julia_data(basis);
 
-  int32_t *test = export_julia_data();
-
-  int32_t val[13] = {13, 2, 6, 3, 1, 1, 0, 1, 0, 1, 1, 0, 1};
+  int32_t val[12] = {2, 6, 3, 1, 1, 0, 1, 0, 1, 1, 0, 1};
 
   int32_t failure = 0;
-  for (i = 0; i < val[0]; ++i) {
-    if (val[i] != test[i]) {
+  for (i = 0; i < 12; ++i) {
+    if (val[i] != (*basis)[i]) {
       failure = 1;
       break;
     }
   }
-  free(test);
-  test = NULL;
+  free(*basis);
+  free(basis);
+
+  basis = NULL;
 
   /* free and clean up */
   free_local_hash_table();

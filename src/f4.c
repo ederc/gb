@@ -23,13 +23,16 @@
 #include "data.h"
 
 /* we get from julia the generators as three arrays:
+ * 0.  a pointer to an int32_t array for returning the basis to julia
  * 1.  an array of the lengths of each generator
  * 2.  an array of all coefficients of all generators in the order:
  *     first all coefficients of generator 1, then all of generator 2, ...
  * 3.  an array of all exponents of all generators in the order:
  *     first all exponents of generator 1, then all of generator 2, ...
- *     MORE TODO */
-int32_t *f4_julia(
+ *
+ *  RETURNs the length of the jl_basis array */
+int64_t f4_julia(
+    int32_t **jl_basis,
     const int32_t *lens,
     const int32_t *cfs,
     const int32_t *exps,
@@ -55,7 +58,7 @@ int32_t *f4_julia(
    * some of the input data is corrupted. */
   if (check_and_set_meta_data(lens, cfs, exps, field_char, nr_vars,
       nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
-    return NULL;
+    return 0;
   }
 
   /* initialize stuff */
@@ -123,7 +126,7 @@ int32_t *f4_julia(
     GB_DEBUG(GBDBG, "\n");
   }
 
-  int32_t *basis  = export_julia_data();
+  int64_t len = export_julia_data(jl_basis);
 
   /* timings */
   ct1 = cputime();
@@ -137,9 +140,9 @@ int32_t *f4_julia(
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
-  GB_DEBUG(GBDBG, "size of basis          %15d\n", basis[1]);
-  GB_DEBUG(GBDBG, "#terms in basis        %15d\n", 
-      (basis[0]-basis[1]-1-1)/(1+nvars));
+  GB_DEBUG(GBDBG, "size of basis          %15d\n", (*jl_basis[0]));
+  GB_DEBUG(GBDBG, "#terms in basis        %15ld\n",
+      (len-(*jl_basis)[0]-1)/(1+nvars));
   GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", num_pairsred);
   GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", num_gb_crit);
   GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);
@@ -161,5 +164,5 @@ int32_t *f4_julia(
   free(mat);
   free_basis();
 
-  return basis;
+  return len;
 }

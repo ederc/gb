@@ -141,14 +141,15 @@ static val_t **import_julia_data(
   return mat;
 }
 
-static int32_t *export_julia_data(
-    void
+static int64_t export_julia_data(
+    int32_t **bp
     )
 {
   int32_t i, j, k, ctr_lengths, ctr_elements;
+  int32_t *basis  = *bp;
 
-  uint64_t len  = 0; /* complete length of exported array */
-  uint64_t nb   = 0; /* # elemnts in basis */
+  int64_t len = 0; /* complete length of exported array */
+  int64_t nb  = 0; /* # elemnts in basis */
 
   const int32_t lterm = 1 + nvars; /* length of a term */
 
@@ -157,13 +158,13 @@ static int32_t *export_julia_data(
     if ((long)bs[i] & bred) {
       continue;
     } else {
-      len +=  (uint64_t)((bs[i][0]-2)/2);
+      len +=  (int64_t)((bs[i][0]-2)/2);
       nb++;
     }
   }
 
   /* compute the length considering the number of variables per exponent */
-  len = len * (uint64_t)lterm;
+  len = len * (int64_t)lterm;
   /* add storage for length of each element */
   len = len + nb;
   /* add storage for length of complete array */
@@ -171,23 +172,18 @@ static int32_t *export_julia_data(
   /* add storage for number of generators in basis */
   len++;
 
-  int32_t *basis  = (int32_t *)malloc(len * sizeof(int32_t));
+  basis  = (int32_t *)malloc((unsigned long)len * sizeof(int32_t));
 
-  if (len > (uint64_t)(pow(2, 31))) {
+  if (nb > (int64_t)(pow(2, 31))) {
     printf("basis too big\n");
-    return NULL;
+    return 0;
   }
 
-  if (nb > (uint64_t)(pow(2, 31))) {
-    printf("basis too big\n");
-    return NULL;
-  }
+  ctr_lengths   = 1;
+  ctr_elements  = (int32_t)nb + 1;
 
-  ctr_lengths   = 2;
-  ctr_elements  = (int32_t)nb + 1 + 1;
-
-  basis[0]  = (int32_t)len;
-  basis[1]  = (int32_t)nb;
+  basis[0]  = (int32_t)nb;
+  /* basis[1]  = (int32_t)nb; */
   for (i = 0; i < bload; ++i) {
     if ((long)bs[i] & bred) {
       continue;
@@ -202,11 +198,7 @@ static int32_t *export_julia_data(
       }
     }
   }
+  *bp = basis;
 
-  /* for (i = 0; i < basis[0]; ++i) {
-   *   printf("%d ", basis[i]);
-   * }
-   * printf("\n"); */
-
-  return basis;
+  return len;
 }

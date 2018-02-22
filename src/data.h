@@ -132,7 +132,8 @@ val_t *(*reduce_dense_row_by_known_pivots)(
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
-int32_t *f4_julia(
+int64_t f4_julia(
+    int32_t **jl_basis,
     const int32_t *lens,
     const int32_t *cfs,
     const int32_t *exps,

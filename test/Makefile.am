@@ -38,6 +38,7 @@ TESTS = 											\
 	test_cyclic_7								\
 	test_cyclic_9								\
 	test_pearson_9							\
+	test_katsura_16							\
 	test_mayr_42
 
 XFAIL_TESTS = 								\

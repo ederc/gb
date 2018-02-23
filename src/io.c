@@ -145,7 +145,8 @@ static int64_t export_julia_data(
     int32_t **bp
     )
 {
-  int32_t i, j, k, ctr_lengths, ctr_elements;
+  int32_t i, j, k;
+  int64_t ctr_lengths, ctr_elements;
   int32_t *basis  = *bp;
 
   int64_t len = 0; /* complete length of exported array */
@@ -178,7 +179,7 @@ static int64_t export_julia_data(
   }
 
   ctr_lengths   = 1;
-  ctr_elements  = (int32_t)nb + 1;
+  ctr_elements  = (int64_t)nb + 1;
 
   basis[0]  = (int32_t)nb;
   /* basis[1]  = (int32_t)nb; */
@@ -186,6 +187,7 @@ static int64_t export_julia_data(
     if ((long)bs[i] & bred) {
       continue;
     } else {
+      /* printf("ctr_lengths %d | %d / %d\n", ctr_lengths, i, bload); */
       /* length of polynomial including this length entry itself */
       basis[ctr_lengths++]  = (bs[i][0]-2)/2 * lterm;
       for (j = 2; j < bs[i][0]; j += 2) {

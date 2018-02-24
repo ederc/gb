@@ -37,6 +37,7 @@ int64_t f4_julia(
     const int32_t *cfs,
     const int32_t *exps,
     const int32_t field_char,
+    const int32_t mon_order,
     const int32_t nr_vars,
     const int32_t nr_gens,
     const int32_t ht_size,
@@ -56,8 +57,8 @@ int64_t f4_julia(
 
   /* checks and set all meta data. if a nonzero value is returned then
    * some of the input data is corrupted. */
-  if (check_and_set_meta_data(lens, cfs, exps, field_char, nr_vars,
-      nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
+  if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
+      nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
     return 0;
   }
 
@@ -67,6 +68,15 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "#variables             %15d\n", nvars);
   GB_DEBUG(GBDBG, "#equations             %15d\n", nr_gens);
   GB_DEBUG(GBDBG, "field characteristic   %15d\n", fc);
+  if (mo == 0) {
+    GB_DEBUG(GBDBG, "monomial order                     DRL\n");
+  }
+  if (mo == 1) {
+    GB_DEBUG(GBDBG, "monomial order                     LEX\n");
+  }
+  if ((mo != 0) && (mo != 1)) {
+    GB_DEBUG(GBDBG, "monomial order               DONT KNOW\n");
+  }
   GB_DEBUG(GBDBG, "linear algebra option  %15d\n", laopt);
   GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
       (int32_t)pow(2,htes), htes);

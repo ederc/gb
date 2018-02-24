@@ -66,6 +66,11 @@ static pl_t pload     = 0;
 static pl_t psize     = 0;
 static int32_t mnsel  = 0; /* maximal number of pairs to be selected */
 
+/* monomial order - until we have general orders:
+ * 0 = DRL
+ * 1 = LEX */
+static val_t mo = 0;
+
 /* field characteristic */
 static val_t fc = 0;
 
@@ -138,6 +143,7 @@ int64_t f4_julia(
     const int32_t *cfs,
     const int32_t *exps,
     const int32_t field_char,
+    const int32_t mon_order,
     const int32_t nr_vars,
     const int32_t nr_gens,
     const int32_t ht_size,

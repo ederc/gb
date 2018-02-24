@@ -27,11 +27,28 @@ static inline void set_function_pointers(
     )
 {
   /* todo: this needs to be generalized for different monomial orders */
-  matrix_row_initial_input_cmp  =
-    matrix_row_initial_input_cmp_drl;
-  monomial_cmp  = monomial_cmp_drl;
-  hcm_cmp       = hcm_cmp_pivots_drl;
-  select_spairs = select_spairs_by_minimal_degree;
+  switch (mo) {
+    case 0:
+      matrix_row_initial_input_cmp  =
+        matrix_row_initial_input_cmp_drl;
+      monomial_cmp  = monomial_cmp_drl;
+      hcm_cmp       = hcm_cmp_pivots_drl;
+      select_spairs = select_spairs_by_minimal_degree;
+      break;
+    case 1:
+      matrix_row_initial_input_cmp  =
+        matrix_row_initial_input_cmp_lex;
+      monomial_cmp  = monomial_cmp_lex;
+      hcm_cmp       = hcm_cmp_pivots_lex;
+      select_spairs = select_spairs_by_minimal_degree;
+      break;
+    default:
+      matrix_row_initial_input_cmp  =
+        matrix_row_initial_input_cmp_drl;
+      monomial_cmp  = monomial_cmp_drl;
+      hcm_cmp       = hcm_cmp_pivots_drl;
+      select_spairs = select_spairs_by_minimal_degree;
+  }
 
   switch (laopt) {
     case 1:
@@ -57,6 +74,7 @@ static inline int32_t check_and_set_meta_data(
     const int32_t *cfs,
     const int32_t *exps,
     const int32_t field_char,
+    const int32_t mon_order,
     const int32_t nr_vars,
     const int32_t nr_gens,
     const int32_t ht_size,
@@ -75,8 +93,16 @@ static inline int32_t check_and_set_meta_data(
   }
 
   nvars = nr_vars;
-  /* TODO: add prime check */
+  /* note: prime check should be done in julia */
   fc    = field_char;
+  /* monomial order */
+  printf("mon_order %d\n", mon_order);
+  if (mon_order != 0 && mon_order != 1) {
+    mo  = 0;
+  } else {
+    mo  = mon_order;
+  }
+  printf("mo %d\n", mo);
   /* set hash table size */
   htes  = ht_size;
   if (htes <= 0) {

@@ -34,6 +34,34 @@ static int columns_cmp(
   return (int)(ca - cb);
 }
 
+static int matrix_row_initial_input_cmp_lex(
+    const void *a,
+    const void *b
+    )
+{
+  int32_t i;
+  val_t va, vb;
+
+  va  = ((val_t **)a)[0][2];
+  vb  = ((val_t **)b)[0][2];
+
+  const exp_t * const ea  = ev + va;
+  const exp_t * const eb  = ev + vb;
+
+  /* lexicographical */
+  return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
+  /* for (i = 0; i < nvars; ++i) {
+   *   if (ea[i] < eb[i]) {
+   *     return -1;
+   *   } else {
+   *     if (ea[i] != eb[i]) {
+   *       return 1;
+   *     }
+   *   }
+   * } */
+  return 0;
+}
+
 static int matrix_row_initial_input_cmp_drl(
     const void *a,
     const void *b
@@ -146,6 +174,39 @@ static int monomial_cmp_pivots_drl(
   return 0;
 }
 
+static int monomial_cmp_pivots_lex(
+    const len_t a,
+    const len_t b
+    )
+{
+  int32_t i;
+
+  const exp_t * const ea  = ev + a;
+  const exp_t * const eb  = ev + b;
+
+  /* first known pivots vs. tail terms */
+  if (ea[HASH_IND] < eb[HASH_IND]) {
+    return 1;
+  } else {
+    if (ea[HASH_IND] != eb[HASH_IND]) {
+      return -1;
+    }
+  }
+
+  /* lexicographical */
+  return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
+  /* for (i = 0; i < nvars; ++i) {
+   *   if (ea[i] > eb[i]) {
+   *     return 1;
+   *   } else {
+   *     if (ea[i] != eb[i]) {
+   *       return -1;
+   *     }
+   *   }
+   * } */
+  return 0;
+}
+
 static inline int monomial_cmp_drl(
     const exp_t * const ea,
     const exp_t * const eb
@@ -173,6 +234,26 @@ static inline int monomial_cmp_drl(
   return 0;
 }
 
+static inline int monomial_cmp_lex(
+    const exp_t * const ea,
+    const exp_t * const eb
+    )
+{
+  int32_t i;
+
+  return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
+  /* for (i = 0; i < nvars; ++i) {
+   *   if (ea[i] < eb[i]) {
+   *     return 1;
+   *   } else {
+   *     if (ea[i] != eb[i]) {
+   *       return -1;
+   *     }
+   *   }
+   * } */
+  return 0;
+}
+
 /* comparison for hash-column-maps */
 static int hcm_cmp_pivots_drl(
     const void *a,
@@ -183,6 +264,17 @@ static int hcm_cmp_pivots_drl(
   const len_t mb  = ((len_t *)b)[0];
 
   return monomial_cmp_pivots_drl(ma, mb);
+}
+
+static int hcm_cmp_pivots_lex(
+    const void *a,
+    const void *b
+    )
+{
+  const len_t ma  = ((len_t *)a)[0];
+  const len_t mb  = ((len_t *)b)[0];
+
+  return monomial_cmp_pivots_lex(ma, mb);
 }
 
 /* comparison for s-pairs once their lcms are in the global hash table */

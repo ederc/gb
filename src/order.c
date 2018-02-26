@@ -39,7 +39,6 @@ static int matrix_row_initial_input_cmp_lex(
     const void *b
     )
 {
-  int32_t i;
   val_t va, vb;
 
   va  = ((val_t **)a)[0][2];
@@ -49,17 +48,7 @@ static int matrix_row_initial_input_cmp_lex(
   const exp_t * const eb  = ev + vb;
 
   /* lexicographical */
-  return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
-  /* for (i = 0; i < nvars; ++i) {
-   *   if (ea[i] < eb[i]) {
-   *     return -1;
-   *   } else {
-   *     if (ea[i] != eb[i]) {
-   *       return 1;
-   *     }
-   *   }
-   * } */
-  return 0;
+  return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t));
 }
 
 static int matrix_row_initial_input_cmp_drl(
@@ -179,7 +168,6 @@ static int monomial_cmp_pivots_lex(
     const len_t b
     )
 {
-  int32_t i;
 
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
@@ -195,16 +183,6 @@ static int monomial_cmp_pivots_lex(
 
   /* lexicographical */
   return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
-  /* for (i = 0; i < nvars; ++i) {
-   *   if (ea[i] > eb[i]) {
-   *     return 1;
-   *   } else {
-   *     if (ea[i] != eb[i]) {
-   *       return -1;
-   *     }
-   *   }
-   * } */
-  return 0;
 }
 
 static inline int monomial_cmp_drl(
@@ -239,19 +217,7 @@ static inline int monomial_cmp_lex(
     const exp_t * const eb
     )
 {
-  int32_t i;
-
   return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
-  /* for (i = 0; i < nvars; ++i) {
-   *   if (ea[i] < eb[i]) {
-   *     return 1;
-   *   } else {
-   *     if (ea[i] != eb[i]) {
-   *       return -1;
-   *     }
-   *   }
-   * } */
-  return 0;
 }
 
 /* comparison for hash-column-maps */
@@ -285,8 +251,15 @@ static int spair_cmp(
 {
   spair_t *sa = (spair_t *)a;
   spair_t *sb = (spair_t *)b;
-
-  return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+  if (sa->deg != sb->deg) {
+    return (sa->deg < sb->deg) ? -1 : 1;
+  } else {
+    if (sa->gen1 != sb ->gen1) {
+      return (sa->gen1 < sb->gen1) ? -1 : 1;
+    } else {
+      return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+    }
+  }
 }
 
 /* comparison for s-pairs while their lcms are in the local hash table */

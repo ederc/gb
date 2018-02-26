@@ -44,6 +44,15 @@ static val_t **select_spairs_by_minimal_degree(
   /* get minimal degree */
   md  = ps[0].deg;
 
+  /* printf("\n\n");
+   * for (i = 0; i < pload; ++i) {
+   *   printf("%d | %d | ", i, ps[i].deg);
+   *   for (j = 0; j < nvars; ++j) {
+   *     printf("%d ", (ev+ps[i].lcm)[j]);
+   *   }
+   *   printf("\n");
+   * }
+   * printf("\n"); */
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
     if (ps[i].deg > md || i > mnsel) {
@@ -51,6 +60,7 @@ static val_t **select_spairs_by_minimal_degree(
     }
   }
   npairs  = i;
+  /* printf("npairs %d\n", npairs); */
   /* if we stopped due to maximal selection size we still get the following
    * pairs of the same lcm in this matrix */
   if (i > mnsel) {

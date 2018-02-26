@@ -62,8 +62,15 @@ static len_t *convert_hashes_to_columns(
       }
     }
   }
+  /* for (i = 0; i < j; ++i) {
+   *   printf("hcm %d --> %d\n", i, hcm[i]);
+   * }
+   * printf("now sort\n"); */
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
   qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
+  /* for (i = 0; i < j; ++i) {
+   *   printf("hcm %d --> %d\n", i, hcm[i]);
+   * } */
   
   /* set number of rows and columns in ABCD splicing */
   nru = ncl = k;

@@ -35,6 +35,7 @@ TESTS = 											\
 	test_select_spairs					\
 	test_f4											\
 	test_cyclic_4								\
+	test_cyclic_5								\
 	test_cyclic_7								\
 	test_cyclic_9								\
 	test_pearson_9							\

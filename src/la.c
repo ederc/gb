@@ -221,6 +221,7 @@ static val_t **sparse_linear_algebra(
   ct0 = cputime();
   rt0 = realtime();
 
+  /* printf("nrows %d | nrl %d \n", nrows, nrl); */
   /* all pivots, first we can only fill in all known lead terms */
   val_t **pivs  = (val_t **)calloc((unsigned long)ncols, sizeof(val_t *));
   /* unkown pivot rows we have to reduce with the known pivots first */
@@ -232,6 +233,7 @@ static val_t **sparse_linear_algebra(
   i = 0;
   j = 1;
   for (i = 0; i < nrows; ++i) {
+    /* printf("i/j %d/%d -- mat[i][2] %d | %p | mat[i] %p\n", i, j, mat[i][2], pivs[mat[i][2]], mat[i]); */
     if (!pivs[mat[i][2]]) {
       pivs[mat[i][2]] = mat[i];
     } else {

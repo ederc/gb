@@ -23,6 +23,9 @@
 /* note: idea of implementing debug output in this way comes from roman pearce
  *       and michael monagans maple mgb implementation */
 
+/* set if you want debug information */
+#define PRINT_DEBUG 0
+
 /* debug macros */
 #define GBDBG   1 /* overall debugging */
 #define SYMDBG  1 /* symbolic preprocessing */
@@ -31,4 +34,8 @@
 #define UPDDBG  1 /* update process */
 #define TIMDBG  1 /* timings */
 
+#if PRINT_DEBUG
 #define GB_DEBUG(s,...) do { if (s) printf(__VA_ARGS__); } while (0)
+#else
+#define GB_DEBUG(s,...) do {} while (0)
+#endif

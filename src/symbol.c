@@ -22,6 +22,61 @@
 
 #include "data.h"
 
+/* takes only one pair, pairset sorted by lexicographical order */
+static val_t **select_one_spair_by_lex(
+    void
+    )
+{
+  int32_t i, md, npairs;
+  val_t *b;
+  len_t m;
+
+  val_t **mat;
+
+  /* timings */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
+
+  /* sort pair set */
+  qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_lex_cmp);
+  npairs  = 1;
+  md      = ps[0].deg;
+  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
+  /* statistics */
+  num_pairsred  +=  npairs;
+  
+  /* preset matrix meta data */
+  mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *));
+  nrall = 2 * npairs;
+  ncols = ncl = ncr = 0;
+  nrows = 0;
+
+  b = (val_t *)((long)bs[ps[0].gen1] & bmask);
+  m = monomial_division_no_check(ps[0].lcm, b[2]);
+  mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
+  b = (val_t *)((long)bs[ps[0].gen2] & bmask);
+  m = monomial_division_no_check(ps[0].lcm, b[2]);
+  mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
+
+  num_rowsred++;
+
+  /* remove selected spairs from pairset */
+  for (i = npairs; i < pload; ++i) {
+    ps[i-npairs]  = ps[i];
+  }
+  pload = pload - npairs;
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  select_ctime  +=  ct1 - ct0;
+  select_rtime  +=  rt1 - rt0;
+  
+  return mat;
+  
+}
+
 static val_t **select_spairs_by_minimal_degree(
     void
     )
@@ -44,23 +99,13 @@ static val_t **select_spairs_by_minimal_degree(
   /* get minimal degree */
   md  = ps[0].deg;
 
-  /* printf("\n\n");
-   * for (i = 0; i < pload; ++i) {
-   *   printf("%d | %d | ", i, ps[i].deg);
-   *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d ", (ev+ps[i].lcm)[j]);
-   *   }
-   *   printf("\n");
-   * }
-   * printf("\n"); */
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
-    if (ps[i].deg > md || i > mnsel) {
+    if (ps[i].deg > md || i >= mnsel) {
       break;
     }
   }
   npairs  = i;
-  /* printf("npairs %d\n", npairs); */
   /* if we stopped due to maximal selection size we still get the following
    * pairs of the same lcm in this matrix */
   if (i > mnsel) {
@@ -82,9 +127,6 @@ static val_t **select_spairs_by_minimal_degree(
   ncols = ncl = ncr = 0;
   nrows = 0;
 
-  /* for (i = 0; i < npairs; ++i) {
-   *   printf("pair %d | lcm %d | gen1 %d | gen2 %d\n", i, ps[i].lcm, ps[i].gen1, ps[i].gen2);
-   * } */
   i = 0;
   while (i < npairs) {
     load_old  = load;
@@ -114,14 +156,13 @@ static val_t **select_spairs_by_minimal_degree(
     for (k = load_old; k < load; ++k) {
       b = (val_t *)((long)bs[gens[k]] & bmask);
       m = monomial_division_no_check(lcm, b[2]);
-      /* printf("adds lcm %d | b %d | row %d\n", lcm, gens[k], nrows); */
       mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
     }
 
     i = j;
   }
 
-  num_duplicates  +=  2*npairs - load;
+  num_duplicates  +=  0;
   num_rowsred     +=  load;
 
   free(gens);
@@ -153,7 +194,7 @@ static inline val_t *find_multiplied_reducer(
   const int32_t bl  = bload;
   /* printf("to be divided: ");
    * for (int32_t j = 0; j < nvars; ++j) {
-   *   printf("%d",e[j]);
+   *   printf("%d",(ev+m)[j]);
    * }
    * printf("\n"); */
 

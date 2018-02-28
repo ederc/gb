@@ -556,11 +556,6 @@ static inline len_t monomial_division_with_check(
     return 0;
   }
 
-  /* degree check */
-  /* if (ea[HASH_DEG] < eb[HASH_DEG]) {
-   *   return 0;
-   * } */
-
   /* exponent check */
   if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
     return 0;
@@ -629,6 +624,21 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
     row[i+6]  = monomial_multiplication(mult, poly[i+6]);
     row[i+7]  = poly[i+7];
   }
+  /* printf("multiplied polys added\n");
+   * for (int32_t p = 2; p < poly[0]; p += 2) {
+   *   for (int32_t o = 0; o < nvars; ++o) {
+   *     printf("%d ", (ev+poly[p])[o]);
+   *   }
+   *   printf(" |&| ");
+   * }
+   * printf("\nMULT TO\n");
+   * for (int32_t p = 2; p < row[0]; p += 2) {
+   *   for (int32_t o = 0; o < nvars; ++o) {
+   *     printf("%d ", (ev+row[p])[o]);
+   *   }
+   *   printf(" |&| ");
+   * }
+   * printf("\nTTT\n"); */
   /* printf("\n"); */
 
   return row;

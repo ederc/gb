@@ -80,7 +80,12 @@ static len_t *convert_hashes_to_columns(
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < j; ++i) {
     (ev + hcm[i])[HASH_IND]  = i;
+    /* if (hcm[i] == 56170) {
+     *   printf("56170 => %d\n", (ev + hcm[i])[HASH_IND]);
+     * } */
   }
+
+
   
   /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
@@ -88,9 +93,42 @@ static len_t *convert_hashes_to_columns(
     row = mat[i];
     for (j = 2; j < row[0]; j += 2) {
       row[j]  = (ev + row[j])[HASH_IND];
-      /* printf("%d \n", row[j]); */
+      /* printf("row[%j] = %d \n", j, row[j]); */
     }
   }
+  /* for (i = 0; i < nrows; ++i) {
+   *   row = mat[i];
+   *   for (j = 2; j < row[0]; j += 2) {
+   *     for (k = 2; k < j; k += 2) {
+   *       if (row[j] < row[k]) {
+   *         printf("index of %d smaller then of %d in row %d\n", j, k, i);
+   *       }
+   *     }
+   *   }
+   * }
+   * for (i = 0; i < nrows; ++i) {
+   *   printf("row %d || ", i);
+   *   for (j = 2; j < mat[i][0]; j += 2) {
+   *     printf("%d | ", mat[i][j]);
+   *   }
+   *   printf("\n");
+   * }
+   * printf("hcms now in matrix, but rows not sorted!\n");
+   * if (nrows > 1249) {
+   *   for (i = 2; i < mat[1249][0]; i += 2) {
+   *     for (j = 2; j < i; j += 2) {
+   *       if (mat[1249][i] == mat[1249][j]) {
+   *         printf("%d == %d | %d\n", i, j, mat[1249][i]);
+   *       }
+   *     }
+   *   }
+   * }
+   * printf("full row\n");
+   * if (nrows > 1249) {
+   * for (i = 2; i < mat[1249][0]; i += 2) {
+   *   printf("%d ||| %d \n ", i, mat[1249][i]);
+   * }
+   * } */
 
   /* next we sort each row by the new colum order due
    * to known / unkown pivots */
@@ -99,6 +137,12 @@ static len_t *convert_hashes_to_columns(
     qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
         columns_cmp);
   }
+  /* printf("hcms now in matrix, now sorted!\n");
+   * if (nrows > 1249) {
+   * for (i = 2; i < mat[1249][0]; i += 2) {
+   *   printf("%d ||| %d \n ", i, mat[1249][i]);
+   * }
+   * } */
   /* compute density of matrix */
   density = (double)nterms / (double)nrows / (double)k;
 

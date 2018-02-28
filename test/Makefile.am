@@ -34,8 +34,9 @@ TESTS = 											\
 	test_pairset_update					\
 	test_select_spairs					\
 	test_f4											\
-	test_cyclic_4								\
-	test_cyclic_5								\
+	test_cyclic_4_drl						\
+	test_cyclic_4_lex						\
+	test_cyclic_5_lex						\
 	test_cyclic_7								\
 	test_cyclic_9								\
 	test_pearson_9							\

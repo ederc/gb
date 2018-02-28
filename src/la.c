@@ -233,7 +233,7 @@ static val_t **sparse_linear_algebra(
   i = 0;
   j = 1;
   for (i = 0; i < nrows; ++i) {
-    /* printf("i/j %d/%d -- mat[i][2] %d | %p | mat[i] %p\n", i, j, mat[i][2], pivs[mat[i][2]], mat[i]); */
+    /* printf("i/j %d/%d // %d -- mat[i][2] %d | %p | mat[i] %p\n", i, j, nrl, mat[i][2], pivs[mat[i][2]], mat[i]); */
     if (!pivs[mat[i][2]]) {
       pivs[mat[i][2]] = mat[i];
     } else {

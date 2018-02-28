@@ -40,7 +40,7 @@ static inline void set_function_pointers(
         matrix_row_initial_input_cmp_lex;
       monomial_cmp  = monomial_cmp_lex;
       hcm_cmp       = hcm_cmp_pivots_lex;
-      select_spairs = select_spairs_by_minimal_degree;
+      select_spairs = select_one_spair_by_lex;
       break;
     default:
       matrix_row_initial_input_cmp  =
@@ -96,13 +96,11 @@ static inline int32_t check_and_set_meta_data(
   /* note: prime check should be done in julia */
   fc    = field_char;
   /* monomial order */
-  printf("mon_order %d\n", mon_order);
   if (mon_order != 0 && mon_order != 1) {
     mo  = 0;
   } else {
     mo  = mon_order;
   }
-  printf("mo %d\n", mo);
   /* set hash table size */
   htes  = ht_size;
   if (htes <= 0) {

@@ -71,8 +71,9 @@ static void insert_and_update_spairs(
    *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
    * } */
   bs[bload] = nelt;
-  /* printf("element added to basis: ");
-   * for (int32_t o = 2; o < nelt[0]; o += 2) {
+  /* printf("element added to basis %d: ", bload);
+   * for (int32_t o = 2; o < 3; o += 2) {
+   * [> for (int32_t o = 2; o < nelt[0]; o += 2) { <]
    *   printf("%d ", nelt[o+1]);
    *   for (int32_t p = 0; p < nvars; ++p) {
    *     printf("%d",(ev+nelt[o])[p]);
@@ -149,16 +150,38 @@ static void insert_and_update_spairs(
     i = j-1;
   } 
 
+  /* for (i = 0; i < pload; ++i) {
+   *   printf("pair %d | g1 %d | g2 %d | red %d | ",
+   *       i, ps[i].gen1, ps[i].gen2, ps[i].deg);
+   *   for (j = 0; j < nvars; ++j) {
+   *     printf("%d ", (ev+ps[i].lcm)[j]);
+   *   }
+   *   printf("\n");
+   * }
+   * for (; i < nl; ++i) {
+   *   printf("pair %d | g1 %d | g2 %d | red %d | ",
+   *       i, ps[i].gen1, ps[i].gen2, ps[i].deg);
+   *   for (j = 0; j < nvars; ++j) {
+   *     printf("%d ", (evl+ps[i].lcm)[j]);
+   *   }
+   *   printf("\n");
+   * } */
   /* remove useless pairs from pairset */
   j = 0;
-  for (i = 0; i < nl; ++i) {
+  /* old pairs */
+  for (i = 0; i < pload; ++i) {
     if (ps[i].deg < 0) {
       continue;
     }
-    if (ps[i].gen2 == bload) {
-      ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm);
-    }
     ps[j++] = ps[i];
+  }
+  /* new pairs, wee need to add the lcm to the global hash table */
+  for (; i < nl; ++i) {
+    if (ps[i].deg < 0) {
+      continue;
+    }
+    ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm);
+    ps[j++]   = ps[i];
   }
   num_gb_crit +=  nl - j;
   pload       =   j;

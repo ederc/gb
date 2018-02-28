@@ -117,18 +117,8 @@ int64_t f4_julia(
     /* preprocess data for next reduction round */
     mat = select_spairs();
     mat = symbolic_preprocessing(mat);
-    /* for (i = 0; i < nrows; ++i) {
-     *   printf("%d || %d | ", i, mat[i][2]);
-     *   for (int o = 0; o < nvars; ++o) {
-     *     printf("%d ", (ev+mat[i][2])[o]);
-     *   }
-     *   printf("\n");
-     * } */
     /* exponent hashes mapped to column indices for linear algebra */
     hcm = convert_hashes_to_columns(mat);
-    /* for (i = 0; i < nrows; ++i) {
-     *   printf("%d ||| %d \n ", i, mat[i][2]);
-     * } */
     /* sort matrix rows by decreasing pivots */
     mat = sort_matrix_rows(mat);
     /* linear algebra, depending on choice, see set_function_pointers() */

@@ -217,7 +217,7 @@ static inline int monomial_cmp_lex(
     const exp_t * const eb
     )
 {
-  return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
+  return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t));
 }
 
 /* comparison for hash-column-maps */
@@ -244,6 +244,16 @@ static int hcm_cmp_pivots_lex(
 }
 
 /* comparison for s-pairs once their lcms are in the global hash table */
+static int spair_lex_cmp(
+    const void *a,
+    const void *b
+    )
+{
+  spair_t *sa = (spair_t *)a;
+  spair_t *sb = (spair_t *)b;
+  return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+}
+
 static int spair_cmp(
     const void *a,
     const void *b

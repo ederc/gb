@@ -131,7 +131,8 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
     normalize_matrix_row(row);
   }
 
-  /* for (int32_t l = 0; l < row[0]; ++l) {
+  /* printf("finally\n");
+   * for (int32_t l = 0; l < row[0]; ++l) {
    *   printf("%2d ", row[l]);
    * }
    * printf("\n"); */

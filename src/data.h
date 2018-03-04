@@ -76,6 +76,7 @@ static val_t fc = 0;
 
 /* basis data */
 static val_t **bs = NULL;
+static bl_t blold = 0;
 static bl_t bload = 0;
 static bl_t bsize = 0;
 

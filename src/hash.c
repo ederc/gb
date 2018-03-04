@@ -631,15 +631,15 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
    *   }
    *   printf(" |&| ");
    * }
-   * printf("\nMULT TO\n");
+   * printf("\nmult to\n");
    * for (int32_t p = 2; p < row[0]; p += 2) {
    *   for (int32_t o = 0; o < nvars; ++o) {
    *     printf("%d ", (ev+row[p])[o]);
    *   }
    *   printf(" |&| ");
    * }
-   * printf("\nTTT\n"); */
-  /* printf("\n"); */
+   * printf("\nttt\n");
+   * printf("\n"); */
 
   return row;
 }

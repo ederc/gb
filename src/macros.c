@@ -24,7 +24,7 @@
  *       and michael monagans maple mgb implementation */
 
 /* set if you want debug information */
-#define PRINT_DEBUG 0
+#define PRINT_DEBUG 1
 
 /* debug macros */
 #define GBDBG   1 /* overall debugging */

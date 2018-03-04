@@ -23,7 +23,7 @@ int main(
   const int32_t mon_order     = 1;
   const int32_t nr_threads    = 1;
   const int32_t la_option     = 1;
-  const int32_t max_nr_pairs  = 1;
+  const int32_t max_nr_pairs  = 0;
 
   int32_t failure = 0;
 

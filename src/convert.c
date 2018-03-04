@@ -63,13 +63,21 @@ static len_t *convert_hashes_to_columns(
     }
   }
   /* for (i = 0; i < j; ++i) {
-   *   printf("hcm %d --> %d\n", i, hcm[i]);
+   *   printf("hcm %d --> %d | ", i, hcm[i]);
+   *   for (int32_t p = 0; p < nvars; ++p) {
+   *     printf("%d ", (ev+hcm[i])[p]);
+   *   }
+   *   printf("\n");
    * }
    * printf("now sort\n"); */
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
   qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
   /* for (i = 0; i < j; ++i) {
-   *   printf("hcm %d --> %d\n", i, hcm[i]);
+   *   printf("hcm %d --> %d | ", i, hcm[i]);
+   *   for (int32_t p = 0; p < nvars; ++p) {
+   *     printf("%d ", (ev+hcm[i])[p]);
+   *   }
+   *   printf("\n");
    * } */
   
   /* set number of rows and columns in ABCD splicing */
@@ -80,9 +88,6 @@ static len_t *convert_hashes_to_columns(
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < j; ++i) {
     (ev + hcm[i])[HASH_IND]  = i;
-    /* if (hcm[i] == 56170) {
-     *   printf("56170 => %d\n", (ev + hcm[i])[HASH_IND]);
-     * } */
   }
 
 
@@ -105,15 +110,15 @@ static len_t *convert_hashes_to_columns(
    *       }
    *     }
    *   }
-   * }
-   * for (i = 0; i < nrows; ++i) {
+   * } */
+  /* for (i = 0; i < nrows; ++i) {
    *   printf("row %d || ", i);
    *   for (j = 2; j < mat[i][0]; j += 2) {
    *     printf("%d | ", mat[i][j]);
    *   }
    *   printf("\n");
-   * }
-   * printf("hcms now in matrix, but rows not sorted!\n");
+   * } */
+  /* printf("hcms now in matrix, but rows not sorted!\n");
    * if (nrows > 1249) {
    *   for (i = 2; i < mat[1249][0]; i += 2) {
    *     for (j = 2; j < i; j += 2) {
@@ -137,12 +142,6 @@ static len_t *convert_hashes_to_columns(
     qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
         columns_cmp);
   }
-  /* printf("hcms now in matrix, now sorted!\n");
-   * if (nrows > 1249) {
-   * for (i = 2; i < mat[1249][0]; i += 2) {
-   *   printf("%d ||| %d \n ", i, mat[1249][i]);
-   * }
-   * } */
   /* compute density of matrix */
   density = (double)nterms / (double)nrows / (double)k;
 

@@ -77,6 +77,141 @@ static val_t **select_one_spair_by_lex(
   
 }
 
+static val_t **select_spairs_by_deg_lex(
+    void
+    )
+{
+  int32_t i, j, k, md, npairs;
+  val_t *b;
+  len_t m;
+
+  len_t lcm = 0, load = 0, load_old = 0;
+  val_t **mat;
+  len_t *gens;
+
+  /* timings */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
+
+  /* sort pair set */
+  qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_lex_cmp);
+  /* get minimal degree */
+  md  = ps[0].deg;
+  /* printf("\n pairs sorted:\n");
+   * for (i = 0; i < pload; ++i) {
+   *   printf("p%2d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
+   *   for (j = 0; j < nvars; ++j) {
+   *     printf("%d ", (ev+ps[i].lcm)[j]);
+   *   }
+   *   printf("\n\n");
+   * } */
+
+  /* select pairs of this degree respecting maximal selection size mnsel */
+  for (i = 0; i < pload; ++i) {
+    if (ps[i].deg > md || i >= mnsel) {
+      break;
+    }
+  }
+  npairs  = i;
+  /* if we stopped due to maximal selection size we still get the following
+   * pairs of the same lcm in this matrix */
+  if (i > mnsel) {
+    j = i+1;
+    while (ps[j].lcm == ps[i].lcm) {
+      ++j;
+    }
+    npairs = j;
+  }
+  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
+  /* statistics */
+  num_pairsred  +=  npairs;
+  
+  gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
+
+  /* preset matrix meta data */
+  mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *));
+  nrall = 2 * npairs;
+  ncols = ncl = ncr = 0;
+  nrows = 0;
+
+  i = 0;
+  while (i < npairs) {
+    load_old  = load;
+    lcm   = ps[i].lcm;
+    gens[load++] = ps[i].gen1;
+    gens[load++] = ps[i].gen2;
+    j = i+1;
+    while (j < npairs && ps[j].lcm == lcm) {
+      for (k = load_old; k < load; ++k) {
+        if (ps[j].gen1 == gens[k]) {
+          break;
+        }
+      }
+      if (k == load) {
+        gens[load++]  = ps[j].gen1;
+      }
+      for (k = load_old; k < load; ++k) {
+        if (ps[j].gen2 == gens[k]) {
+          break;
+        }
+      }
+      if (k == load) {
+        gens[load++]  = ps[j].gen2;
+      }
+      j++;
+    }
+    for (k = load_old; k < load; ++k) {
+      b = (val_t *)((long)bs[gens[k]] & bmask);
+      m = monomial_division_no_check(lcm, b[2]);
+      mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
+    }
+
+    i = j;
+  }
+
+  val_t *tmp  = (val_t *)calloc(1000, sizeof(val_t));
+  int32_t ctr = 0;
+  for (i=0; i < nrows; ++i) {
+    for (j = 2; j < mat[i][0]; j += 2) {
+      k = 0;
+      while (tmp[k] != 0) {
+        if (tmp[k] == mat[i][j]) {
+          break;
+        }
+        k++;
+      }
+      if (k == ctr) {
+        tmp[ctr]  = mat[i][j];
+        ctr++;
+      }
+    }
+  }
+  /* printf("\npair poly rows (%d) have %d columns together\n", nrows, ctr); */
+  free(tmp);
+  tmp = NULL;
+
+
+  num_duplicates  +=  0;
+  num_rowsred     +=  load;
+
+  free(gens);
+
+  /* remove selected spairs from pairset */
+  for (j = npairs; j < pload; ++j) {
+    ps[j-npairs]  = ps[j];
+  }
+  pload = pload - npairs;
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  select_ctime  +=  ct1 - ct0;
+  select_rtime  +=  rt1 - rt0;
+  
+  return mat;
+}
+
 static val_t **select_spairs_by_minimal_degree(
     void
     )
@@ -98,6 +233,14 @@ static val_t **select_spairs_by_minimal_degree(
   qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_cmp);
   /* get minimal degree */
   md  = ps[0].deg;
+  /* printf("\n pairs sorted:\n");
+   * for (i = 0; i < pload; ++i) {
+   *   printf("p%2d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
+   *   for (j = 0; j < nvars; ++j) {
+   *     printf("%d ", (ev+ps[i].lcm)[j]);
+   *   }
+   *   printf("\n\n");
+   * } */
 
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
@@ -180,16 +323,16 @@ static val_t **select_spairs_by_minimal_degree(
   select_rtime  +=  rt1 - rt0;
   
   return mat;
-  
 }
 
 static inline val_t *find_multiplied_reducer(
+    const val_t * const * mat,
     len_t m
     )
 {
-  int32_t i;
+  int32_t i, k;
   len_t d;
-  val_t *b;
+  val_t *b, *c;
 
   const int32_t bl  = bload;
   /* printf("to be divided: ");
@@ -198,6 +341,33 @@ static inline val_t *find_multiplied_reducer(
    * }
    * printf("\n"); */
 
+  /* search in matrix first */
+#if 0
+  for (i = 0; i < nrows; ++i) {
+    b = mat[i];
+    d = monomial_division_with_check(m, b[2]);
+    if (d == 0) {
+      continue;
+    }
+    (ev+m)[HASH_DIV] = i;
+    /* k = 0;
+     * for (int32_t j = i+1; j < nrows; ++j) {
+     *   c = mat[j];
+     *   if (check_monomial_division(ev+m, ev+c[2]) != 0) {
+     *     if (c[0] < b[0]) {
+     *       k = j;
+     *       printf("\n\nbetter reducer %d || %d (%d < %d)\n\n", j, i, c[0], b[0]);
+     *     }
+     *   }
+     * }
+     * if (k != 0) {
+     *   b = mat[k];
+     *   d = monomial_division_no_check(m, b[2]);
+     *   (ev+m)[HASH_DIV] = k;
+     * } */
+    return multiplied_polynomial_to_matrix_row(d, b);
+  }
+#endif
   for (i = (ev+m)[HASH_DIV]; i < bl; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
     if (b != bs[i]) {
@@ -217,6 +387,24 @@ static inline val_t *find_multiplied_reducer(
      *   printf("%d", (ev+b[2])[j]);
      * }
      * printf("\n"); */
+    /* k = 0;
+     * for (int32_t j = i+1; j < bl; ++j) {
+     *   c = (val_t *)((long)bs[j] & bmask);
+     *   if (c != bs[j]) {
+     *     continue;
+     *   }
+     *   if (monomial_division_with_check(m, c[2]) != 0) {
+     *     if (c[0] < bs[i][0]) {
+     *       k = j;
+     *       printf("\n\nbetter reducer %d || %d (%d < %d)\n\n", j, i, c[0], bs[i][0]);
+     *     }
+     *   }
+     * }
+     * if (k != 0) {
+     *   b = bs[k];
+     *   d = monomial_division_with_check(m, b[2]);
+     *   (ev+m)[HASH_DIV] = k;
+     * } */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
   (ev+m)[HASH_DIV] = i;
@@ -253,9 +441,9 @@ static val_t **symbolic_preprocessing(
         continue;
       }
       ncols++;
-      (ev+m)[HASH_IND] = 1;
-      red = find_multiplied_reducer(m);
+      red = find_multiplied_reducer(mat, m);
       if (!red) {
+        (ev+m)[HASH_IND] = 1;
         continue;
       }
       (ev+m)[HASH_IND] = 2;
@@ -271,6 +459,29 @@ static val_t **symbolic_preprocessing(
   /* realloc to real size */
   mat   = realloc(mat, (unsigned long)nrows * sizeof(val_t *));
   nrall = nrows;
+
+  /* val_t *tmp  = (val_t *)calloc(1000, sizeof(val_t));
+   * int32_t ctr = 0;
+   * int32_t k;
+   * for (i=0; i < nrows; ++i) {
+   *   for (j = 2; j < mat[i][0]; j += 2) {
+   *     k = 0;
+   *     while (tmp[k] != 0) {
+   *       if (tmp[k] == mat[i][j]) {
+   *         break;
+   *       }
+   *       k++;
+   *     }
+   *     if (k == ctr) {
+   *       tmp[ctr]  = mat[i][j];
+   *       ctr++;
+   *     }
+   *   }
+   * }
+   * printf("\nall %d rows have %d columns together\n", nrows, ctr);
+   * free(tmp);
+   * tmp = NULL; */
+
 
   /* timings */
   ct1 = cputime();

@@ -251,7 +251,11 @@ static int spair_lex_cmp(
 {
   spair_t *sa = (spair_t *)a;
   spair_t *sb = (spair_t *)b;
-  return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+  if (sa->deg != sb->deg) {
+    return (sa->deg < sb->deg) ? -1 : 1;
+  } else {
+    return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+  }
 }
 
 static int spair_cmp(
@@ -261,15 +265,7 @@ static int spair_cmp(
 {
   spair_t *sa = (spair_t *)a;
   spair_t *sb = (spair_t *)b;
-  if (sa->deg != sb->deg) {
-    return (sa->deg < sb->deg) ? -1 : 1;
-  } else {
-    if (sa->gen1 != sb ->gen1) {
-      return (sa->gen1 < sb->gen1) ? -1 : 1;
-    } else {
-      return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
-    }
-  }
+  return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
 }
 
 /* comparison for s-pairs while their lcms are in the local hash table */

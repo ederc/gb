@@ -22,6 +22,8 @@
 
 #include "data.h"
 
+#define INSERT_SMALL_FIRST 1
+
 static void initialize_pairset(
     void
     )
@@ -65,15 +67,15 @@ static void insert_and_update_spairs(
   const len_t pl  = pload;
   const len_t bl  = bload;
 
-  reset_local_hash_table(bload);
+  reset_local_hash_table(bl);
   /* move exponents to global hash table */
   /* for (i = 2; i < nelt[0]; i = i+2) {
    *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
    * } */
-  bs[bload] = nelt;
-  /* printf("element added to basis %d: ", bload);
-   * for (int32_t o = 2; o < 3; o += 2) {
-   * [> for (int32_t o = 2; o < nelt[0]; o += 2) { <]
+  bs[bl]  = nelt;
+  /* printf("element added to basis %d (%d terms): ", bload, (nelt[0]-2)/2);
+   * [> for (int32_t o = 2; o < 3; o += 2) { <]
+   * for (int32_t o = 2; o < nelt[0]; o += 2) {
    *   printf("%d ", nelt[o+1]);
    *   for (int32_t p = 0; p < nvars; ++p) {
    *     printf("%d",(ev+nelt[o])[p]);
@@ -82,11 +84,32 @@ static void insert_and_update_spairs(
    * }
    * printf("\n"); */
 
+#if INSERT_SMALL_FIRST
+  for (i = blold; i < bl; ++i) {
+    if ((long)bs[i] & bred) {
+      continue;
+    }
+    if (check_monomial_division(ev+nelt[2], ev+bs[i][2])) {
+      /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
+      ps[pl].gen1 = i;
+      ps[pl].gen2 = bl;
+      ps[pl].lcm  = get_lcm(bs[i][2], nelt[2]);
+      ps[pl].deg  = (evl + ps[pl].lcm)[HASH_DEG];
+      ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm);
+      bs[bl]  = (val_t *)((long)bs[bl] | bred);
+      num_redundant++;
+      bload++;
+      pload++;
+      return;
+    }
+  }
+#endif
+
   /* create all possible new pairs */
   for (i = 0, k = pl; i < bl; ++i, ++k) {
     b = (val_t *)((long)bs[i] & bmask);
     ps[k].gen1  = i;
-    ps[k].gen2  = bload;
+    ps[k].gen2  = bl;
     ps[k].lcm   = get_lcm(b[2], nelt[2]);
 
     if (b != bs[i]) {
@@ -192,6 +215,7 @@ static void insert_and_update_spairs(
       continue;
     }
     if (check_monomial_division(ev+bs[i][2], ev+nelt[2])) {
+      /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
       bs[i] = (val_t *)((long)bs[i] | bred);
       num_redundant++;
     }
@@ -219,9 +243,16 @@ static void update_basis(
   }
   check_enlarge_pairset(np);
 
+#if INSERT_SMALL_FIRST
+  for (i = 0; i < npivs; ++i) {
+    insert_and_update_spairs(mat[i]);
+  }
+#else
   for (i = 1; i <= npivs; ++i) {
     insert_and_update_spairs(mat[nrows-i]);
   }
+#endif
+  blold = bload;
 
   /* timings */
   ct1 = cputime();

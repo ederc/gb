@@ -170,27 +170,27 @@ static val_t **select_spairs_by_deg_lex(
     i = j;
   }
 
-  val_t *tmp  = (val_t *)calloc(1000, sizeof(val_t));
-  int32_t ctr = 0;
-  for (i=0; i < nrows; ++i) {
-    for (j = 2; j < mat[i][0]; j += 2) {
-      k = 0;
-      while (tmp[k] != 0) {
-        if (tmp[k] == mat[i][j]) {
-          break;
-        }
-        k++;
-      }
-      if (k == ctr) {
-        tmp[ctr]  = mat[i][j];
-        ctr++;
-      }
-    }
-  }
-  /* printf("\npair poly rows (%d) have %d columns together\n", nrows, ctr); */
-  free(tmp);
-  tmp = NULL;
-
+/*   val_t *tmp  = (val_t *)calloc(1000, sizeof(val_t));
+ *   int32_t ctr = 0;
+ *   for (i=0; i < nrows; ++i) {
+ *     for (j = 2; j < mat[i][0]; j += 2) {
+ *       k = 0;
+ *       while (tmp[k] != 0) {
+ *         if (tmp[k] == mat[i][j]) {
+ *           break;
+ *         }
+ *         k++;
+ *       }
+ *       if (k == ctr) {
+ *         tmp[ctr]  = mat[i][j];
+ *         ctr++;
+ *       }
+ *     }
+ *   }
+ *   printf("\npair poly rows (%d) have %d columns together\n", nrows, ctr);
+ *   free(tmp);
+ *   tmp = NULL;
+ *  */
 
   num_duplicates  +=  0;
   num_rowsred     +=  load;
@@ -326,13 +326,12 @@ static val_t **select_spairs_by_minimal_degree(
 }
 
 static inline val_t *find_multiplied_reducer(
-    const val_t * const * mat,
     len_t m
     )
 {
-  int32_t i, k;
+  int32_t i;
   len_t d;
-  val_t *b, *c;
+  val_t *b;
 
   const int32_t bl  = bload;
   /* printf("to be divided: ");
@@ -341,38 +340,12 @@ static inline val_t *find_multiplied_reducer(
    * }
    * printf("\n"); */
 
-  /* search in matrix first */
-#if 0
-  for (i = 0; i < nrows; ++i) {
-    b = mat[i];
-    d = monomial_division_with_check(m, b[2]);
-    if (d == 0) {
-      continue;
-    }
-    (ev+m)[HASH_DIV] = i;
-    /* k = 0;
-     * for (int32_t j = i+1; j < nrows; ++j) {
-     *   c = mat[j];
-     *   if (check_monomial_division(ev+m, ev+c[2]) != 0) {
-     *     if (c[0] < b[0]) {
-     *       k = j;
-     *       printf("\n\nbetter reducer %d || %d (%d < %d)\n\n", j, i, c[0], b[0]);
-     *     }
-     *   }
-     * }
-     * if (k != 0) {
-     *   b = mat[k];
-     *   d = monomial_division_no_check(m, b[2]);
-     *   (ev+m)[HASH_DIV] = k;
-     * } */
-    return multiplied_polynomial_to_matrix_row(d, b);
-  }
-#endif
+  /* search basis */
   for (i = (ev+m)[HASH_DIV]; i < bl; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
-    if (b != bs[i]) {
-      continue;
-    }
+    /* if (b != bs[i]) {
+     *   continue;
+     * } */
     /* printf("test divisor: ");
      * for (int32_t j = 0; j < nvars; ++j) {
      *   printf("%d", (ev+b[2])[j]);
@@ -387,24 +360,6 @@ static inline val_t *find_multiplied_reducer(
      *   printf("%d", (ev+b[2])[j]);
      * }
      * printf("\n"); */
-    /* k = 0;
-     * for (int32_t j = i+1; j < bl; ++j) {
-     *   c = (val_t *)((long)bs[j] & bmask);
-     *   if (c != bs[j]) {
-     *     continue;
-     *   }
-     *   if (monomial_division_with_check(m, c[2]) != 0) {
-     *     if (c[0] < bs[i][0]) {
-     *       k = j;
-     *       printf("\n\nbetter reducer %d || %d (%d < %d)\n\n", j, i, c[0], bs[i][0]);
-     *     }
-     *   }
-     * }
-     * if (k != 0) {
-     *   b = bs[k];
-     *   d = monomial_division_with_check(m, b[2]);
-     *   (ev+m)[HASH_DIV] = k;
-     * } */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
   (ev+m)[HASH_DIV] = i;
@@ -441,7 +396,7 @@ static val_t **symbolic_preprocessing(
         continue;
       }
       ncols++;
-      red = find_multiplied_reducer(mat, m);
+      red = find_multiplied_reducer(m);
       if (!red) {
         (ev+m)[HASH_IND] = 1;
         continue;

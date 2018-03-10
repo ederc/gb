@@ -73,7 +73,7 @@ static void insert_and_update_spairs(
    *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
    * } */
   bs[bl]  = nelt;
-  /* printf("element added to basis %d (%d terms): ", bload, (nelt[0]-2)/2);
+  /* printf("element added to basis %d (%d terms) at %p: ", bload, (nelt[0]-2)/2, nelt);
    * [> for (int32_t o = 2; o < 3; o += 2) { <]
    * for (int32_t o = 2; o < nelt[0]; o += 2) {
    *   printf("%d ", nelt[o+1]);

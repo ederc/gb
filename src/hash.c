@@ -629,8 +629,13 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
    *   for (int32_t o = 0; o < nvars; ++o) {
    *     printf("%d ", (ev+poly[p])[o]);
    *   }
-   *   printf(" |&| ");
+   *   printf(" || ");
    * }
+   * printf("\n multiplied with  ");
+   * for (int32_t o = 0; o < nvars; ++o) {
+   *   printf("%d ", (ev+mult)[o]);
+   * }
+   * printf(" |&| ");
    * printf("\nmult to\n");
    * for (int32_t p = 2; p < row[0]; p += 2) {
    *   for (int32_t o = 0; o < nvars; ++o) {

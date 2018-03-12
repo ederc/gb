@@ -49,7 +49,7 @@ static len_t *convert_hashes_to_columns(
   /* j counts all columns, k counts known pivots */
   for (j = 0, k = 0, i = 0; i < nrows; ++i) {
     row     =   mat[i];
-    nterms  +=  (int64_t)row[0];
+    nterms  +=  (int64_t)(row[0]-2)/2;
     for (l = 2; l < row[0]; l += 2) {
       if ((ev+row[l])[HASH_IND] > 0) {
         hcm[j++]  = row[l];

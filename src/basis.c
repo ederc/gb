@@ -55,6 +55,7 @@ static void free_basis(
     }
     free(bs);
     bs    = NULL;
+    blold = 0;
     bload = 0;
     bsize = 0;
   }

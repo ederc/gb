@@ -222,19 +222,14 @@ static val_t **sparse_linear_algebra(
   ct0 = cputime();
   rt0 = realtime();
 
-  /* printf("nrows %d | nrl %d \n", nrows, nrl); */
   /* all pivots, first we can only fill in all known lead terms */
   val_t **pivs  = (val_t **)calloc((unsigned long)ncols, sizeof(val_t *));
   /* unkown pivot rows we have to reduce with the known pivots first */
   val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
 
-  /* for (i = 0; i < ncols; ++i) {
-   *   printf("3%d %p\n", i, pivs[i]);
-   * } */
   i = 0;
   j = 1;
   for (i = 0; i < nrows; ++i) {
-    /* printf("i/j %d/%d // %d -- mat[i][2] %d | %p | mat[i] %p\n", i, j, nrl, mat[i][2], pivs[mat[i][2]], mat[i]); */
     if (!pivs[mat[i][2]]) {
       pivs[mat[i][2]] = mat[i];
     } else {
@@ -251,7 +246,6 @@ static val_t **sparse_linear_algebra(
 #pragma omp parallel for num_threads(nthrds) \
   private(i, j, k, sc, npiv) shared(pivs)
   for (i = 0; i < nrl; ++i) {
-    /* printf("thread number %d\n", omp_get_thread_num()); */
     int64_t *drl  = dr + (omp_get_thread_num() * ncols);
     npiv  = upivs[i];
     k     = 0;

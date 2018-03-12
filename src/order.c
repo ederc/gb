@@ -39,6 +39,7 @@ static int matrix_row_initial_input_cmp_lex(
     const void *b
     )
 {
+  int32_t i;
   val_t va, vb;
 
   va  = ((val_t **)a)[0][2];
@@ -48,7 +49,16 @@ static int matrix_row_initial_input_cmp_lex(
   const exp_t * const eb  = ev + vb;
 
   /* lexicographical */
-  return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t));
+  for (i = 0; i < nvars; ++i) {
+    if (ea[i] < eb[i]) {
+      return -1;
+    }
+    if (ea[i] > eb[i]) {
+      return 1;
+    }
+  }
+  return 0;
+  /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
 static int matrix_row_initial_input_cmp_drl(
@@ -168,7 +178,7 @@ static int monomial_cmp_pivots_lex(
     const len_t b
     )
 {
-
+  int32_t i;
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
 
@@ -182,7 +192,16 @@ static int monomial_cmp_pivots_lex(
   }
 
   /* lexicographical */
-  return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t));
+  for (i = 0; i < nvars; ++i) {
+    if (eb[i] < ea[i]) {
+      return -1;
+    }
+    if (eb[i] > ea[i]) {
+      return 1;
+    }
+  }
+  return 0;
+  /* return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
 static inline int monomial_cmp_drl(
@@ -217,7 +236,18 @@ static inline int monomial_cmp_lex(
     const exp_t * const eb
     )
 {
-  return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t));
+  int32_t i;
+
+  for (i = 0; i < nvars; ++i) {
+    if (ea[i] < eb[i]) {
+      return -1;
+    }
+    if (ea[i] > eb[i]) {
+      return 1;
+    }
+  }
+  return 0;
+  /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
 /* comparison for hash-column-maps */

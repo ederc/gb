@@ -37,6 +37,7 @@ TESTS = 											\
 	test_cyclic_4_drl						\
 	test_cyclic_4_lex						\
 	test_cyclic_5_lex						\
+	test_cyclic_6_lex						\
 	test_cyclic_7								\
 	test_cyclic_9								\
 	test_pearson_9							\

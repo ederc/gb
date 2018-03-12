@@ -22,61 +22,6 @@
 
 #include "data.h"
 
-/* takes only one pair, pairset sorted by lexicographical order */
-static val_t **select_one_spair_by_lex(
-    void
-    )
-{
-  int32_t i, md, npairs;
-  val_t *b;
-  len_t m;
-
-  val_t **mat;
-
-  /* timings */
-  double ct0, ct1, rt0, rt1;
-  ct0 = cputime();
-  rt0 = realtime();
-
-  /* sort pair set */
-  qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_lex_cmp);
-  npairs  = 1;
-  md      = ps[0].deg;
-  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
-  /* statistics */
-  num_pairsred  +=  npairs;
-  
-  /* preset matrix meta data */
-  mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *));
-  nrall = 2 * npairs;
-  ncols = ncl = ncr = 0;
-  nrows = 0;
-
-  b = (val_t *)((long)bs[ps[0].gen1] & bmask);
-  m = monomial_division_no_check(ps[0].lcm, b[2]);
-  mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
-  b = (val_t *)((long)bs[ps[0].gen2] & bmask);
-  m = monomial_division_no_check(ps[0].lcm, b[2]);
-  mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
-
-  num_rowsred++;
-
-  /* remove selected spairs from pairset */
-  for (i = npairs; i < pload; ++i) {
-    ps[i-npairs]  = ps[i];
-  }
-  pload = pload - npairs;
-
-  /* timings */
-  ct1 = cputime();
-  rt1 = realtime();
-  select_ctime  +=  ct1 - ct0;
-  select_rtime  +=  rt1 - rt0;
-  
-  return mat;
-  
-}
-
 static val_t **select_spairs_by_deg_lex(
     void
     )
@@ -170,7 +115,7 @@ static val_t **select_spairs_by_deg_lex(
     i = j;
   }
 
-/*   val_t *tmp  = (val_t *)calloc(1000, sizeof(val_t));
+/*   val_t *tmp  = (val_t *)calloc(100000, sizeof(val_t));
  *   int32_t ctr = 0;
  *   for (i=0; i < nrows; ++i) {
  *     for (j = 2; j < mat[i][0]; j += 2) {
@@ -233,14 +178,6 @@ static val_t **select_spairs_by_minimal_degree(
   qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_cmp);
   /* get minimal degree */
   md  = ps[0].deg;
-  /* printf("\n pairs sorted:\n");
-   * for (i = 0; i < pload; ++i) {
-   *   printf("p%2d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
-   *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d ", (ev+ps[i].lcm)[j]);
-   *   }
-   *   printf("\n\n");
-   * } */
 
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
@@ -343,6 +280,7 @@ static inline val_t *find_multiplied_reducer(
   /* search basis */
   for (i = (ev+m)[HASH_DIV]; i < bl; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
+    /* if we only use nonredundant basis elements LEX computation are very slow */
     /* if (b != bs[i]) {
      *   continue;
      * } */
@@ -355,7 +293,7 @@ static inline val_t *find_multiplied_reducer(
       continue;
     }
     (ev+m)[HASH_DIV] = i;
-    /* printf("divisor found: ");
+    /* printf("\ndivisor found: %d   ", b[2]);
      * for (int32_t j = 0; j < nvars; ++j) {
      *   printf("%d", (ev+b[2])[j]);
      * }
@@ -414,29 +352,6 @@ static val_t **symbolic_preprocessing(
   /* realloc to real size */
   mat   = realloc(mat, (unsigned long)nrows * sizeof(val_t *));
   nrall = nrows;
-
-  /* val_t *tmp  = (val_t *)calloc(1000, sizeof(val_t));
-   * int32_t ctr = 0;
-   * int32_t k;
-   * for (i=0; i < nrows; ++i) {
-   *   for (j = 2; j < mat[i][0]; j += 2) {
-   *     k = 0;
-   *     while (tmp[k] != 0) {
-   *       if (tmp[k] == mat[i][j]) {
-   *         break;
-   *       }
-   *       k++;
-   *     }
-   *     if (k == ctr) {
-   *       tmp[ctr]  = mat[i][j];
-   *       ctr++;
-   *     }
-   *   }
-   * }
-   * printf("\nall %d rows have %d columns together\n", nrows, ctr);
-   * free(tmp);
-   * tmp = NULL; */
-
 
   /* timings */
   ct1 = cputime();

@@ -51,19 +51,26 @@ static len_t *convert_hashes_to_columns(
     row     =   mat[i];
     nterms  +=  (int64_t)(row[0]-2)/2;
     for (l = 2; l < row[0]; l += 2) {
-      if ((ev+row[l])[HASH_IND] > 0) {
+      if ((md+row[l]*HASH_LEN)[HASH_IND] > 0) {
         hcm[j++]  = row[l];
-        if ((ev+row[l])[HASH_IND] == 2) {
+        if ((md+row[l]*HASH_LEN)[HASH_IND] == 2) {
           k++;
-          (ev+row[l])[HASH_IND]  = -1;
+          (md+row[l]*HASH_LEN)[HASH_IND]  = -1;
         } else {
-          (ev+row[l])[HASH_IND]  = -2;
+          (md+row[l]*HASH_LEN)[HASH_IND]  = -2;
         }
       }
     }
   }
+  /* for (i = 0; i < j; ++i) {
+   *   printf("hcm %d | %d \n", i, hcm[i]);
+   * } */
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
   qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
+  /* printf("hcm sorted\n");
+   * for (i = 0; i < j; ++i) {
+   *   printf("hcm %d | %d \n", i, hcm[i]);
+   * } */
   
   /* set number of rows and columns in ABCD splicing */
   nru = ncl = k;
@@ -72,7 +79,7 @@ static len_t *convert_hashes_to_columns(
 
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < j; ++i) {
-    (ev + hcm[i])[HASH_IND]  = i;
+    (md + hcm[i]*HASH_LEN)[HASH_IND]  = i;
   }
 
 
@@ -82,7 +89,7 @@ static len_t *convert_hashes_to_columns(
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
     for (j = 2; j < row[0]; j += 2) {
-      row[j]  = (ev + row[j])[HASH_IND];
+      row[j]  = (md + row[j]*HASH_LEN)[HASH_IND];
     }
   }
 
@@ -121,7 +128,7 @@ static val_t **convert_columns_to_hashes(
   rt0 = realtime();
 
   for (i = 0; i < ncols; ++i) {
-    (ev+hcm[i])[HASH_IND] = 0;
+    (md+hcm[i]*HASH_LEN)[HASH_IND] = 0;
   }
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)

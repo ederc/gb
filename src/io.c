@@ -142,8 +142,9 @@ static val_t **import_julia_data(
     const int32_t nr_gens
     )
 {
-  int32_t i, j;
+  int32_t i, j, k;
   int32_t off = 0; /* offset in arrays */
+  exp_t *e  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
   val_t **mat = malloc((unsigned long)nr_gens * sizeof(val_t *));
   
   for (i = 0; i < nr_gens; ++i) {
@@ -154,7 +155,10 @@ static val_t **import_julia_data(
     mat[i][0] = 2*lens[i]+2;
     mat[i][1] = 2*(lens[i] % UNROLL)+2; /* offset for starting loop unrolling */
     for (j = off; j < off+lens[i]; ++j) {
-      mat[i][2*(j+1-off)]   = insert_in_global_hash_table(exps+(nvars*j));
+      for (k = 0; k < nvars; ++k) {
+        e[k]  = (exp_t)(exps+(j*nvars))[k];
+      }
+      mat[i][2*(j+1-off)]   = insert_in_global_hash_table(e);
       mat[i][2*(j+1-off)+1] = cfs[j];
     }
     /* mark initial generators, they have to be added to the basis first */
@@ -162,6 +166,7 @@ static val_t **import_julia_data(
   }
   npivs = nrows = nrall = nr_gens;
 
+  free(e);
   return mat;
 }
 

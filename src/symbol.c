@@ -47,7 +47,7 @@ static val_t **select_spairs_by_deg_lex(
    * for (i = 0; i < pload; ++i) {
    *   printf("p%2d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
    *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d ", (ev+ps[i].lcm)[j]);
+   *     printf("%d ", (ev+ps[i].lcm*nvars)[j]);
    *   }
    *   printf("\n\n");
    * } */
@@ -179,6 +179,15 @@ static val_t **select_spairs_by_minimal_degree(
   /* get minimal degree */
   md  = ps[0].deg;
 
+  /* printf("\n pairs sorted:\n");
+   * for (i = 0; i < pload; ++i) {
+   *   printf("p%2d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
+   *   for (j = 0; j < nvars; ++j) {
+   *     printf("%d ", (ev+ps[i].lcm*nvars)[j]);
+   *   }
+   *   printf("\n\n");
+   * } */
+
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
     if (ps[i].deg > md || i >= mnsel) {
@@ -273,12 +282,12 @@ static inline val_t *find_multiplied_reducer(
   const int32_t bl  = bload;
   /* printf("to be divided: ");
    * for (int32_t j = 0; j < nvars; ++j) {
-   *   printf("%d",(ev+m)[j]);
+   *   printf("%d",(ev+m*nvars)[j]);
    * }
    * printf("\n"); */
 
   /* search basis */
-  for (i = (ev+m)[HASH_DIV]; i < bl; ++i) {
+  for (i = (md+m*HASH_LEN)[HASH_DIV]; i < bl; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
     /* if we only use nonredundant basis elements LEX computation are very slow */
     /* if (b != bs[i]) {
@@ -286,21 +295,21 @@ static inline val_t *find_multiplied_reducer(
      * } */
     /* printf("test divisor: ");
      * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (ev+b[2])[j]);
+     *   printf("%d", (ev+b[2]*nvars)[j]);
      * } */
     d = monomial_division_with_check(m, b[2]);
     if (d == 0) {
       continue;
     }
-    (ev+m)[HASH_DIV] = i;
+    (md+m*HASH_LEN)[HASH_DIV] = i;
     /* printf("\ndivisor found: %d   ", b[2]);
      * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (ev+b[2])[j]);
+     *   printf("%d", (ev+b[2]*nvars)[j]);
      * }
      * printf("\n"); */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
-  (ev+m)[HASH_DIV] = i;
+  (md+m*HASH_LEN)[HASH_DIV] = i;
   return NULL;
 }
 
@@ -319,8 +328,8 @@ static val_t **symbolic_preprocessing(
 
   /* mark leading monomials in HASH_IND entry */
   for (i = 0; i < nrows; ++i) {
-    if (!(ev+mat[i][2])[HASH_IND]) {
-      (ev+mat[i][2])[HASH_IND] = 2;
+    if (!(md+mat[i][2]*HASH_LEN)[HASH_IND]) {
+      (md+mat[i][2]*HASH_LEN)[HASH_IND] = 2;
       ncols++;
     }
   }
@@ -330,16 +339,16 @@ static val_t **symbolic_preprocessing(
     const len_t len = mat[i][0];
     for (j = 4; j < len; j += 2) {
       m = mat[i][j];
-      if ((ev+m)[HASH_IND]) {
+      if ((md+m*HASH_LEN)[HASH_IND]) {
         continue;
       }
       ncols++;
       red = find_multiplied_reducer(m);
       if (!red) {
-        (ev+m)[HASH_IND] = 1;
+        (md+m*HASH_LEN)[HASH_IND] = 1;
         continue;
       }
-      (ev+m)[HASH_IND] = 2;
+      (md+m*HASH_LEN)[HASH_IND] = 2;
       if (nrows == nrall) {
         nrall = 2 * nrall;
         mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));

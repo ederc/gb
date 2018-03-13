@@ -120,7 +120,7 @@ int64_t f4_julia(
     /* for (int32_t o = 0; o < nrows; ++o) {
      *   printf("%d | %d | %d (%d) || ", o, mat[o][0], mat[o][2], (ev+mat[o][2])[HASH_IND]);
      *   for (int32_t p = 0; p < nvars; ++p) {
-     *     printf("%d ", (ev+mat[o][2])[p]);
+     *     printf("%d ", (ev+mat[o][2]*nvars)[p]);
      *   }
      *   printf("\n");
      * } */
@@ -172,9 +172,9 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
   GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
   GB_DEBUG(GBDBG, "global hash table load %15d <= 2^%d\n",
-      eload/HASH_LEN, (int32_t)((ceil(log(eload/HASH_LEN)/log(2)))));
+      eload/nvars, (int32_t)((ceil(log(eload/nvars)/log(2)))));
   GB_DEBUG(GBDBG, "local hash table load  %15d <= 2^%d\n",
-      elload/HASH_LEN, (int32_t)(ceil(log(elload/HASH_LEN)/log(2))));
+      elload/nvars, (int32_t)(ceil(log(elload/nvars)/log(2))));
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   /* free and clean up */

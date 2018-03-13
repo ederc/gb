@@ -78,7 +78,7 @@ static void insert_and_update_spairs(
    * for (int32_t o = 2; o < nelt[0]; o += 2) {
    *   printf("%d ", nelt[o+1]);
    *   for (int32_t p = 0; p < nvars; ++p) {
-   *     printf("%d",(ev+nelt[o])[p]);
+   *     printf("%d",(ev+nelt[o]*nvars)[p]);
    *   }
    *   printf(" | ");
    * }
@@ -89,13 +89,13 @@ static void insert_and_update_spairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division(ev+nelt[2], ev+bs[i][2])) {
+    if (check_monomial_division(nelt[2], bs[i][2])) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
       ps[pl].gen1 = i;
       ps[pl].gen2 = bl;
       ps[pl].lcm  = get_lcm(bs[i][2], nelt[2]);
-      ps[pl].deg  = (evl + ps[pl].lcm)[HASH_DEG];
-      ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm);
+      ps[pl].deg  = (mdl + ps[pl].lcm*HASH_LEN)[HASH_DEG];
+      ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm*nvars);
       bs[bl]  = (val_t *)((long)bs[bl] | bred);
       num_redundant++;
       bload++;
@@ -118,7 +118,7 @@ static void insert_and_update_spairs(
       if (lcm_equals_multiplication(b[2], nelt[2], ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
-        ps[k].deg = (evl + ps[k].lcm)[HASH_DEG];
+        ps[k].deg = (mdl + ps[k].lcm*HASH_LEN)[HASH_DEG];
       }
     }
   }
@@ -130,9 +130,9 @@ static void insert_and_update_spairs(
     j = ps[i].gen1;
     l = ps[i].gen2;
     /* if (ps[i].lcm != ps[pload+j].lcm */
-    if (check_monomial_division(ev+ps[i].lcm, ev+nelt[2])
-        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+j].lcm)[HASH_VAL]
-        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+l].lcm)[HASH_VAL]
+    if (check_monomial_division(ps[i].lcm, nelt[2])
+        && (md+ps[i].lcm*HASH_LEN)[HASH_VAL] != (mdl+ps[pl+j].lcm*HASH_LEN)[HASH_VAL]
+        && (md+ps[i].lcm*HASH_LEN)[HASH_VAL] != (mdl+ps[pl+l].lcm*HASH_LEN)[HASH_VAL]
         ) {
         /* && ps[i].lcm != ps[pload+j].lcm) { */
       ps[i].deg = -1;
@@ -153,7 +153,7 @@ static void insert_and_update_spairs(
       while (i < nl) {
         /* if (check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) { */
         if (ps[i].deg >= 0 &&
-            check_monomial_division(evl+ps[i].lcm, evl+ps[j].lcm) != 0) {
+            check_monomial_division_local(ps[i].lcm, ps[j].lcm) != 0) {
           ps[i].deg  = -1;
         }
         ++i;
@@ -203,7 +203,7 @@ static void insert_and_update_spairs(
     if (ps[i].deg < 0) {
       continue;
     }
-    ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm);
+    ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm*nvars);
     ps[j++]   = ps[i];
   }
   num_gb_crit +=  nl - j;
@@ -214,7 +214,7 @@ static void insert_and_update_spairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division(ev+bs[i][2], ev+nelt[2])) {
+    if (check_monomial_division(bs[i][2], nelt[2])) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
       bs[i] = (val_t *)((long)bs[i] | bred);
       num_redundant++;

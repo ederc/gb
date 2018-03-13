@@ -39,9 +39,9 @@
  * #endif */
 
 /* computational data */
-typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
+typedef int16_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
-typedef int32_t exp_t;    /* exponent type */
+typedef int16_t exp_t;    /* exponent type */
 typedef int32_t val_t;    /* core values like hashes, coefficients, etc. */
 typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef int32_t bi_t;     /* basis index of element */
@@ -112,7 +112,9 @@ int (*matrix_row_initial_input_cmp)(
 
 int (*monomial_cmp)(
     const exp_t * const ea,
-    const exp_t * const eb
+    const len_t * const ma,
+    const exp_t * const eb,
+    const len_t * const mb
     );
 
 int (*hcm_cmp)(

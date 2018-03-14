@@ -71,4 +71,8 @@ static void initialize_statistics(
   update_ctime  = 0;
   convert_ctime = 0;
   reduce_ctime  = 0;
+
+  num_htenl     = 0;
+
+  density       = 0;
 }

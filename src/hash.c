@@ -213,6 +213,7 @@ static void enlarge_global_hash_table(
       break;
     }
   }
+  num_htenl++;
 }
 
 static inline sdm_t generate_short_divmask(

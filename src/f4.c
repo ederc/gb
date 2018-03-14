@@ -175,6 +175,7 @@ int64_t f4_julia(
       eload/HASH_LEN, (int32_t)((ceil(log(eload/HASH_LEN)/log(2)))));
   GB_DEBUG(GBDBG, "local hash table load  %15d <= 2^%d\n",
       elload/HASH_LEN, (int32_t)(ceil(log(elload/HASH_LEN)/log(2))));
+  GB_DEBUG(GBDBG, "#ht enlargements       %15ld\n", num_htenl);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   /* free and clean up */

@@ -18,7 +18,7 @@ int main(
 
   const int32_t nr_vars       = 51;
   const int32_t nr_gens       = 44;
-  const int32_t ht_size       = 21;
+  const int32_t ht_size       = 22;
   const int32_t field_char    = 65521;
   const int32_t mon_order     = 0;
   const int32_t nr_threads    = 1;

@@ -43,6 +43,8 @@ static int64_t num_duplicates = 0;
 static int64_t num_rowsred    = 0;
 static int64_t num_zerored    = 0;
 
+static int64_t num_htenl      = 0;
+
 static double density = 0;
 
 static void initialize_statistics(

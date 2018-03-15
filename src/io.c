@@ -32,22 +32,22 @@ static inline void set_function_pointers(
       matrix_row_initial_input_cmp  =
         matrix_row_initial_input_cmp_drl;
       monomial_cmp  = monomial_cmp_drl;
+      spair_cmp     = spair_cmp_drl;
       hcm_cmp       = hcm_cmp_pivots_drl;
-      select_spairs = select_spairs_by_minimal_degree;
       break;
     case 1:
       matrix_row_initial_input_cmp  =
         matrix_row_initial_input_cmp_lex;
       monomial_cmp  = monomial_cmp_lex;
+      spair_cmp     = spair_cmp_deglex;
       hcm_cmp       = hcm_cmp_pivots_lex;
-      select_spairs = select_spairs_by_deg_lex;
       break;
     default:
       matrix_row_initial_input_cmp  =
         matrix_row_initial_input_cmp_drl;
       monomial_cmp  = monomial_cmp_drl;
+      spair_cmp     = spair_cmp_drl;
       hcm_cmp       = hcm_cmp_pivots_drl;
-      select_spairs = select_spairs_by_minimal_degree;
   }
 
   switch (laopt) {

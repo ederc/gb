@@ -54,7 +54,7 @@ int main(
   free(mat);
   mat = NULL;
 
-  mat = select_spairs();
+  mat = select_spairs_by_minimal_degree();
 
   /* free and clean up */
   free_local_hash_table();

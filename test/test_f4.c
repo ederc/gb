@@ -74,7 +74,7 @@ int main(
   for (round = 1; pload > 0; ++round) {
 
     /* preprocess data for next reduction round */
-    mat = select_spairs();
+    mat = select_spairs_by_minimal_degree();
     mat = symbolic_preprocessing(mat);
     printf("before conversion\n");
     for (int32_t l = 0; l < nrows; ++l) {

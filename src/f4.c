@@ -115,7 +115,7 @@ int64_t f4_julia(
     GB_DEBUG(GBDBG, "%3d", round);
 
     /* preprocess data for next reduction round */
-    mat = select_spairs();
+    mat = select_spairs_by_minimal_degree();
     mat = symbolic_preprocessing(mat);
     /* for (int32_t o = 0; o < nrows; ++o) {
      *   printf("%d | %d | %d (%d) || ", o, mat[o][0], mat[o][2], (ev+mat[o][2])[HASH_IND]);

@@ -274,7 +274,7 @@ static int hcm_cmp_pivots_lex(
 }
 
 /* comparison for s-pairs once their lcms are in the global hash table */
-static int spair_lex_cmp(
+static int spair_cmp_deglex(
     const void *a,
     const void *b
     )
@@ -288,7 +288,7 @@ static int spair_lex_cmp(
   }
 }
 
-static int spair_cmp(
+static int spair_cmp_drl(
     const void *a,
     const void *b
     )

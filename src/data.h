@@ -115,13 +115,14 @@ int (*monomial_cmp)(
     const exp_t * const eb
     );
 
-int (*hcm_cmp)(
+int (*spair_cmp)(
     const void *a,
     const void *b
     );
 
-val_t **(*select_spairs)(
-    void
+int (*hcm_cmp)(
+    const void *a,
+    const void *b
     );
 
 /* linear algebra routines */

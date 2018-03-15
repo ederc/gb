@@ -40,9 +40,9 @@ static val_t **select_spairs_by_deg_lex(
   rt0 = realtime();
 
   /* sort pair set */
-  qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_lex_cmp);
+  qsort(ps, (unsigned long)pload, SP_LEN * sizeof(sp_t), &spair_lex_cmp);
   /* get minimal degree */
-  md  = ps[0].deg;
+  md  = ps[SP_DEG];
   /* printf("\n pairs sorted:\n");
    * for (i = 0; i < pload; ++i) {
    *   printf("p%2d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
@@ -53,22 +53,23 @@ static val_t **select_spairs_by_deg_lex(
    * } */
 
   /* select pairs of this degree respecting maximal selection size mnsel */
-  for (i = 0; i < pload; ++i) {
-    if (ps[i].deg > md || i >= mnsel) {
+  for (i = 0; i < pload; i = i + SP_LEN) {
+    if ((ps+i)[SP_DEG] > md || i >= mnsel*SP_GEN) {
       break;
     }
   }
   npairs  = i;
   /* if we stopped due to maximal selection size we still get the following
    * pairs of the same lcm in this matrix */
-  if (i > mnsel) {
-    j = i+1;
-    while (ps[j].lcm == ps[i].lcm) {
-      ++j;
+  if (i > mnsel*SP_GEN) {
+    j = i + SP_LEN;
+    while ((ps+j)[SP_LCM] == (ps+i)[SP_LCM]) {
+      j = j + SP_LEN;
     }
     npairs = j;
   }
-  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
+  npairs  = npairs/SP_LEN;
+  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload/SP_LEN, md);
   /* statistics */
   num_pairsred  +=  npairs;
   
@@ -81,30 +82,31 @@ static val_t **select_spairs_by_deg_lex(
   nrows = 0;
 
   i = 0;
+  npairs  = npairs * SP_LEN;
   while (i < npairs) {
     load_old  = load;
-    lcm   = ps[i].lcm;
-    gens[load++] = ps[i].gen1;
-    gens[load++] = ps[i].gen2;
-    j = i+1;
-    while (j < npairs && ps[j].lcm == lcm) {
+    lcm   = (ps+i)[SP_LCM];
+    gens[load++] = (ps+i)[SP_G1];
+    gens[load++] = (ps+i)[SP_G2];
+    j = i + SP_LEN;
+    while (j < npairs && (ps+j)[SP_LCM] == lcm) {
       for (k = load_old; k < load; ++k) {
-        if (ps[j].gen1 == gens[k]) {
+        if ((ps+j)[SP_G1]== gens[k]) {
           break;
         }
       }
       if (k == load) {
-        gens[load++]  = ps[j].gen1;
+        gens[load++]  = (ps+j)[SP_G1];
       }
       for (k = load_old; k < load; ++k) {
-        if (ps[j].gen2 == gens[k]) {
+        if ((ps+j)[SP_G2] == gens[k]) {
           break;
         }
       }
       if (k == load) {
-        gens[load++]  = ps[j].gen2;
+        gens[load++]  = (ps+j)[SP_G2];
       }
-      j++;
+      j = j + SP_LEN;
     }
     for (k = load_old; k < load; ++k) {
       b = (val_t *)((long)bs[gens[k]] & bmask);
@@ -143,8 +145,8 @@ static val_t **select_spairs_by_deg_lex(
   free(gens);
 
   /* remove selected spairs from pairset */
-  for (j = npairs; j < pload; ++j) {
-    ps[j-npairs]  = ps[j];
+  for (j = npairs; j < pload; j = j + SP_LEN) {
+    memcpy(ps+j-npairs, ps+j, (unsigned long)SP_LEN * sizeof(sp_t));
   }
   pload = pload - npairs;
 
@@ -174,14 +176,28 @@ static val_t **select_spairs_by_minimal_degree(
   ct0 = cputime();
   rt0 = realtime();
 
+  /* for (i = 0; i < pload; i = i + SP_LEN) {
+   *   printf("pair[%d] = %d | %d | %d || %p\n", i/SP_LEN, (ps+i)[SP_G1], (ps+i)[SP_G2], (ps+i)[SP_DEG], ps+i);
+   * } */
   /* sort pair set */
-  qsort(ps, (unsigned long)pload, sizeof(spair_t), &spair_cmp);
+  qsort(ps, (unsigned long)pload/SP_LEN, SP_LEN * sizeof(sp_t), &spair_cmp);
+  /* for (i = 0; i < pload; i = i + SP_LEN) {
+   *   printf("pair[%d] = %d | %d | %d || %p\n", i/SP_LEN, (ps+i)[SP_G1], (ps+i)[SP_G2], (ps+i)[SP_DEG], ps+i);
+   * } */
   /* get minimal degree */
-  md  = ps[0].deg;
+  md  = ps[SP_DEG];
+  /* printf("\n pairs sorted:\n");
+   * for (i = 0; i < pload; ++i) {
+   *   printf("p%2d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg);
+   *   for (j = 0; j < nvars; ++j) {
+   *     printf("%d ", (ev+ps[i].lcm)[j]);
+   *   }
+   *   printf("\n\n");
+   * } */
 
   /* select pairs of this degree respecting maximal selection size mnsel */
-  for (i = 0; i < pload; ++i) {
-    if (ps[i].deg > md || i >= mnsel) {
+  for (i = 0; i < pload; i = i + SP_LEN) {
+    if ((ps+i)[SP_DEG] > md || i >= mnsel) {
       break;
     }
   }
@@ -189,13 +205,14 @@ static val_t **select_spairs_by_minimal_degree(
   /* if we stopped due to maximal selection size we still get the following
    * pairs of the same lcm in this matrix */
   if (i > mnsel) {
-    j = i+1;
-    while (ps[j].lcm == ps[i].lcm) {
-      ++j;
+    j = i + SP_LEN;
+    while ((ps+j)[SP_LCM] == (ps+i)[SP_LCM]) {
+      j = j + SP_LEN;
     }
     npairs = j;
   }
-  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
+  npairs  = npairs/SP_LEN;
+  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload/SP_LEN, md);
   /* statistics */
   num_pairsred  +=  npairs;
   
@@ -208,30 +225,31 @@ static val_t **select_spairs_by_minimal_degree(
   nrows = 0;
 
   i = 0;
+  npairs  = npairs * SP_LEN;
   while (i < npairs) {
     load_old  = load;
-    lcm   = ps[i].lcm;
-    gens[load++] = ps[i].gen1;
-    gens[load++] = ps[i].gen2;
-    j = i+1;
-    while (j < npairs && ps[j].lcm == lcm) {
+    lcm   = (ps+i)[SP_LCM];
+    gens[load++] = (ps+i)[SP_G1];
+    gens[load++] = (ps+i)[SP_G2];
+    j = i + SP_LEN;
+    while (j < npairs && (ps+j)[SP_LCM] == lcm) {
       for (k = load_old; k < load; ++k) {
-        if (ps[j].gen1 == gens[k]) {
+        if ((ps+j)[SP_G1]== gens[k]) {
           break;
         }
       }
       if (k == load) {
-        gens[load++]  = ps[j].gen1;
+        gens[load++]  = (ps+j)[SP_G1];
       }
       for (k = load_old; k < load; ++k) {
-        if (ps[j].gen2 == gens[k]) {
+        if ((ps+j)[SP_G2] == gens[k]) {
           break;
         }
       }
       if (k == load) {
-        gens[load++]  = ps[j].gen2;
+        gens[load++]  = (ps+j)[SP_G2];
       }
-      j++;
+      j = j + SP_LEN;
     }
     for (k = load_old; k < load; ++k) {
       b = (val_t *)((long)bs[gens[k]] & bmask);
@@ -242,16 +260,44 @@ static val_t **select_spairs_by_minimal_degree(
     i = j;
   }
 
+/*   val_t *tmp  = (val_t *)calloc(100000, sizeof(val_t));
+ *   int32_t ctr = 0;
+ *   for (i=0; i < nrows; ++i) {
+ *     for (j = 2; j < mat[i][0]; j += 2) {
+ *       k = 0;
+ *       while (tmp[k] != 0) {
+ *         if (tmp[k] == mat[i][j]) {
+ *           break;
+ *         }
+ *         k++;
+ *       }
+ *       if (k == ctr) {
+ *         tmp[ctr]  = mat[i][j];
+ *         ctr++;
+ *       }
+ *     }
+ *   }
+ *   printf("\npair poly rows (%d) have %d columns together\n", nrows, ctr);
+ *   free(tmp);
+ *   tmp = NULL;
+ *  */
+
   num_duplicates  +=  0;
   num_rowsred     +=  load;
 
   free(gens);
 
+  /* for (i = 0; i < pload; i = i + SP_LEN) {
+   *   printf("3pair[%d] = %d | %d | %d || %p\n", i/SP_LEN, (ps+i)[SP_G1], (ps+i)[SP_G2], (ps+i)[SP_DEG], ps+i);
+   * } */
   /* remove selected spairs from pairset */
-  for (j = npairs; j < pload; ++j) {
-    ps[j-npairs]  = ps[j];
+  for (j = npairs; j < pload; j = j + SP_LEN) {
+    memcpy(ps+j-npairs, ps+j, (unsigned long)SP_LEN * sizeof(sp_t));
   }
   pload = pload - npairs;
+  /* for (i = 0; i < pload; i = i + SP_LEN) {
+   *   printf("4pair[%d] = %d | %d | %d || %p\n", i/SP_LEN, (ps+i)[SP_G1], (ps+i)[SP_G2], (ps+i)[SP_DEG], ps+i);
+   * } */
 
   /* timings */
   ct1 = cputime();

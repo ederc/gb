@@ -279,12 +279,12 @@ static int spair_lex_cmp(
     const void *b
     )
 {
-  spair_t *sa = (spair_t *)a;
-  spair_t *sb = (spair_t *)b;
-  if (sa->deg != sb->deg) {
-    return (sa->deg < sb->deg) ? -1 : 1;
+  sp_t *sa = (sp_t *)a;
+  sp_t *sb = (sp_t *)b;
+  if (sa[SP_DEG] != sb[SP_DEG]) {
+    return (sa[SP_DEG] < sb[SP_DEG]) ? -1 : 1;
   } else {
-    return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+    return (int)monomial_cmp(ev+sa[SP_LCM], ev+sb[SP_LCM]);
   }
 }
 
@@ -293,9 +293,11 @@ static int spair_cmp(
     const void *b
     )
 {
-  spair_t *sa = (spair_t *)a;
-  spair_t *sb = (spair_t *)b;
-  return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+  sp_t *sa = (sp_t *)a;
+  sp_t *sb = (sp_t *)b;
+  /* printf("sa deg %d | %p\n", sa[SP_DEG], sa);
+   * printf("sb deg %d | %p\n", sb[SP_DEG], sb); */
+  return (int)monomial_cmp(ev+sa[SP_LCM], ev+sb[SP_LCM]);
 }
 
 /* comparison for s-pairs while their lcms are in the local hash table */
@@ -304,17 +306,19 @@ static int spair_local_cmp(
     const void *b
     )
 {
-  spair_t *sa = (spair_t *)a;
-  spair_t *sb = (spair_t *)b;
+  sp_t *sa = (sp_t *)a;
+  sp_t *sb = (sp_t *)b;
+  /* printf("sa deg %d | %p\n", sa[SP_DEG], sa);
+   * printf("sb deg %d | %p\n", sb[SP_DEG], sb); */
 
-  if (sa->lcm != sb->lcm) {
-    return (int)monomial_cmp(evl+sa->lcm, evl+sb->lcm);
+  if (sa[SP_LCM]!= sb[SP_LCM]) {
+    return (int)monomial_cmp(evl+sa[SP_LCM], evl+sb[SP_LCM]);
   } else {
-    if (sa->deg != sb->deg) {
-      return (sa->deg < sb->deg) ? -1 : 1;
+    if (sa[SP_DEG] != sb[SP_DEG]) {
+      return (sa[SP_DEG] < sb[SP_DEG]) ? -1 : 1;
     } else {
-      if (sa->gen1 != sb ->gen1) {
-        return (sa->gen1 < sb->gen1) ? -1 : 1;
+      if (sa[SP_G1] != sb[SP_G1]) {
+        return (sa[SP_G1] < sb[SP_G1]) ? -1 : 1;
       } else {
         return 0;
       }

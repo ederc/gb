@@ -47,21 +47,28 @@ typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef int32_t bi_t;     /* basis index of element */
 typedef int32_t bl_t;     /* basis load */
 typedef int32_t pl_t;     /* pair set load */
-
+typedef int32_t sp_t;     /* spair data type */
+/* each spair is 5*int32_t: */
+#define SP_DEG  0 /* degree of spair */
+#define SP_LCM  1 /* lcm of spair */
+#define SP_G1   2 /* first generator of spair */
+#define SP_G2   3 /* second generator of spair */
+#define SP_T    4 /* type of spair */
+#define SP_LEN  5 /* lengt of spair in int32_t */
 /* S-pair types */
-typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
-typedef struct spair_t spair_t;
-struct spair_t
-{
-  deg_t deg;   /* if criteria apply, information is stored here */
-  val_t lcm;
-  bi_t gen1;
-  bi_t gen2;
-  spt_t type;
-};
+/* typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
+ * typedef struct spair_t spair_t;
+ * struct spair_t
+ * {
+ *   deg_t deg;   [> if criteria apply, information is stored here <]
+ *   val_t lcm;
+ *   bi_t gen1;
+ *   bi_t gen2;
+ *   spt_t type;
+ * }; */
 
 /* pair set data */
-static spair_t *ps    = NULL;
+static sp_t *ps    = NULL;
 static pl_t pload     = 0;
 static pl_t psize     = 0;
 static int32_t mnsel  = 0; /* maximal number of pairs to be selected */

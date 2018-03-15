@@ -29,9 +29,9 @@ static void initialize_pairset(
     )
 {
   pload = 0;
-  psize = 192;
+  psize = 256 * SP_LEN;
 
-  ps  = malloc((unsigned long)psize * sizeof(spair_t));
+  ps  = malloc((unsigned long)(psize * SP_LEN) * sizeof(sp_t));
 }
 
 static inline void check_enlarge_pairset(
@@ -40,8 +40,9 @@ static inline void check_enlarge_pairset(
 {
   if (pload+added >= psize) {
     psize = psize*2 > pload+added ? psize*2 : pload+added;
-    ps    = realloc(ps, (unsigned long)psize * sizeof(spair_t));
-    memset(ps+pload, 0, (unsigned long)(psize-pload) * sizeof(spair_t));
+    ps    = realloc(ps, (unsigned long)(psize * SP_LEN) * sizeof(sp_t));
+    memset(ps+pload, 0,
+        (unsigned long)((psize-pload) * SP_LEN) * sizeof(sp_t));
   }
 }
 
@@ -84,6 +85,9 @@ static void insert_and_update_spairs(
    * }
    * printf("\n"); */
 
+  /* for (i = 0; i < pload; i = i + SP_LEN) {
+   *   printf("pair[%d] = %d | %d | %d\n", i/SP_LEN, (ps+i)[SP_G1], (ps+i)[SP_G2], (ps+i)[SP_DEG]);
+   * } */
 #if INSERT_SMALL_FIRST
   for (i = blold; i < bl; ++i) {
     if ((long)bs[i] & bred) {
@@ -91,34 +95,34 @@ static void insert_and_update_spairs(
     }
     if (check_monomial_division(ev+nelt[2], ev+bs[i][2])) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
-      ps[pl].gen1 = i;
-      ps[pl].gen2 = bl;
-      ps[pl].lcm  = get_lcm(bs[i][2], nelt[2]);
-      ps[pl].deg  = (evl + ps[pl].lcm)[HASH_DEG];
-      ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm);
-      bs[bl]  = (val_t *)((long)bs[bl] | bred);
+      (ps+pl)[SP_LCM] = get_lcm(bs[i][2], nelt[2]);
+      (ps+pl)[SP_DEG] = (evl + (ps+pl)[SP_LCM])[HASH_DEG];
+      (ps+pl)[SP_LCM] = insert_in_global_hash_table(evl+(ps+pl)[SP_LCM]);
+      (ps+pl)[SP_G1]  = i;
+      (ps+pl)[SP_G2]  = bl;
+      bs[bl]          = (val_t *)((long)bs[bl] | bred);
       num_redundant++;
       bload++;
-      pload++;
+      pload = pload + SP_LEN;
       return;
     }
   }
 #endif
 
   /* create all possible new pairs */
-  for (i = 0, k = pl; i < bl; ++i, ++k) {
+  for (i = 0, k = pl; i < bl; ++i, k = k + SP_LEN) {
+    (ps+k)[SP_G1]  = i;
+    (ps+k)[SP_G2]  = bl;
     b = (val_t *)((long)bs[i] & bmask);
-    ps[k].gen1  = i;
-    ps[k].gen2  = bl;
-    ps[k].lcm   = get_lcm(b[2], nelt[2]);
+    (ps+k)[SP_LCM] = get_lcm(b[2], nelt[2]);
 
     if (b != bs[i]) {
-      ps[k].deg = -1; /* redundant pair */
+      (ps+k)[SP_DEG] = -1; /* redundant pair */
     } else {
-      if (lcm_equals_multiplication(b[2], nelt[2], ps[k].lcm)) {
-        ps[k].deg = -2; /* criterion */
+      if (lcm_equals_multiplication(b[2], nelt[2], (ps+k)[SP_LCM])) {
+        (ps+k)[SP_DEG] = -2; /* criterion */
       } else {
-        ps[k].deg = (evl + ps[k].lcm)[HASH_DEG];
+        (ps+k)[SP_DEG] = (evl + (ps+k)[SP_LCM])[HASH_DEG];
       }
     }
   }
@@ -126,51 +130,51 @@ static void insert_and_update_spairs(
   const len_t nl  = k;
   /* Gebauer-Moeller: check old pairs first */
   /* note: old pairs are sorted by the given spair order */
-  for (i = 0; i < pl; ++i) {
-    j = ps[i].gen1;
-    l = ps[i].gen2;
+  for (i = 0; i < pl; i = i + SP_LEN) {
+    j = (ps+i)[SP_G1];
+    l = (ps+i)[SP_G2];
     /* if (ps[i].lcm != ps[pload+j].lcm */
-    if (check_monomial_division(ev+ps[i].lcm, ev+nelt[2])
-        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+j].lcm)[HASH_VAL]
-        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+l].lcm)[HASH_VAL]
+    if (check_monomial_division(ev+(ps+i)[SP_LCM], ev+nelt[2])
+        && (ev+(ps+i)[SP_LCM])[HASH_VAL] != (evl+(ps+pl+j)[SP_LCM])[HASH_VAL]
+        && (ev+(ps+i)[SP_LCM])[HASH_VAL] != (evl+(ps+pl+l)[SP_LCM])[HASH_VAL]
         ) {
         /* && ps[i].lcm != ps[pload+j].lcm) { */
-      ps[i].deg = -1;
+      (ps+i)[SP_DEG]= -1;
     }
   }
 
   /* sort new pairs by increasing lcm, earlier polys coming first */
-  qsort(ps+pl, (unsigned long)bl, sizeof(spair_t), &spair_local_cmp);
+  qsort(ps+pl, (unsigned long)bl, SP_LEN * sizeof(sp_t), &spair_local_cmp);
 
   /* check with earlier new pairs */
-  for (j = pl; j < nl; ++j) {
+  for (j = pl; j < nl; j = j + SP_LEN) {
     l = j;
-    if (ps[j].deg != -1) {
-      i = j+1;
-      while (i < nl && ps[i].lcm == ps[j].lcm)
-        ++i;
-      l = i-1;
+    if ((ps+j)[SP_DEG] != -1) {
+      i = j + SP_LEN;
+      while (i < nl && (ps+i)[SP_LCM] == (ps+j)[SP_LCM])
+        i = i + SP_LEN;
+      l = i - SP_LEN;
       while (i < nl) {
-        /* if (check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) { */
-        if (ps[i].deg >= 0 &&
-            check_monomial_division(evl+ps[i].lcm, evl+ps[j].lcm) != 0) {
-          ps[i].deg  = -1;
+        if ((ps+i)[SP_DEG] >= 0 &&
+            check_monomial_division(evl+(ps+i)[SP_LCM], evl+(ps+j)[SP_LCM]) != 0) {
+          (ps+i)[SP_DEG]  = -1;
         }
-        ++i;
+        i = i + SP_LEN;
       }
     }
     j = l;
   }
   /* note that k = pload + bload from very first loop */
-  for (i = pl; i < nl; ++i) {
-    if (ps[i].deg == -1) {
+  for (i = pl; i < nl; i = i + SP_LEN) {
+    if ((ps+i)[SP_DEG] == -1) {
       continue;
     }
-    j = i+1;
-    while (j < k && ps[j].lcm == ps[i].lcm) {
-      ps[j++].deg = -1;
+    j = i + SP_LEN;
+    while (j < k && (ps+j)[SP_LCM] == (ps+i)[SP_LCM]) {
+      (ps+j)[SP_DEG] = -1;
+      j = j + SP_LEN;
     }
-    i = j-1;
+    i = j - SP_LEN;
   } 
 
   /* for (i = 0; i < pload; ++i) {
@@ -192,23 +196,28 @@ static void insert_and_update_spairs(
   /* remove useless pairs from pairset */
   j = 0;
   /* old pairs */
-  for (i = 0; i < pload; ++i) {
-    if (ps[i].deg < 0) {
+  for (i = 0; i < pload; i = i + SP_LEN) {
+    if ((ps+i)[SP_DEG] < 0) {
       continue;
     }
-    ps[j++] = ps[i];
+    memcpy(ps+j, ps+i, (unsigned long)SP_LEN * sizeof(sp_t));
+    j = j + SP_LEN;
   }
   /* new pairs, wee need to add the lcm to the global hash table */
-  for (; i < nl; ++i) {
-    if (ps[i].deg < 0) {
+  for (; i < nl; i = i + SP_LEN) {
+    if ((ps+i)[SP_DEG] < 0) {
       continue;
     }
-    ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm);
-    ps[j++]   = ps[i];
+    (ps+i)[SP_LCM] = insert_in_global_hash_table(evl+(ps+i)[SP_LCM]);
+    memcpy(ps+j, ps+i, (unsigned long)SP_LEN * sizeof(sp_t));
+    j = j + SP_LEN;
   }
-  num_gb_crit +=  nl - j;
+  num_gb_crit +=  (nl - j)/SP_LEN;
   pload       =   j;
 
+  /* for (i = 0; i < pload; i = i + SP_LEN) {
+   *   printf("-2-pair[%d] = %d | %d | %d\n", i/SP_LEN, (ps+i)[SP_G1], (ps+i)[SP_G2], (ps+i)[SP_DEG]);
+   * } */
   /* mark redundant elements in basis */
   for (i = 0; i < bl; ++i) {
     if ((long)bs[i] & bred) {

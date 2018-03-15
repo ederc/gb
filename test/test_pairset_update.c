@@ -47,27 +47,27 @@ int main(
 
   update_basis(mat);
 
-  if (pload != 2) {
+  if (pload != 2*SP_LEN) {
     return 1;
   }
 
-  if (ps[0].gen1 != 1) {
+  if (ps[SP_G1] != 1) {
     return 1;
   }
-  if (ps[0].gen2 != 2) {
+  if (ps[SP_G2] != 2) {
     return 1;
   }
-  if (ps[0].deg != 2) {
+  if (ps[SP_DEG] != 2) {
     return 1;
   }
   
-  if (ps[1].gen1 != 0) {
+  if ((ps+SP_LEN)[SP_G1] != 0) {
     return 1;
   }
-  if (ps[1].gen2 != 2) {
+  if ((ps+SP_LEN)[SP_G2] != 2) {
     return 1;
   }
-  if (ps[1].deg != 3) {
+  if ((ps+SP_LEN)[SP_DEG] != 3) {
     return 1;
   }
 

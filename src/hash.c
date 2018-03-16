@@ -100,8 +100,9 @@ static void initialize_global_hash_table(
 
   /* generate map */
   bpv   = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
-  if (bpv == 0)
+  if (bpv == 0) {
     bpv++;
+  }
   ndvars  = (unsigned long)nvars < (CHAR_BIT * sizeof(sdm_t)) ?
     nvars : (len_t)((CHAR_BIT * sizeof(sdm_t)));
   msize = (len_t)pow(2, htes);
@@ -275,7 +276,7 @@ static inline void calculate_divmask(
     if (steps == 0)
       steps++;
     for (j = 0; j < bpv; ++j) {
-      dm[ctr++] = min_exp[i]++;
+      dm[ctr++] = steps++;
     }
   }
 

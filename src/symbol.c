@@ -138,38 +138,22 @@ static inline val_t *find_multiplied_reducer(
   exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
   const int32_t bl  = bload;
-  /* printf("to be divided: ");
-   * for (int32_t j = 0; j < nvars; ++j) {
-   *   printf("%d",(ev+m)[j]);
-   * }
-   * printf("\n"); */
-
   i = e[HASH_DIV];
   j = i * LM_LEN;
-  /* printf("to be reduced\n");
-   * for (k = 0; k < nvars; ++k) {
-   *   printf("%d ", e[k]);
-   * }
-   * printf("\n"); */
+
   while (i < bl) {
-    /* printf("i %d\n", i); */
     if (lms[j++] & ~e[HASH_SDM]) {
+      num_sdm_found++;
       i++;
       j = i * LM_LEN;
       continue;
     }
-    /* printf("possible reducer\n");
-     * for (k = 0; k < nvars; ++k) {
-     *   printf("%d ", lms[j+k]);
-     * }
-     * printf("\n"); */
     for (k = 0; k < nvars; ++k) {
-      r[k]  = e[k] - lms[j++];
+      r[k]  = e[k] - lms[j+k];
       if (r[k] < 0) {
         break;
       }
     }
-    /* printf("here\n"); */
     if (k == nvars) {
       break;
     } else {
@@ -177,59 +161,18 @@ static inline val_t *find_multiplied_reducer(
       j = i * LM_LEN;
     }
   }
-  /* printf("done %d / %d\n", i, bload);
-   * for (k = 0; k < nvars; ++k) {
-   *   printf("%d ", r[k]);
-   * }
-   * printf("\n"); */
   e[HASH_DIV] = i;
   if (i == bload) {
+    num_not_sdm_found++;
     free(r);
     return NULL;
   } else {
     d = insert_in_global_hash_table(r);
     free(r);
     b = (val_t *)((long)bs[i] & bmask);
-    /* printf("d: ");
-     * for (k = 0; k < nvars; ++k) {
-     *   printf("%d ", (ev+d)[k]);
-     * }
-     * printf("\nbs[%d] ", i);
-     * for (k = 0; k < nvars; ++k) {
-     *   printf("%d ", (ev+b[2])[k]);
-     * }
-     * printf("\n"); */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
 }
-#if 0
-  /* search basis */
-  for (i = (ev+m)[HASH_DIV]; i < bl; ++i) {
-    b = (val_t *)((long)bs[i] & bmask);
-    /* if we only use nonredundant basis elements LEX computation are very slow */
-    /* if (b != bs[i]) {
-     *   continue;
-     * } */
-    /* printf("test divisor: ");
-     * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (ev+b[2])[j]);
-     * } */
-    d = monomial_division_with_check(m, b[2]);
-    if (d == 0) {
-      continue;
-    }
-    (ev+m)[HASH_DIV] = i;
-    /* printf("\ndivisor found: %d   ", b[2]);
-     * for (int32_t j = 0; j < nvars; ++j) {
-     *   printf("%d", (ev+b[2])[j]);
-     * }
-     * printf("\n"); */
-    return multiplied_polynomial_to_matrix_row(d, b);
-  }
-  (ev+m)[HASH_DIV] = i;
-  return NULL;
-}
-#endif
 
 static val_t **symbolic_preprocessing(
     val_t **mat

@@ -73,6 +73,13 @@ static void insert_and_update_spairs(
    *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
    * } */
   bs[bl]  = nelt;
+  i = bl * LM_LEN;
+  lms[i++] = (ev+bs[bl][2])[HASH_SDM];
+  j = 0;
+  while (j < nvars) {
+    lms[i++]  = (ev+bs[bl][2])[j];
+    j++;
+  }
   /* printf("element added to basis %d (%d terms) at %p: ", bload, (nelt[0]-2)/2, nelt);
    * [> for (int32_t o = 2; o < 3; o += 2) { <]
    * for (int32_t o = 2; o < nelt[0]; o += 2) {
@@ -221,6 +228,13 @@ static void insert_and_update_spairs(
     }
   }
   bload++;
+  /* printf("lms:\n");
+   * for (j = 0; j < bload; ++j) {
+   *   for (i = 0; i < LM_LEN; ++i) {
+   *     printf("%d ", lms[j*LM_LEN+i]);
+   *   }
+   * }
+   * printf("\n"); */
 }
 
 static void update_basis(

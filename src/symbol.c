@@ -131,9 +131,11 @@ static inline val_t *find_multiplied_reducer(
     len_t m
     )
 {
-  int32_t i;
+  int32_t i, j, k;
   len_t d;
   val_t *b;
+  exp_t *e  = ev+m;
+  exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
   const int32_t bl  = bload;
   /* printf("to be divided: ");
@@ -142,6 +144,65 @@ static inline val_t *find_multiplied_reducer(
    * }
    * printf("\n"); */
 
+  i = e[HASH_DIV];
+  j = i * LM_LEN;
+  /* printf("to be reduced\n");
+   * for (k = 0; k < nvars; ++k) {
+   *   printf("%d ", e[k]);
+   * }
+   * printf("\n"); */
+  while (i < bl) {
+    /* printf("i %d\n", i); */
+    if (lms[j++] & ~e[HASH_SDM]) {
+      i++;
+      j = i * LM_LEN;
+      continue;
+    }
+    /* printf("possible reducer\n");
+     * for (k = 0; k < nvars; ++k) {
+     *   printf("%d ", lms[j+k]);
+     * }
+     * printf("\n"); */
+    for (k = 0; k < nvars; ++k) {
+      r[k]  = e[k] - lms[j++];
+      if (r[k] < 0) {
+        break;
+      }
+    }
+    /* printf("here\n"); */
+    if (k == nvars) {
+      break;
+    } else {
+      i++;
+      j = i * LM_LEN;
+    }
+  }
+  /* printf("done %d / %d\n", i, bload);
+   * for (k = 0; k < nvars; ++k) {
+   *   printf("%d ", r[k]);
+   * }
+   * printf("\n"); */
+  e[HASH_DIV] = i;
+  if (i == bload) {
+    free(r);
+    return NULL;
+  } else {
+    d = insert_in_global_hash_table(r);
+    free(r);
+    b = (val_t *)((long)bs[i] & bmask);
+    /* printf("d: ");
+     * for (k = 0; k < nvars; ++k) {
+     *   printf("%d ", (ev+d)[k]);
+     * }
+     * printf("\nbs[%d] ", i);
+     * for (k = 0; k < nvars; ++k) {
+     *   printf("%d ", (ev+b[2])[k]);
+     * }
+     * printf("\n"); */
+    return multiplied_polynomial_to_matrix_row(d, b);
+  }
+}
+#if 0
   /* search basis */
   for (i = (ev+m)[HASH_DIV]; i < bl; ++i) {
     b = (val_t *)((long)bs[i] & bmask);
@@ -168,6 +229,7 @@ static inline val_t *find_multiplied_reducer(
   (ev+m)[HASH_DIV] = i;
   return NULL;
 }
+#endif
 
 static val_t **symbolic_preprocessing(
     val_t **mat

@@ -609,21 +609,15 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
 
   /* printf("mulitplied row: "); */
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
-  row[0]  = poly[0]; /* length */
-  row[1]  = poly[1]; /* loop unroll offset */
+  memcpy(row, poly, (unsigned long)poly[0] * sizeof(val_t));
   for (i = 2; i < poly[1]; i += 2) {
     row[i]    = monomial_multiplication(mult, poly[i]);
-    row[i+1]  = poly[i+1];
   }
   for (;i < poly[0]; i += 8) {
     row[i]    = monomial_multiplication(mult, poly[i]);
-    row[i+1]  = poly[i+1];
     row[i+2]  = monomial_multiplication(mult, poly[i+2]);
-    row[i+3]  = poly[i+3];
     row[i+4]  = monomial_multiplication(mult, poly[i+4]);
-    row[i+5]  = poly[i+5];
     row[i+6]  = monomial_multiplication(mult, poly[i+6]);
-    row[i+7]  = poly[i+7];
   }
   /* printf("multiplied polys added\n");
    * for (int32_t p = 2; p < poly[0]; p += 2) {

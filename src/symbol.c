@@ -135,21 +135,24 @@ static inline val_t *find_multiplied_reducer(
   len_t d;
   val_t *b;
   exp_t *e  = ev+m;
+  exp_t *f;
   exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
   const int32_t bl  = bload;
   i = e[HASH_DIV];
-  j = i * LM_LEN;
+  /* j = i * LM_LEN; */
 
   while (i < bl) {
-    if (lms[j++] & ~e[HASH_SDM]) {
+    if (lms[i] & ~e[HASH_SDM]) {
       num_sdm_found++;
       i++;
-      j = i * LM_LEN;
+      /* j = i * LM_LEN; */
       continue;
     }
+    b = (val_t *)((long)bs[i] & bmask);
+    f = ev+b[2];
     for (k = 0; k < nvars; ++k) {
-      r[k]  = e[k] - lms[j+k];
+      r[k]  = e[k] - f[k];
       if (r[k] < 0) {
         break;
       }
@@ -158,7 +161,7 @@ static inline val_t *find_multiplied_reducer(
       break;
     } else {
       i++;
-      j = i * LM_LEN;
+      /* j = i * LM_LEN; */
     }
   }
   e[HASH_DIV] = i;
@@ -169,7 +172,7 @@ static inline val_t *find_multiplied_reducer(
   } else {
     d = insert_in_global_hash_table(r);
     free(r);
-    b = (val_t *)((long)bs[i] & bmask);
+    /* b = (val_t *)((long)bs[i] & bmask); */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
 }

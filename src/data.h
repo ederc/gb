@@ -80,10 +80,7 @@ static bl_t blold = 0;
 static bl_t bload = 0;
 static bl_t bsize = 0;
 
-/* lead monomials of all basis elements:
- * stores first short divisibility mask and then
- * the full exponent vector */
-#define LM_LEN (nvars+1)
+/* lead monomials of all basis elements */
 static val_t *lms = NULL;
 
 static const long bred  = (long)1;  /* maRking redundant elements */

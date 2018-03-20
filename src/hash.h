@@ -377,7 +377,6 @@ static inline void enlarge_hash_table(ht_t *ht)
     insert_while_enlarging(hash, i, ht);
   }
   recalculate_divmaps(ht);
-  printf("ENLARGED HASH TABLE + RECALCULATED DIVMASKS\n");
 }
 
 /**

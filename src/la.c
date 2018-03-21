@@ -312,7 +312,7 @@ static val_t **sparse_linear_algebra(
   la_ctime  +=  ct1 - ct0;
   la_rtime  +=  rt1 - rt0;
 
-  GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl, rt1-rt0);
+  GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
 
   return mat;
 }
@@ -471,7 +471,7 @@ static val_t **probabilistic_sparse_linear_algebra(
   la_ctime  +=  ct1 - ct0;
   la_rtime  +=  rt1 - rt0;
 
-  GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl, rt1-rt0);
+  GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
 
   return mat;
 }

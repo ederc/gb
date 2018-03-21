@@ -224,6 +224,7 @@ static val_t **sparse_linear_algebra(
 
   /* all pivots, first we can only fill in all known lead terms */
   val_t **pivs  = (val_t **)calloc((unsigned long)ncols, sizeof(val_t *));
+  val_t *kpivs  = (val_t *)calloc((unsigned long)ncols, sizeof(val_t));
   /* unkown pivot rows we have to reduce with the known pivots first */
   val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
 
@@ -231,7 +232,8 @@ static val_t **sparse_linear_algebra(
   j = 1;
   for (i = 0; i < nrows; ++i) {
     if (!pivs[mat[i][2]]) {
-      pivs[mat[i][2]] = mat[i];
+      pivs[mat[i][2]]   = mat[i];
+      kpivs[mat[i][2]]  = 1;
     } else {
       /* shorter rows first */
       upivs[nrl-j]  = mat[i];
@@ -269,17 +271,21 @@ static val_t **sparse_linear_algebra(
   upivs = NULL;
 
   /* we do not need the old pivots anymore */
-  for (i = 0; i < nru; ++i) {
-    free(pivs[i]);
-    pivs[i] = NULL;
+  for (i = 0; i < ncols; ++i) {
+    if (kpivs[i] == 1) {
+      free(pivs[i]);
+      pivs[i] = NULL;
+    }
   }
+  free(kpivs);
+  kpivs = NULL;
 
   npivs = 0; /* number of new pivots */
 
   dr  = realloc(dr, (unsigned long)ncols * sizeof(int64_t));
   mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (ncols-1); i >= ncl; --i) {
+  for (i = (ncols-1); i >= 0; --i) {
     if (pivs[i]) {
       memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {
@@ -327,6 +333,7 @@ static val_t **probabilistic_sparse_linear_algebra(
 
   /* all pivots, first we can only fill in all known lead terms */
   val_t **pivs  = (val_t **)calloc((unsigned long)ncols, sizeof(val_t *));
+  val_t *kpivs  = (val_t *)calloc((unsigned long)ncols, sizeof(val_t));
   /* unkown pivot rows we have to reduce with the known pivots first */
   val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
 
@@ -334,7 +341,8 @@ static val_t **probabilistic_sparse_linear_algebra(
   j = 1;
   for (i = 0; i < nrows; ++i) {
     if (!pivs[mat[i][2]]) {
-      pivs[mat[i][2]] = mat[i];
+      pivs[mat[i][2]]   = mat[i];
+      kpivs[mat[i][2]]  = 1;
     } else {
       /* shorter rows first */
       upivs[nrl-j]  = mat[i];
@@ -421,17 +429,21 @@ static val_t **probabilistic_sparse_linear_algebra(
   upivs = NULL;
 
   /* we do not need the old pivots anymore */
-  for (i = 0; i < nru; ++i) {
-    free(pivs[i]);
-    pivs[i] = NULL;
+  for (i = 0; i < ncols; ++i) {
+    if (kpivs[i] == 1) {
+      free(pivs[i]);
+      pivs[i] = NULL;
+    }
   }
+  free(kpivs);
+  kpivs = NULL;
 
   dr  = realloc(dr, (unsigned long)ncols * sizeof(int64_t));
   npivs = 0; /* number of new pivots */
 
   mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (ncols-1); i >= ncl; --i) {
+  for (i = (ncols-1); i >= 0; --i) {
     if (pivs[i]) {
       memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {

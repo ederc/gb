@@ -142,14 +142,14 @@ static int monomial_cmp_pivots_drl(
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
 
-  /* first known pivots vs. tail terms */
-  if (ea[HASH_IND] < eb[HASH_IND]) {
-    return 1;
-  } else {
-    if (ea[HASH_IND] != eb[HASH_IND]) {
-      return -1;
-    }
-  }
+  /* [> first known pivots vs. tail terms <]
+   * if (ea[HASH_IND] < eb[HASH_IND]) {
+   *   return 1;
+   * } else {
+   *   if (ea[HASH_IND] != eb[HASH_IND]) {
+   *     return -1;
+   *   }
+   * } */
 
   /* then DRL */
   if (ea[HASH_DEG] > eb[HASH_DEG]) {

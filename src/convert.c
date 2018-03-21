@@ -51,19 +51,34 @@ static len_t *convert_hashes_to_columns(
     row     =   mat[i];
     nterms  +=  (int64_t)(row[0]-2)/2;
     for (l = 2; l < row[0]; l += 2) {
-      if ((ev+row[l])[HASH_IND] > 0) {
+      if ((ev+row[l])[HASH_IND] != 0) {
         hcm[j++]  = row[l];
         if ((ev+row[l])[HASH_IND] == 2) {
           k++;
-          (ev+row[l])[HASH_IND]  = -1;
-        } else {
-          (ev+row[l])[HASH_IND]  = -2;
+        /*   (ev+row[l])[HASH_IND]  = -1;
+         * } else {
+         *   (ev+row[l])[HASH_IND]  = -2; */
         }
+        (ev+row[l])[HASH_IND] = 0;
       }
     }
   }
+  /* for (i = 0; i < j; ++i) {
+   *   printf("hcm[%d] = %d | %d || ", i, hcm[i], (ev+hcm[i])[HASH_DEG]);
+   *   for (l = 0; l < nvars; ++l) {
+   *     printf("%d ", (ev+hcm[i])[l]);
+   *   }
+   *   printf("\n");
+   * } */
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
   qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
+  /* for (i = 0; i < j; ++i) {
+   *   printf("hcm[%d] = ", i);
+   *   for (l = 0; l < nvars; ++l) {
+   *     printf("%d ", (ev+hcm[i])[l]);
+   *   }
+   *   printf("\n");
+   * } */
   
   /* set number of rows and columns in ABCD splicing */
   nru = ncl = k;
@@ -90,11 +105,11 @@ static len_t *convert_hashes_to_columns(
    * to known / unkown pivots */
   double rrt0, rrt1;
   rrt0 = realtime();
-#pragma omp parallel for num_threads(nthrds) private(i)
-  for (i = 0; i < nrows; ++i) {
-    qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
-        columns_cmp);
-  }
+/* #pragma omp parallel for num_threads(nthrds) private(i)
+ *   for (i = 0; i < nrows; ++i) {
+ *     qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
+ *         columns_cmp);
+ *   } */
   rrt1 = realtime();
   col_sort_rtime +=  rrt1 - rrt0;
   /* compute density of matrix */

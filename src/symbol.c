@@ -131,7 +131,7 @@ static inline val_t *find_multiplied_reducer(
     len_t m
     )
 {
-  int32_t i, j, k;
+  int32_t i, k;
   len_t d;
   val_t *b;
   exp_t *e  = ev+m;

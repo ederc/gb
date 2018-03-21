@@ -35,6 +35,7 @@ static double la_rtime      = 0;
 static double update_rtime  = 0;
 static double convert_rtime = 0;
 static double reduce_rtime  = 0;
+static double col_sort_rtime = 0;
 
 static int64_t num_pairsred   = 0;
 static int64_t num_gb_crit    = 0;
@@ -70,6 +71,7 @@ static void initialize_statistics(
   update_rtime  = 0;
   convert_rtime = 0;
   reduce_rtime  = 0;
+  col_sort_rtime = 0;
 
 	select_ctime  = 0;
   symbol_ctime  = 0;

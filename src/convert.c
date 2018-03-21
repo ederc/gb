@@ -88,11 +88,15 @@ static len_t *convert_hashes_to_columns(
 
   /* next we sort each row by the new colum order due
    * to known / unkown pivots */
+  double rrt0, rrt1;
+  rrt0 = realtime();
 #pragma omp parallel for num_threads(nthrds) private(i)
   for (i = 0; i < nrows; ++i) {
     qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
         columns_cmp);
   }
+  rrt1 = realtime();
+  col_sort_rtime +=  rrt1 - rrt0;
   /* compute density of matrix */
   nterms  *=  100; /* for percentage */
   density = (double)nterms / (double)nrows / (double)ncols;

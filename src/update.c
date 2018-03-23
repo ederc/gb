@@ -58,28 +58,21 @@ static void free_pairset(
 }
 
 static void insert_and_update_spairs(
-    val_t *nelt
+    basis_t *bs,
+    const pr_t *nelt
     )
 {
   int32_t i, j, k, l;
   val_t *b;
 
   const len_t pl  = pload;
-  const len_t bl  = bload;
+  const len_t bl  = bs->ld;
 
   reset_local_hash_table(bl);
-  /* move exponents to global hash table */
-  /* for (i = 2; i < nelt[0]; i = i+2) {
-   *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
-   * } */
-  bs[bl]  = nelt;
+  bs->pr+bl = nelt;
   /* i = bl * LM_LEN; */
-  lms[bl] = (ev+bs[bl][2])[HASH_SDM];
-  /* j = 0;
-   * while (j < nvars) {
-   *   lms[i++]  = (ev+bs[bl][2])[j];
-   *   j++;
-   * } */
+  bs->lm[bl] = (ev+bs->pr[bl].mn[0])[HASH_SDM];
+
   /* printf("element added to basis %d (%d terms) at %p: ", bload, (nelt[0]-2)/2, nelt);
    * [> for (int32_t o = 2; o < 3; o += 2) { <]
    * for (int32_t o = 2; o < nelt[0]; o += 2) {
@@ -92,20 +85,20 @@ static void insert_and_update_spairs(
    * printf("\n"); */
 
 #if INSERT_SMALL_FIRST
-  for (i = blold; i < bl; ++i) {
-    if ((long)bs[i] & bred) {
+  for (i = bs->ol; i < bl; ++i) {
+    if ((long)bs->pr[i].cf & bred) {
       continue;
     }
-    if (check_monomial_division(ev+nelt[2], ev+bs[i][2])) {
+    if (check_monomial_division(ev+nelt[2], ev+bs->pr[i].mn[0])) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
       ps[pl].gen1 = i;
-      ps[pl].gen2 = bl;
-      ps[pl].lcm  = get_lcm(bs[i][2], nelt[2]);
+      ps[pl].gen2 = bs->ld;
+      ps[pl].lcm  = get_lcm(bs->pr[i].mn[0], nelt->mn[0]);
       ps[pl].deg  = (evl + ps[pl].lcm)[HASH_DEG];
       ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm);
-      bs[bl]  = (val_t *)((long)bs[bl] | bred);
+      bs->pr[bl].cf = (val_t *)((long)bs->pr[bl].cf | bred);
       num_redundant++;
-      bload++;
+      bs->ld++;
       pload++;
       return;
     }
@@ -114,15 +107,15 @@ static void insert_and_update_spairs(
 
   /* create all possible new pairs */
   for (i = 0, k = pl; i < bl; ++i, ++k) {
-    b = (val_t *)((long)bs[i] & bmask);
     ps[k].gen1  = i;
     ps[k].gen2  = bl;
-    ps[k].lcm   = get_lcm(b[2], nelt[2]);
+    ps[k].lcm   = get_lcm(bs->pr[i].mn[0], nelt->mn[0]);
 
-    if (b != bs[i]) {
+    b = (val_t *)((long)bs->pr[i].cf & bmask);
+    if (b != bs->pr[i].cf) {
       ps[k].deg = -1; /* redundant pair */
     } else {
-      if (lcm_equals_multiplication(b[2], nelt[2], ps[k].lcm)) {
+      if (lcm_equals_multiplication(bs->pr[i].mn[0], nelt->mn[0], ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
         ps[k].deg = (evl + ps[k].lcm)[HASH_DEG];
@@ -221,13 +214,13 @@ static void insert_and_update_spairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division(ev+bs[i][2], ev+nelt[2])) {
+    if (check_monomial_division(ev+bs->pr[i].mn[0], ev+nelt[2])) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
-      bs[i] = (val_t *)((long)bs[i] | bred);
+      bs->pr[i].cf  = (val_t *)((long)bs->pr[i].cf | bred);
       num_redundant++;
     }
   }
-  bload++;
+  bs->ld++;
   /* printf("lms:\n");
    * for (j = 0; j < bload; ++j) {
    *   for (i = 0; i < LM_LEN; ++i) {
@@ -238,7 +231,8 @@ static void insert_and_update_spairs(
 }
 
 static void update_basis(
-    val_t **mat
+    basis_t *bs,
+    const mat_t *mat
     )
 {
   int32_t i;
@@ -248,25 +242,25 @@ static void update_basis(
   ct0 = cputime();
   rt0 = realtime();
 
-  check_enlarge_basis(npivs);
+  check_enlarge_basis(bs, mat->np);
 
   /* compute number of new pairs we need to handle at most */
-  len_t np  = bload * npivs;
-  for (i = 1; i < npivs; ++i) {
+  len_t np  = bs->ld + mat->np;
+  for (i = 1; i < mat->np; ++i) {
     np  = np + i;
   }
   check_enlarge_pairset(np);
 
 #if INSERT_SMALL_FIRST
   for (i = 0; i < npivs; ++i) {
-    insert_and_update_spairs(mat[i]);
+    insert_and_update_spairs(bs, mat[i]);
   }
 #else
   for (i = 1; i <= npivs; ++i) {
-    insert_and_update_spairs(mat[nrows-i]);
+    insert_and_update_spairs(bs, mat[nrows-i]);
   }
 #endif
-  blold = bload;
+  bs->ol  = bs->ld;;
 
   /* timings */
   ct1 = cputime();

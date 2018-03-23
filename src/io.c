@@ -135,7 +135,7 @@ static inline int32_t check_and_set_meta_data(
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
-static val_t **import_julia_data(
+static mat_t *import_julia_data(
     const int32_t *lens,
     const int32_t *cfs,
     const int32_t *exps,
@@ -144,23 +144,22 @@ static val_t **import_julia_data(
 {
   int32_t i, j;
   int32_t off = 0; /* offset in arrays */
-  val_t **mat = malloc((unsigned long)nr_gens * sizeof(val_t *));
+  mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
+  mat->pr     = (pr_t *)malloc((unsigned long)nr_gens * sizeof(pr_t));
   
   for (i = 0; i < nr_gens; ++i) {
-    /* each matrix row has the following structure:
-     * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
-     * where piv? is a label for being a known or an unknown pivot */
-    mat[i]    = malloc((2*(unsigned long)lens[i]+2) * sizeof(val_t));
-    mat[i][0] = 2*lens[i]+2;
-    mat[i][1] = 2*(lens[i] % UNROLL)+2; /* offset for starting loop unrolling */
+    mat->pr[i].cf = (val_t *)malloc((unsigned long)lens[i] * sizeof(val_t));
+    mat->pr[i].mn = (len_t *)malloc((unsigned long)lens[i] * sizeof(len_t));
+    mat->pr[i].nt = lens[i];
+    mat->pr[i].os = lens[i] % UNROLL;
     for (j = off; j < off+lens[i]; ++j) {
-      mat[i][2*(j+1-off)]   = insert_in_global_hash_table(exps+(nvars*j));
-      mat[i][2*(j+1-off)+1] = cfs[j];
+      mat->pr[i].cf[j]  = cfs[j];
+      mat->pr[i].mn[j]  = insert_in_global_hash_table(exps+(nvars*j));
     }
-    /* mark initial generators, they have to be added to the basis first */
     off +=  lens[i];
   }
-  npivs = nrows = nrall = nr_gens;
+  mat->np = mat->nr   = mat->na                         = nr_gens;
+  mat->nc = mat->nru  = mat->nrl  = mat->ncl = mat->ncr = 0;
 
   return mat;
 }

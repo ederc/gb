@@ -40,13 +40,13 @@ static int matrix_row_initial_input_cmp_lex(
     )
 {
   int32_t i;
-  val_t va, vb;
+  len_t ca, cb;
 
-  va  = ((val_t **)a)[0][2];
-  vb  = ((val_t **)b)[0][2];
+  ca  = ((pr_t *)a)->mn[0];
+  cb  = ((pr_t *)b)->mn[0];
 
-  const exp_t * const ea  = ev + va;
-  const exp_t * const eb  = ev + vb;
+  const exp_t * const ea  = ev + ca;
+  const exp_t * const eb  = ev + cb;
 
   /* lexicographical */
   for (i = 0; i < nvars; ++i) {
@@ -67,13 +67,13 @@ static int matrix_row_initial_input_cmp_drl(
     )
 {
   int32_t i;
-  val_t va, vb;
+  len_t ca, cb;
 
-  va  = ((val_t **)a)[0][2];
-  vb  = ((val_t **)b)[0][2];
+  ca  = ((pr_t *)a)->mn[0];
+  cb  = ((pr_t *)b)->mn[0];
 
-  const exp_t * const ea  = ev + va;
-  const exp_t * const eb  = ev + vb;
+  const exp_t * const ea  = ev + ca;
+  const exp_t * const eb  = ev + cb;
 
   /* DRL */
   if (ea[HASH_DEG] < eb[HASH_DEG]) {

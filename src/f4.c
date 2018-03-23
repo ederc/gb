@@ -84,19 +84,19 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "#threads               %15d\n", nthrds);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
-  initialize_basis(nr_gens);
+  basis_t *bs = initialize_basis(nr_gens);
   initialize_pairset();
   initialize_global_hash_table();
   initialize_local_hash_table();
 
-  mat = import_julia_data(lens, cfs, exps, nr_gens);
+  mat_t *mat = import_julia_data(lens, cfs, exps, nr_gens);
 
   /* for faster divisibility checks, needs to be done after we have
    * read some input data for applying heuristics */
   calculate_divmask();
 
   /* sort initial elements, smallest lead term first */
-  qsort(mat, (unsigned long)nrows, sizeof(val_t *),
+  qsort(mat->pr, (unsigned long)mat->nr, sizeof(pr_t *),
       matrix_row_initial_input_cmp);
   /* normalize input generators */
   for (i = 0; i < nrows; ++i) {
@@ -104,7 +104,7 @@ int64_t f4_julia(
   }
 
   /* move input generators to basis and generate first spairs */
-  update_basis(mat);
+  update_basis(bs, mat);
 
   free(mat);
   mat = NULL;

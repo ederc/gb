@@ -38,6 +38,11 @@
  * inline omp_int_t omp_get_max_threads(void) { return 1;}
  * #endif */
 
+/* loop unrolling in sparse linear algebra:
+ * we store the offset of the first elements not unrolled
+ * in the second entry of the sparse row resp. sparse polynomial. */
+#define UNROLL  4
+
 /* computational data */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
@@ -58,6 +63,40 @@ struct spair_t
   bi_t gen1;
   bi_t gen2;
   spt_t type;
+};
+
+/* polynomial resp. row data */
+typedef struct pr_t pr_t;
+struct pr_t
+{
+  val_t *cf;  /* coefficient array */
+  len_t *mn;  /* monomials: hashes or columns */
+  len_t nt;   /* number of terms: lenth of cf resp. mn */
+  len_t os;   /* offset w.r.t. UNROLL */
+};
+
+typedef struct mat_t mat_t;
+struct mat_t
+{
+  pr_t *pr;   /* rows */
+  len_t na;   /* number of rows allocated */
+  len_t np;   /* number of new pivots */
+  len_t nr;   /* number of rows */
+  len_t nc;   /* number of columns*/
+  len_t nru;  /* number of upper rows (in ABCD splicing) */
+  len_t nrl;  /* number of lower rows (in ABCD splicing) */
+  len_t ncl;  /* number of left columns (in ABCD splicing) */
+  len_t ncr;  /* number of right columns (in ABCD splicing) */
+};
+
+typedef struct basis_t basis_t;
+struct basis_t
+{
+  pr_t *pr;   /* polynomials / module elements resp. rows */
+  len_t ld;   /* load of basis */
+  len_t sz;   /* allocated size of basis */
+  len_t ol;   /* old load of basis before update process started */
+  sdm_t *lm;  /* lead monomials for symbolic preprocessing */
 };
 
 /* pair set data */
@@ -95,11 +134,6 @@ static int32_t nru    = 0; /* number of upper rows (in ABCD splicing) */
 static int32_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
 static int32_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
 static int32_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
-
-/* loop unrolling in sparse linear algebra:
- * we store the offset of the first elements not unrolled
- * in the second entry of the sparse row resp. sparse polynomial. */
-#define UNROLL  4
 
 /* threads data */
 static int32_t nthrds = 1; /* number of CPU threads */

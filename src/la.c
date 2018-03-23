@@ -22,34 +22,37 @@
 #include "data.h"
 
 static inline void normalize_matrix_row(
-    val_t *row
+    pr_t *row
     )
 {
   int32_t i;
   int64_t tmp1, tmp2, tmp3, tmp4;
+  val_t *cf = row->cf;
 
-  const int32_t inv = mod_p_inverse_32(row[3], fc);
+  const int32_t inv = mod_p_inverse_32(cf[0], fc);
+  const int32_t nt  = row->nt;
   
-  for (i = 3; i < row[1]; i += 2) {
-    tmp1    =   ((int64_t)row[i] * inv) % fc;
+  cf[0] = 1;
+
+  for (i = 1; i < row->os; ++i) {
+    tmp1  =   ((int64_t)cf[i] * inv) % fc;
+    tmp1  +=  (tmp1 >> 63) & fc;
+    cf[i] =   (val_t)tmp1;
+  }
+  for (; i < nt; i += UNROLL) {
+    tmp1    =   ((int64_t)cf[i] * inv) % fc;
+    tmp2    =   ((int64_t)cf[i+1] * inv) % fc;
+    tmp3    =   ((int64_t)cf[i+2] * inv) % fc;
+    tmp4    =   ((int64_t)cf[i+3] * inv) % fc;
     tmp1    +=  (tmp1 >> 63) & fc;
-    row[i]  =   (val_t)tmp1;
+    tmp2    +=  (tmp2 >> 63) & fc;
+    tmp3    +=  (tmp3 >> 63) & fc;
+    tmp4    +=  (tmp4 >> 63) & fc;
+    cf[i]   =   (val_t)tmp1;
+    cf[i+2] =   (val_t)tmp2;
+    cf[i+4] =   (val_t)tmp3;
+    cf[i+6] =   (val_t)tmp4;
   }
-  for (; i < row[0]; i += 8) {
-    tmp1      =   ((int64_t)row[i] * inv) % fc;
-    tmp2      =   ((int64_t)row[i+2] * inv) % fc;
-    tmp3      =   ((int64_t)row[i+4] * inv) % fc;
-    tmp4      =   ((int64_t)row[i+6] * inv) % fc;
-    tmp1      +=  (tmp1 >> 63) & fc;
-    tmp2      +=  (tmp2 >> 63) & fc;
-    tmp3      +=  (tmp3 >> 63) & fc;
-    tmp4      +=  (tmp4 >> 63) & fc;
-    row[i]    =   (val_t)tmp1;
-    row[i+2]  =   (val_t)tmp2;
-    row[i+4]  =   (val_t)tmp3;
-    row[i+6]  =   (val_t)tmp4;
-  }
-  row[3]  = 1;
 }
 
 static val_t *reduce_dense_row_by_known_pivots_16_bit(

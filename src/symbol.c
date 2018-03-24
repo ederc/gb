@@ -142,8 +142,37 @@ static inline val_t *find_multiplied_reducer(
   i = e[HASH_DIV];
   /* j = i * LM_LEN; */
 
+  const sdm_t ns = ~e[HASH_SDM];
+  while (i < bl-3) {
+    if (lms[i] & ns &&
+        lms[i+1] & ns &&
+        lms[i+2] & ns &&
+        lms[i+3] & ns) {
+      num_sdm_found +=  4;
+      i +=  4;
+      /* j = i * LM_LEN; */
+      continue;
+    }
+    while (lms[i] & ns) {
+      i++;
+    }
+    b = (val_t *)((long)bs[i] & bmask);
+    f = ev+b[2];
+    for (k = 0; k < nvars; ++k) {
+      r[k]  = e[k] - f[k];
+      if (r[k] < 0) {
+        break;
+      }
+    }
+    if (k == nvars) {
+      break;
+    } else {
+      i++;
+      /* j = i * LM_LEN; */
+    }
+  }
   while (i < bl) {
-    if (lms[i] & ~e[HASH_SDM]) {
+    if (lms[i] & ns) {
       num_sdm_found++;
       i++;
       /* j = i * LM_LEN; */

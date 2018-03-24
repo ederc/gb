@@ -611,14 +611,20 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
   /* printf("mulitplied row: "); */
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
   memcpy(row, poly, (unsigned long)poly[0] * sizeof(val_t));
+  const exp_t * const emult = ev+mult;
   for (i = 2; i < poly[1]; i += 2) {
-    row[i]    = monomial_multiplication(mult, poly[i]);
+    row[i]    = insert_in_global_hash_table_product(emult, ev+poly[i]);
+    /* row[i]    = monomial_multiplication(mult, poly[i]); */
   }
   for (;i < poly[0]; i += 8) {
-    row[i]    = monomial_multiplication(mult, poly[i]);
-    row[i+2]  = monomial_multiplication(mult, poly[i+2]);
-    row[i+4]  = monomial_multiplication(mult, poly[i+4]);
-    row[i+6]  = monomial_multiplication(mult, poly[i+6]);
+    row[i]    = insert_in_global_hash_table_product(emult, ev+poly[i]);
+    row[i+2]  = insert_in_global_hash_table_product(emult, ev+poly[i+2]);
+    row[i+4]  = insert_in_global_hash_table_product(emult, ev+poly[i+4]);
+    row[i+6]  = insert_in_global_hash_table_product(emult, ev+poly[i+6]);
+    /* row[i]    = monomial_multiplication(mult, poly[i]);
+     * row[i+2]  = monomial_multiplication(mult, poly[i+2]);
+     * row[i+4]  = monomial_multiplication(mult, poly[i+4]);
+     * row[i+6]  = monomial_multiplication(mult, poly[i+6]); */
   }
   /* printf("multiplied polys added\n");
    * for (int32_t p = 2; p < poly[0]; p += 2) {

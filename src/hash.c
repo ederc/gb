@@ -309,9 +309,9 @@ static inline len_t check_monomial_division(
    * } */
 
   /* exponent check */
-  if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
-    return 0;
-  }
+  /* if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
+   *   return 0;
+   * } */
   i = nvars & 1 ? 1 : 0;
   for (; i < nvars; i += 2) {
     if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
@@ -559,10 +559,10 @@ static inline len_t monomial_division_with_check(
   }
 
   /* exponent check */
-  if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
-    return 0;
-  }
-
+/*   if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
+ *     return 0;
+ *   }
+ *  */
   exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
   e[0]  = ea[0] - eb[0];
 

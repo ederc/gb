@@ -478,9 +478,9 @@ static inline len_t insert_in_global_hash_table_product(
   n[HASH_VAL] = h;
 
   eload  +=  HASH_LEN;
-  if (eload >= esize) {
-    enlarge_global_hash_table();
-  }
+  /* if (eload >= esize) {
+   *   enlarge_global_hash_table();
+   * } */
   return pos;
 }
 
@@ -611,21 +611,24 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
   /* printf("mulitplied row: "); */
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
   memcpy(row, poly, (unsigned long)poly[0] * sizeof(val_t));
-  const exp_t * const emult = ev+mult;
+  /* hash table product insertions appear only here:
+   * we check for hash table enlargements first and then do the insertions
+   * without further elargment checks there */
+  if (eload+((poly[0]-2)/2*HASH_LEN) >= esize) {
+    enlarge_global_hash_table();
+  }
+  const exp_t * const em = ev + mult;
   for (i = 2; i < poly[1]; i += 2) {
-    row[i]    = insert_in_global_hash_table_product(emult, ev+poly[i]);
-    /* row[i]    = monomial_multiplication(mult, poly[i]); */
+    row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]);
   }
+#if 1
   for (;i < poly[0]; i += 8) {
-    row[i]    = insert_in_global_hash_table_product(emult, ev+poly[i]);
-    row[i+2]  = insert_in_global_hash_table_product(emult, ev+poly[i+2]);
-    row[i+4]  = insert_in_global_hash_table_product(emult, ev+poly[i+4]);
-    row[i+6]  = insert_in_global_hash_table_product(emult, ev+poly[i+6]);
-    /* row[i]    = monomial_multiplication(mult, poly[i]);
-     * row[i+2]  = monomial_multiplication(mult, poly[i+2]);
-     * row[i+4]  = monomial_multiplication(mult, poly[i+4]);
-     * row[i+6]  = monomial_multiplication(mult, poly[i+6]); */
+    row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]);
+    row[i+2]  = insert_in_global_hash_table_product(em, ev+poly[i+2]);
+    row[i+4]  = insert_in_global_hash_table_product(em, ev+poly[i+4]);
+    row[i+6]  = insert_in_global_hash_table_product(em, ev+poly[i+6]);
   }
+#endif
   /* printf("multiplied polys added\n");
    * for (int32_t p = 2; p < poly[0]; p += 2) {
    *   for (int32_t o = 0; o < nvars; ++o) {

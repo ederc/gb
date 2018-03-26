@@ -134,15 +134,16 @@ static inline val_t *find_multiplied_reducer(
   int32_t i, k;
   len_t d;
   val_t *b;
-  exp_t *e  = ev+m;
+  const exp_t * const e  = ev+m;
   exp_t *f;
   exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
   const int32_t bl  = bload;
+  const int32_t os  = nvars & 1 ? 1 : 0;
   i = e[HASH_DIV];
-  /* j = i * LM_LEN; */
 
   const sdm_t ns = ~e[HASH_SDM];
+start:
   while (i < bl-3) {
     if (lms[i] & ns &&
         lms[i+1] & ns &&
@@ -150,7 +151,6 @@ static inline val_t *find_multiplied_reducer(
         lms[i+3] & ns) {
       num_sdm_found +=  4;
       i +=  4;
-      /* j = i * LM_LEN; */
       continue;
     }
     while (lms[i] & ns) {
@@ -158,19 +158,22 @@ static inline val_t *find_multiplied_reducer(
     }
     b = (val_t *)((long)bs[i] & bmask);
     f = ev+b[2];
-    for (k = 0; k < nvars; ++k) {
-      r[k]  = e[k] - f[k];
-      if (r[k] < 0) {
-        break;
+    r[0]  = e[0] - f[0];
+    if (r[0] < 0) {
+      i++;
+      goto start;
+    }
+    for (k = os; k < nvars; k += 2) {
+      r[k]    = e[k] - f[k];
+      r[k+1]  = e[k+1] - f[k+1];
+      if (r[k] < 0 || r[k+1] < 0) {
+        i++;
+        goto start;
       }
     }
-    if (k == nvars) {
-      break;
-    } else {
-      i++;
-      /* j = i * LM_LEN; */
-    }
+    break;
   }
+start2:
   while (i < bl) {
     if (lms[i] & ns) {
       num_sdm_found++;
@@ -180,20 +183,22 @@ static inline val_t *find_multiplied_reducer(
     }
     b = (val_t *)((long)bs[i] & bmask);
     f = ev+b[2];
-    for (k = 0; k < nvars; ++k) {
-      r[k]  = e[k] - f[k];
-      if (r[k] < 0) {
-        break;
+    r[0]  = e[0] - f[0];
+    if (r[0] < 0) {
+      i++;
+      goto start2;
+    }
+    for (k = os; k < nvars; k += 2) {
+      r[k]    = e[k] - f[k];
+      r[k+1]  = e[k+1] - f[k+1];
+      if (r[k] < 0 || r[k+1] < 0) {
+        i++;
+        goto start2;
       }
     }
-    if (k == nvars) {
-      break;
-    } else {
-      i++;
-      /* j = i * LM_LEN; */
-    }
+    break;
   }
-  e[HASH_DIV] = i;
+  (ev+m)[HASH_DIV] = i;
   if (i == bload) {
     num_not_sdm_found++;
     free(r);
@@ -201,7 +206,6 @@ static inline val_t *find_multiplied_reducer(
   } else {
     d = insert_in_global_hash_table(r);
     free(r);
-    /* b = (val_t *)((long)bs[i] & bmask); */
     return multiplied_polynomial_to_matrix_row(d, b);
   }
 }

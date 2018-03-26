@@ -147,15 +147,20 @@ static void insert_and_update_spairs(
   }
 
   /* sort new pairs by increasing lcm, earlier polys coming first */
+  double rrt0, rrt1;
+  rrt0 = realtime();
   qsort(ps+pl, (unsigned long)bl, sizeof(spair_t), &spair_local_cmp);
+  rrt1 = realtime();
+  update1_rtime  +=  rrt1 - rrt0;
 
   /* check with earlier new pairs */
   for (j = pl; j < nl; ++j) {
     l = j;
     if (ps[j].deg != -1) {
       i = j+1;
-      while (i < nl && ps[i].lcm == ps[j].lcm)
+      while (i < nl && ps[i].lcm == ps[j].lcm) {
         ++i;
+      }
       l = i-1;
       while (i < nl) {
         /* if (check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) { */
@@ -168,7 +173,6 @@ static void insert_and_update_spairs(
     }
     j = l;
   }
-  /* note that k = pload + bload from very first loop */
   for (i = pl; i < nl; ++i) {
     if (ps[i].deg == -1) {
       continue;

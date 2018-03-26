@@ -160,6 +160,7 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "select                 %15.3f sec\n", select_rtime);
   GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", symbol_rtime);
   GB_DEBUG(GBDBG, "update                 %15.3f sec\n", update_rtime);
+  GB_DEBUG(GBDBG, "update1                %15.3f sec\n", update1_rtime);
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
   GB_DEBUG(GBDBG, "col sort               %15.3f sec\n", col_sort_rtime);
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);

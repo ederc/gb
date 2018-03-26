@@ -33,6 +33,7 @@ static double select_rtime  = 0;
 static double symbol_rtime  = 0;
 static double la_rtime      = 0;
 static double update_rtime  = 0;
+static double update1_rtime  = 0;
 static double convert_rtime = 0;
 static double reduce_rtime  = 0;
 static double col_sort_rtime = 0;
@@ -69,6 +70,7 @@ static void initialize_statistics(
   symbol_rtime  = 0;
   la_rtime      = 0;
   update_rtime  = 0;
+  update1_rtime  = 0;
   convert_rtime = 0;
   reduce_rtime  = 0;
   col_sort_rtime = 0;

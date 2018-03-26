@@ -297,6 +297,7 @@ static inline len_t check_monomial_division(
     )
 {
   int32_t i;
+  const int32_t nv  = nvars;
 
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
@@ -309,11 +310,11 @@ static inline len_t check_monomial_division(
    * } */
 
   /* exponent check */
-  /* if (ea[0] < eb[0] || ea[nvars-1] < eb[nvars-1]) {
-   *   return 0;
-   * } */
-  i = nvars & 1 ? 1 : 0;
-  for (; i < nvars; i += 2) {
+  if (ea[0] < eb[0]) {
+    return 0;
+  }
+  i = nv & 1 ? 1 : 0;
+  for (; i < nv; i += 2) {
     if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
       return 0;
     }

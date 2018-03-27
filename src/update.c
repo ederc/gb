@@ -131,7 +131,7 @@ static void insert_and_update_spairs(
     }
   }
   
-  const len_t nl  = k;
+  len_t nl  = k;
   /* Gebauer-Moeller: check old pairs first */
   /* note: old pairs are sorted by the given spair order */
   for (i = 0; i < pl; ++i) {
@@ -201,10 +201,17 @@ static void insert_and_update_spairs(
     j = l;
   }
 
+  /* remove deg == -1 pairs from list */
+  j = pl;
   for (i = pl; i < nl; ++i) {
     if (ps[i].deg == -1) {
       continue;
     }
+    ps[j++] = ps[i];
+  }
+  nl = j;
+
+  for (i = pl; i < nl; ++i) {
     j = i+1;
     while (j < nl && ps[j].lcm == ps[i].lcm) {
       ps[j++].deg = -1;

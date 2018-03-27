@@ -63,6 +63,7 @@ static void insert_and_update_spairs(
 {
   int32_t i, j, k, l;
   val_t *b;
+  exp_t *ej;
 
   const len_t pl  = pload;
   const len_t bl  = bload;
@@ -153,37 +154,63 @@ static void insert_and_update_spairs(
   rrt1 = realtime();
   update1_rtime  +=  rrt1 - rrt0;
 
+/*   for (i = pl; i < nl; ++i) {
+ *     printf("%d || lcm %d | deg %d\n", i, ps[i].lcm, ps[i].deg);
+ *   }
+ *   printf("ctr %d\n", ctr);
+ *   for (i = 0; i < ctr; ++i) {
+ *     printf("lcm %d | fp %d\n", lcms[i], fp[i]);
+ *   }
+ *  */
+
   /* check with earlier new pairs */
+  /* for (j = 0; j < ctr; ++j) {
+   *   if (ps[fp[j]].deg != -1) {
+   *     ej  = evl+ps[fp[j]].lcm;
+   *     for (i = j+1; i < ctr; ++i) {
+   *       if ([> ps[fp[i]].deg >= 0 && <]
+   *           check_monomial_division(evl+ps[fp[i]].lcm, ej) != 0) {
+   *         for (k = fp[i]; k < fp[i+1]; ++k) {
+   *           if (ps[k].deg >= 0) {
+   *             ps[k].deg = -1;
+   *           }
+   *         }
+   *       }
+   *     }
+   *   }
+   * } */
+
   for (j = pl; j < nl; ++j) {
+    if (ps[j].deg < 0) {
+      continue;
+    }
+    ej  = evl+ps[j].lcm;
     l = j;
-    if (ps[j].deg != -1) {
-      i = j+1;
-      while (i < nl && ps[i].lcm == ps[j].lcm) {
-        ++i;
+    i = j+1;
+    while (i < nl && ps[i].lcm == ps[j].lcm) {
+      ++i;
+    }
+    l = i-1;
+    while (i < nl) {
+      if (ps[i].deg >= 0 &&
+          check_monomial_division(evl+ps[i].lcm, ej) != 0) {
+        ps[i].deg  = -1;
       }
-      l = i-1;
-      while (i < nl) {
-        /* if (check_monomial_division(sp[i].lcm, sp[j].lcm, ht) != 0) { */
-        if (ps[i].deg >= 0 &&
-            check_monomial_division(evl+ps[i].lcm, evl+ps[j].lcm) != 0) {
-          ps[i].deg  = -1;
-        }
-        ++i;
-      }
+      ++i;
     }
     j = l;
   }
+
   for (i = pl; i < nl; ++i) {
     if (ps[i].deg == -1) {
       continue;
     }
     j = i+1;
-    while (j < k && ps[j].lcm == ps[i].lcm) {
+    while (j < nl && ps[j].lcm == ps[i].lcm) {
       ps[j++].deg = -1;
     }
     i = j-1;
   } 
-
   /* for (i = 0; i < pload; ++i) {
    *   printf("pair %d | g1 %d | g2 %d | red %d | ",
    *       i, ps[i].gen1, ps[i].gen2, ps[i].deg);

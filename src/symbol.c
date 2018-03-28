@@ -171,7 +171,9 @@ start:
         goto start;
       }
     }
-    goto done;
+    d = insert_in_global_hash_table(r);
+    free(r);
+    return multiplied_polynomial_to_matrix_row(d, b);
   }
 start2:
   while (i < bl) {
@@ -196,19 +198,14 @@ start2:
         goto start2;
       }
     }
-    break;
-  }
-done:
-  (ev+m)[HASH_DIV] = i;
-  if (i == bload) {
-    num_not_sdm_found++;
-    free(r);
-    return NULL;
-  } else {
     d = insert_in_global_hash_table(r);
     free(r);
     return multiplied_polynomial_to_matrix_row(d, b);
   }
+  (ev+m)[HASH_DIV] = i;
+  num_not_sdm_found++;
+  free(r);
+  return NULL;
 }
 
 static val_t **symbolic_preprocessing(

@@ -171,7 +171,7 @@ start:
         goto start;
       }
     }
-    break;
+    goto done;
   }
 start2:
   while (i < bl) {
@@ -198,6 +198,7 @@ start2:
     }
     break;
   }
+done:
   (ev+m)[HASH_DIV] = i;
   if (i == bload) {
     num_not_sdm_found++;

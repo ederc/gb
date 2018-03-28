@@ -218,22 +218,7 @@ static void insert_and_update_spairs(
     }
     i = j-1;
   } 
-  /* for (i = 0; i < pload; ++i) {
-   *   printf("pair %d | g1 %d | g2 %d | red %d | ",
-   *       i, ps[i].gen1, ps[i].gen2, ps[i].deg);
-   *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d ", (ev+ps[i].lcm)[j]);
-   *   }
-   *   printf("\n");
-   * }
-   * for (; i < nl; ++i) {
-   *   printf("pair %d | g1 %d | g2 %d | red %d | ",
-   *       i, ps[i].gen1, ps[i].gen2, ps[i].deg);
-   *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d ", (evl+ps[i].lcm)[j]);
-   *   }
-   *   printf("\n");
-   * } */
+
   /* remove useless pairs from pairset */
   j = 0;
   /* old pairs */

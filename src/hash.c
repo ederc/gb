@@ -442,9 +442,63 @@ static inline void reset_local_hash_table(
 /* note that the product insertion, i.e. monomial x polynomial
  * is only needed for the local hash table. in the global one we
  * only add the basis elements, i.e. no multiplication is applied. */
+static inline len_t insert_in_global_hash_table_product_special(
+    const val_t h1,
+    const deg_t d,
+    const exp_t * const a1,
+    const exp_t * const a2
+    )
+{
+  int32_t i, k, pos;
+  exp_t *e, *n;
+
+  const int32_t h = h1 + a2[HASH_VAL];
+  /* printf("hash %d\n", h); */
+
+  n = ev + eload;
+  for (i = 0; i < nvars; ++i) {
+    n[i]  = a1[i] + a2[i];
+  }
+  /* for (i = 0; i < nvars; ++i) {
+   *   printf("%d ", n[i]);
+   * }
+   * printf("\n deglala %d\n", deg); */
+  /* probing */
+  k = h;
+  for (i = 0; i < msize; ++i) {
+    k = (k+i) & (msize-1);
+    if (!map[k]) {
+      break;
+    }
+    e = ev + map[k];
+    if (e[HASH_VAL] != h) {
+      continue;
+    }
+    if (memcmp(n, e, (unsigned long)nvars * sizeof(exp_t)) == 0) {
+      return map[k];
+    }
+  }
+
+  /* add element to hash table */
+  map[k]  = pos = eload;
+  n[HASH_DEG] = d + a2[HASH_DEG];
+  /* n[HASH_DEG] = a1[HASH_DEG] + a2[HASH_DEG]; */
+  n[HASH_SDM] = generate_short_divmask(n);
+  n[HASH_VAL] = h;
+
+  eload  +=  HASH_LEN;
+  /* if (eload >= esize) {
+   *   enlarge_global_hash_table();
+   * } */
+  return pos;
+}
+
+/* note that the product insertion, i.e. monomial x polynomial
+ * is only needed for the local hash table. in the global one we
+ * only add the basis elements, i.e. no multiplication is applied. */
 static inline len_t insert_in_global_hash_table_product(
-    const exp_t *a1,
-    const exp_t *a2
+    const exp_t * const a1,
+    const exp_t * const a2
     )
 {
   int32_t i, k, pos;
@@ -452,10 +506,15 @@ static inline len_t insert_in_global_hash_table_product(
 
   const int32_t h = a1[HASH_VAL] + a2[HASH_VAL];
 
+  /* printf("hash %d\n", h); */
   n = ev + eload;
   for (i = 0; i < nvars; ++i) {
     n[i]  = a1[i] + a2[i];
   }
+  /* for (i = 0; i < nvars; ++i) {
+   *   printf("%d ", n[i]);
+   * }
+   * printf("\n deg %d\n", n[HASH_DEG]); */
   /* probing */
   k = h;
   for (i = 0; i < msize; ++i) {
@@ -603,7 +662,9 @@ static inline len_t monomial_division_no_check(
 }
 
 static inline val_t *multiplied_polynomial_to_matrix_row(
-    const len_t mult,
+    const val_t hm,
+    const deg_t deg,
+    const exp_t * const em,
     const val_t *poly
     )
 {
@@ -618,16 +679,22 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
   if (eload+((poly[0]-2)/2*HASH_LEN) >= esize) {
     enlarge_global_hash_table();
   }
-  const exp_t * const em = ev + mult;
+  /* const exp_t * const em = ev + mult; */
+  /* const val_t hm  = em[HASH_VAL]; */
   for (i = 2; i < poly[1]; i += 2) {
-    row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]);
+    /* row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]); */
+    row[i]    = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i]);
   }
 #if 1
   for (;i < poly[0]; i += 8) {
-    row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]);
-    row[i+2]  = insert_in_global_hash_table_product(em, ev+poly[i+2]);
-    row[i+4]  = insert_in_global_hash_table_product(em, ev+poly[i+4]);
-    row[i+6]  = insert_in_global_hash_table_product(em, ev+poly[i+6]);
+    row[i]    = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i]);
+    row[i+2]  = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i+2]);
+    row[i+4]  = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i+4]);
+    row[i+6]  = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i+6]);
+    /* row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]);
+     * row[i+2]  = insert_in_global_hash_table_product(em, ev+poly[i+2]);
+     * row[i+4]  = insert_in_global_hash_table_product(em, ev+poly[i+4]);
+     * row[i+6]  = insert_in_global_hash_table_product(em, ev+poly[i+6]); */
   }
 #endif
   /* printf("multiplied polys added\n");

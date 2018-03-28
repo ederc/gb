@@ -26,13 +26,14 @@ static val_t **select_spairs_by_minimal_degree(
     void
     )
 {
-  int32_t i, j, k, md, npairs;
+  int32_t i, j, k, l, md, npairs;
   val_t *b;
-  len_t m;
-
+  deg_t d = 0;
   len_t lcm = 0, load = 0, load_old = 0;
   val_t **mat;
   len_t *gens;
+
+  exp_t *em = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -99,9 +100,15 @@ static val_t **select_spairs_by_minimal_degree(
       j++;
     }
     for (k = load_old; k < load; ++k) {
+      d = 0;
       b = (val_t *)((long)bs[gens[k]] & bmask);
-      m = monomial_division_no_check(lcm, b[2]);
-      mat[nrows++]  = multiplied_polynomial_to_matrix_row(m, b);
+      /* m = monomial_division_no_check(lcm, b[2]); */
+      for (l = 0; l < nvars; ++l) {
+        em[l] = (ev+lcm)[l] - (ev+b[2])[l];
+        d     +=  em[l];
+      }
+      const val_t h = (ev+lcm)[HASH_VAL] - (ev+b[2])[HASH_VAL];
+      mat[nrows++]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
     }
 
     i = j;
@@ -111,6 +118,7 @@ static val_t **select_spairs_by_minimal_degree(
   num_rowsred     +=  load;
 
   free(gens);
+  free(em);
 
   /* remove selected spairs from pairset */
   for (j = npairs; j < pload; ++j) {
@@ -132,7 +140,7 @@ static inline val_t *find_multiplied_reducer(
     )
 {
   int32_t i, k;
-  len_t d;
+  deg_t d = 0;
   val_t *b;
   const exp_t * const e  = ev+m;
   exp_t *f;
@@ -171,9 +179,15 @@ start:
         goto start;
       }
     }
-    d = insert_in_global_hash_table(r);
+    /* d = insert_in_global_hash_table(r); */
+    /* free(r); */
+    const val_t h = e[HASH_VAL] - f[HASH_VAL];
+    for (i = 0; i < nvars; ++i) {
+      d += r[i];
+    }
+    b = multiplied_polynomial_to_matrix_row(h, d, r, b);
     free(r);
-    return multiplied_polynomial_to_matrix_row(d, b);
+    return b;
   }
 start2:
   while (i < bl) {
@@ -198,9 +212,18 @@ start2:
         goto start2;
       }
     }
-    d = insert_in_global_hash_table(r);
+    /* d = insert_in_global_hash_table(r); */
+    /* free(r); */
+    const val_t h = e[HASH_VAL] - f[HASH_VAL];
+    for (i = 0; i < nvars; ++i) {
+      d += r[i];
+    }
+    b = multiplied_polynomial_to_matrix_row(h, d, r, b);
     free(r);
-    return multiplied_polynomial_to_matrix_row(d, b);
+    return b;
+    /* d = insert_in_global_hash_table(r);
+     * free(r);
+     * return multiplied_polynomial_to_matrix_row(d, b); */
   }
   (ev+m)[HASH_DIV] = i;
   num_not_sdm_found++;

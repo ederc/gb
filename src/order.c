@@ -22,6 +22,7 @@
 
 #include "data.h"
 
+#if 0
 /* sorting stuff for matrices */
 static int columns_cmp(
     const void *a,
@@ -33,6 +34,7 @@ static int columns_cmp(
 
   return (int)(ca - cb);
 }
+#endif
 
 static int matrix_row_initial_input_cmp_lex(
     const void *a,

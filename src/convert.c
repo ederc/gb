@@ -117,27 +117,17 @@ static len_t *convert_hashes_to_columns(
 
   /* next we sort each row by the new colum order due
    * to known / unkown pivots */
-  double rrt0, rrt1;
-  rrt0 = realtime();
-#if ORDER_COLUMNS
-#pragma omp parallel for num_threads(nthrds) private(i)
-  for (i = 0; i < nrows; ++i) {
-    /* we only need to sort the rows up to the first element
-     * with column index higher than ncl */
-    int32_t ctr = 0;
-    j = 2;
-    while (j < mat[i][0] && mat[i][j] < ncl) {
-      ctr++;
-      j = j + 2;
-    }
-    qsort(mat[i]+2, (unsigned long)ctr, 2 * sizeof(val_t),
-        columns_cmp);
-    /* qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
-     *     columns_cmp); */
-  }
-#endif
-  rrt1 = realtime();
-  col_sort_rtime +=  rrt1 - rrt0;
+
+  /* NOTE: As strange as it may sound, we do not need to sort the rows.
+   * When reducing, we copy them to dense rows, there we copy the coefficients
+   * at the right place and reduce then. For the reducers itself it is not
+   * important in which order the terms are represented as long as the first
+   * term is the lead term, which is always true. Once a row is finally reduced
+   * it is copied back to a sparse representation, now in the correct term
+   * order since it is coming from the correctly sorted dense row. So all newly
+   * added elements have all their terms sorted correctly w.r.t. the given
+   * monomial order. */
+
   /* compute density of matrix */
   nterms  *=  100; /* for percentage */
   density = (double)nterms / (double)nrows / (double)ncols;

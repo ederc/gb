@@ -22,7 +22,7 @@
 
 #include "data.h"
 
-#if ORDER_COLUMNS
+#if 0
 /* sorting stuff for matrices */
 static int columns_cmp(
     const void *a,

@@ -51,15 +51,23 @@ static len_t *convert_hashes_to_columns(
     row     =   mat[i];
     nterms  +=  (int64_t)(row[0]-2)/2;
     for (l = 2; l < row[0]; l += 2) {
+#if ORDER_COLUMNS
+      if ((ev+row[l])[HASH_IND] > 0) {
+#else
       if ((ev+row[l])[HASH_IND] != 0) {
+#endif
         hcm[j++]  = row[l];
         if ((ev+row[l])[HASH_IND] == 2) {
           k++;
-        /*   (ev+row[l])[HASH_IND]  = -1;
-         * } else {
-         *   (ev+row[l])[HASH_IND]  = -2; */
+#if ORDER_COLUMNS
+          (ev+row[l])[HASH_IND]  = -1;
+        } else {
+          (ev+row[l])[HASH_IND]  = -2;
+        }
+#else
         }
         (ev+row[l])[HASH_IND] = 0;
+#endif
       }
     }
   }
@@ -96,8 +104,14 @@ static len_t *convert_hashes_to_columns(
 #pragma omp parallel for num_threads(nthrds) private(i, j)
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
-    for (j = 2; j < row[0]; j += 2) {
+    for (j = 2; j < row[1]; j += 2) {
       row[j]  = (ev + row[j])[HASH_IND];
+    }
+    for (; j < row[0]; j += 8) {
+      row[j]    = (ev + row[j])[HASH_IND];
+      row[j+2]  = (ev + row[j+2])[HASH_IND];
+      row[j+4]  = (ev + row[j+4])[HASH_IND];
+      row[j+6]  = (ev + row[j+6])[HASH_IND];
     }
   }
 
@@ -105,11 +119,23 @@ static len_t *convert_hashes_to_columns(
    * to known / unkown pivots */
   double rrt0, rrt1;
   rrt0 = realtime();
-/* #pragma omp parallel for num_threads(nthrds) private(i)
- *   for (i = 0; i < nrows; ++i) {
- *     qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
- *         columns_cmp);
- *   } */
+#if ORDER_COLUMNS
+#pragma omp parallel for num_threads(nthrds) private(i)
+  for (i = 0; i < nrows; ++i) {
+    /* we only need to sort the rows up to the first element
+     * with column index higher than ncl */
+    int32_t ctr = 0;
+    j = 2;
+    while (j < mat[i][0] && mat[i][j] < ncl) {
+      ctr++;
+      j = j + 2;
+    }
+    qsort(mat[i]+2, (unsigned long)ctr, 2 * sizeof(val_t),
+        columns_cmp);
+    /* qsort(mat[i]+2, (unsigned long)(mat[i][0]-2)/2, 2 * sizeof(val_t),
+     *     columns_cmp); */
+  }
+#endif
   rrt1 = realtime();
   col_sort_rtime +=  rrt1 - rrt0;
   /* compute density of matrix */

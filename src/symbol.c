@@ -144,7 +144,7 @@ static inline val_t *find_multiplied_reducer(
   val_t *b;
   const exp_t * const e  = ev+m;
   exp_t *f;
-  exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+  /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
   const int32_t bl  = bload;
   const int32_t os  = nvars & 1 ? 1 : 0;
@@ -166,21 +166,25 @@ start:
     }
     b = (val_t *)((long)bs[i] & bmask);
     f = ev+b[2];
-    r[0]  = e[0] - f[0];
-    if (r[0] < 0) {
+    /* r[0]  = e[0] - f[0]; */
+    if ((e[0]-f[0]) < 0) {
       i++;
       goto start;
     }
     for (k = os; k < nvars; k += 2) {
-      r[k]    = e[k] - f[k];
-      r[k+1]  = e[k+1] - f[k+1];
-      if (r[k] < 0 || r[k+1] < 0) {
+      /* r[k]    = e[k] - f[k];
+       * r[k+1]  = e[k+1] - f[k+1]; */
+      if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start;
       }
     }
     /* d = insert_in_global_hash_table(r); */
     /* free(r); */
+    exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+    for (i = 0; i < nvars; ++i) {
+      r[i]  = e[i] - f[i];
+    }
     const val_t h = e[HASH_VAL] - f[HASH_VAL];
     for (i = 0; i < nvars; ++i) {
       d += r[i];
@@ -199,21 +203,25 @@ start2:
     }
     b = (val_t *)((long)bs[i] & bmask);
     f = ev+b[2];
-    r[0]  = e[0] - f[0];
-    if (r[0] < 0) {
+    /* r[0]  = e[0] - f[0]; */
+    if ((e[0]-f[0]) < 0) {
       i++;
       goto start2;
     }
     for (k = os; k < nvars; k += 2) {
-      r[k]    = e[k] - f[k];
-      r[k+1]  = e[k+1] - f[k+1];
-      if (r[k] < 0 || r[k+1] < 0) {
+      /* r[k]    = e[k] - f[k];
+       * r[k+1]  = e[k+1] - f[k+1]; */
+      if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start2;
       }
     }
     /* d = insert_in_global_hash_table(r); */
     /* free(r); */
+    exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+    for (i = 0; i < nvars; ++i) {
+      r[i]  = e[i] - f[i];
+    }
     const val_t h = e[HASH_VAL] - f[HASH_VAL];
     for (i = 0; i < nvars; ++i) {
       d += r[i];
@@ -227,7 +235,6 @@ start2:
   }
   (ev+m)[HASH_DIV] = i;
   num_not_sdm_found++;
-  free(r);
   return NULL;
 }
 

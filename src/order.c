@@ -22,7 +22,7 @@
 
 #include "data.h"
 
-#if 0
+#if ORDER_COLUMNS
 /* sorting stuff for matrices */
 static int columns_cmp(
     const void *a,
@@ -144,34 +144,40 @@ static int monomial_cmp_pivots_drl(
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
 
-  /* [> first known pivots vs. tail terms <]
-   * if (ea[HASH_IND] < eb[HASH_IND]) {
-   *   return 1;
-   * } else {
-   *   if (ea[HASH_IND] != eb[HASH_IND]) {
-   *     return -1;
-   *   }
-   * } */
-
-  /* then DRL */
-  if (ea[HASH_DEG] > eb[HASH_DEG]) {
-    return -1;
-  } else {
-    if (ea[HASH_DEG] != eb[HASH_DEG]) {
-      return 1;
-    }
-  }
-
-  /* note: reverse lexicographical */
-  for (i = nvars-1; i >= 0; --i) {
-    if (ea[i] > eb[i]) {
+#if ORDER_COLUMNS
+  /* first known pivots vs. tail terms */
+  if (ea[HASH_IND] != eb[HASH_IND]) {
+    if (ea[HASH_IND] < eb[HASH_IND]) {
       return 1;
     } else {
-      if (ea[i] != eb[i]) {
-        return -1;
+      return -1;
+    }
+  } else {
+#endif
+
+    /* then DRL */
+    if (ea[HASH_DEG] > eb[HASH_DEG]) {
+      return -1;
+    } else {
+      if (ea[HASH_DEG] != eb[HASH_DEG]) {
+        return 1;
       }
     }
+
+    /* note: reverse lexicographical */
+    for (i = nvars-1; i >= 0; --i) {
+      if (ea[i] > eb[i]) {
+        return 1;
+      } else {
+        if (ea[i] != eb[i]) {
+          return -1;
+        }
+      }
+    }
+#if ORDER_COLUMNS
   }
+#endif
+
   return 0;
 }
 

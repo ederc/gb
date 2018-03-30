@@ -38,6 +38,8 @@
  * inline omp_int_t omp_get_max_threads(void) { return 1;}
  * #endif */
 
+#define ORDER_COLUMNS 1
+
 /* computational data */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */

@@ -321,6 +321,7 @@ static val_t **probabilistic_sparse_linear_algebra(
     val_t **mat
     )
 {
+  /* printf("HIER | ncols %d\n", ncols); */
   int32_t i, j, k, l;
   val_t sc    = 0;    /* starting column */
   val_t *npiv = NULL; /* new pivot row */
@@ -339,6 +340,9 @@ static val_t **probabilistic_sparse_linear_algebra(
 
   i = 0;
   j = 1;
+  /* for (i = 0; i < nrows; ++i) {
+   *   printf("mat[%d][2] = %d\n", i, mat[i][2]);
+   * } */
   for (i = 0; i < nrows; ++i) {
     if (!pivs[mat[i][2]]) {
       pivs[mat[i][2]]   = mat[i];
@@ -351,6 +355,11 @@ static val_t **probabilistic_sparse_linear_algebra(
   }
   free(mat);
   mat = NULL;
+
+  /* printf("nru %d | nrl %d | ncl %d\n", nru, nrl, ncl);
+   * for (i = 0; i < ncols; ++i) {
+   *   printf("pivs[%d] = %p\n", i, pivs[i]);
+   * } */
 
   /* compute rows per block */
   const int32_t nb  = (int32_t)(floor(sqrt(nrl/2))) > 0 ?
@@ -429,12 +438,16 @@ static val_t **probabilistic_sparse_linear_algebra(
   upivs = NULL;
 
   /* we do not need the old pivots anymore */
-  for (i = 0; i < ncols; ++i) {
-    if (kpivs[i] == 1) {
-      free(pivs[i]);
-      pivs[i] = NULL;
-    }
+  for (i = 0; i < ncl; ++i) {
+    free(pivs[i]);
+    pivs[i] = NULL;
   }
+  /* for (i = 0; i < ncols; ++i) {
+   *   if (kpivs[i] == 1) {
+   *     free(pivs[i]);
+   *     pivs[i] = NULL;
+   *   }
+   * } */
   free(kpivs);
   kpivs = NULL;
 
@@ -443,7 +456,8 @@ static val_t **probabilistic_sparse_linear_algebra(
 
   mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (ncols-1); i >= 0; --i) {
+  for (i = (ncols-1); i >= nru; --i) {
+  /* for (i = (ncols-1); i >= 0; --i) { */
     if (pivs[i]) {
       memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {

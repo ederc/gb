@@ -36,12 +36,15 @@ static val_t **select_spairs_by_minimal_degree(
   exp_t *em = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
   /* timings */
-  double ct0, ct1, rt0, rt1;
+  double ct0, ct1, rt0, rt1, rrt0, rrt1;
   ct0 = cputime();
   rt0 = realtime();
 
   /* sort pair set */
+  rrt0 = realtime();
   qsort(ps, (unsigned long)pload, sizeof(spair_t), spair_cmp);
+  rrt1 = realtime();
+  pair_sort_rtime +=  rrt1 - rrt0;
   /* get minimal degree */
   md  = ps[0].deg;
 

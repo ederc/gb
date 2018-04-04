@@ -78,6 +78,8 @@ static val_t **select_spairs_by_minimal_degree(
 
   i = 0;
   while (i < npairs) {
+    /* ncols initially counts number of different lcms */
+    ncols++;
     load_old  = load;
     lcm   = ps[i].lcm;
     gens[load++] = ps[i].gen1;
@@ -111,7 +113,10 @@ static val_t **select_spairs_by_minimal_degree(
         d     +=  em[l];
       }
       const val_t h = (ev+lcm)[HASH_VAL] - (ev+b[2])[HASH_VAL];
-      mat[nrows++]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
+      mat[nrows]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
+      /* mark lcm column as lead term column */
+      (ev+mat[nrows][2])[HASH_IND] = 2;
+      nrows++;
     }
 
     i = j;
@@ -169,21 +174,16 @@ start:
     }
     b = (val_t *)((long)bs[i] & bmask);
     f = ev+b[2];
-    /* r[0]  = e[0] - f[0]; */
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start;
     }
     for (k = os; k < nvars; k += 2) {
-      /* r[k]    = e[k] - f[k];
-       * r[k+1]  = e[k+1] - f[k+1]; */
       if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start;
       }
     }
-    /* d = insert_in_global_hash_table(r); */
-    /* free(r); */
     exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
     for (i = 0; i < nvars; ++i) {
       r[i]  = e[i] - f[i];
@@ -201,26 +201,20 @@ start2:
     if (lms[i] & ns) {
       num_sdm_found++;
       i++;
-      /* j = i * LM_LEN; */
       continue;
     }
     b = (val_t *)((long)bs[i] & bmask);
     f = ev+b[2];
-    /* r[0]  = e[0] - f[0]; */
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start2;
     }
     for (k = os; k < nvars; k += 2) {
-      /* r[k]    = e[k] - f[k];
-       * r[k+1]  = e[k+1] - f[k+1]; */
       if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start2;
       }
     }
-    /* d = insert_in_global_hash_table(r); */
-    /* free(r); */
     exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
     for (i = 0; i < nvars; ++i) {
       r[i]  = e[i] - f[i];
@@ -232,9 +226,6 @@ start2:
     b = multiplied_polynomial_to_matrix_row(h, d, r, b);
     free(r);
     return b;
-    /* d = insert_in_global_hash_table(r);
-     * free(r);
-     * return multiplied_polynomial_to_matrix_row(d, b); */
   }
   (ev+m)[HASH_DIV] = i;
   num_not_sdm_found++;
@@ -254,35 +245,32 @@ static val_t **symbolic_preprocessing(
   ct0 = cputime();
   rt0 = realtime();
 
-  /* mark leading monomials in HASH_IND entry */
-  for (i = 0; i < nrows; ++i) {
-    if (!(ev+mat[i][2])[HASH_IND]) {
-      (ev+mat[i][2])[HASH_IND] = 2;
-      ncols++;
-    }
-  }
+  /* note that we have already counted the different lcms, i.e.
+   * ncols until this step. moreover, we have also already marked
+   * the corresponding hash indices to represent lead terms. so
+   * we only have to do the bookkeeping for newly added reducers
+   * in the following. */
 
   /* get reducers from basis */
   for (i = 0; i < nrows; ++i) {
     const len_t len = mat[i][0];
+    /* check row reallocation only once per polynomial */
+    if ((nrall - nrows) < (mat[i][0]-4)/2) {
+      nrall = 2*nrall > mat[i][0] ? 2*nrall : mat[i][0];
+      mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));
+    }
     for (j = 4; j < len; j += 2) {
       m = mat[i][j];
-      if ((ev+m)[HASH_IND]) {
-        continue;
-      }
-      ncols++;
-      red = find_multiplied_reducer(m);
-      if (!red) {
+      if (!(ev+m)[HASH_IND]) {
         (ev+m)[HASH_IND] = 1;
-        continue;
+        ncols++;
+        red = find_multiplied_reducer(m);
+        if (red) {
+          (ev+m)[HASH_IND] = 2;
+          /* add new reducer to matrix */
+          mat[nrows++]  = red;
+        }
       }
-      (ev+m)[HASH_IND] = 2;
-      if (nrows == nrall) {
-        nrall = 2 * nrall;
-        mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));
-      }
-      /* add new reducer to matrix */
-      mat[nrows++]  = red;
     }
   }
 

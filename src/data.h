@@ -44,7 +44,10 @@
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
 typedef int32_t exp_t;    /* exponent type */
-typedef int32_t val_t;    /* core values like hashes, coefficients, etc. */
+typedef int32_t val_t;    /* core values like hashes */
+typedef int32_t cf_q_t;   /* coefficient type for rationals */
+typedef int32_t cf_32_t;  /* coefficient type 32 bit primes */
+typedef int16_t cf_16_t;  /* coefficient type 16 bit primes */
 typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef int32_t bi_t;     /* basis index of element */
 typedef int32_t bl_t;     /* basis load */
@@ -75,6 +78,80 @@ static val_t mo = 0;
 
 /* field characteristic */
 static val_t fc = 0;
+
+typedef struct md_t md_t;
+struct md_t
+{
+  int32_t nv; /* number of variables */
+  int32_t mo; /* monomial order: 0 = DRL, 1 = LEX */
+  int32_t fc; /* field characteristic */
+  int32_t la; /* linear algebra option */
+  int32_t ng; /* number of generators */
+  int32_t mp; /* maximal number of pairs selected at once */
+  int32_t nt; /* number of threads */
+  double density;
+  /* statistics */
+  double select_ctime;
+  double select_rtime;
+  double symbol_ctime;
+  double symbol_rtime;
+  double update_ctime;
+  double update_rtime;
+  double convert_ctime;
+  double convert_rtime;
+  double reduce_ctime;
+  double reduce_rtime;
+  double la_ctime;
+  double la_rtime;
+  double psort_rtime;
+  int64_t num_pairsred;
+  int64_t num_gb_crit;
+  int64_t num_redundant;
+  int64_t num_duplicates;
+  int64_t num_rowsred;
+  int64_t num_zerored;
+  int64_t num_ht_enlarge;
+  int64_t num_sdm_found;
+  int64_t num_not_sdm_found;
+};
+
+/* structured rows resp. polynomials (depending on the context)
+ * we do not know what type our coefficients have a priori: we support
+ * 16-bit prime fields, 32-bit prime fields and the rationals */
+typedef struct row_t row_t;
+struct row_t
+{
+  len_t sz;   /* size of row */
+  len_t os;   /* offset for loop unrolling */
+  void *cf;   /* coefficients */
+  len_t *ch;  /* column positions resp. hash positions */
+};
+
+/* structured matrices */
+typedef struct mat_t mat_t;
+struct mat_t
+{
+  len_t nr;   /* number of rows */
+  len_t nc;   /* number of columns */
+  len_t nru;  /* number of upper rows (ABCD split) */
+  len_t nrl;  /* number of lower rows (ABCD split) */
+  len_t ncl;  /* number of left columns (ABCD split) */
+  len_t ncr;  /* number of right columns (ABCD split) */
+  len_t np;   /* number of pivots */
+  len_t na;   /* number of rows allocated */
+  row_t **r;  /* rows */
+};
+
+/* structured basis */
+typedef struct bs_t bs_t;
+struct bs_t
+{
+  len_t ld;   /* current load of basis */
+  len_t sz;   /* size of basis */
+  len_t ol;   /* old load of basis before entering new elements */
+  row_t **p;  /* polynomials */
+  len_t *lm;  /* lead monomials of basis elements */
+};
 
 /* basis data */
 static val_t **bs = NULL;
@@ -110,6 +187,19 @@ static int32_t nthrds = 1; /* number of CPU threads */
 static int32_t laopt  = 0;
 
 /* function pointers */
+mat_t *import_julia_data(
+    const int32_t *lens,
+    const int32_t *cfs,
+    const int32_t *exps,
+    const md_t *md
+    );
+
+int64_t export_julia_data(
+    const bs_t *bs,
+    const md_t *md,
+    int32_t **bp
+    );
+
 int (*matrix_row_initial_input_cmp)(
     const void *a,
     const void *b

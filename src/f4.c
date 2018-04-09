@@ -52,12 +52,18 @@ int64_t f4_julia(
   rt0 = realtime();
 
   int32_t i, round;
-  val_t **mat;
-  len_t *hcm; /* hash-column-map */
+  /* basis */
+  bs_t *bs;
+  /* matrix */
+  mat_t *mat;
+  /* hash-column-map */
+  len_t *hcm;
+  /* meta data */
+  md_t *md  = (md_t *)malloc(sizeof(md_t));
 
   /* checks and set all meta data. if a nonzero value is returned then
    * some of the input data is corrupted. */
-  if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
+  if (check_and_set_meta_data(md, lens, cfs, exps, field_char, mon_order,
       nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
     return 0;
   }
@@ -65,31 +71,32 @@ int64_t f4_julia(
   /* initialize stuff */
   initialize_statistics();
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
-  GB_DEBUG(GBDBG, "#variables             %15d\n", nvars);
-  GB_DEBUG(GBDBG, "#equations             %15d\n", nr_gens);
-  GB_DEBUG(GBDBG, "field characteristic   %15d\n", fc);
-  if (mo == 0) {
+  GB_DEBUG(GBDBG, "#variables             %15d\n", md->nv);
+  GB_DEBUG(GBDBG, "#equations             %15d\n", md->ng);
+  GB_DEBUG(GBDBG, "field characteristic   %15d\n", md->fc);
+  if (md->mo == 0) {
     GB_DEBUG(GBDBG, "monomial order                     DRL\n");
   }
-  if (mo == 1) {
+  if (md->mo == 1) {
     GB_DEBUG(GBDBG, "monomial order                     LEX\n");
   }
-  if ((mo != 0) && (mo != 1)) {
+  if ((md->mo != 0) && (md->mo != 1)) {
     GB_DEBUG(GBDBG, "monomial order               DONT KNOW\n");
   }
-  GB_DEBUG(GBDBG, "linear algebra option  %15d\n", laopt);
+  GB_DEBUG(GBDBG, "linear algebra option  %15d\n", md->la);
   GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
       (int32_t)pow(2,htes), htes);
-  GB_DEBUG(GBDBG, "maximal pair selection %15d\n", mnsel);
-  GB_DEBUG(GBDBG, "#threads               %15d\n", nthrds);
+  GB_DEBUG(GBDBG, "maximal pair selection %15d\n", md->mp);
+  GB_DEBUG(GBDBG, "#threads               %15d\n", md->nt);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
-  initialize_basis(nr_gens);
+  bs  = initialize_basis(md->ng);
+
   initialize_pairset();
   initialize_global_hash_table();
   initialize_local_hash_table();
 
-  mat = import_julia_data(lens, cfs, exps, nr_gens);
+  mat = import_julia_data(lens, cfs, exps, md->ng);
 
   /* for faster divisibility checks, needs to be done after we have
    * read some input data for applying heuristics */

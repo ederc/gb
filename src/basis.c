@@ -22,45 +22,53 @@
 
 #include "data.h"
 
-static void initialize_basis(
+static bs_t *initialize_basis(
     int32_t ngens
     )
 {
-  bload = 0;
-  bsize = 2*ngens;
+  bs_t *bs = (bs_t *)malloc(sizeof(bs_t));
+  bs->ld  = 0;
+  bs->sz  = 2*ngens;
+  bs->ol  = bs->ld;
 
-  bs  = (val_t **)malloc((unsigned long)bsize * sizeof(val_t *));
-  lms = (val_t *)malloc((unsigned long)bsize * sizeof(val_t));
+  bs->p   = (void **)malloc((unsigned long)bs->sz * sizeof(void *));
+  bs->lm  = (len_t *)malloc((unsigned long)bs->sz * sizeof(len_t)); 
+
+  return bs;
 }
 
 static inline void check_enlarge_basis(
-    int32_t added
+    bs_t *bs,
+    const int32_t added
     )
 {
-  if (bload+added >= bsize) {
-    bsize = bsize*2 > bload+added ? bsize*2 : bload+added;
-    bs    = realloc(bs, (unsigned long)bsize * sizeof(val_t *));
-    lms   = realloc(lms, (unsigned long)bsize * sizeof(val_t));
+  if ((bs->ld + added) >= bs->sz) {
+    bs->sz = (bs->sz * 2) > (bs->ld + added) ?
+      (bs->sz * 2) : (bs->ld + added);
+    bs->p   = realloc(bs->p, (unsigned long)bs->sz * sizeof(void *));
+    bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(val_t));
   }
 }
 
 static void free_basis(
-    void
+    bs_t **bsp
     )
 {
   int32_t i;
+  bs_t *bs = *bsp;
+
   if (bs) {
-    for (i = 0; i < bload; ++i) {
+    for (i = 0; i < bs->ld; ++i) {
       /* reset pointer of possible redundant elements */
-      bs[i] = (val_t *)((long)bs[i] & bmask);
-      free(bs[i]);
+      bs->p[i]->cf = (void *)((long)bs->p[i]->cf & bmask);
+      free(bs->p[i]->cf);
+      free(bs->p[i]->ch);
     }
+    free(bs->p);
+    free(bs->lm);
+    bs->lm  = NULL;
     free(bs);
-    bs    = NULL;
-    free(lms);
-    lms   = NULL;
-    blold = 0;
-    bload = 0;
-    bsize = 0;
+    bs      = NULL;
   }
+  *bsp  = bs;
 }

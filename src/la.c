@@ -89,142 +89,143 @@ static inline void normalize_matrix_row_32(
   cf[0]  = 1;
 }
 
-static inline void normalize_matrix_row(
-    val_t *row
-    )
-{
-  int32_t i;
-  int64_t tmp1, tmp2, tmp3, tmp4;
-
-  const int32_t inv = mod_p_inverse_32(row[3], fc);
-  
-  for (i = 3; i < row[1]; i += 2) {
-    tmp1    =   ((int64_t)row[i] * inv) % fc;
-    tmp1    +=  (tmp1 >> 63) & fc;
-    row[i]  =   (val_t)tmp1;
-  }
-  for (; i < row[0]; i += 8) {
-    tmp1      =   ((int64_t)row[i] * inv) % fc;
-    tmp2      =   ((int64_t)row[i+2] * inv) % fc;
-    tmp3      =   ((int64_t)row[i+4] * inv) % fc;
-    tmp4      =   ((int64_t)row[i+6] * inv) % fc;
-    tmp1      +=  (tmp1 >> 63) & fc;
-    tmp2      +=  (tmp2 >> 63) & fc;
-    tmp3      +=  (tmp3 >> 63) & fc;
-    tmp4      +=  (tmp4 >> 63) & fc;
-    row[i]    =   (val_t)tmp1;
-    row[i+2]  =   (val_t)tmp2;
-    row[i+4]  =   (val_t)tmp3;
-    row[i+6]  =   (val_t)tmp4;
-  }
-  row[3]  = 1;
-}
+/* static inline void normalize_matrix_row(
+ *     val_t *row
+ *     )
+ * {
+ *   int32_t i;
+ *   int64_t tmp1, tmp2, tmp3, tmp4;
+ *
+ *   const int32_t inv = mod_p_inverse_32(row[3], fc);
+ *
+ *   for (i = 3; i < row[1]; i += 2) {
+ *     tmp1    =   ((int64_t)row[i] * inv) % fc;
+ *     tmp1    +=  (tmp1 >> 63) & fc;
+ *     row[i]  =   (val_t)tmp1;
+ *   }
+ *   for (; i < row[0]; i += 8) {
+ *     tmp1      =   ((int64_t)row[i] * inv) % fc;
+ *     tmp2      =   ((int64_t)row[i+2] * inv) % fc;
+ *     tmp3      =   ((int64_t)row[i+4] * inv) % fc;
+ *     tmp4      =   ((int64_t)row[i+6] * inv) % fc;
+ *     tmp1      +=  (tmp1 >> 63) & fc;
+ *     tmp2      +=  (tmp2 >> 63) & fc;
+ *     tmp3      +=  (tmp3 >> 63) & fc;
+ *     tmp4      +=  (tmp4 >> 63) & fc;
+ *     row[i]    =   (val_t)tmp1;
+ *     row[i+2]  =   (val_t)tmp2;
+ *     row[i+4]  =   (val_t)tmp3;
+ *     row[i+6]  =   (val_t)tmp4;
+ *   }
+ *   row[3]  = 1;
+ * } */
 
 static val_t *reduce_dense_row_by_known_pivots_16_bit(
     int64_t *dr,
-    val_t *const *pivs,
-    const val_t dpiv    /* pivot of dense row at the beginning */
+    const len_t dpiv,         /* pivot of dense row at the beginning */
+    const len_t nc,
+    const mat_t *pivs,
+    const md_t * const md
     )
 {
   int32_t i, j, k;
-  const int64_t mod = (int64_t)fc;
+  const int64_t mod = (int64_t)md->fc;
 
-  for (k = 0, i = dpiv; i < ncols; ++i) {
+  row_t *piv;
+  int16_t *cf;
+  len_t *ch;
+
+  for (k = 0, i = dpiv; i < nc; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % mod;
     }
     if (dr[i] == 0) {
       continue;
     }
-    if (pivs[i] == NULL) {
+    if (pivs->r[i] == NULL) {
       k++;
       continue;
     }
 
-    /* printf("16-bit dr before reduction with piv %d\n", i);
-     * for (int32_t l = 0; l < ncols; ++l) {
-     *   printf("%ld ", dr[l]);
-     * }
-     * printf("\n"); */
     /* found reducer row, get multiplier */
     const int64_t mul = mod - dr[i];
-    /* printf("mul %ld\n", mul); */
 
-    for (j = 2; j < pivs[i][1]; j += 2) {
-      dr[pivs[i][j]]  +=  mul * (int64_t)pivs[i][j+1];
+    piv = pivs->r[i];
+    cf  = (int16_t *)piv->cf;
+    ch  = piv->ch;
+    for (j = 0; j < piv->os; ++j) {
+      dr[ch[j]]  +=  mul * (int64_t)cf[j];
     }
     /* UNROLL is set to be 4 in src/data.h */
-    for (; j < pivs[i][0]; j += 8) {
-      dr[pivs[i][j]]    +=  mul * (int64_t)pivs[i][j+1];
-      dr[pivs[i][j+2]]  +=  mul * (int64_t)pivs[i][j+3];
-      dr[pivs[i][j+4]]  +=  mul * (int64_t)pivs[i][j+5];
-      dr[pivs[i][j+6]]  +=  mul * (int64_t)pivs[i][j+7];
+    for (; j < piv->sz; j += 4) {
+      dr[ch[j]]    +=  mul * (int64_t)cf[j];
+      dr[ch[j+1]]  +=  mul * (int64_t)cf[j+1];
+      dr[ch[j+2]]  +=  mul * (int64_t)cf[j+2];
+      dr[ch[j+3]]  +=  mul * (int64_t)cf[j+3];
     }
     dr[i] = 0;
-    /* printf("dr after reduction with piv %d\n", i);
-     * for (int32_t l = 0; l < ncols; ++l) {
-     *   printf("%ld ", dr[l]);
-     * }
-     * printf("\n"); */
   }
-  /* printf("k %d\n", k); */
   if (k == 0) {
     return NULL;
   }
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
-  val_t *row  = (val_t *)malloc(
-      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(val_t));
-  j = 2;
-  for (i = dpiv; i < ncols; ++i) {
+  row_t *row  = (row_t *)malloc(sizeof(row_t));
+  row->sz     = nc-dpiv;
+  row->cf     = (int16_t *)malloc((unsigned long)row->sz * sizeof(int16_t));
+  row->ch     = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
+
+  cf  = row->cf;
+  ch  = row->ch;
+  for (i = dpiv, j = 0; i < nc; ++i, ++j) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % mod;
       if (dr[i] != 0) {
-        row[j++]  = (val_t)i;
-        row[j++]  = (val_t)dr[i];
+        cf[j]  = (int16_t)dr[i];
+        ch[j]  = (len_t)i;
       }
     }
   }
-  row[0]  = j;
-  row[1]  = 2 * (((j-2)/2) % UNROLL) + 2;
-  row     = realloc(row, (unsigned long)row[0] * sizeof(val_t));
+  row->sz = j;
+  row->os = row->sz % 2;
+  cf = realloc(cf, (unsigned long)row->sz * sizeof(int16_t));
+  ch = realloc(ch, (unsigned long)row->sz * sizeof(len_t));
 
-  /* for (int32_t l = 0; l < row[0]; ++l) {
-   *   printf("%2d ", row[l]);
-   * }
-   * printf("\n"); */
+  row->cf = cf;
+  row->ch = ch;
 
-  if (row[3] != 1) {
-    normalize_matrix_row(row);
+  if (((int16_t *)row->cf)[0] != 1) {
+    normalize_matrix_row(row, md);
   }
-
-  /* printf("finally\n");
-   * for (int32_t l = 0; l < row[0]; ++l) {
-   *   printf("%2d ", row[l]);
-   * }
-   * printf("\n"); */
 
   return row;
 }
 
 static val_t *reduce_dense_row_by_known_pivots_32_bit(
     int64_t *dr,
-    val_t *const *pivs,
-    const val_t dpiv    /* pivot of dense row at the beginning */
+    const len_t dpiv,         /* pivot of dense row at the beginning */
+    const len_t nc,
+    const mat_t *pivs,
+    const md_t * const md
     )
 {
   int32_t i, j, k;
-  const int64_t mod2  = (int64_t)fc * fc;
+  const int64_t mod   = (int64_t)md->fc;
+  const int64_t mod2  = (int64_t)md->fc * md->fc;
 
-  for (k = 0, i = dpiv; i < ncols; ++i) {
+  row_t *piv;
+  int16_t *cf;
+  len_t *ch;
+
+  for (k = 0, i = dpiv; i < nc; ++i) {
     if (dr[i] != 0) {
-      dr[i] = dr[i] % fc;
+      dr[i] = dr[i] % mod;
     }
     if (dr[i] == 0) {
       continue;
     }
-    if (pivs[i] == NULL) {
+    if (pivs->r[i] == NULL) {
       k++;
       continue;
     }
@@ -232,19 +233,24 @@ static val_t *reduce_dense_row_by_known_pivots_32_bit(
     /* found reducer row, get multiplier */
     const int64_t mul = (int64_t)dr[i];
 
-    for (j = 2; j < pivs[i][1]; j += 2) {
-      dr[pivs[i][j]]    -=  mul * pivs[i][j+1];
-      dr[pivs[i][j]]    +=  (dr[pivs[i][j]] >> 63) & mod2;
+    piv = pivs->r[i];
+    cf  = (int32_t *)piv->cf;
+    ch  = piv->ch;
+
+    for (j = 0; j < piv->os; ++j) {
+      dr[ch[j]]  -=  mul * (int64_t)cf[j];
+      dr[ch[j]]  +=  (dr[ch[j]] >> 63) & mod2;
     }
-    for (; j < pivs[i][0]; j += 8) {
-      dr[pivs[i][j]]    -=  mul * pivs[i][j+1];
-      dr[pivs[i][j]]    +=  (dr[pivs[i][j]] >> 63) & mod2;
-      dr[pivs[i][j+2]]  -=  mul * pivs[i][j+3];
-      dr[pivs[i][j+2]]  +=  (dr[pivs[i][j+2]] >> 63) & mod2;
-      dr[pivs[i][j+4]]  -=  mul * pivs[i][j+5];
-      dr[pivs[i][j+4]]  +=  (dr[pivs[i][j+4]] >> 63) & mod2;
-      dr[pivs[i][j+6]]  -=  mul * pivs[i][j+7];
-      dr[pivs[i][j+6]]  +=  (dr[pivs[i][j+6]] >> 63) & mod2;
+    /* UNROLL is set to be 4 in src/data.h */
+    for (; j < piv->sz; j += 4) {
+      dr[ch[j]]  -=  mul * (int64_t)cf[j];
+      dr[ch[j]]  +=  (dr[ch[j]] >> 63) & mod2;
+      dr[ch[j+1]]  -=  mul * (int64_t)cf[j+1];
+      dr[ch[j+1]]  +=  (dr[ch[j+1]] >> 63) & mod2;
+      dr[ch[j+2]]  -=  mul * (int64_t)cf[j+1];
+      dr[ch[j+2]]  +=  (dr[ch[j+2]] >> 63) & mod2;
+      dr[ch[j+3]]  -=  mul * (int64_t)cf[j+1];
+      dr[ch[j+3]]  +=  (dr[ch[j+3]] >> 63) & mod2;
     }
     dr[i] = 0;
   }
@@ -254,28 +260,37 @@ static val_t *reduce_dense_row_by_known_pivots_32_bit(
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
-  val_t *row  = (val_t *)malloc(
-      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(val_t));
-  j = 2;
-  for (i = dpiv; i < ncols; ++i) {
+  row_t *row  = (row_t *)malloc(sizeof(row_t));
+  row->sz     = nc-dpiv;
+  row->cf     = (int32_t *)malloc((unsigned long)row->sz * sizeof(int32_t));
+  row->ch     = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
+
+  cf  = row->cf;
+  ch  = row->ch;
+  for (i = dpiv, j = 0; i < nc; ++i, ++j) {
     if (dr[i] != 0) {
-      dr[i] = dr[i] % fc;
+      dr[i] = dr[i] % mod;
       if (dr[i] != 0) {
-        row[j++]  = (val_t)i;
-        row[j++]  = (val_t)dr[i];
+        cf[j]  = (int32_t)dr[i];
+        ch[j]  = (len_t)i;
       }
     }
   }
-  row[0]  = j;
-  row[1]  = 2 * (((j-2)/2) % UNROLL) + 2;
-  row     = realloc(row, (unsigned long)row[0] * sizeof(val_t));
+  row->sz = j;
+  row->os = row->sz % 2;
+  cf = realloc(cf, (unsigned long)row->sz * sizeof(int32_t));
+  ch = realloc(ch, (unsigned long)row->sz * sizeof(len_t));
 
-  if (row[3] != 1) {
-    normalize_matrix_row(row);
+  row->cf = cf;
+  row->ch = ch;
+
+  if (((int32_t *)row->cf)[0] != 1) {
+    normalize_matrix_row(row, md);
   }
 
   return row;
 }
+
 
 static val_t **sparse_linear_algebra(
     val_t **mat

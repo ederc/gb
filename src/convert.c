@@ -129,7 +129,7 @@ static len_t *convert_hashes_to_columns(
   return hcm;
 }
 
-static val_t **convert_columns_to_hashes(
+static void convert_columns_to_hashes(
     mat_t *mat,
     md_t *md,
     const len_t *hcm
@@ -167,6 +167,4 @@ static val_t **convert_columns_to_hashes(
   rt1 = realtime();
   md->convert_ctime +=  ct1 - ct0;
   md->convert_rtime +=  rt1 - rt0;
-
-  return mat;
 }

@@ -113,7 +113,7 @@ int64_t f4_julia(
   /* move input generators to basis and generate first spairs */
   update_basis(bs, md, mat);
 
-  /* let's start the f4 rounds,  we are done when no more spairs
+  /* let's start the f4 rounds, we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
     GB_DEBUG(GBDBG, "%3d", round);
@@ -121,27 +121,13 @@ int64_t f4_julia(
     /* preprocess data for next reduction round */
     select_spairs_by_minimal_degree(mat, md);
     symbolic_preprocessing(mat, md, bs);
-    /* for (int32_t o = 0; o < nrows; ++o) {
-     *   printf("%d | %d | %d (%d) || ", o, mat[o][0], mat[o][2], (ev+mat[o][2])[HASH_IND]);
-     *   for (int32_t p = 0; p < nvars; ++p) {
-     *     printf("%d ", (ev+mat[o][2])[p]);
-     *   }
-     *   printf("\n");
-     * } */
     /* exponent hashes mapped to column indices for linear algebra */
-    hcm = convert_hashes_to_columns(mat);
-    /* sort matrix rows by decreasing pivots */
-    /* for (int32_t o = 0; o < nrows; ++o) {
-     *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
-     * } */
-    mat = sort_matrix_rows(mat);
-    /* for (int32_t o = 0; o < nrows; ++o) {
-     *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
-     * } */
+    hcm = convert_hashes_to_columns(mat, md);
+    sort_matrix_rows(mat);
     /* linear algebra, depending on choice, see set_function_pointers() */
     mat = linear_algebra(mat);
     /* columns indices are mapped back to exponent hashes */
-    mat = convert_columns_to_hashes(mat, hcm);
+    convert_columns_to_hashes(mat, md, hcm);
 
     free(hcm);
     hcm = NULL;

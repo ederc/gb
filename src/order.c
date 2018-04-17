@@ -103,33 +103,33 @@ static int matrix_row_cmp(
     const void *b
     )
 {
-  val_t va, vb;
+  len_t ca, cb;
   /* compare pivot resp. column index */
-  va  = ((val_t **)a)[0][2];
-  vb  = ((val_t **)b)[0][2];
-  if (va > vb) {
+  ca  = ((row_t *)a)->ch[0];
+  cb  = ((row_t *)b)->ch[0];
+  if (ca > cb) {
     return 1;
   }
-  if (va < vb) {
+  if (ca < cb) {
     return -1;
   }
+  len_t la, lb;
   /* same column index => compare density of row */
-  va  = ((val_t **)a)[0][0];
-  vb  = ((val_t **)b)[0][0];
-  if (va > vb) {
+  la  = ((row_t *)a)->sz;
+  lb  = ((row_t *)b)->sz;
+  if (la > lb) {
     return 1;
   }
-  if (va < vb) {
+  if (la < lb) {
     return -1;
   }
   return 0;
 }
 
-static inline val_t **sort_matrix_rows(
-    val_t **mat)
+static inline void sort_matrix_rows(
+    mat_t *mat)
 {
-  qsort(mat, (unsigned long)nrows, sizeof(val_t *), &matrix_row_cmp);
-  return mat;
+  qsort(mat->r, (unsigned long)mat->nr, sizeof(row_t *), &matrix_row_cmp);
 }
 
 /* comparison for monomials (in local hash table) */

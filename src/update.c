@@ -58,24 +58,27 @@ static void free_pairset(
 }
 
 static void insert_and_update_spairs(
-    val_t *nelt
+    bs_t *bs,
+    row_t *row,
+    const md_t * const md
     )
 {
   int32_t i, j, k, l;
   val_t *b;
   exp_t *ej;
+  row_t *p;
 
   const len_t pl  = pload;
-  const len_t bl  = bload;
+  const len_t bl  = bs->ld;
 
   reset_local_hash_table(bl);
   /* move exponents to global hash table */
   /* for (i = 2; i < nelt[0]; i = i+2) {
    *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
    * } */
-  bs[bl]  = nelt;
+  bs->p[bl]  = row;
   /* i = bl * LM_LEN; */
-  lms[bl] = (ev+bs[bl][2])[HASH_SDM];
+  lms[bl] = (ev+row->ch[0])[HASH_SDM];
   /* j = 0;
    * while (j < nvars) {
    *   lms[i++]  = (ev+bs[bl][2])[j];
@@ -93,20 +96,21 @@ static void insert_and_update_spairs(
    * printf("\n"); */
 
 #if INSERT_SMALL_FIRST
-  for (i = blold; i < bl; ++i) {
-    if ((long)bs[i] & bred) {
+  for (i = bs->ol; i < bl; ++i) {
+    p = bs->p[i];
+    if (p->rd) {
       continue;
     }
-    if (check_monomial_division(ev+nelt[2], ev+bs[i][2])) {
+    if (check_monomial_division(ev+row->ch[0], ev+p->ch[0])) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
       ps[pl].gen1 = i;
       ps[pl].gen2 = bl;
-      ps[pl].lcm  = get_lcm(bs[i][2], nelt[2]);
+      ps[pl].lcm  = get_lcm(p->ch[0], row->ch[0]);
       ps[pl].deg  = (evl + ps[pl].lcm)[HASH_DEG];
       ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm);
-      bs[bl]  = (val_t *)((long)bs[bl] | bred);
+      row->rd     = 1;
       num_redundant++;
-      bload++;
+      bs->ld++;
       pload++;
       return;
     }
@@ -115,15 +119,15 @@ static void insert_and_update_spairs(
 
   /* create all possible new pairs */
   for (i = 0, k = pl; i < bl; ++i, ++k) {
-    b = (val_t *)((long)bs[i] & bmask);
+    p = bs->p[i];
     ps[k].gen1  = i;
     ps[k].gen2  = bl;
-    ps[k].lcm   = get_lcm(b[2], nelt[2]);
+    ps[k].lcm   = get_lcm(p->ch[0], row->ch[0]);
 
-    if (b != bs[i]) {
+    if (p->rd) {
       ps[k].deg = -1; /* redundant pair */
     } else {
-      if (lcm_equals_multiplication(b[2], nelt[2], ps[k].lcm)) {
+      if (lcm_equals_multiplication(p->ch[0], row->ch[0], ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
         ps[k].deg = (evl + ps[k].lcm)[HASH_DEG];
@@ -138,7 +142,7 @@ static void insert_and_update_spairs(
     j = ps[i].gen1;
     l = ps[i].gen2;
     /* if (ps[i].lcm != ps[pload+j].lcm */
-    if (check_monomial_division(ev+ps[i].lcm, ev+nelt[2])
+    if (check_monomial_division(ev+ps[i].lcm, ev+row->ch[0])
         && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+j].lcm)[HASH_VAL]
         && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+l].lcm)[HASH_VAL]
         ) {
@@ -241,16 +245,17 @@ static void insert_and_update_spairs(
 
   /* mark redundant elements in basis */
   for (i = 0; i < bl; ++i) {
-    if ((long)bs[i] & bred) {
+    p = bs->p[i];
+    if (p->rd) {
       continue;
     }
-    if (check_monomial_division(ev+bs[i][2], ev+nelt[2])) {
+    if (check_monomial_division(ev+p->ch[0], ev+row->ch[0])) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
-      bs[i] = (val_t *)((long)bs[i] | bred);
+      p->rd = 1;
       num_redundant++;
     }
   }
-  bload++;
+  bs->ld++;
   /* printf("lms:\n");
    * for (j = 0; j < bload; ++j) {
    *   for (i = 0; i < LM_LEN; ++i) {
@@ -261,7 +266,9 @@ static void insert_and_update_spairs(
 }
 
 static void update_basis(
-    val_t **mat
+    bs_t *bs,
+    const mat_t * const mat,
+    const md_t * const md
     )
 {
   int32_t i;
@@ -271,25 +278,25 @@ static void update_basis(
   ct0 = cputime();
   rt0 = realtime();
 
-  check_enlarge_basis(npivs);
+  check_enlarge_basis(bs, mat->np);
 
   /* compute number of new pairs we need to handle at most */
-  len_t np  = bload * npivs;
-  for (i = 1; i < npivs; ++i) {
+  len_t np  = bs->ld * mat->np;
+  for (i = mat->np-1; i > 0; --i) {
     np  = np + i;
   }
   check_enlarge_pairset(np);
 
 #if INSERT_SMALL_FIRST
-  for (i = 0; i < npivs; ++i) {
-    insert_and_update_spairs(mat[i]);
+  for (i = 0; i < mat->np; ++i) {
+    insert_and_update_spairs(bs, mat->r[i], md);
   }
 #else
-  for (i = 1; i <= npivs; ++i) {
-    insert_and_update_spairs(mat[nrows-i]);
+  for (i = 1; i <= mat->np; ++i) {
+    insert_and_update_spairs(bs, mat->r[mat->nr-i], md);
   }
 #endif
-  blold = bload;
+  bs->ol  = bs->ld;
 
   /* timings */
   ct1 = cputime();

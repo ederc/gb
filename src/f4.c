@@ -96,23 +96,24 @@ int64_t f4_julia(
   initialize_global_hash_table();
   initialize_local_hash_table();
 
-  mat = import_julia_data(lens, cfs, exps, md->ng);
+  mat = import_julia_data(lens, cfs, exps, md);
 
   /* for faster divisibility checks, needs to be done after we have
    * read some input data for applying heuristics */
   calculate_divmask();
 
   /* sort initial elements, smallest lead term first */
-  qsort(mat, (unsigned long)nrows, sizeof(val_t *),
+  qsort(mat->r, (unsigned long)mat->nr, sizeof(row_t **),
       matrix_row_initial_input_cmp);
   /* normalize input generators */
-  for (i = 0; i < nrows; ++i) {
-    normalize_matrix_row(mat[i]);
+  for (i = mat->nr-1; i > -1; --i) {
+    normalize_matrix_row(mat->r[i], md);
   }
 
   /* move input generators to basis and generate first spairs */
-  update_basis(mat);
+  update_basis(bs, mat, md);
 
+  free(mat->r);
   free(mat);
   mat = NULL;
 
@@ -149,14 +150,15 @@ int64_t f4_julia(
     free(hcm);
     hcm = NULL;
 
-    update_basis(mat);
+    update_basis(bs, mat, md);
 
+    free(mat->r);
     free(mat);
     mat = NULL;
     GB_DEBUG(GBDBG, "\n");
   }
 
-  int64_t len = export_julia_data(jl_basis);
+  int64_t len = export_julia_data(jl_basis, bs, md);
 
   /* timings */
   ct1 = cputime();
@@ -197,7 +199,8 @@ int64_t f4_julia(
   /* note that all rows kept from mat during the overall computation are
    * basis elements and thus we do not need to free the rows itself, but
    * just the matrix structure */
-  free(mat);
+  /* free(mat->r);
+   * free(mat); */
   free_basis();
 
   return len;

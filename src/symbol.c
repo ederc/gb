@@ -22,18 +22,18 @@
 
 #include "data.h"
 
-static val_t **select_spairs_by_minimal_degree(
-    void
+static mat_t *select_spairs_by_minimal_degree(
+    const md_t * const md
     )
 {
-  int32_t i, j, k, l, md, npairs;
+  int32_t i, j, k, l, mdeg, npairs;
   val_t *b;
   deg_t d = 0;
   len_t lcm = 0, load = 0, load_old = 0;
-  val_t **mat;
+  mat_t *mat;
   len_t *gens;
 
-  exp_t *em = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+  exp_t *em = (exp_t *)malloc((unsigned long)md->nv * sizeof(exp_t));
 
   /* timings */
   double ct0, ct1, rt0, rt1, rrt0, rrt1;
@@ -46,11 +46,11 @@ static val_t **select_spairs_by_minimal_degree(
   rrt1 = realtime();
   pair_sort_rtime +=  rrt1 - rrt0;
   /* get minimal degree */
-  md  = ps[0].deg;
+  mdeg  = ps[0].deg;
 
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
-    if (ps[i].deg > md || i >= mnsel) {
+    if (ps[i].deg > mdeg || i >= mnsel) {
       break;
     }
   }
@@ -64,7 +64,7 @@ static val_t **select_spairs_by_minimal_degree(
     }
     npairs = j;
   }
-  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
+  GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, mdeg);
   /* statistics */
   num_pairsred  +=  npairs;
   

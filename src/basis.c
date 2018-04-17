@@ -31,7 +31,7 @@ static bs_t *initialize_basis(
   bs->sz  = 2*ngens;
   bs->ol  = bs->ld;
 
-  bs->p   = (void **)malloc((unsigned long)bs->sz * sizeof(void *));
+  bs->p   = (row_t **)malloc((unsigned long)bs->sz * sizeof(row_t *));
   bs->lm  = (len_t *)malloc((unsigned long)bs->sz * sizeof(len_t)); 
 
   return bs;
@@ -45,7 +45,7 @@ static inline void check_enlarge_basis(
   if ((bs->ld + added) >= bs->sz) {
     bs->sz = (bs->sz * 2) > (bs->ld + added) ?
       (bs->sz * 2) : (bs->ld + added);
-    bs->p   = realloc(bs->p, (unsigned long)bs->sz * sizeof(void *));
+    bs->p   = realloc(bs->p, (unsigned long)bs->sz * sizeof(row_t *));
     bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(val_t));
   }
 }
@@ -63,6 +63,7 @@ static void free_basis(
       bs->p[i]->cf = (void *)((long)bs->p[i]->cf & bmask);
       free(bs->p[i]->cf);
       free(bs->p[i]->ch);
+      free(bs->p[i]);
     }
     free(bs->p);
     free(bs->lm);

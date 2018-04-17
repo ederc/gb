@@ -123,6 +123,7 @@ struct row_t
 {
   len_t sz;   /* size of row */
   len_t os;   /* offset for loop unrolling */
+  int32_t rd; /* redundant? */
   void *cf;   /* coefficients */
   len_t *ch;  /* column positions resp. hash positions */
 };
@@ -187,17 +188,22 @@ static int32_t nthrds = 1; /* number of CPU threads */
 static int32_t laopt  = 0;
 
 /* function pointers */
-mat_t *import_julia_data(
-    const int32_t *lens,
-    const int32_t *cfs,
-    const int32_t *exps,
-    const md_t *md
+mat_t *(*import_julia_data)(
+    const int32_t * const lens,
+    const int32_t * const cfs,
+    const int32_t * const exps,
+    const md_t * const md
     );
 
-int64_t export_julia_data(
-    const bs_t *bs,
-    const md_t *md,
-    int32_t **bp
+int64_t (*export_julia_data)(
+    int32_t **bp,
+    const bs_t * const bs,
+    const md_t * const md
+    );
+
+void (*normalize_matrix_row)(
+    row_t *row,
+    const md_t * const md
     );
 
 int (*matrix_row_initial_input_cmp)(

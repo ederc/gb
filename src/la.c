@@ -21,6 +21,74 @@
  */
 #include "data.h"
 
+static inline void normalize_matrix_row_16(
+    row_t *row,
+    const md_t * const md
+    )
+{
+  int32_t i;
+  int16_t *cf = row->cf;
+  int64_t tmp1, tmp2, tmp3, tmp4;
+
+  const int32_t inv = mod_p_inverse_32(cf[0], fc);
+
+  for (i = 1; i < row->os; ++i) {
+    tmp1  =   ((int64_t)cf[i] * inv) % md->fc;
+    tmp1  +=  (tmp1 >> 63) & md->fc;
+    cf[i] =   (int16_t)tmp1;
+  }
+  /* UNROLL should be 4 here */
+  for (; i < row->sz; i += 4) {
+    tmp1    =   ((int64_t)cf[i] * inv) % md->fc;
+    tmp2    =   ((int64_t)cf[i+1] * inv) % md->fc;
+    tmp3    =   ((int64_t)cf[i+2] * inv) % md->fc;
+    tmp4    =   ((int64_t)cf[i+3] * inv) % md->fc;
+    tmp1    +=  (tmp1 >> 63) & md->fc;
+    tmp2    +=  (tmp2 >> 63) & md->fc;
+    tmp3    +=  (tmp3 >> 63) & md->fc;
+    tmp4    +=  (tmp4 >> 63) & md->fc;
+    cf[i]   =   (int16_t)tmp1;
+    cf[i+1] =   (int16_t)tmp2;
+    cf[i+2] =   (int16_t)tmp3;
+    cf[i+3] =   (int16_t)tmp4;
+  }
+  cf[0]  = 1;
+}
+
+static inline void normalize_matrix_row_32(
+    row_t *row,
+    const md_t * const md
+    )
+{
+  int32_t i;
+  int32_t *cf = row->cf;
+  int64_t tmp1, tmp2, tmp3, tmp4;
+
+  const int32_t inv = mod_p_inverse_32(cf[0], fc);
+
+  for (i = 1; i < row->os; ++i) {
+    tmp1  =   ((int64_t)cf[i] * inv) % md->fc;
+    tmp1  +=  (tmp1 >> 63) & md->fc;
+    cf[i] =   (int32_t)tmp1;
+  }
+  /* UNROLL should be 4 here */
+  for (; i < row->sz; i += 4) {
+    tmp1    =   ((int64_t)cf[i] * inv) % md->fc;
+    tmp2    =   ((int64_t)cf[i+1] * inv) % md->fc;
+    tmp3    =   ((int64_t)cf[i+2] * inv) % md->fc;
+    tmp4    =   ((int64_t)cf[i+3] * inv) % md->fc;
+    tmp1    +=  (tmp1 >> 63) & md->fc;
+    tmp2    +=  (tmp2 >> 63) & md->fc;
+    tmp3    +=  (tmp3 >> 63) & md->fc;
+    tmp4    +=  (tmp4 >> 63) & md->fc;
+    cf[i]   =   (int32_t)tmp1;
+    cf[i+1] =   (int32_t)tmp2;
+    cf[i+2] =   (int32_t)tmp3;
+    cf[i+3] =   (int32_t)tmp4;
+  }
+  cf[0]  = 1;
+}
+
 static inline void normalize_matrix_row(
     val_t *row
     )

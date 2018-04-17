@@ -42,10 +42,9 @@ static int matrix_row_initial_input_cmp_lex(
     )
 {
   int32_t i;
-  val_t va, vb;
 
-  va  = ((val_t **)a)[0][2];
-  vb  = ((val_t **)b)[0][2];
+  const len_t va  = (*(row_t **)a)->ch[0];
+  const len_t vb  = (*(row_t **)b)->ch[0];
 
   const exp_t * const ea  = ev + va;
   const exp_t * const eb  = ev + vb;
@@ -69,10 +68,10 @@ static int matrix_row_initial_input_cmp_drl(
     )
 {
   int32_t i;
-  val_t va, vb;
+  len_t va, vb;
 
-  va  = ((val_t **)a)[0][2];
-  vb  = ((val_t **)b)[0][2];
+  va  = (*(row_t *)a).ch[0];
+  vb  = (*(row_t *)b).ch[0];
 
   const exp_t * const ea  = ev + va;
   const exp_t * const eb  = ev + vb;

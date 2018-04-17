@@ -61,16 +61,20 @@ static inline void set_function_pointers(
       linear_algebra  = sparse_linear_algebra;
   }
   
+  /* set functions depending on underlying fields:
+   * at the moment we only support 16/32 bit prime fields or rationals */
   if (md->fc != 0) {
     if (md->fc < pow(2, 16)) {
       reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
-      import_julia_data = import_julia_data_16;
-      export_julia_data = export_julia_data_16;
+      import_julia_data     = import_julia_data_16;
+      export_julia_data     = export_julia_data_16;
+      normalize_matrix_row  = normalie_matrix_row_16;
     } else {
       /* TODO: 32 bit implementation */
       reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_32_bit;
-      import_julia_data = import_julia_data_32;
-      export_julia_data = export_julia_data_32;
+      import_julia_data     = import_julia_data_32;
+      export_julia_data     = export_julia_data_32;
+      normalize_matrix_row  = normalie_matrix_row_32;
     }
   } else {
     printf("no implementation for rationals yet!\n");
@@ -175,30 +179,32 @@ static inline int32_t check_and_set_meta_data(
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
 static mat_t *import_julia_data_16(
-    const int32_t *lens,
-    const int32_t *cfs,
-    const int32_t *exps,
-    const md_t *md
+    const int32_t * const lens,
+    const int32_t * const cfs,
+    const int32_t * const exps,
+    const md_t * const md
     )
 {
   int32_t i, j;
   int16_t *cf;
   len_t *ch;
+  row_t *row;
   int32_t off = 0; /* offset in arrays */
   
   mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
   mat->r      = (row_t **)malloc((unsigned long)md->ng * sizeof(row_t *));
   
   for (i = 0; i < md->ng; ++i) {
-    mat->r[i] = (row_t *)malloc(sizeof(row_t));
-    mat->r[i]->sz = lens[i];
-    mat->r[i]->os = lens[i] % UNROLL;
+    mat->r[i]     = (row_t *)malloc(sizeof(row_t));
+    row = mat->r[i];
+    row->sz = lens[i];
+    row->os = lens[i] % UNROLL;
 
-    mat->r[i]->cf = malloc((unsigned long)mat->r[i]->sz * sizeof(int16_t));
-    mat->r[i]->ch = (len_t *)malloc((unsigned long)mat->r[i]->sz * sizeof(len_t));
+    row->cf = (int16_t *)malloc((unsigned long)row->sz * sizeof(int16_t));
+    row->ch = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
 
-    cf  = mat->r[i]->cf;
-    ch  = mat->r[i]->ch;
+    cf  = row->cf;
+    ch  = row->ch;
     for (j = off; j < off+lens[i]; ++j) {
       cf[j] = (int16_t)cfs[j];
       ch[j] = insert_in_global_hash_table(exps+(md->nv*j));
@@ -212,15 +218,16 @@ static mat_t *import_julia_data_16(
 }
 
 static mat_t *import_julia_data_32(
-    const int32_t *lens,
-    const int32_t *cfs,
-    const int32_t *exps,
-    const md_t *md
+    const int32_t * const lens,
+    const int32_t * const cfs,
+    const int32_t * const exps,
+    const md_t * const md
     )
 {
   int32_t i, j;
   int16_t *cf;
   len_t *ch;
+  row_t *row;
   int32_t off = 0; /* offset in arrays */
   
   mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
@@ -228,14 +235,15 @@ static mat_t *import_julia_data_32(
   
   for (i = 0; i < md->ng; ++i) {
     mat->r[i] = (row_t *)malloc(sizeof(row_t));
-    mat->r[i]->sz = lens[i];
-    mat->r[i]->os = lens[i] % UNROLL;
+    row = mat->r[i];
+    row->sz = lens[i];
+    row->os = lens[i] % UNROLL;
 
-    mat->r[i]->cf = malloc((unsigned long)mat->r[i]->sz * sizeof(int32_t));
-    mat->r[i]->ch = (len_t *)malloc((unsigned long)mat->r[i]->sz * sizeof(len_t));
+    row->cf = (int32_t *)malloc((unsigned long)row->sz * sizeof(int32_t));
+    row->ch = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
 
-    cf  = mat->r[i]->cf;
-    ch  = mat->r[i]->ch;
+    cf  = row->cf;
+    ch  = row->ch;
     for (j = off; j < off+lens[i]; ++j) {
       cf[j] = cfs[j];
       ch[j] = insert_in_global_hash_table(exps+(md->nv*j));
@@ -249,12 +257,13 @@ static mat_t *import_julia_data_32(
 }
 
 static int64_t export_julia_data_16(
-    const bs_t *bs,
-    const md_t *md,
-    int32_t **bp
+    int32_t **bp,
+    const bs_t * const bs,
+    const md_t * const md
     )
 {
   int32_t i, j, k;
+  row_t *p;
   int16_t *cf;
   len_t *ch;
   int64_t ctr_lengths, ctr_elements;
@@ -267,10 +276,11 @@ static int64_t export_julia_data_16(
 
   /* compute number of terms */
   for (i = 0; i < bs->ld; ++i) {
-    if ((long)bs->p[i]->cf & bred) {
+    p = bs->p[i];
+    if ((long)p->cf & bred) {
       continue;
     } else {
-      len +=  (int64_t)(bs->p[i]->sz);
+      len +=  (int64_t)(p->sz);
       nb++;
     }
   }
@@ -295,14 +305,15 @@ static int64_t export_julia_data_16(
   basis[0]  = (int32_t)nb;
   /* basis[1]  = (int32_t)nb; */
   for (i = 0; i < bload; ++i) {
+    p = bs->p[i];
     if ((long)bs->p[i]->cf & bred) {
       continue;
     } else {
-      cf  = bs->p[i]->cf;
-      ch  = bs->p[i]->ch;
+      cf  = p->cf;
+      ch  = p->ch;
       /* length of polynomial including this length entry itself */
-      basis[ctr_lengths++]  = bs->p[i]->sz * lterm;
-      for (j = 0; j < bs->p[i]->sz; ++j) {
+      basis[ctr_lengths++]  = p->sz * lterm;
+      for (j = 0; j < p->sz; ++j) {
         basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
         for (k = 0; k < md->nv; ++k) {
           basis[ctr_elements++] = (ev + ch[j])[k];
@@ -316,12 +327,13 @@ static int64_t export_julia_data_16(
 }
 
 static int64_t export_julia_data_32(
-    const bs_t *bs,
-    const md_t *md,
-    int32_t **bp
+    int32_t **bp,
+    const bs_t * const bs,
+    const md_t * const md
     )
 {
   int32_t i, j, k;
+  row_t *p;
   int32_t *cf;
   len_t *ch;
   int64_t ctr_lengths, ctr_elements;
@@ -334,10 +346,11 @@ static int64_t export_julia_data_32(
 
   /* compute number of terms */
   for (i = 0; i < bs->ld; ++i) {
-    if ((long)bs->p[i]->cf & bred) {
+    p = bs->p[i];
+    if ((long)p->cf & bred) {
       continue;
     } else {
-      len +=  (int64_t)(bs->p[i]->sz);
+      len +=  (int64_t)(p->sz);
       nb++;
     }
   }
@@ -362,14 +375,15 @@ static int64_t export_julia_data_32(
   basis[0]  = (int32_t)nb;
   /* basis[1]  = (int32_t)nb; */
   for (i = 0; i < bload; ++i) {
-    if ((long)bs->p[i]->cf & bred) {
+    p = bs->p[i];
+    if ((long)p->cf & bred) {
       continue;
     } else {
-      cf  = bs->p[i]->cf;
-      ch  = bs->p[i]->ch;
+      cf  = p->cf;
+      ch  = p->ch;
       /* length of polynomial including this length entry itself */
-      basis[ctr_lengths++]  = bs->p[i]->sz * lterm;
-      for (j = 0; j < bs->p[i]->sz; ++j) {
+      basis[ctr_lengths++]  = p->sz * lterm;
+      for (j = 0; j < p->sz; ++j) {
         basis[ctr_elements++] = cf[j]; /* coefficient */
         for (k = 0; k < md->nv; ++k) {
           basis[ctr_elements++] = (ev + ch[j])[k];

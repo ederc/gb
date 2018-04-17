@@ -83,6 +83,7 @@ typedef struct md_t md_t;
 struct md_t
 {
   int32_t nv; /* number of variables */
+  int32_t os; /* offset when looping over number of variables */
   int32_t mo; /* monomial order: 0 = DRL, 1 = LEX */
   int32_t fc; /* field characteristic */
   int32_t la; /* linear algebra option */
@@ -199,6 +200,13 @@ int64_t (*export_julia_data)(
     int32_t **bp,
     const bs_t * const bs,
     const md_t * const md
+    );
+
+row_t *(*multiplied_polynomial_to_matrix_row)(
+    const len hm,
+    const deg_t deg,
+    const exp_t * const em,
+    const row_t * const poly
     );
 
 void (*normalize_matrix_row)(

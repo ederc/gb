@@ -661,63 +661,84 @@ static inline len_t monomial_division_no_check(
   return insert_in_global_hash_table(e);
 }
 
-static inline val_t *multiplied_polynomial_to_matrix_row(
-    const val_t hm,
+static inline row_t *multiplied_polynomial_to_matrix_row_16(
+    const len_t hm,
     const deg_t deg,
     const exp_t * const em,
-    const val_t *poly
+    const row_t * const poly
     )
 {
   int32_t i;
 
   /* printf("mulitplied row: "); */
-  val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
-  memcpy(row, poly, (unsigned long)poly[0] * sizeof(val_t));
+  row_t *row  = (row_t *)malloc(sizeof(row_t));
+  row->cf     = (int16_t *)malloc((unsigned long)row->sz * sizeof(int16_t));
+  row->ch     = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
+  memcpy(row->cf, poly->cf, (unsigned long)poly->sz * sizeof(int16_t));
+  memcpy(row->ch, poly->ch, (unsigned long)poly->sz * sizeof(len_t));
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  if (eload+((poly[0]-2)/2*HASH_LEN) >= esize) {
+  if (eload+((poly->sz*HASH_LEN) >= esize) {
     enlarge_global_hash_table();
   }
-  /* const exp_t * const em = ev + mult; */
-  /* const val_t hm  = em[HASH_VAL]; */
-  for (i = 2; i < poly[1]; i += 2) {
-    /* row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]); */
-    row[i]    = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i]);
+  for (i = 0; i < poly->os; ++i) {
+    row->ch[i]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i]);
   }
 #if 1
-  for (;i < poly[0]; i += 8) {
-    row[i]    = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i]);
-    row[i+2]  = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i+2]);
-    row[i+4]  = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i+4]);
-    row[i+6]  = insert_in_global_hash_table_product_special(hm, deg, em, ev+poly[i+6]);
-    /* row[i]    = insert_in_global_hash_table_product(em, ev+poly[i]);
-     * row[i+2]  = insert_in_global_hash_table_product(em, ev+poly[i+2]);
-     * row[i+4]  = insert_in_global_hash_table_product(em, ev+poly[i+4]);
-     * row[i+6]  = insert_in_global_hash_table_product(em, ev+poly[i+6]); */
+  for (;i < poly->sz; i += 4) {
+    row->ch[i]    = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i]);
+    row->ch[i+1]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i+1]);
+    row->ch[i+2]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i+2]);
+    row->ch[i+3]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i+3]);
   }
 #endif
-  /* printf("multiplied polys added\n");
-   * for (int32_t p = 2; p < poly[0]; p += 2) {
-   *   for (int32_t o = 0; o < nvars; ++o) {
-   *     printf("%d ", (ev+poly[p])[o]);
-   *   }
-   *   printf(" || ");
-   * }
-   * printf("\n multiplied with  ");
-   * for (int32_t o = 0; o < nvars; ++o) {
-   *   printf("%d ", (ev+mult)[o]);
-   * }
-   * printf(" |&| ");
-   * printf("\nmult to\n");
-   * for (int32_t p = 2; p < row[0]; p += 2) {
-   *   for (int32_t o = 0; o < nvars; ++o) {
-   *     printf("%d ", (ev+row[p])[o]);
-   *   }
-   *   printf(" |&| ");
-   * }
-   * printf("\nttt\n");
-   * printf("\n"); */
+
+  return row;
+}
+
+static inline row_t *multiplied_polynomial_to_matrix_row_32(
+    const len_t hm,
+    const deg_t deg,
+    const exp_t * const em,
+    const row_t * const poly
+    )
+{
+  int32_t i;
+
+  /* printf("mulitplied row: "); */
+  row_t *row  = (row_t *)malloc(sizeof(row_t));
+  row->cf     = (int32_t *)malloc((unsigned long)row->sz * sizeof(int32_t));
+  row->ch     = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
+  memcpy(row->cf, poly->cf, (unsigned long)poly->sz * sizeof(int32_t));
+  memcpy(row->ch, poly->ch, (unsigned long)poly->sz * sizeof(len_t));
+  /* hash table product insertions appear only here:
+   * we check for hash table enlargements first and then do the insertions
+   * without further elargment checks there */
+  if (eload+((poly->sz*HASH_LEN) >= esize) {
+    enlarge_global_hash_table();
+  }
+  for (i = 0; i < poly->os; ++i) {
+    row->ch[i]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i]);
+  }
+#if 1
+  for (;i < poly->sz; i += 4) {
+    row->ch[i]    = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i]);
+    row->ch[i+1]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i+1]);
+    row->ch[i+2]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i+2]);
+    row->ch[i+3]  = insert_in_global_hash_table_product_special(
+        hm, deg, em, ev+poly->ch[i+3]);
+  }
+#endif
 
   return row;
 }

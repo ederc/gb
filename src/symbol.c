@@ -22,7 +22,8 @@
 
 #include "data.h"
 
-static mat_t *select_spairs_by_minimal_degree(
+static void select_spairs_by_minimal_degree(
+    mat_t *mat,
     const md_t * const md
     )
 {
@@ -71,15 +72,16 @@ static mat_t *select_spairs_by_minimal_degree(
   gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
   /* preset matrix meta data */
-  mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *));
-  nrall = 2 * npairs;
-  ncols = ncl = ncr = 0;
-  nrows = 0;
+  mat->r  = realloc(mat->r, 2 * (unsigned long)npairs * sizeof(val_t *));
+  /* mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *)); */
+  mat->na = 2 * npairs;
+  mat->nc = mat->ncl = mat->ncr = 0;
+  mat->nr = 0;
 
   i = 0;
   while (i < npairs) {
     /* ncols initially counts number of different lcms */
-    ncols++;
+    mat->nc++;
     load_old  = load;
     lcm   = ps[i].lcm;
     gens[load++] = ps[i].gen1;
@@ -108,15 +110,15 @@ static mat_t *select_spairs_by_minimal_degree(
       d = 0;
       b = (val_t *)((long)bs[gens[k]] & bmask);
       /* m = monomial_division_no_check(lcm, b[2]); */
-      for (l = 0; l < nvars; ++l) {
+      for (l = 0; l < md->nv; ++l) {
         em[l] = (ev+lcm)[l] - (ev+b[2])[l];
         d     +=  em[l];
       }
       const val_t h = (ev+lcm)[HASH_VAL] - (ev+b[2])[HASH_VAL];
-      mat[nrows]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
+      mat->r[mat->nr]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
       /* mark lcm column as lead term column */
-      (ev+mat[nrows][2])[HASH_IND] = 2;
-      nrows++;
+      (ev+mat->r[mat->nr]->ch[0])[HASH_IND] = 2;
+      mat->nr++;
     }
 
     i = j;
@@ -139,23 +141,23 @@ static mat_t *select_spairs_by_minimal_degree(
   rt1 = realtime();
   select_ctime  +=  ct1 - ct0;
   select_rtime  +=  rt1 - rt0;
-  
-  return mat;
 }
 
-static inline val_t *find_multiplied_reducer(
-    len_t m
+static inline row_t *find_multiplied_reducer(
+    const len_t m,
+    const bs_t * const bs,
+    const md_t * md
     )
 {
   int32_t i, k;
   deg_t d = 0;
-  val_t *b;
+  row_t *b;
   const exp_t * const e  = ev+m;
   exp_t *f;
   /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
-  const int32_t bl  = bload;
-  const int32_t os  = nvars & 1 ? 1 : 0;
+  const int32_t bl  = bs->ld;
+  const int32_t os  = md->nv & 1 ? 1 : 0;
   i = e[HASH_DIV];
 
   const sdm_t ns = ~e[HASH_SDM];
@@ -172,26 +174,24 @@ start:
     while (lms[i] & ns) {
       i++;
     }
-    b = (val_t *)((long)bs[i] & bmask);
-    f = ev+b[2];
+    b = bs->p[i];
+    f = ev+b->ch[0];
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start;
     }
-    for (k = os; k < nvars; k += 2) {
+    for (k = md->os; k < md->nv; k += 2) {
       if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start;
       }
     }
     exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-    for (i = 0; i < nvars; ++i) {
-      r[i]  = e[i] - f[i];
+    for (i = 0; i < md->nv; ++i) {
+      r[i]  =   e[i] - f[i];
+      d     +=  r[i];
     }
     const val_t h = e[HASH_VAL] - f[HASH_VAL];
-    for (i = 0; i < nvars; ++i) {
-      d += r[i];
-    }
     b = multiplied_polynomial_to_matrix_row(h, d, r, b);
     free(r);
     return b;
@@ -203,26 +203,24 @@ start2:
       i++;
       continue;
     }
-    b = (val_t *)((long)bs[i] & bmask);
+    b = bs->p[i];
     f = ev+b[2];
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start2;
     }
-    for (k = os; k < nvars; k += 2) {
+    for (k = md->os; k < md->nv; k += 2) {
       if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start2;
       }
     }
     exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-    for (i = 0; i < nvars; ++i) {
-      r[i]  = e[i] - f[i];
+    for (i = 0; i < md->nv; ++i) {
+      r[i]  =   e[i] - f[i];
+      d     +=  r[i];
     }
     const val_t h = e[HASH_VAL] - f[HASH_VAL];
-    for (i = 0; i < nvars; ++i) {
-      d += r[i];
-    }
     b = multiplied_polynomial_to_matrix_row(h, d, r, b);
     free(r);
     return b;
@@ -232,11 +230,14 @@ start2:
   return NULL;
 }
 
-static val_t **symbolic_preprocessing(
-    val_t **mat
+static void symbolic_preprocessing(
+    mat_t *mat,
+    const bs_t * const bs,
+    const md_t * const md
     )
 {
   int32_t i, j;
+  row_t *r;
   val_t *red;
   val_t m;
 
@@ -252,31 +253,34 @@ static val_t **symbolic_preprocessing(
    * in the following. */
 
   /* get reducers from basis */
-  for (i = 0; i < nrows; ++i) {
-    const len_t len = mat[i][0];
+  for (i = 0; i < mat->nr; ++i) {
+    r = mat->r[i];
+    const len_t len = r->sz;
     /* check row reallocation only once per polynomial */
-    if ((nrall - nrows) < (mat[i][0]-4)/2) {
-      nrall = 2*nrall > mat[i][0] ? 2*nrall : mat[i][0];
-      mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));
+    if ((mat->na - mat->nr) < len) {
+      mat->na = 2*mat->na > len ?
+        2*mat->na : len;
+      mat->r  = realloc(mat->r, (unsigned long)mat->na * sizeof(row_t *));
     }
-    for (j = 4; j < len; j += 2) {
-      m = mat[i][j];
+    for (j = 1; j < len; ++j) {
+      m = r->ch[j];
       if (!(ev+m)[HASH_IND]) {
         (ev+m)[HASH_IND] = 1;
-        ncols++;
-        red = find_multiplied_reducer(m);
+        mat->nc++;
+        red = find_multiplied_reducer(m, bs, md);
         if (red) {
           (ev+m)[HASH_IND] = 2;
           /* add new reducer to matrix */
-          mat[nrows++]  = red;
+          mat->r[mat->nr]  = red;
+          mat->nr++;
         }
       }
     }
   }
 
   /* realloc to real size */
-  mat   = realloc(mat, (unsigned long)nrows * sizeof(val_t *));
-  nrall = nrows;
+  mat->r  = realloc(mat->r, (unsigned long)mat->nr * sizeof(row_t *));
+  mat->na = mat->nr;
 
   /* timings */
   ct1 = cputime();

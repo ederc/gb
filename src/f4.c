@@ -113,18 +113,14 @@ int64_t f4_julia(
   /* move input generators to basis and generate first spairs */
   update_basis(bs, mat, md);
 
-  free(mat->r);
-  free(mat);
-  mat = NULL;
-
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
     GB_DEBUG(GBDBG, "%3d", round);
 
     /* preprocess data for next reduction round */
-    mat = select_spairs_by_minimal_degree();
-    mat = symbolic_preprocessing(mat);
+    select_spairs_by_minimal_degree(mat, md);
+    symbolic_preprocessing(mat, bs, md);
     /* for (int32_t o = 0; o < nrows; ++o) {
      *   printf("%d | %d | %d (%d) || ", o, mat[o][0], mat[o][2], (ev+mat[o][2])[HASH_IND]);
      *   for (int32_t p = 0; p < nvars; ++p) {
@@ -152,9 +148,6 @@ int64_t f4_julia(
 
     update_basis(bs, mat, md);
 
-    free(mat->r);
-    free(mat);
-    mat = NULL;
     GB_DEBUG(GBDBG, "\n");
   }
 
@@ -191,6 +184,10 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "sdm findings           %14.3f%% \n",
       (double)100*(double)num_sdm_found/(double)(num_sdm_found + num_not_sdm_found));
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
+
+  free(mat->r);
+  free(mat);
+  mat = NULL;
 
   /* free and clean up */
   free_local_hash_table();

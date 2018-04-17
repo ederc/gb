@@ -68,12 +68,16 @@ static inline void set_function_pointers(
       reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
       import_julia_data     = import_julia_data_16;
       export_julia_data     = export_julia_data_16;
+      multiplied_polynomial_to_matrix_row = 
+        multiplied_polynomial_to_matrix_row_16;
       normalize_matrix_row  = normalie_matrix_row_16;
     } else {
       /* TODO: 32 bit implementation */
       reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_32_bit;
       import_julia_data     = import_julia_data_32;
       export_julia_data     = export_julia_data_32;
+      multiplied_polynomial_to_matrix_row = 
+        multiplied_polynomial_to_matrix_row_32;
       normalize_matrix_row  = normalie_matrix_row_32;
     }
   } else {
@@ -105,8 +109,9 @@ static inline int32_t check_and_set_meta_data(
     return 1;
   }
 
-  nvars = nr_vars;
+  nvars   = nr_vars;
   md->nv  = nr_vars;
+  md->os  = md->nv % 2; 
   md->fc  = fc;
   /* note: prime check should be done in julia */
   fc    = field_char;

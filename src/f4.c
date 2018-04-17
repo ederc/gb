@@ -111,7 +111,7 @@ int64_t f4_julia(
   }
 
   /* move input generators to basis and generate first spairs */
-  update_basis(bs, mat, md);
+  update_basis(bs, md, mat);
 
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
@@ -120,7 +120,7 @@ int64_t f4_julia(
 
     /* preprocess data for next reduction round */
     select_spairs_by_minimal_degree(mat, md);
-    symbolic_preprocessing(mat, bs, md);
+    symbolic_preprocessing(mat, md, bs);
     /* for (int32_t o = 0; o < nrows; ++o) {
      *   printf("%d | %d | %d (%d) || ", o, mat[o][0], mat[o][2], (ev+mat[o][2])[HASH_IND]);
      *   for (int32_t p = 0; p < nvars; ++p) {
@@ -159,13 +159,13 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
   GB_DEBUG(GBDBG, "overall                %15.3f sec\n", rt1-rt0);
   GB_DEBUG(GBDBG, "overall(cpu)           %15.3f sec\n", ct1-ct0);
-  GB_DEBUG(GBDBG, "select                 %15.3f sec\n", select_rtime);
-  GB_DEBUG(GBDBG, "pair sort              %15.3f sec\n", pair_sort_rtime);
-  GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", symbol_rtime);
-  GB_DEBUG(GBDBG, "update                 %15.3f sec\n", update_rtime);
-  GB_DEBUG(GBDBG, "update1                %15.3f sec\n", update1_rtime);
-  GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
-  GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
+  GB_DEBUG(GBDBG, "select                 %15.3f sec\n", md->select_rtime);
+  GB_DEBUG(GBDBG, "pair sort              %15.3f sec\n", md->pair_sort_rtime);
+  GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", md->symbol_rtime);
+  GB_DEBUG(GBDBG, "update                 %15.3f sec\n", md->update_rtime);
+  GB_DEBUG(GBDBG, "update1                %15.3f sec\n", md->update1_rtime);
+  GB_DEBUG(GBDBG, "convert                %15.3f sec\n", md->convert_rtime);
+  GB_DEBUG(GBDBG, "la                     %15.3f sec\n", md->la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
   GB_DEBUG(GBDBG, "size of basis          %15d\n", (*jl_basis[0]));
   GB_DEBUG(GBDBG, "#terms in basis        %15ld\n",

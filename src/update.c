@@ -267,8 +267,8 @@ static void insert_and_update_spairs(
 
 static void update_basis(
     bs_t *bs,
-    const mat_t * const mat,
-    const md_t * const md
+    md_t * md,
+    const mat_t * const mat
     )
 {
   int32_t i;
@@ -301,6 +301,6 @@ static void update_basis(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  update_ctime  +=  ct1 - ct0;
-  update_rtime  +=  rt1 - rt0;
+  md->update_ctime  +=  ct1 - ct0;
+  md->update_rtime  +=  rt1 - rt0;
 }

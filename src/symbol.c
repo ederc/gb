@@ -24,7 +24,7 @@
 
 static void select_spairs_by_minimal_degree(
     mat_t *mat,
-    const md_t * const md
+    md_t * md
     )
 {
   int32_t i, j, k, l, mdeg, npairs;
@@ -45,7 +45,7 @@ static void select_spairs_by_minimal_degree(
   rrt0 = realtime();
   qsort(ps, (unsigned long)pload, sizeof(spair_t), spair_cmp);
   rrt1 = realtime();
-  pair_sort_rtime +=  rrt1 - rrt0;
+  md->pair_sort_rtime +=  rrt1 - rrt0;
   /* get minimal degree */
   mdeg  = ps[0].deg;
 
@@ -124,8 +124,8 @@ static void select_spairs_by_minimal_degree(
     i = j;
   }
 
-  num_duplicates  +=  0;
-  num_rowsred     +=  load;
+  md->num_duplicates  +=  0;
+  md->num_rowsred     +=  load;
 
   free(gens);
   free(em);
@@ -139,8 +139,8 @@ static void select_spairs_by_minimal_degree(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  select_ctime  +=  ct1 - ct0;
-  select_rtime  +=  rt1 - rt0;
+  md->select_ctime  +=  ct1 - ct0;
+  md->select_rtime  +=  rt1 - rt0;
 }
 
 static inline row_t *find_multiplied_reducer(
@@ -232,8 +232,8 @@ start2:
 
 static void symbolic_preprocessing(
     mat_t *mat,
-    const bs_t * const bs,
-    const md_t * const md
+    md_t * md,
+    const bs_t * const bs
     )
 {
   int32_t i, j;
@@ -285,8 +285,8 @@ static void symbolic_preprocessing(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  symbol_ctime  +=  ct1 - ct0;
-  symbol_rtime  +=  rt1 - rt0;
+  md->symbol_ctime  +=  ct1 - ct0;
+  md->symbol_rtime  +=  rt1 - rt0;
 
   return mat;
 }

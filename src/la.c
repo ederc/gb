@@ -89,37 +89,6 @@ static inline void normalize_matrix_row_32(
   cf[0]  = 1;
 }
 
-/* static inline void normalize_matrix_row(
- *     val_t *row
- *     )
- * {
- *   int32_t i;
- *   int64_t tmp1, tmp2, tmp3, tmp4;
- *
- *   const int32_t inv = mod_p_inverse_32(row[3], fc);
- *
- *   for (i = 3; i < row[1]; i += 2) {
- *     tmp1    =   ((int64_t)row[i] * inv) % fc;
- *     tmp1    +=  (tmp1 >> 63) & fc;
- *     row[i]  =   (val_t)tmp1;
- *   }
- *   for (; i < row[0]; i += 8) {
- *     tmp1      =   ((int64_t)row[i] * inv) % fc;
- *     tmp2      =   ((int64_t)row[i+2] * inv) % fc;
- *     tmp3      =   ((int64_t)row[i+4] * inv) % fc;
- *     tmp4      =   ((int64_t)row[i+6] * inv) % fc;
- *     tmp1      +=  (tmp1 >> 63) & fc;
- *     tmp2      +=  (tmp2 >> 63) & fc;
- *     tmp3      +=  (tmp3 >> 63) & fc;
- *     tmp4      +=  (tmp4 >> 63) & fc;
- *     row[i]    =   (val_t)tmp1;
- *     row[i+2]  =   (val_t)tmp2;
- *     row[i+4]  =   (val_t)tmp3;
- *     row[i+6]  =   (val_t)tmp4;
- *   }
- *   row[3]  = 1;
- * } */
-
 static val_t *reduce_dense_row_by_known_pivots_16_bit(
     int64_t *dr,
     const len_t dpiv,         /* pivot of dense row at the beginning */
@@ -290,7 +259,6 @@ static val_t *reduce_dense_row_by_known_pivots_32_bit(
 
   return row;
 }
-
 
 static val_t **sparse_linear_algebra(
     val_t **mat

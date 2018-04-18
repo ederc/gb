@@ -279,7 +279,7 @@ static val_t **sparse_linear_algebra(
   dr  = realloc(dr, (unsigned long)ncols * sizeof(int64_t));
   mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (ncols-1); i >= 0; --i) {
+  for (i = (ncols-1); i >= nru; --i) {
     if (pivs[i]) {
       memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
       for (j = 2; j < pivs[i][0]; j += 2) {

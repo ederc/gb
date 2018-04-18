@@ -24,14 +24,14 @@
 
 static void select_spairs_by_minimal_degree(
     mat_t *mat,
-    md_t * md
+    md_t * md,
+    const bs_t * const bs
     )
 {
   int32_t i, j, k, l, mdeg, npairs;
-  val_t *b;
+  row_t *b;
   deg_t d = 0;
   len_t lcm = 0, load = 0, load_old = 0;
-  mat_t *mat;
   len_t *gens;
 
   exp_t *em = (exp_t *)malloc((unsigned long)md->nv * sizeof(exp_t));
@@ -45,7 +45,7 @@ static void select_spairs_by_minimal_degree(
   rrt0 = realtime();
   qsort(ps, (unsigned long)pload, sizeof(spair_t), spair_cmp);
   rrt1 = realtime();
-  md->pair_sort_rtime +=  rrt1 - rrt0;
+  md->psort_rtime +=  rrt1 - rrt0;
   /* get minimal degree */
   mdeg  = ps[0].deg;
 
@@ -108,13 +108,14 @@ static void select_spairs_by_minimal_degree(
     }
     for (k = load_old; k < load; ++k) {
       d = 0;
-      b = (val_t *)((long)bs[gens[k]] & bmask);
+      b = bs->p[gens[k]];
+      /* b = (val_t *)((long)bs[gens[k]] & bmask); */
       /* m = monomial_division_no_check(lcm, b[2]); */
       for (l = 0; l < md->nv; ++l) {
-        em[l] = (ev+lcm)[l] - (ev+b[2])[l];
+        em[l] = (ev+lcm)[l] - (ev+b->ch[0])[l];
         d     +=  em[l];
       }
-      const val_t h = (ev+lcm)[HASH_VAL] - (ev+b[2])[HASH_VAL];
+      const val_t h = (ev+lcm)[HASH_VAL] - (ev+b->ch[0])[HASH_VAL];
       mat->r[mat->nr]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
       /* mark lcm column as lead term column */
       (ev+mat->r[mat->nr]->ch[0])[HASH_IND] = 2;
@@ -157,7 +158,6 @@ static inline row_t *find_multiplied_reducer(
   /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
   const int32_t bl  = bs->ld;
-  const int32_t os  = md->nv & 1 ? 1 : 0;
   i = e[HASH_DIV];
 
   const sdm_t ns = ~e[HASH_SDM];
@@ -204,7 +204,7 @@ start2:
       continue;
     }
     b = bs->p[i];
-    f = ev+b[2];
+    f = ev+b->ch[0];
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start2;
@@ -238,7 +238,7 @@ static void symbolic_preprocessing(
 {
   int32_t i, j;
   row_t *r;
-  val_t *red;
+  row_t *red;
   val_t m;
 
   /* timings */
@@ -287,6 +287,4 @@ static void symbolic_preprocessing(
   rt1 = realtime();
   md->symbol_ctime  +=  ct1 - ct0;
   md->symbol_rtime  +=  rt1 - rt0;
-
-  return mat;
 }

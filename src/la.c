@@ -89,11 +89,11 @@ static inline void normalize_matrix_row_32(
   cf[0]  = 1;
 }
 
-static row_t *reduce_dense_row_by_known_pivots_16_bit(
+static row_t *reduce_dense_row_by_known_pivots_16(
     int64_t *dr,
     const len_t dpiv,         /* pivot of dense row at the beginning */
     const len_t nc,
-    const row_t **pivs,
+    row_t ** const pivs,
     const md_t * const md
     )
 {
@@ -168,11 +168,11 @@ static row_t *reduce_dense_row_by_known_pivots_16_bit(
   return row;
 }
 
-static row_t *reduce_dense_row_by_known_pivots_32_bit(
+static row_t *reduce_dense_row_by_known_pivots_32(
     int64_t *dr,
     const len_t dpiv,         /* pivot of dense row at the beginning */
     const len_t nc,
-    const row_t **pivs,
+    row_t ** const pivs,
     const md_t * const md
     )
 {
@@ -587,7 +587,7 @@ static void probabilistic_sparse_linear_algebra_16(
             cf  = (int16_t *)npiv->cf;
             ch  = npiv->ch;
             sz  = npiv->sz;
-            sc  = ch[0]
+            sc  = ch[0];
             for (j = 0; j < sz; ++j) {
               drl[ch[j]] = (int64_t)cf[j];
             }
@@ -661,7 +661,7 @@ static void probabilistic_sparse_linear_algebra_16(
   md->la_rtime  +=  rt1 - rt0;
 
   GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec",
-      mat->np, mat->nrl-nat->np, rt1-rt0);
+      mat->np, mat->nrl-mat->np, rt1-rt0);
 }
 
 static void probabilistic_sparse_linear_algebra_32(
@@ -739,7 +739,7 @@ static void probabilistic_sparse_linear_algebra_32(
          * of the rows of the block */
         memset(drl, 0, (unsigned long)mat->nc * sizeof(int64_t));
         for (l = 0, j = i*rpb; j < nbl; ++j) {
-          cf  = (int16_t *)pivs[j]->cf;
+          cf  = (int32_t *)pivs[j]->cf;
           ch  = pivs[j]->ch;
           sz  = pivs[j]->sz;
           sc  = sc < ch[0] ? sc : ch[0];
@@ -761,7 +761,7 @@ static void probabilistic_sparse_linear_algebra_32(
           k  = __sync_bool_compare_and_swap(&pivs[npiv->ch[0]], NULL, npiv);
           if (!k) {
             memset(drl, 0, (unsigned long)mat->nc * sizeof(int64_t));
-            cf  = (int16_t *)npiv->cf;
+            cf  = (int32_t *)npiv->cf;
             ch  = npiv->ch;
             sz  = npiv->sz;
             sc  = ch[0];
@@ -806,10 +806,10 @@ static void probabilistic_sparse_linear_algebra_32(
   for (i = (mat->nc-1); i >= mat->nru; --i) {
     if (pivs[i]) {
       memset(dr, 0, (unsigned long)mat->nc * sizeof(int64_t));
-      cf  = (int16_t *)pivs[i]->cf;
+      cf  = (int32_t *)pivs[i]->cf;
       ch  = pivs[i]->ch;
       sz  = pivs[i]->sz;
-      sc  = ch[0]
+      sc  = ch[0];
       for (j = 0; j < sz; ++j) {
         dr[ch[j]] = (int64_t)cf[j];
 
@@ -838,5 +838,5 @@ static void probabilistic_sparse_linear_algebra_32(
   md->la_rtime  +=  rt1 - rt0;
 
   GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec",
-      mat->np, mat->nrl-nat->np, rt1-rt0);
+      mat->np, mat->nrl-mat->np, rt1-rt0);
 }

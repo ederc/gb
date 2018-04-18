@@ -20,20 +20,6 @@ AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb -lm
 LDFLAGS = -no-install
 
 TESTS = 											\
-	test_initialize_basis 			\
-	test_free_basis							\
-	test_initialize_pairset			\
-	test_free_pairset						\
-	test_initialize_hash_table	\
-	test_free_hash_table 				\
-	test_divmask								\
-	test_normalize_row					\
-	test_input_meta_data				\
-	xtest_input_meta_data				\
-	test_julia_io								\
-	test_pairset_update					\
-	test_select_spairs					\
-	test_f4											\
 	test_cyclic_4_drl						\
 	test_cyclic_4_lex						\
 	test_cyclic_5_lex						\
@@ -47,6 +33,6 @@ TESTS = 											\
 	test_mayr_42
 
 XFAIL_TESTS = 								\
-	xtest_input_meta_data
+	# xtest_input_meta_data
 
 check_PROGRAMS = $(TESTS) $(XFAIL_TESTS)

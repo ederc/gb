@@ -31,7 +31,9 @@
  *     first all exponents of generator 1, then all of generator 2, ...
  *
  *  RETURNs the length of the jl_basis array */
-int64_t f4_julia(
+
+/* finite field implementation of F4 */
+int64_t f4_julia_ff(
     int32_t **jl_basis,
     const int32_t *lens,
     const int32_t *cfs,
@@ -119,20 +121,20 @@ int64_t f4_julia(
     GB_DEBUG(GBDBG, "%3d", round);
 
     /* preprocess data for next reduction round */
-    select_spairs_by_minimal_degree(mat, md);
+    select_spairs_by_minimal_degree(mat, md, bs);
     symbolic_preprocessing(mat, md, bs);
     /* exponent hashes mapped to column indices for linear algebra */
     hcm = convert_hashes_to_columns(mat, md);
     sort_matrix_rows(mat);
     /* linear algebra, depending on choice, see set_function_pointers() */
-    mat = linear_algebra(mat);
+    linear_algebra(mat, md);
     /* columns indices are mapped back to exponent hashes */
     convert_columns_to_hashes(mat, md, hcm);
 
     free(hcm);
     hcm = NULL;
 
-    update_basis(bs, mat, md);
+    update_basis(bs, md, mat);
 
     GB_DEBUG(GBDBG, "\n");
   }
@@ -146,10 +148,9 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "overall                %15.3f sec\n", rt1-rt0);
   GB_DEBUG(GBDBG, "overall(cpu)           %15.3f sec\n", ct1-ct0);
   GB_DEBUG(GBDBG, "select                 %15.3f sec\n", md->select_rtime);
-  GB_DEBUG(GBDBG, "pair sort              %15.3f sec\n", md->pair_sort_rtime);
+  GB_DEBUG(GBDBG, "pair sort              %15.3f sec\n", md->psort_rtime);
   GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", md->symbol_rtime);
   GB_DEBUG(GBDBG, "update                 %15.3f sec\n", md->update_rtime);
-  GB_DEBUG(GBDBG, "update1                %15.3f sec\n", md->update1_rtime);
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", md->convert_rtime);
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", md->la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
@@ -184,7 +185,7 @@ int64_t f4_julia(
    * just the matrix structure */
   /* free(mat->r);
    * free(mat); */
-  free_basis();
+  free_basis(&bs);
 
   return len;
 }

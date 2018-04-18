@@ -203,7 +203,7 @@ int64_t (*export_julia_data)(
     );
 
 row_t *(*multiplied_polynomial_to_matrix_row)(
-    const len hm,
+    const len_t hm,
     const deg_t deg,
     const exp_t * const em,
     const row_t * const poly
@@ -253,7 +253,7 @@ void (*probabilistic_sparse_linear_algebra)(
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
-int64_t f4_julia(
+int64_t f4_julia_ff(
     int32_t **jl_basis,
     const int32_t *lens,
     const int32_t *cfs,

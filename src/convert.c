@@ -150,7 +150,7 @@ static void convert_columns_to_hashes(
 #pragma omp parallel for num_threads(md->nt) private(i, j)
   for (i = 0; i < mat->nr; ++i) {
     row = mat->r[i];
-    for (j = ; j < row->os; ++j) {
+    for (j = 0; j < row->os; ++j) {
       row->ch[j]  = hcm[row->ch[j]];
     }
     /* loop unrolling, UNROLL = 4 */

@@ -22,164 +22,6 @@
 
 #include "data.h"
 
-static inline void set_function_pointers(
-    const md_t *md
-    )
-{
-  /* todo: this needs to be generalized for different monomial orders */
-  switch (md->mo) {
-    case 0:
-      matrix_row_initial_input_cmp  =
-        matrix_row_initial_input_cmp_drl;
-      monomial_cmp  = monomial_cmp_drl;
-      spair_cmp     = spair_cmp_drl;
-      hcm_cmp       = hcm_cmp_pivots_drl;
-      break;
-    case 1:
-      matrix_row_initial_input_cmp  =
-        matrix_row_initial_input_cmp_lex;
-      monomial_cmp  = monomial_cmp_lex;
-      spair_cmp     = spair_cmp_deglex;
-      hcm_cmp       = hcm_cmp_pivots_lex;
-      break;
-    default:
-      matrix_row_initial_input_cmp  =
-        matrix_row_initial_input_cmp_drl;
-      monomial_cmp  = monomial_cmp_drl;
-      spair_cmp     = spair_cmp_drl;
-      hcm_cmp       = hcm_cmp_pivots_drl;
-  }
-  
-  /* set functions depending on underlying fields:
-   * at the moment we only support 16/32 bit prime fields or rationals */
-  if (md->fc != 0) {
-    if (md->fc < pow(2, 16)) {
-      sparse_linear_algebra = sparse_linear_algebra_16;
-      import_julia_data     = import_julia_data_16;
-      export_julia_data     = export_julia_data_16;
-      multiplied_polynomial_to_matrix_row = 
-        multiplied_polynomial_to_matrix_row_16;
-      normalize_matrix_row  = normalie_matrix_row_16;
-    } else {
-      /* TODO: 32 bit implementation */
-      sparse_linear_algebra = sparse_linear_algebra_32;
-      import_julia_data     = import_julia_data_32;
-      export_julia_data     = export_julia_data_32;
-      multiplied_polynomial_to_matrix_row = 
-        multiplied_polynomial_to_matrix_row_32;
-      normalize_matrix_row  = normalie_matrix_row_32;
-    }
-  } else {
-    printf("no implementation for rationals yet!\n");
-  }
-
-  switch (md->la) {
-    case 1:
-      linear_algebra  = sparse_linear_algebra;
-      break;
-    case 42:
-      linear_algebra  = probabilistic_sparse_linear_algebra;
-      break;
-    default:
-      linear_algebra  = sparse_linear_algebra;
-  }
-}
-
-static inline int32_t check_and_set_meta_data(
-    md_t *md,
-    const int32_t *lens,
-    const int32_t *cfs,
-    const int32_t *exps,
-    const int32_t field_char,
-    const int32_t mon_order,
-    const int32_t nr_vars,
-    const int32_t nr_gens,
-    const int32_t ht_size,
-    const int32_t nr_threads,
-    const int32_t max_nr_pairs,
-    const int32_t la_option
-    )
-{
-  if (nr_gens <= 0
-    || nr_vars <= 0
-    || field_char <= 0
-    || lens == NULL
-    || cfs == NULL
-    || exps == NULL) {
-    return 1;
-  }
-
-  nvars   = nr_vars;
-  md->nv  = nr_vars;
-  md->os  = md->nv % 2; 
-  md->fc  = fc;
-  /* note: prime check should be done in julia */
-  fc    = field_char;
-  /* monomial order */
-  if (mon_order != 0 && mon_order != 1) {
-    mo  = 0;
-  } else {
-    mo  = mon_order;
-  }
-  md->mo  = mo;
-  /* set hash table size */
-  htes  = ht_size;
-  if (htes <= 0) {
-    htes  = 12;
-  }
-
-  /* set number of threads */
-  if (nr_threads <= 0) {
-    nthrds  = 1;
-  } else {
-    nthrds  = nr_threads;
-  }
-  md->nt  = nthrds;
-
-  if (max_nr_pairs <= 0) {
-    mnsel = 2147483647; /* 2^31-1 */
-  } else {
-    mnsel = max_nr_pairs;
-  }
-  md->mp  = mnsel;
-
-  /* set linear algebra option */
-  if (la_option <= 0) {
-    laopt = 1;
-  } else {
-    laopt = la_option;
-  }
-  md->la  = laopt;
-
-  /* reset statistics data */
-  md->density           = 0;
-  md->select_ctime      = 0;
-  md->select_rtime      = 0;
-  md->symbol_ctime      = 0;
-  md->symbol_rtime      = 0;
-  md->update_ctime      = 0;
-  md->update_rtime      = 0;
-  md->convert_ctime     = 0;
-  md->convert_rtime     = 0;
-  md->reduce_ctime      = 0;
-  md->reduce_rtime      = 0;
-  md->la_ctime          = 0;
-  md->la_rtime          = 0;
-  md->psort_rtime       = 0;
-  md->num_pairsred      = 0;
-  md->num_gb_crit       = 0;
-  md->num_redundant     = 0;
-  md->num_rowsred       = 0;
-  md->num_zerored       = 0;
-  md->num_ht_enlarge    = 0;
-  md->num_sdm_found     = 0;
-  md->num_not_sdm_found = 0;
-
-  set_function_pointers();
-
-  return 0;
-}
-
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
@@ -200,9 +42,10 @@ static mat_t *import_julia_data_16(
   mat->r      = (row_t **)malloc((unsigned long)md->ng * sizeof(row_t *));
   
   for (i = 0; i < md->ng; ++i) {
-    mat->r[i]     = (row_t *)malloc(sizeof(row_t));
+    mat->r[i] = (row_t *)malloc(sizeof(row_t));
     row = mat->r[i];
     row->sz = lens[i];
+    printf("sz %d\n", row->sz);
     row->os = lens[i] % UNROLL;
 
     row->cf = (int16_t *)malloc((unsigned long)row->sz * sizeof(int16_t));
@@ -211,8 +54,8 @@ static mat_t *import_julia_data_16(
     cf  = row->cf;
     ch  = row->ch;
     for (j = off; j < off+lens[i]; ++j) {
-      cf[j] = (int16_t)cfs[j];
-      ch[j] = insert_in_global_hash_table(exps+(md->nv*j));
+      cf[j-off] = (int16_t)cfs[j];
+      ch[j-off] = insert_in_global_hash_table(exps+(md->nv*j));
     }
     /* mark initial generators, they have to be added to the basis first */
     off +=  lens[i];
@@ -230,7 +73,7 @@ static mat_t *import_julia_data_32(
     )
 {
   int32_t i, j;
-  int16_t *cf;
+  int32_t *cf;
   len_t *ch;
   row_t *row;
   int32_t off = 0; /* offset in arrays */
@@ -250,8 +93,8 @@ static mat_t *import_julia_data_32(
     cf  = row->cf;
     ch  = row->ch;
     for (j = off; j < off+lens[i]; ++j) {
-      cf[j] = cfs[j];
-      ch[j] = insert_in_global_hash_table(exps+(md->nv*j));
+      cf[j-off] = cfs[j];
+      ch[j-off] = insert_in_global_hash_table(exps+(md->nv*j));
     }
     /* mark initial generators, they have to be added to the basis first */
     off +=  lens[i];
@@ -275,7 +118,7 @@ static int64_t export_julia_data_16(
   int32_t *basis  = *bp;
 
   int64_t len = 0; /* complete length of exported array */
-  int64_t nb  = 0; /* # elemnts in basis */
+  int64_t nb  = 0; /* # elements in basis */
 
   const int32_t lterm = 1 + md->nv; /* length of a term */
 
@@ -345,7 +188,7 @@ static int64_t export_julia_data_32(
   int32_t *basis  = *bp;
 
   int64_t len = 0; /* complete length of exported array */
-  int64_t nb  = 0; /* # elemnts in basis */
+  int64_t nb  = 0; /* # elements in basis */
 
   const int32_t lterm = 1 + md->nv; /* length of a term */
 
@@ -399,4 +242,167 @@ static int64_t export_julia_data_32(
   *bp = basis;
 
   return len;
+}
+
+static inline void set_function_pointers(
+    const md_t *md
+    )
+{
+  /* todo: this needs to be generalized for different monomial orders */
+  switch (md->mo) {
+    case 0:
+      matrix_row_initial_input_cmp  =
+        matrix_row_initial_input_cmp_drl;
+      monomial_cmp  = monomial_cmp_drl;
+      spair_cmp     = spair_cmp_drl;
+      hcm_cmp       = hcm_cmp_pivots_drl;
+      break;
+    case 1:
+      matrix_row_initial_input_cmp  =
+        matrix_row_initial_input_cmp_lex;
+      monomial_cmp  = monomial_cmp_lex;
+      spair_cmp     = spair_cmp_deglex;
+      hcm_cmp       = hcm_cmp_pivots_lex;
+      break;
+    default:
+      matrix_row_initial_input_cmp  =
+        matrix_row_initial_input_cmp_drl;
+      monomial_cmp  = monomial_cmp_drl;
+      spair_cmp     = spair_cmp_drl;
+      hcm_cmp       = hcm_cmp_pivots_drl;
+  }
+  
+  /* set functions depending on underlying fields:
+   * at the moment we only support 16/32 bit prime fields or rationals */
+  if (md->fc != 0) {
+    if (md->fc < pow(2, 16)) {
+      sparse_linear_algebra = sparse_linear_algebra_16;
+      probabilistic_sparse_linear_algebra =
+        probabilistic_sparse_linear_algebra_16;
+      import_julia_data     = import_julia_data_16;
+      export_julia_data     = export_julia_data_16;
+      multiplied_polynomial_to_matrix_row = 
+        multiplied_polynomial_to_matrix_row_16;
+      normalize_matrix_row  = normalize_matrix_row_16;
+    } else {
+      /* TODO: 32 bit implementation */
+      sparse_linear_algebra = sparse_linear_algebra_32;
+      probabilistic_sparse_linear_algebra =
+        probabilistic_sparse_linear_algebra_32;
+      import_julia_data     = import_julia_data_32;
+      export_julia_data     = export_julia_data_32;
+      multiplied_polynomial_to_matrix_row = 
+        multiplied_polynomial_to_matrix_row_32;
+      normalize_matrix_row  = normalize_matrix_row_32;
+    }
+  } else {
+    printf("no implementation for rationals yet!\n");
+  }
+
+  switch (md->la) {
+    case 1:
+      linear_algebra  = sparse_linear_algebra;
+      break;
+    case 42:
+      linear_algebra  = probabilistic_sparse_linear_algebra;
+      break;
+    default:
+      linear_algebra  = sparse_linear_algebra;
+  }
+}
+
+static inline int32_t check_and_set_meta_data(
+    md_t *md,
+    const int32_t *lens,
+    const int32_t *cfs,
+    const int32_t *exps,
+    const int32_t field_char,
+    const int32_t mon_order,
+    const int32_t nr_vars,
+    const int32_t nr_gens,
+    const int32_t ht_size,
+    const int32_t nr_threads,
+    const int32_t max_nr_pairs,
+    const int32_t la_option
+    )
+{
+  if (nr_gens <= 0
+    || nr_vars <= 0
+    || field_char <= 0
+    || lens == NULL
+    || cfs == NULL
+    || exps == NULL) {
+    return 1;
+  }
+
+  nvars   = nr_vars;
+  md->nv  = nr_vars;
+  md->ng  = nr_gens;
+  md->os  = md->nv % 2; 
+  md->fc  = field_char;
+  /* note: prime check should be done in julia */
+  fc    = field_char;
+  /* monomial order */
+  if (mon_order != 0 && mon_order != 1) {
+    mo  = 0;
+  } else {
+    mo  = mon_order;
+  }
+  md->mo  = mo;
+  /* set hash table size */
+  htes  = ht_size;
+  if (htes <= 0) {
+    htes  = 12;
+  }
+
+  /* set number of threads */
+  if (nr_threads <= 0) {
+    nthrds  = 1;
+  } else {
+    nthrds  = nr_threads;
+  }
+  md->nt  = nthrds;
+
+  if (max_nr_pairs <= 0) {
+    mnsel = 2147483647; /* 2^31-1 */
+  } else {
+    mnsel = max_nr_pairs;
+  }
+  md->mp  = mnsel;
+
+  /* set linear algebra option */
+  if (la_option <= 0) {
+    laopt = 1;
+  } else {
+    laopt = la_option;
+  }
+  md->la  = laopt;
+
+  /* reset statistics data */
+  md->density           = 0;
+  md->select_ctime      = 0;
+  md->select_rtime      = 0;
+  md->symbol_ctime      = 0;
+  md->symbol_rtime      = 0;
+  md->update_ctime      = 0;
+  md->update_rtime      = 0;
+  md->convert_ctime     = 0;
+  md->convert_rtime     = 0;
+  md->reduce_ctime      = 0;
+  md->reduce_rtime      = 0;
+  md->la_ctime          = 0;
+  md->la_rtime          = 0;
+  md->psort_rtime       = 0;
+  md->num_pairsred      = 0;
+  md->num_gb_crit       = 0;
+  md->num_redundant     = 0;
+  md->num_rowsred       = 0;
+  md->num_zerored       = 0;
+  md->num_ht_enlarge    = 0;
+  md->num_sdm_found     = 0;
+  md->num_not_sdm_found = 0;
+
+  set_function_pointers(md);
+
+  return 0;
 }

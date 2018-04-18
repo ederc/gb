@@ -679,7 +679,7 @@ static inline row_t *multiplied_polynomial_to_matrix_row_16(
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  if (eload+((poly->sz*HASH_LEN) >= esize) {
+  if (eload+(poly->sz*HASH_LEN) >= esize) {
     enlarge_global_hash_table();
   }
   for (i = 0; i < poly->os; ++i) {
@@ -720,7 +720,7 @@ static inline row_t *multiplied_polynomial_to_matrix_row_32(
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  if (eload+((poly->sz*HASH_LEN) >= esize) {
+  if (eload+(poly->sz*HASH_LEN) >= esize) {
     enlarge_global_hash_table();
   }
   for (i = 0; i < poly->os; ++i) {

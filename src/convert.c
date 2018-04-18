@@ -88,7 +88,7 @@ static len_t *convert_hashes_to_columns(
 
   
   /* map column positions to matrix rows */
-#pragma omp parallel for num_threads(nthrds) private(i, j)
+#pragma omp parallel for num_threads(md->nt) private(i, j)
   for (i = 0; i < mat->nr; ++i) {
     row = mat->r[i];
     for (j = 0; j < row->os; ++j) {
@@ -147,7 +147,7 @@ static void convert_columns_to_hashes(
     (ev+hcm[i])[HASH_IND] = 0;
   }
 
-#pragma omp parallel for num_threads(nthrds) private(i, j)
+#pragma omp parallel for num_threads(md->nt) private(i, j)
   for (i = 0; i < mat->nr; ++i) {
     row = mat->r[i];
     for (j = ; j < row->os; ++j) {

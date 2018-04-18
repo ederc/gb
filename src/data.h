@@ -235,14 +235,19 @@ int (*hcm_cmp)(
     );
 
 /* linear algebra routines */
-val_t **(*linear_algebra)(
-    val_t **mat
+void (*linear_algebra)(
+    mat_t *mat,
+    md_t *md
     );
 
-val_t *(*reduce_dense_row_by_known_pivots)(
-    int64_t *dr,
-    val_t *const *pivs,
-    const val_t dpiv
+void (*sparse_linear_algebra)(
+    mat_t *mat,
+    md_t *md
+    );
+
+void (*probabilistic_sparse_linear_algebra)(
+    mat_t *mat,
+    md_t *md
     );
 
 /* -----------------------------------

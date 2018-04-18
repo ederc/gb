@@ -49,6 +49,29 @@ static inline void set_function_pointers(
       spair_cmp     = spair_cmp_drl;
       hcm_cmp       = hcm_cmp_pivots_drl;
   }
+  
+  /* set functions depending on underlying fields:
+   * at the moment we only support 16/32 bit prime fields or rationals */
+  if (md->fc != 0) {
+    if (md->fc < pow(2, 16)) {
+      sparse_linear_algebra = sparse_linear_algebra_16;
+      import_julia_data     = import_julia_data_16;
+      export_julia_data     = export_julia_data_16;
+      multiplied_polynomial_to_matrix_row = 
+        multiplied_polynomial_to_matrix_row_16;
+      normalize_matrix_row  = normalie_matrix_row_16;
+    } else {
+      /* TODO: 32 bit implementation */
+      sparse_linear_algebra = sparse_linear_algebra_32;
+      import_julia_data     = import_julia_data_32;
+      export_julia_data     = export_julia_data_32;
+      multiplied_polynomial_to_matrix_row = 
+        multiplied_polynomial_to_matrix_row_32;
+      normalize_matrix_row  = normalie_matrix_row_32;
+    }
+  } else {
+    printf("no implementation for rationals yet!\n");
+  }
 
   switch (md->la) {
     case 1:
@@ -59,29 +82,6 @@ static inline void set_function_pointers(
       break;
     default:
       linear_algebra  = sparse_linear_algebra;
-  }
-  
-  /* set functions depending on underlying fields:
-   * at the moment we only support 16/32 bit prime fields or rationals */
-  if (md->fc != 0) {
-    if (md->fc < pow(2, 16)) {
-      reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
-      import_julia_data     = import_julia_data_16;
-      export_julia_data     = export_julia_data_16;
-      multiplied_polynomial_to_matrix_row = 
-        multiplied_polynomial_to_matrix_row_16;
-      normalize_matrix_row  = normalie_matrix_row_16;
-    } else {
-      /* TODO: 32 bit implementation */
-      reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_32_bit;
-      import_julia_data     = import_julia_data_32;
-      export_julia_data     = export_julia_data_32;
-      multiplied_polynomial_to_matrix_row = 
-        multiplied_polynomial_to_matrix_row_32;
-      normalize_matrix_row  = normalie_matrix_row_32;
-    }
-  } else {
-    printf("no implementation for rationals yet!\n");
   }
 }
 

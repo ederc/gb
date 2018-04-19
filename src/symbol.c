@@ -155,6 +155,7 @@ static inline row_t *find_multiplied_reducer(
   row_t *b;
   const exp_t * const e  = ev+m;
   exp_t *f;
+  const len_t * const lms = bs->lm;
   /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
   const int32_t bl  = bs->ld;
@@ -254,6 +255,7 @@ static void symbolic_preprocessing(
 
   /* get reducers from basis */
   for (i = 0; i < mat->nr; ++i) {
+    printf("i %d / %d mat->nr\n", i, mat->nr);
     r = mat->r[i];
     const len_t len = r->sz;
     /* check row reallocation only once per polynomial */

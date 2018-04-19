@@ -37,8 +37,9 @@ static inline void normalize_matrix_row_16(
     tmp1  +=  (tmp1 >> 63) & md->fc;
     cf[i] =   (int16_t)tmp1;
   }
+  printf("os %d | sz %d | i %d\n", row->os, row->sz, i);
   /* UNROLL should be 4 here */
-  for (; i < row->sz; i += 4) {
+  for (i = row->os; i < row->sz; i += 4) {
     tmp1    =   ((int64_t)cf[i] * inv) % md->fc;
     tmp2    =   ((int64_t)cf[i+1] * inv) % md->fc;
     tmp3    =   ((int64_t)cf[i+2] * inv) % md->fc;
@@ -52,7 +53,7 @@ static inline void normalize_matrix_row_16(
     cf[i+2] =   (int16_t)tmp3;
     cf[i+3] =   (int16_t)tmp4;
   }
-  cf[0]  = 1;
+  cf[0] = 1;
 }
 
 static inline void normalize_matrix_row_32(
@@ -72,7 +73,8 @@ static inline void normalize_matrix_row_32(
     cf[i] =   (int32_t)tmp1;
   }
   /* UNROLL should be 4 here */
-  for (; i < row->sz; i += 4) {
+  printf("os %d | sz %d | i %d\n", row->os, row->sz, i);
+  for (i = row->os; i < row->sz; i += 4) {
     tmp1    =   ((int64_t)cf[i] * inv) % md->fc;
     tmp2    =   ((int64_t)cf[i+1] * inv) % md->fc;
     tmp3    =   ((int64_t)cf[i+2] * inv) % md->fc;
@@ -86,7 +88,12 @@ static inline void normalize_matrix_row_32(
     cf[i+2] =   (int32_t)tmp3;
     cf[i+3] =   (int32_t)tmp4;
   }
-  cf[0]  = 1;
+  cf[0] = 1;
+
+  for (i = 0; i < row->sz; ++i) {
+    printf("%d ", cf[i]);
+  }
+  printf("\n");
 }
 
 static row_t *reduce_dense_row_by_known_pivots_16(
@@ -115,25 +122,35 @@ static row_t *reduce_dense_row_by_known_pivots_16(
     /* found reducer row, get multiplier */
     const int64_t mul = mod - dr[i];
 
-    const int16_t * const cf  = (int16_t *)pivs[i]->cf;
-    const len_t * const ch    = pivs[i]->ch;
+    const int16_t * const rcf = (int16_t *)pivs[i]->cf;
+    const len_t * const rch   = pivs[i]->ch;
     const len_t os  = pivs[i]->os;
     const len_t sz  = pivs[i]->sz;
+    printf("dr: ");
+    for (j = 0; j < nc; ++j) {
+      printf("%ld ", dr[j]);
+    }
+    printf("\n");
     for (j = 0; j < os; ++j) {
-      dr[ch[j]]  +=  mul * (int64_t)cf[j];
+      dr[rch[j]]  +=  mul * (int64_t)rcf[j];
     }
     /* UNROLL is set to be 4 in src/data.h */
     for (; j < sz; j += 4) {
-      dr[ch[j]]    +=  mul * (int64_t)cf[j];
-      dr[ch[j+1]]  +=  mul * (int64_t)cf[j+1];
-      dr[ch[j+2]]  +=  mul * (int64_t)cf[j+2];
-      dr[ch[j+3]]  +=  mul * (int64_t)cf[j+3];
+      dr[rch[j]]    +=  mul * (int64_t)rcf[j];
+      dr[rch[j+1]]  +=  mul * (int64_t)rcf[j+1];
+      dr[rch[j+2]]  +=  mul * (int64_t)rcf[j+2];
+      dr[rch[j+3]]  +=  mul * (int64_t)rcf[j+3];
     }
     dr[i] = 0;
   }
   if (k == 0) {
     return NULL;
   }
+  printf("dr done: ");
+  for (j = 0; j < nc; ++j) {
+    printf("%ld ", dr[j]);
+  }
+  printf("\n");
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
@@ -144,17 +161,22 @@ static row_t *reduce_dense_row_by_known_pivots_16(
 
   int16_t *cf = (int16_t *)row->cf;
   len_t *ch   = row->ch;
-  for (i = dpiv, j = 0; i < nc; ++i, ++j) {
+  j = 0;
+  for (i = dpiv; i < nc; ++i) {
     if (dr[i] != 0) {
-      dr[i] = dr[i] % mod;
+      dr[i] = dr[i] % mod; // IS THERE A BETTER MODULUS OPERATOR GIVING THE SMALLEST VALUE W.R.T. THE ABSOLUTE VALUE
       if (dr[i] != 0) {
+        if (dr[i] > pow(2, 15)) {
+          dr[i] = dr[i] - mod;
+        }
         cf[j]  = (int16_t)dr[i];
         ch[j]  = (len_t)i;
+        ++j;
       }
     }
   }
   row->sz = j;
-  row->os = row->sz % 2;
+  row->os = row->sz % UNROLL;
   cf = realloc(cf, (unsigned long)row->sz * sizeof(int16_t));
   ch = realloc(ch, (unsigned long)row->sz * sizeof(len_t));
 
@@ -192,6 +214,12 @@ static row_t *reduce_dense_row_by_known_pivots_32(
       continue;
     }
 
+    printf("dr to be reduced: ");
+    for (int32_t p = 0; p < nc; ++p) {
+      printf("%ld ", dr[p]);
+    }
+    printf("\n");
+
     /* found reducer row, get multiplier */
     const int64_t mul = (int64_t)dr[i];
 
@@ -200,26 +228,36 @@ static row_t *reduce_dense_row_by_known_pivots_32(
     const len_t os  = pivs[i]->os;
     const len_t sz  = pivs[i]->sz;
 
+    printf("reducer: ");
+    for (int32_t p = 0; p < sz; ++p) {
+      printf("%d | %d  ", cf[p], ch[p]);
+    }
+    printf("\n");
     for (j = 0; j < os; ++j) {
       dr[ch[j]]  -=  mul * (int64_t)cf[j];
       dr[ch[j]]  +=  (dr[ch[j]] >> 63) & mod2;
     }
     /* UNROLL is set to be 4 in src/data.h */
     for (; j < sz; j += 4) {
-      dr[ch[j]]  -=  mul * (int64_t)cf[j];
-      dr[ch[j]]  +=  (dr[ch[j]] >> 63) & mod2;
-      dr[ch[j+1]]  -=  mul * (int64_t)cf[j+1];
-      dr[ch[j+1]]  +=  (dr[ch[j+1]] >> 63) & mod2;
-      dr[ch[j+2]]  -=  mul * (int64_t)cf[j+1];
-      dr[ch[j+2]]  +=  (dr[ch[j+2]] >> 63) & mod2;
-      dr[ch[j+3]]  -=  mul * (int64_t)cf[j+1];
-      dr[ch[j+3]]  +=  (dr[ch[j+3]] >> 63) & mod2;
+      dr[ch[j]]   -=  mul * (int64_t)cf[j];
+      dr[ch[j]]   +=  (dr[ch[j]] >> 63) & mod2;
+      dr[ch[j+1]] -=  mul * (int64_t)cf[j+1];
+      dr[ch[j+1]] +=  (dr[ch[j+1]] >> 63) & mod2;
+      dr[ch[j+2]] -=  mul * (int64_t)cf[j+2];
+      dr[ch[j+2]] +=  (dr[ch[j+2]] >> 63) & mod2;
+      dr[ch[j+3]] -=  mul * (int64_t)cf[j+3];
+      dr[ch[j+3]] +=  (dr[ch[j+3]] >> 63) & mod2;
     }
     dr[i] = 0;
   }
   if (k == 0) {
     return NULL;
   }
+    printf("dr finally reduced: ");
+    for (i = 0; i < nc; ++i) {
+      printf("%ld ", dr[i]);
+    }
+    printf("\n");
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
@@ -230,17 +268,20 @@ static row_t *reduce_dense_row_by_known_pivots_32(
 
   int32_t *cf = row->cf;
   len_t *ch   = row->ch;
-  for (i = dpiv, j = 0; i < nc; ++i, ++j) {
+  j = 0;
+  for (i = dpiv; i < nc; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % mod;
       if (dr[i] != 0) {
         cf[j]  = (int32_t)dr[i];
         ch[j]  = (len_t)i;
+        /* printf("cf[%d] = %d | ch[%d] = %d\n", j, cf[j], j, ch[j]); */
+        ++j;
       }
     }
   }
   row->sz = j;
-  row->os = row->sz % 2;
+  row->os = row->sz % UNROLL;
   cf = realloc(cf, (unsigned long)row->sz * sizeof(int32_t));
   ch = realloc(ch, (unsigned long)row->sz * sizeof(len_t));
 
@@ -298,17 +339,20 @@ static void sparse_linear_algebra_16(
   private(i, j, k, sc, npiv) shared(pivs)
   for (i = 0; i < mat->nrl; ++i) {
     int64_t *drl  = dr + (omp_get_thread_num() * mat->nc);
-    cf  = (int16_t *)upivs[i]->cf;
-    ch  = upivs[i]->ch;
-    sz  = upivs[i]->sz;
+    npiv  = upivs[i];
     k   = 0;
     /* do the reduction */
     do {
+      cf  = (int16_t *)npiv->cf;
+      ch  = npiv->ch;
+      sz  = npiv->sz;
+      sc  = ch[0];
       memset(drl, 0, (unsigned long)mat->nc * sizeof(int64_t));
       for (j = 0; j < sz; ++j) {
         drl[ch[j]] = (int64_t)cf[j];
       }
-      sc    = ch[0];
+      free(npiv->cf);
+      free(npiv->ch);
       free(npiv);
       npiv  = reduce_dense_row_by_known_pivots_16(drl, sc, mat->nc, pivs, md);
       if (!npiv) {
@@ -409,23 +453,28 @@ static void sparse_linear_algebra_32(
     }
   }
 
+  mat->np = 0;
+
   int64_t *dr  = (int64_t *)malloc(
       (unsigned long)(md->nt * mat->nc) * sizeof(int64_t));
 #pragma omp parallel for num_threads(md->nt) \
   private(i, j, k, sc, npiv) shared(pivs)
   for (i = 0; i < mat->nrl; ++i) {
     int64_t *drl  = dr + (omp_get_thread_num() * mat->nc);
-    cf  = (int32_t *)upivs[i]->cf;
-    ch  = upivs[i]->ch;
-    sz  = upivs[i]->sz;
+    npiv  = upivs[i];
     k   = 0;
     /* do the reduction */
     do {
+      cf  = (int16_t *)npiv->cf;
+      ch  = npiv->ch;
+      sz  = npiv->sz;
+      sc  = ch[0];
       memset(drl, 0, (unsigned long)mat->nc * sizeof(int64_t));
       for (j = 0; j < sz; ++j) {
         drl[ch[j]] = (int64_t)cf[j];
       }
-      sc    = ch[0];
+      free(npiv->cf);
+      free(npiv->ch);
       free(npiv);
       npiv  = reduce_dense_row_by_known_pivots_32(drl, sc, mat->nc, pivs, md);
       if (!npiv) {
@@ -451,7 +500,7 @@ static void sparse_linear_algebra_32(
   dr      = realloc(dr, (unsigned long)mat->nc * sizeof(int64_t));
   mat->r  = realloc(mat->r, (unsigned long)(mat->ncr) * sizeof(row_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
-  for (i = (mat->nc-1); i >= 0; --i) {
+  for (i = (mat->nc-1); i >= mat->nru; --i) {
     if (pivs[i]) {
       memset(dr, 0, (unsigned long)mat->nc * sizeof(int64_t));
       cf  = (int32_t *)pivs[i]->cf;
@@ -484,7 +533,8 @@ static void sparse_linear_algebra_32(
   md->la_ctime  +=  ct1 - ct0;
   md->la_rtime  +=  rt1 - rt0;
 
-  GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+  GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec",
+      mat->np, mat->nrl-mat->np, rt1-rt0);
 }
 
 static void probabilistic_sparse_linear_algebra_16(

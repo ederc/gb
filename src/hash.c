@@ -672,6 +672,8 @@ static inline row_t *multiplied_polynomial_to_matrix_row_16(
 
   /* printf("mulitplied row: "); */
   row_t *row  = (row_t *)malloc(sizeof(row_t));
+  row->sz     = poly->sz;
+  row->os     = poly->os;
   row->cf     = (int16_t *)malloc((unsigned long)row->sz * sizeof(int16_t));
   row->ch     = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
   memcpy(row->cf, poly->cf, (unsigned long)poly->sz * sizeof(int16_t));
@@ -713,6 +715,8 @@ static inline row_t *multiplied_polynomial_to_matrix_row_32(
 
   /* printf("mulitplied row: "); */
   row_t *row  = (row_t *)malloc(sizeof(row_t));
+  row->sz     = poly->sz;
+  row->os     = poly->os;
   row->cf     = (int32_t *)malloc((unsigned long)row->sz * sizeof(int32_t));
   row->ch     = (len_t *)malloc((unsigned long)row->sz * sizeof(len_t));
   memcpy(row->cf, poly->cf, (unsigned long)poly->sz * sizeof(int32_t));

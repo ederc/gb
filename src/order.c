@@ -70,8 +70,8 @@ static int matrix_row_initial_input_cmp_drl(
   int32_t i;
   len_t va, vb;
 
-  va  = (*(row_t *)a).ch[0];
-  vb  = (*(row_t *)b).ch[0];
+  va  = (*(row_t **)a)->ch[0];
+  vb  = (*(row_t **)b)->ch[0];
 
   const exp_t * const ea  = ev + va;
   const exp_t * const eb  = ev + vb;
@@ -105,8 +105,8 @@ static int matrix_row_cmp(
 {
   len_t ca, cb;
   /* compare pivot resp. column index */
-  ca  = ((row_t *)a)->ch[0];
-  cb  = ((row_t *)b)->ch[0];
+  ca  = (*(row_t **)a)->ch[0];
+  cb  = (*(row_t **)b)->ch[0];
   if (ca > cb) {
     return 1;
   }
@@ -115,8 +115,8 @@ static int matrix_row_cmp(
   }
   len_t la, lb;
   /* same column index => compare density of row */
-  la  = ((row_t *)a)->sz;
-  lb  = ((row_t *)b)->sz;
+  la  = (*(row_t **)a)->sz;
+  lb  = (*(row_t **)b)->sz;
   if (la > lb) {
     return 1;
   }

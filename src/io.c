@@ -125,7 +125,7 @@ static int64_t export_julia_data_16(
   /* compute number of terms */
   for (i = 0; i < bs->ld; ++i) {
     p = bs->p[i];
-    if ((long)p->cf & bred) {
+    if (p->rd) {
       continue;
     } else {
       len +=  (int64_t)(p->sz);
@@ -154,7 +154,7 @@ static int64_t export_julia_data_16(
   /* basis[1]  = (int32_t)nb; */
   for (i = 0; i < bload; ++i) {
     p = bs->p[i];
-    if ((long)bs->p[i]->cf & bred) {
+    if (p->rd) {
       continue;
     } else {
       cf  = p->cf;
@@ -195,7 +195,7 @@ static int64_t export_julia_data_32(
   /* compute number of terms */
   for (i = 0; i < bs->ld; ++i) {
     p = bs->p[i];
-    if ((long)p->cf & bred) {
+    if (p->rd) {
       continue;
     } else {
       len +=  (int64_t)(p->sz);
@@ -224,7 +224,7 @@ static int64_t export_julia_data_32(
   /* basis[1]  = (int32_t)nb; */
   for (i = 0; i < bload; ++i) {
     p = bs->p[i];
-    if ((long)p->cf & bred) {
+    if (p->rd) {
       continue;
     } else {
       cf  = p->cf;
@@ -275,7 +275,9 @@ static inline void set_function_pointers(
   /* set functions depending on underlying fields:
    * at the moment we only support 16/32 bit prime fields or rationals */
   if (md->fc != 0) {
-    if (md->fc < pow(2, 16)) {
+    /* 16-bit integers can only handle prime field with
+     * characteristic < 2^15 */
+    if (md->fc < pow(2, 15)) {
       sparse_linear_algebra = sparse_linear_algebra_16;
       probabilistic_sparse_linear_algebra =
         probabilistic_sparse_linear_algebra_16;
@@ -285,7 +287,6 @@ static inline void set_function_pointers(
         multiplied_polynomial_to_matrix_row_16;
       normalize_matrix_row  = normalize_matrix_row_16;
     } else {
-      /* TODO: 32 bit implementation */
       sparse_linear_algebra = sparse_linear_algebra_32;
       probabilistic_sparse_linear_algebra =
         probabilistic_sparse_linear_algebra_32;

@@ -78,12 +78,12 @@ int64_t f4_julia_ff(
   GB_DEBUG(GBDBG, "field characteristic   %15d\n", md->fc);
   if (md->mo == 0) {
     GB_DEBUG(GBDBG, "monomial order                     DRL\n");
-  }
-  if (md->mo == 1) {
-    GB_DEBUG(GBDBG, "monomial order                     LEX\n");
-  }
-  if ((md->mo != 0) && (md->mo != 1)) {
-    GB_DEBUG(GBDBG, "monomial order               DONT KNOW\n");
+  } else {
+    if (md->mo == 1) {
+      GB_DEBUG(GBDBG, "monomial order                     LEX\n");
+    } else {
+      GB_DEBUG(GBDBG, "monomial order               DONT KNOW\n");
+    }
   }
   GB_DEBUG(GBDBG, "linear algebra option  %15d\n", md->la);
   GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
@@ -118,18 +118,22 @@ int64_t f4_julia_ff(
   /* let's start the f4 rounds, we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
+    printf("round %d\n", round);
     GB_DEBUG(GBDBG, "%3d", round);
 
     /* preprocess data for next reduction round */
     select_spairs_by_minimal_degree(mat, md, bs);
+  printf("111\n");
     symbolic_preprocessing(mat, md, bs);
     /* exponent hashes mapped to column indices for linear algebra */
     hcm = convert_hashes_to_columns(mat, md);
     sort_matrix_rows(mat);
+  printf("222\n");
     /* linear algebra, depending on choice, see set_function_pointers() */
     linear_algebra(mat, md);
     /* columns indices are mapped back to exponent hashes */
     convert_columns_to_hashes(mat, md, hcm);
+  printf("333\n");
 
     free(hcm);
     hcm = NULL;
@@ -137,6 +141,7 @@ int64_t f4_julia_ff(
     update_basis(bs, md, mat);
 
     GB_DEBUG(GBDBG, "\n");
+  printf("???\n");
   }
 
   int64_t len = export_julia_data(jl_basis, bs, md);
@@ -156,26 +161,27 @@ int64_t f4_julia_ff(
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
   GB_DEBUG(GBDBG, "size of basis          %15d\n", (*jl_basis[0]));
   GB_DEBUG(GBDBG, "#terms in basis        %15ld\n",
-      (len-(*jl_basis)[0]-1)/(1+nvars));
-  GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", num_pairsred);
-  GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", num_gb_crit);
-  GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);
-  GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
-  GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
+      (len-(*jl_basis)[0]-1)/(1+md->nv));
+  GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", md->num_pairsred);
+  GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", md->num_gb_crit);
+  GB_DEBUG(GBDBG, "#redundant             %15ld\n", md->num_redundant);
+  GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", md->num_rowsred);
+  GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", md->num_zerored);
   GB_DEBUG(GBDBG, "global hash table load %15d <= 2^%d\n",
       eload/HASH_LEN, (int32_t)((ceil(log(eload/HASH_LEN)/log(2)))));
   GB_DEBUG(GBDBG, "local hash table load  %15d <= 2^%d\n",
       elload/HASH_LEN, (int32_t)(ceil(log(elload/HASH_LEN)/log(2))));
-  GB_DEBUG(GBDBG, "#ht enlargements       %15ld\n", num_htenl);
-  GB_DEBUG(GBDBG, "#no reducer found      %15ld\n", num_sdm_found + num_not_sdm_found);
+  GB_DEBUG(GBDBG, "#ht enlargements       %15ld\n", md->num_ht_enlarge);
+  GB_DEBUG(GBDBG, "#no reducer found      %15ld\n", md->num_sdm_found + md->num_not_sdm_found);
   GB_DEBUG(GBDBG, "sdm findings           %14.3f%% \n",
-      (double)100*(double)num_sdm_found/(double)(num_sdm_found + num_not_sdm_found));
+      (double)100*(double)md->num_sdm_found/(double)(md->num_sdm_found + md->num_not_sdm_found));
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
   free(mat->r);
   free(mat);
   mat = NULL;
 
+  printf("OK\n");
   /* free and clean up */
   free_local_hash_table();
   free_global_hash_table();
@@ -186,6 +192,7 @@ int64_t f4_julia_ff(
   /* free(mat->r);
    * free(mat); */
   free_basis(&bs);
+  printf("OKIDOI\n");
 
   return len;
 }

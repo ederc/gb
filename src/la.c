@@ -37,7 +37,7 @@ static inline void normalize_matrix_row_16(
     tmp1  +=  (tmp1 >> 63) & md->fc;
     cf[i] =   (int16_t)tmp1;
   }
-  printf("os %d | sz %d | i %d\n", row->os, row->sz, i);
+  /* printf("os %d | sz %d | i %d\n", row->os, row->sz, i); */
   /* UNROLL should be 4 here */
   for (i = row->os; i < row->sz; i += 4) {
     tmp1    =   ((int64_t)cf[i] * inv) % md->fc;
@@ -73,7 +73,7 @@ static inline void normalize_matrix_row_32(
     cf[i] =   (int32_t)tmp1;
   }
   /* UNROLL should be 4 here */
-  printf("os %d | sz %d | i %d\n", row->os, row->sz, i);
+  /* printf("os %d | sz %d | i %d\n", row->os, row->sz, i); */
   for (i = row->os; i < row->sz; i += 4) {
     tmp1    =   ((int64_t)cf[i] * inv) % md->fc;
     tmp2    =   ((int64_t)cf[i+1] * inv) % md->fc;
@@ -90,10 +90,10 @@ static inline void normalize_matrix_row_32(
   }
   cf[0] = 1;
 
-  for (i = 0; i < row->sz; ++i) {
-    printf("%d ", cf[i]);
-  }
-  printf("\n");
+  /* for (i = 0; i < row->sz; ++i) {
+   *   printf("%d ", cf[i]);
+   * }
+   * printf("\n"); */
 }
 
 static row_t *reduce_dense_row_by_known_pivots_16(
@@ -126,11 +126,11 @@ static row_t *reduce_dense_row_by_known_pivots_16(
     const len_t * const rch   = pivs[i]->ch;
     const len_t os  = pivs[i]->os;
     const len_t sz  = pivs[i]->sz;
-    printf("dr: ");
-    for (j = 0; j < nc; ++j) {
-      printf("%ld ", dr[j]);
-    }
-    printf("\n");
+    /* printf("dr: ");
+     * for (j = 0; j < nc; ++j) {
+     *   printf("%ld ", dr[j]);
+     * }
+     * printf("\n"); */
     for (j = 0; j < os; ++j) {
       dr[rch[j]]  +=  mul * (int64_t)rcf[j];
     }
@@ -146,11 +146,11 @@ static row_t *reduce_dense_row_by_known_pivots_16(
   if (k == 0) {
     return NULL;
   }
-  printf("dr done: ");
-  for (j = 0; j < nc; ++j) {
-    printf("%ld ", dr[j]);
-  }
-  printf("\n");
+  /* printf("dr done: ");
+   * for (j = 0; j < nc; ++j) {
+   *   printf("%ld ", dr[j]);
+   * }
+   * printf("\n"); */
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
@@ -214,11 +214,11 @@ static row_t *reduce_dense_row_by_known_pivots_32(
       continue;
     }
 
-    printf("dr to be reduced: ");
-    for (int32_t p = 0; p < nc; ++p) {
-      printf("%ld ", dr[p]);
-    }
-    printf("\n");
+    /* printf("dr to be reduced: ");
+     * for (int32_t p = 0; p < nc; ++p) {
+     *   printf("%ld ", dr[p]);
+     * }
+     * printf("\n"); */
 
     /* found reducer row, get multiplier */
     const int64_t mul = (int64_t)dr[i];
@@ -228,11 +228,11 @@ static row_t *reduce_dense_row_by_known_pivots_32(
     const len_t os  = pivs[i]->os;
     const len_t sz  = pivs[i]->sz;
 
-    printf("reducer: ");
-    for (int32_t p = 0; p < sz; ++p) {
-      printf("%d | %d  ", cf[p], ch[p]);
-    }
-    printf("\n");
+    /* printf("reducer: ");
+     * for (int32_t p = 0; p < sz; ++p) {
+     *   printf("%d | %d  ", cf[p], ch[p]);
+     * }
+     * printf("\n"); */
     for (j = 0; j < os; ++j) {
       dr[ch[j]]  -=  mul * (int64_t)cf[j];
       dr[ch[j]]  +=  (dr[ch[j]] >> 63) & mod2;
@@ -253,11 +253,11 @@ static row_t *reduce_dense_row_by_known_pivots_32(
   if (k == 0) {
     return NULL;
   }
-    printf("dr finally reduced: ");
-    for (i = 0; i < nc; ++i) {
-      printf("%ld ", dr[i]);
-    }
-    printf("\n");
+    /* printf("dr finally reduced: ");
+     * for (i = 0; i < nc; ++i) {
+     *   printf("%ld ", dr[i]);
+     * }
+     * printf("\n"); */
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
@@ -336,7 +336,7 @@ static void sparse_linear_algebra_16(
   int64_t *dr  = (int64_t *)malloc(
       (unsigned long)(md->nt * mat->nc) * sizeof(int64_t));
 #pragma omp parallel for num_threads(md->nt) \
-  private(i, j, k, sc, npiv) shared(pivs)
+  private(i, j, k, npiv, cf, ch, sc, sz) shared(pivs)
   for (i = 0; i < mat->nrl; ++i) {
     int64_t *drl  = dr + (omp_get_thread_num() * mat->nc);
     npiv  = upivs[i];
@@ -458,14 +458,14 @@ static void sparse_linear_algebra_32(
   int64_t *dr  = (int64_t *)malloc(
       (unsigned long)(md->nt * mat->nc) * sizeof(int64_t));
 #pragma omp parallel for num_threads(md->nt) \
-  private(i, j, k, sc, npiv) shared(pivs)
+  private(i, j, k, npiv, cf, ch, sc, sz) shared(pivs)
   for (i = 0; i < mat->nrl; ++i) {
     int64_t *drl  = dr + (omp_get_thread_num() * mat->nc);
     npiv  = upivs[i];
     k   = 0;
     /* do the reduction */
     do {
-      cf  = (int16_t *)npiv->cf;
+      cf  = (int32_t *)npiv->cf;
       ch  = npiv->ch;
       sz  = npiv->sz;
       sc  = ch[0];
@@ -473,8 +473,8 @@ static void sparse_linear_algebra_32(
       for (j = 0; j < sz; ++j) {
         drl[ch[j]] = (int64_t)cf[j];
       }
-      free(npiv->cf);
-      free(npiv->ch);
+      free(cf);
+      free(ch);
       free(npiv);
       npiv  = reduce_dense_row_by_known_pivots_32(drl, sc, mat->nc, pivs, md);
       if (!npiv) {

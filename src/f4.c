@@ -118,22 +118,18 @@ int64_t f4_julia_ff(
   /* let's start the f4 rounds, we are done when no more spairs
    * are left in the pairset */
   for (round = 1; pload > 0; ++round) {
-    printf("round %d\n", round);
     GB_DEBUG(GBDBG, "%3d", round);
 
     /* preprocess data for next reduction round */
     select_spairs_by_minimal_degree(mat, md, bs);
-  printf("111\n");
     symbolic_preprocessing(mat, md, bs);
     /* exponent hashes mapped to column indices for linear algebra */
     hcm = convert_hashes_to_columns(mat, md);
     sort_matrix_rows(mat);
-  printf("222\n");
     /* linear algebra, depending on choice, see set_function_pointers() */
     linear_algebra(mat, md);
     /* columns indices are mapped back to exponent hashes */
     convert_columns_to_hashes(mat, md, hcm);
-  printf("333\n");
 
     free(hcm);
     hcm = NULL;
@@ -141,7 +137,6 @@ int64_t f4_julia_ff(
     update_basis(bs, md, mat);
 
     GB_DEBUG(GBDBG, "\n");
-  printf("???\n");
   }
 
   int64_t len = export_julia_data(jl_basis, bs, md);

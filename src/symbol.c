@@ -255,7 +255,6 @@ static void symbolic_preprocessing(
 
   /* get reducers from basis */
   for (i = 0; i < mat->nr; ++i) {
-    printf("i %d / %d mat->nr\n", i, mat->nr);
     r = mat->r[i];
     const len_t len = r->sz;
     /* check row reallocation only once per polynomial */

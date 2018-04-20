@@ -73,14 +73,14 @@ static void insert_and_update_spairs(
   bs->p[bl]     = row;
   bs->lm[bl]    = (ev+row->ch[0])[HASH_SDM];
   bs->p[bl]->rd = 0;
-  printf("new element added to basis: (%d) ", bl);
-  for (j = 0; j < row->sz; ++j) {
-    for (i = 0; i < nvars; ++i) {
-      printf("%d ", (ev+row->ch[j])[i]);
-    }
-    printf("  +  "); 
-  }
-  printf("\n");
+  /* printf("new element added to basis: (%d) ", bl);
+   * for (j = 0; j < row->sz; ++j) {
+   *   for (i = 0; i < nvars; ++i) {
+   *     printf("%d ", (ev+row->ch[j])[i]);
+   *   }
+   *   printf("  +  ");
+   * }
+   * printf("\n"); */
 
 #if INSERT_SMALL_FIRST
   for (i = bs->ol; i < bl; ++i) {

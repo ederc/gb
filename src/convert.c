@@ -88,19 +88,17 @@ static len_t *convert_hashes_to_columns(
 
   
   /* map column positions to matrix rows */
-  printf("mat->nr %d\n", mat->nr);
 #pragma omp parallel for num_threads(md->nt) private(i, j)
   for (i = 0; i < mat->nr; ++i) {
-    row = mat->r[i];
-    printf("i %d -- %p\n", i, row);
-    for (j = 0; j < row->os; ++j) {
-      row->ch[j]  = (ev + row->ch[j])[HASH_IND];
+    row_t *prow = mat->r[i];
+    for (j = 0; j < prow->os; ++j) {
+      prow->ch[j]  = (ev + prow->ch[j])[HASH_IND];
     }
-    for (; j < row->sz; j += 4) {
-      row->ch[j]    = (ev + row->ch[j])[HASH_IND];
-      row->ch[j+1]  = (ev + row->ch[j+1])[HASH_IND];
-      row->ch[j+2]  = (ev + row->ch[j+2])[HASH_IND];
-      row->ch[j+3]  = (ev + row->ch[j+3])[HASH_IND];
+    for (; j < prow->sz; j += 4) {
+      prow->ch[j]    = (ev + prow->ch[j])[HASH_IND];
+      prow->ch[j+1]  = (ev + prow->ch[j+1])[HASH_IND];
+      prow->ch[j+2]  = (ev + prow->ch[j+2])[HASH_IND];
+      prow->ch[j+3]  = (ev + prow->ch[j+3])[HASH_IND];
     }
   }
 

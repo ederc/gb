@@ -176,7 +176,6 @@ int64_t f4_julia_ff(
   free(mat);
   mat = NULL;
 
-  printf("OK\n");
   /* free and clean up */
   free_local_hash_table();
   free_global_hash_table();
@@ -187,7 +186,6 @@ int64_t f4_julia_ff(
   /* free(mat->r);
    * free(mat); */
   free_basis(&bs);
-  printf("OKIDOI\n");
 
   return len;
 }

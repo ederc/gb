@@ -249,6 +249,13 @@ static row_t *reduce_dense_row_by_known_pivots_32(
       dr[ch[j+3]] +=  (dr[ch[j+3]] >> 63) & mod2;
     }
     dr[i] = 0;
+
+    /* printf("dr reduced once: ");
+     * for (int32_t p = 0; p < nc; ++p) {
+     *   printf("%ld ", dr[p]);
+     * }
+     * printf("\n"); */
+
   }
   if (k == 0) {
     return NULL;
@@ -590,7 +597,7 @@ static void probabilistic_sparse_linear_algebra_16(
       (unsigned long)(md->nt * rpb) * sizeof(int64_t));
 
 #pragma omp parallel for num_threads(md->nt) \
-  private(i, j, k,l, sc, npiv) shared(pivs)
+  private(i, j, k, npiv, cf, ch, sc, sz) shared(pivs)
   for (i = 0; i < nb; ++i) {
     int64_t *drl  = dr + (omp_get_thread_num() * mat->nc);
     int64_t *mull = mul + (omp_get_thread_num() * rpb);
@@ -612,9 +619,9 @@ static void probabilistic_sparse_linear_algebra_16(
          * of the rows of the block */
         memset(drl, 0, (unsigned long)mat->nc * sizeof(int64_t));
         for (l = 0, j = i*rpb; j < nbl; ++j) {
-          cf  = (int16_t *)pivs[j]->cf;
-          ch  = pivs[j]->ch;
-          sz  = pivs[j]->sz;
+          cf  = (int16_t *)upivs[j]->cf;
+          ch  = upivs[j]->ch;
+          sz  = upivs[j]->sz;
           sc  = sc < ch[0] ? sc : ch[0];
           for (k = 0; k < sz; ++k) {
             /* we need to do it in this way in order to support 32-bit primes */
@@ -767,8 +774,9 @@ static void probabilistic_sparse_linear_algebra_32(
       (unsigned long)(md->nt * rpb) * sizeof(int64_t));
 
 #pragma omp parallel for num_threads(md->nt) \
-  private(i, j, k,l, sc, npiv) shared(pivs)
+  private(i, j, k, npiv, cf, ch, sc, sz) shared(pivs)
   for (i = 0; i < nb; ++i) {
+    /* printf("block %d / %d\n", i, nb); */
     int64_t *drl  = dr + (omp_get_thread_num() * mat->nc);
     int64_t *mull = mul + (omp_get_thread_num() * rpb);
 
@@ -789,14 +797,17 @@ static void probabilistic_sparse_linear_algebra_32(
          * of the rows of the block */
         memset(drl, 0, (unsigned long)mat->nc * sizeof(int64_t));
         for (l = 0, j = i*rpb; j < nbl; ++j) {
-          cf  = (int32_t *)pivs[j]->cf;
-          ch  = pivs[j]->ch;
-          sz  = pivs[j]->sz;
+          /* printf("mul[%d] = %ld\n", l, mul[l]); */
+          cf  = (int32_t *)upivs[j]->cf;
+          ch  = upivs[j]->ch;
+          sz  = upivs[j]->sz;
           sc  = sc < ch[0] ? sc : ch[0];
           for (k = 0; k < sz; ++k) {
             /* we need to do it in this way in order to support 32-bit primes */
+            /* printf("%ld * %d | %d\n", mul[l], cf[k], ch[k]); */
             drl[ch[k]]  -=  mull[l] * cf[k];
             drl[ch[k]]  +=  (drl[ch[k]] >> 63) & mod2;
+            /* printf("drl = %ld\n", drl[ch[k]]); */
           }
           l++;
         }

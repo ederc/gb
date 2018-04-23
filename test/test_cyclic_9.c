@@ -19,7 +19,8 @@ int main(
   const int32_t nr_vars       = 9;
   const int32_t nr_gens       = 9;
   const int32_t ht_size       = 19;
-  const int32_t field_char    = 65521;
+  /* const int32_t field_char    = 65521; */
+  const int32_t field_char    = 2147483647;
   const int32_t mon_order     = 0;
   const int32_t nr_threads    = 1;
   const int32_t max_nr_pairs  = 2000;

@@ -124,8 +124,24 @@ int64_t f4_julia_ff(
     select_spairs_by_minimal_degree(mat, md, bs);
     symbolic_preprocessing(mat, md, bs);
     /* exponent hashes mapped to column indices for linear algebra */
+    /* printf("MATRIX:\n");
+     * for (i= 0; i < mat->nr; ++i) {
+     *   int32_t *cf = (int32_t *)mat->r[i]->cf;
+     *   for (int32_t j = 0; j < mat->r[i]->sz; ++j) {
+     *     printf("%d | %d  ", cf[j], mat->r[i]->ch[j]);
+     *   }
+     *   printf("\n");
+     * } */
     hcm = convert_hashes_to_columns(mat, md);
     sort_matrix_rows(mat);
+    /* printf("MATRIX:\n");
+     * for (i= 0; i < mat->nr; ++i) {
+     *   int32_t *cf = (int32_t *)mat->r[i]->cf;
+     *   for (int32_t j = 0; j < mat->r[i]->sz; ++j) {
+     *     printf("%d | %d  ", cf[j], mat->r[i]->ch[j]);
+     *   }
+     *   printf("\n");
+     * } */
     /* linear algebra, depending on choice, see set_function_pointers() */
     linear_algebra(mat, md);
     /* columns indices are mapped back to exponent hashes */

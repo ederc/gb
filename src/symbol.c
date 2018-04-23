@@ -257,10 +257,11 @@ static void symbolic_preprocessing(
   for (i = 0; i < mat->nr; ++i) {
     r = mat->r[i];
     const len_t len = r->sz;
+    /* printf("%d | %d | %d\n", mat->na, mat->nr, len);  */
     /* check row reallocation only once per polynomial */
     if ((mat->na - mat->nr) < len) {
-      mat->na = 2*mat->na > len ?
-        2*mat->na : len;
+      mat->na = mat->na > len ?
+        2*mat->na : mat->na+len;
       mat->r  = realloc(mat->r, (unsigned long)mat->na * sizeof(row_t *));
     }
     for (j = 1; j < len; ++j) {

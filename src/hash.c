@@ -94,6 +94,7 @@ static val_t pseudo_random_number_generator(
 }
 
 static void initialize_global_hash_table(
+    void
     )
 {
   int32_t i;
@@ -125,6 +126,7 @@ static void initialize_global_hash_table(
 }
 
 static void initialize_local_hash_table(
+    void
     )
 {
   /* generate map */

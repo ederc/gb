@@ -249,22 +249,10 @@ static row_t *reduce_dense_row_by_known_pivots_32(
       dr[ch[j+3]] +=  (dr[ch[j+3]] >> 63) & mod2;
     }
     dr[i] = 0;
-
-    /* printf("dr reduced once: ");
-     * for (int32_t p = 0; p < nc; ++p) {
-     *   printf("%ld ", dr[p]);
-     * }
-     * printf("\n"); */
-
   }
   if (k == 0) {
     return NULL;
   }
-    /* printf("dr finally reduced: ");
-     * for (i = 0; i < nc; ++i) {
-     *   printf("%ld ", dr[i]);
-     * }
-     * printf("\n"); */
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
@@ -373,7 +361,7 @@ static void sparse_linear_algebra_16(
   upivs = NULL;
 
   /* we do not need the old pivots anymore */
-  for (i = 0; i < ncl; ++i) {
+  for (i = 0; i < mat->ncl; ++i) {
     free(pivs[i]->cf);
     free(pivs[i]->ch);
     free(pivs[i]);
@@ -495,7 +483,7 @@ static void sparse_linear_algebra_32(
   upivs = NULL;
 
   /* we do not need the old pivots anymore */
-  for (i = 0; i < ncl; ++i) {
+  for (i = 0; i < mat->ncl; ++i) {
     free(pivs[i]->cf);
     free(pivs[i]->ch);
     free(pivs[i]);

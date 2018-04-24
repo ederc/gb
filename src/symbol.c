@@ -72,7 +72,7 @@ static void select_spairs_by_minimal_degree(
   gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
   /* preset matrix meta data */
-  mat->r  = realloc(mat->r, 2 * (unsigned long)npairs * sizeof(val_t *));
+  mat->r  = realloc(mat->r, 2 * (unsigned long)npairs * sizeof(row_t *));
   /* mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *)); */
   mat->na = 2 * npairs;
   mat->nc = mat->ncl = mat->ncr = 0;
@@ -155,8 +155,11 @@ static inline row_t *find_multiplied_reducer(
   row_t *b;
   const exp_t * const e  = ev+m;
   exp_t *f;
-  const len_t * const lms = bs->lm;
+  /* const len_t * const lms = bs->lm; */
   /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
+
+  const len_t os  = md->os;
+  const len_t nv  = md->nv;
 
   const int32_t bl  = bs->ld;
   i = e[HASH_DIV];
@@ -164,15 +167,15 @@ static inline row_t *find_multiplied_reducer(
   const sdm_t ns = ~e[HASH_SDM];
 start:
   while (i < bl-3) {
-    if (lms[i] & ns &&
-        lms[i+1] & ns &&
-        lms[i+2] & ns &&
-        lms[i+3] & ns) {
+    if (bs->lm[i] & ns &&
+        bs->lm[i+1] & ns &&
+        bs->lm[i+2] & ns &&
+        bs->lm[i+3] & ns) {
       num_sdm_found +=  4;
       i +=  4;
       continue;
     }
-    while (lms[i] & ns) {
+    while (bs->lm[i] & ns) {
       i++;
     }
     b = bs->p[i];
@@ -181,14 +184,14 @@ start:
       i++;
       goto start;
     }
-    for (k = md->os; k < md->nv; k += 2) {
+    for (k = os; k < nv; k += 2) {
       if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start;
       }
     }
     exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-    for (i = 0; i < md->nv; ++i) {
+    for (i = 0; i < nv; ++i) {
       r[i]  =   e[i] - f[i];
       d     +=  r[i];
     }
@@ -199,7 +202,7 @@ start:
   }
 start2:
   while (i < bl) {
-    if (lms[i] & ns) {
+    if (bs->lm[i] & ns) {
       num_sdm_found++;
       i++;
       continue;
@@ -210,14 +213,14 @@ start2:
       i++;
       goto start2;
     }
-    for (k = md->os; k < md->nv; k += 2) {
+    for (k = os; k < nv; k += 2) {
       if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
         i++;
         goto start2;
       }
     }
-    exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-    for (i = 0; i < md->nv; ++i) {
+    exp_t *r = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
+    for (i = 0; i < nv; ++i) {
       r[i]  =   e[i] - f[i];
       d     +=  r[i];
     }

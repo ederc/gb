@@ -202,6 +202,7 @@ int64_t f4_julia_ff(
   /* free(mat->r);
    * free(mat); */
   free_basis(&bs);
+  free(md);
 
   return len;
 }

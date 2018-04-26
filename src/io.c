@@ -61,11 +61,12 @@ static inline void set_function_pointers(
       linear_algebra  = sparse_linear_algebra;
   }
   
-  if (fc < pow(2, 16)) {
-    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_16_bit;
+  /* up to 19 bits we can use one modular operation for reducing a row. this works
+   * for matrices with #rows <= 33 million */
+  if (fc < pow(2, 19)) {
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_19_bit;
   } else {
-    /* TODO: 32 bit implementation */
-    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_32_bit;
+    reduce_dense_row_by_known_pivots = reduce_dense_row_by_known_pivots_31_bit;
   }
 }
 

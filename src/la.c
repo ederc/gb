@@ -52,7 +52,7 @@ static inline void normalize_matrix_row(
   row[3]  = 1;
 }
 
-static val_t *reduce_dense_row_by_known_pivots_16_bit(
+static val_t *reduce_dense_row_by_known_pivots_19_bit(
     int64_t *dr,
     val_t *const *pivs,
     const val_t dpiv    /* pivot of dense row at the beginning */
@@ -73,7 +73,7 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
       continue;
     }
 
-    /* printf("16-bit dr before reduction with piv %d\n", i);
+    /* printf("19-bit dr before reduction with piv %d\n", i);
      * for (int32_t l = 0; l < ncols; ++l) {
      *   printf("%ld ", dr[l]);
      * }
@@ -140,7 +140,7 @@ static val_t *reduce_dense_row_by_known_pivots_16_bit(
   return row;
 }
 
-static val_t *reduce_dense_row_by_known_pivots_32_bit(
+static val_t *reduce_dense_row_by_known_pivots_31_bit(
     int64_t *dr,
     val_t *const *pivs,
     const val_t dpiv    /* pivot of dense row at the beginning */

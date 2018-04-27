@@ -354,9 +354,10 @@ static val_t **probabilistic_sparse_linear_algebra(
    * } */
 
   /* compute rows per block */
-  const int32_t nb  = (int32_t)(floor(sqrt(nrl/2))) > 0 ?
-    (int32_t)(floor(sqrt(nrl/2))) :
-    (int32_t)(floor(sqrt(nrl))) ;
+  const int32_t nb  = (int32_t)(floor(sqrt(nrl/3)))+1;
+  /* const int32_t nb  = (int32_t)(floor(sqrt(nrl/4))) > 0 ?
+   *   (int32_t)(floor(sqrt(nrl/4))) :
+   *   (int32_t)(floor(sqrt(nrl/2)))+1; */
   const int32_t rem = (nrl % nb == 0) ? 0 : 1;
   const int32_t rpb = (nrl / nb) + rem;
 

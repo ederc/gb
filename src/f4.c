@@ -174,9 +174,9 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
   GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
   GB_DEBUG(GBDBG, "global hash table load %15d <= 2^%d\n",
-      eload/HASH_LEN, (int32_t)((ceil(log(eload/HASH_LEN)/log(2)))));
+      eload, (int32_t)((ceil(log(eload)/log(2)))));
   GB_DEBUG(GBDBG, "local hash table load  %15d <= 2^%d\n",
-      elload/HASH_LEN, (int32_t)(ceil(log(elload/HASH_LEN)/log(2))));
+      elload, (int32_t)(ceil(log(elload)/log(2))));
   GB_DEBUG(GBDBG, "#ht enlargements       %15ld\n", num_htenl);
   GB_DEBUG(GBDBG, "#no reducer found      %15ld\n", num_sdm_found + num_not_sdm_found);
   GB_DEBUG(GBDBG, "sdm findings           %14.3f%% \n",

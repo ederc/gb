@@ -32,6 +32,9 @@ static val_t **select_spairs_by_minimal_degree(
   len_t lcm = 0, load = 0, load_old = 0;
   val_t **mat;
   len_t *gens;
+  exp_t *elcm, *eb;
+
+  const int64_t hl  = HASH_LEN;
 
   exp_t *em = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
@@ -105,17 +108,21 @@ static val_t **select_spairs_by_minimal_degree(
       j++;
     }
     for (k = load_old; k < load; ++k) {
+      /* ev might change when enlarging the hash table during insertion of a new
+       * row in the matrix, thus we have to reset elcm inside the for loop */
+      elcm  = ev + lcm*hl;
       d = 0;
       b = (val_t *)((long)bs[gens[k]] & bmask);
+      eb  = ev + b[2]*hl;
       /* m = monomial_division_no_check(lcm, b[2]); */
       for (l = 0; l < nvars; ++l) {
-        em[l] = (ev+lcm)[l] - (ev+b[2])[l];
+        em[l] = elcm[l] - eb[l];
         d     +=  em[l];
       }
-      const val_t h = (ev+lcm)[HASH_VAL] - (ev+b[2])[HASH_VAL];
+      const val_t h = elcm[HASH_VAL] - eb[HASH_VAL];
       mat[nrows]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
       /* mark lcm column as lead term column */
-      (ev+mat[nrows][2])[HASH_IND] = 2;
+      (ev+mat[nrows][2]*hl)[HASH_IND] = 2;
       nrows++;
     }
 
@@ -144,14 +151,16 @@ static val_t **select_spairs_by_minimal_degree(
 }
 
 static inline val_t *find_multiplied_reducer(
-    len_t m
+    int64_t m
     )
 {
   int32_t i, k;
+  const int64_t hl  = HASH_LEN;
   deg_t d = 0;
   val_t *b;
   const exp_t * const e  = ev+m;
   exp_t *f;
+
   /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
   const int32_t bl  = bload;
@@ -173,7 +182,7 @@ start:
       i++;
     }
     b = (val_t *)((long)bs[i] & bmask);
-    f = ev+b[2];
+    f = ev+b[2]*hl;
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start;
@@ -204,7 +213,7 @@ start2:
       continue;
     }
     b = (val_t *)((long)bs[i] & bmask);
-    f = ev+b[2];
+    f = ev+b[2]*hl;
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start2;
@@ -238,7 +247,9 @@ static val_t **symbolic_preprocessing(
 {
   int32_t i, j;
   val_t *red;
-  val_t m;
+  int64_t m;
+
+  const int64_t hl  = HASH_LEN;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -260,7 +271,7 @@ static val_t **symbolic_preprocessing(
       mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));
     }
     for (j = 4; j < len; j += 2) {
-      m = mat[i][j];
+      m = mat[i][j]*hl;
       if (!(ev+m)[HASH_IND]) {
         (ev+m)[HASH_IND] = 1;
         ncols++;

@@ -178,6 +178,7 @@ static int64_t export_julia_data(
   int64_t nb  = 0; /* # elemnts in basis */
 
   const int32_t lterm = 1 + nvars; /* length of a term */
+  const int64_t hl    = HASH_LEN;
 
   /* compute number of terms */
   for (i = 0; i < bload; ++i) {
@@ -218,7 +219,7 @@ static int64_t export_julia_data(
       for (j = 2; j < bs[i][0]; j += 2) {
         basis[ctr_elements++] = bs[i][j+1]; /* coefficient */
         for (k = 0; k < nvars; ++k) {
-          basis[ctr_elements++] = (ev + bs[i][j])[k];
+          basis[ctr_elements++] = (ev + bs[i][j]*hl)[k];
         }
       }
     }

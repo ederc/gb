@@ -42,14 +42,24 @@ static int matrix_row_initial_input_cmp_lex(
     )
 {
   int32_t i;
-  val_t va, vb;
+  int64_t va, vb;
+  const int64_t hl  = HASH_LEN;
 
-  va  = ((val_t **)a)[0][2];
-  vb  = ((val_t **)b)[0][2];
+  va  = ((val_t **)a)[0][2] * hl;
+  vb  = ((val_t **)b)[0][2] * hl;
 
   const exp_t * const ea  = ev + va;
   const exp_t * const eb  = ev + vb;
 
+  for (i = 0; i < nvars; ++i) {
+    printf("%d ", ea[i]);
+  }
+  printf("\n");
+  for (i = 0; i < nvars; ++i) {
+    printf("%d ", eb[i]);
+  }
+  printf("\n");
+  printf("\n");
   /* lexicographical */
   for (i = 0; i < nvars; ++i) {
     if (ea[i] < eb[i]) {
@@ -69,10 +79,11 @@ static int matrix_row_initial_input_cmp_drl(
     )
 {
   int32_t i;
-  val_t va, vb;
+  int64_t va, vb;
+  const int64_t hl  = HASH_LEN;
 
-  va  = ((val_t **)a)[0][2];
-  vb  = ((val_t **)b)[0][2];
+  va  = ((val_t **)a)[0][2] * hl;
+  vb  = ((val_t **)b)[0][2] * hl;
 
   const exp_t * const ea  = ev + va;
   const exp_t * const eb  = ev + vb;
@@ -140,9 +151,10 @@ static int monomial_cmp_pivots_drl(
     )
 {
   int32_t i;
+  const int64_t hl  = HASH_LEN;
 
-  const exp_t * const ea  = ev + a;
-  const exp_t * const eb  = ev + b;
+  const exp_t * const ea  = ev + a*hl;
+  const exp_t * const eb  = ev + b*hl;
 
 #if ORDER_COLUMNS
   /* first known pivots vs. tail terms */
@@ -187,8 +199,10 @@ static int monomial_cmp_pivots_lex(
     )
 {
   int32_t i;
-  const exp_t * const ea  = ev + a;
-  const exp_t * const eb  = ev + b;
+  const int64_t hl  = HASH_LEN;
+
+  const exp_t * const ea  = ev + a*hl;
+  const exp_t * const eb  = ev + b*hl;
 
   /* first known pivots vs. tail terms */
   if (ea[HASH_IND] < eb[HASH_IND]) {
@@ -289,10 +303,13 @@ static int spair_cmp_deglex(
 {
   spair_t *sa = (spair_t *)a;
   spair_t *sb = (spair_t *)b;
+
+  const int64_t hl  = HASH_LEN;
+
   if (sa->deg != sb->deg) {
     return (sa->deg < sb->deg) ? -1 : 1;
   } else {
-    return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+    return (int)monomial_cmp(ev+sa->lcm*hl, ev+sb->lcm*hl);
   }
 }
 
@@ -303,7 +320,10 @@ static int spair_cmp_drl(
 {
   spair_t *sa = (spair_t *)a;
   spair_t *sb = (spair_t *)b;
-  return (int)monomial_cmp(ev+sa->lcm, ev+sb->lcm);
+
+  const int64_t hl  = HASH_LEN;
+
+  return (int)monomial_cmp(ev+sa->lcm*hl, ev+sb->lcm*hl);
 }
 
 /* comparison for s-pairs while their lcms are in the local hash table */
@@ -315,5 +335,7 @@ static int spair_local_cmp(
   spair_t sa = *((spair_t *)a);
   spair_t sb = *((spair_t *)b);
 
-  return (int)monomial_cmp(evl+sa.lcm, evl+sb.lcm);
+  const int64_t hl  = HASH_LEN;
+
+  return (int)monomial_cmp(evl+sa.lcm*hl, evl+sb.lcm*hl);
 }

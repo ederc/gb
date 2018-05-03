@@ -36,10 +36,14 @@ static len_t *convert_hashes_to_columns(
   len_t *hcm; /* hash-to-column map */
   int64_t nterms = 0;
 
+  const int64_t hl  = HASH_LEN;
+
   /* timings */
   double ct0, ct1, rt0, rt1;
   ct0 = cputime();
   rt0 = realtime();
+
+  len_t hi;
 
   /* need to allocate memory for all possible exponents we
    * have in the local hash table since we do not which of
@@ -51,22 +55,23 @@ static len_t *convert_hashes_to_columns(
     row     =   mat[i];
     nterms  +=  (int64_t)(row[0]-2)/2;
     for (l = 2; l < row[0]; l += 2) {
+      hi  = (ev+row[l]*hl)[HASH_IND];
 #if ORDER_COLUMNS
-      if ((ev+row[l])[HASH_IND] > 0) {
+      if (hi > 0) {
 #else
-      if ((ev+row[l])[HASH_IND] != 0) {
+      if (hi != 0) {
 #endif
         hcm[j++]  = row[l];
-        if ((ev+row[l])[HASH_IND] == 2) {
+        if (hi == 2) {
           k++;
 #if ORDER_COLUMNS
-          (ev+row[l])[HASH_IND]  = -1;
+          (ev+row[l]*hl)[HASH_IND]  = -1;
         } else {
-          (ev+row[l])[HASH_IND]  = -2;
+          (ev+row[l]*hl)[HASH_IND]  = -2;
         }
 #else
         }
-        (ev+row[l])[HASH_IND] = 0;
+        (ev+row[l]*hl)[HASH_IND] = 0;
 #endif
       }
     }
@@ -83,7 +88,7 @@ static len_t *convert_hashes_to_columns(
   /* for (i = 0; i < j; ++i) {
    *   printf("hcm[%d] = ", i);
    *   for (l = 0; l < nvars; ++l) {
-   *     printf("%d ", (ev+hcm[i])[l]);
+   *     printf("%d ", (ev+hcm[i]*hl)[l]);
    *   }
    *   printf("\n");
    * } */
@@ -95,7 +100,7 @@ static len_t *convert_hashes_to_columns(
 
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < j; ++i) {
-    (ev + hcm[i])[HASH_IND]  = i;
+    (ev + hcm[i]*hl)[HASH_IND]  = i;
   }
 
 
@@ -105,13 +110,13 @@ static len_t *convert_hashes_to_columns(
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
     for (j = 2; j < row[1]; j += 2) {
-      row[j]  = (ev + row[j])[HASH_IND];
+      row[j]  = (ev + row[j]*hl)[HASH_IND];
     }
     for (; j < row[0]; j += 8) {
-      row[j]    = (ev + row[j])[HASH_IND];
-      row[j+2]  = (ev + row[j+2])[HASH_IND];
-      row[j+4]  = (ev + row[j+4])[HASH_IND];
-      row[j+6]  = (ev + row[j+6])[HASH_IND];
+      row[j]    = (ev + row[j]*hl)[HASH_IND];
+      row[j+2]  = (ev + row[j+2]*hl)[HASH_IND];
+      row[j+4]  = (ev + row[j+4]*hl)[HASH_IND];
+      row[j+6]  = (ev + row[j+6]*hl)[HASH_IND];
     }
   }
 
@@ -150,13 +155,15 @@ static val_t **convert_columns_to_hashes(
   int32_t i, j;
   val_t *row;
 
+  const int64_t hl  = HASH_LEN;
+
   /* timings */
   double ct0, ct1, rt0, rt1;
   ct0 = cputime();
   rt0 = realtime();
 
   for (i = 0; i < ncols; ++i) {
-    (ev+hcm[i])[HASH_IND] = 0;
+    (ev+hcm[i]*hl)[HASH_IND] = 0;
   }
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)

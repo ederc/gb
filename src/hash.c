@@ -199,6 +199,9 @@ static void enlarge_global_hash_table(
   esize = 2 * esize;
   ev    = realloc(ev,
             (unsigned long)esize * hlu * sizeof(exp_t));
+  if (ev == NULL) {
+    printf("Computation needs too much memory on this machine, segmentation fault will follow.\n");
+  }
   memset(ev+eload*hl, 0,
       (unsigned long)(esize-eload) * hlu * sizeof(exp_t));
 

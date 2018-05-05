@@ -31,7 +31,7 @@ static len_t *convert_hashes_to_columns(
     val_t **mat
     )
 {
-  int32_t i, j, k, l;
+  len_t i, j, k, l;
   val_t *row;
   len_t *hcm; /* hash-to-column map */
   int64_t nterms = 0;
@@ -152,7 +152,7 @@ static val_t **convert_columns_to_hashes(
     const len_t *hcm
     )
 {
-  int32_t i, j;
+  len_t i, j;
   val_t *row;
 
   const int64_t hl  = HASH_LEN;

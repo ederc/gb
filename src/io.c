@@ -144,7 +144,9 @@ static val_t **import_julia_data(
     )
 {
   int32_t i, j;
+  len_t k;
   int32_t off = 0; /* offset in arrays */
+  exp_t *e  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
   val_t **mat = malloc((unsigned long)nr_gens * sizeof(val_t *));
   
   for (i = 0; i < nr_gens; ++i) {
@@ -155,13 +157,18 @@ static val_t **import_julia_data(
     mat[i][0] = 2*lens[i]+2;
     mat[i][1] = 2*(lens[i] % UNROLL)+2; /* offset for starting loop unrolling */
     for (j = off; j < off+lens[i]; ++j) {
-      mat[i][2*(j+1-off)]   = insert_in_global_hash_table(exps+(nvars*j));
-      mat[i][2*(j+1-off)+1] = cfs[j];
+      for (k = 0; k < nvars; ++k) {
+        e[k]  = (exp_t)(exps+(nvars*j))[k];
+      }
+      mat[i][2*(j+1-off)]   = insert_in_global_hash_table(e);
+      mat[i][2*(j+1-off)+1] = (val_t)cfs[j];
     }
     /* mark initial generators, they have to be added to the basis first */
     off +=  lens[i];
   }
   npivs = nrows = nrall = nr_gens;
+
+  free(e);
 
   return mat;
 }
@@ -170,14 +177,14 @@ static int64_t export_julia_data(
     int32_t **bp
     )
 {
-  int32_t i, j, k;
+  len_t i, j, k;
   int64_t ctr_lengths, ctr_elements;
   int32_t *basis  = *bp;
 
   int64_t len = 0; /* complete length of exported array */
   int64_t nb  = 0; /* # elemnts in basis */
 
-  const int32_t lterm = 1 + nvars; /* length of a term */
+  const len_t lterm = 1 + nvars; /* length of a term */
   const int64_t hl    = HASH_LEN;
 
   /* compute number of terms */
@@ -215,11 +222,11 @@ static int64_t export_julia_data(
     } else {
       /* printf("ctr_lengths %d | %d / %d\n", ctr_lengths, i, bload); */
       /* length of polynomial including this length entry itself */
-      basis[ctr_lengths++]  = (bs[i][0]-2)/2 * lterm;
+      basis[ctr_lengths++]  = (int32_t)((bs[i][0]-2)/2 * lterm);
       for (j = 2; j < bs[i][0]; j += 2) {
-        basis[ctr_elements++] = bs[i][j+1]; /* coefficient */
+        basis[ctr_elements++] = (int32_t)bs[i][j+1]; /* coefficient */
         for (k = 0; k < nvars; ++k) {
-          basis[ctr_elements++] = (ev + bs[i][j]*hl)[k];
+          basis[ctr_elements++] = (int32_t)(ev + bs[i][j]*hl)[k];
         }
       }
     }

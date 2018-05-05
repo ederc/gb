@@ -41,7 +41,7 @@ static int matrix_row_initial_input_cmp_lex(
     const void *b
     )
 {
-  int32_t i;
+  len_t i;
   int64_t va, vb;
   const int64_t hl  = HASH_LEN;
 
@@ -51,15 +51,6 @@ static int matrix_row_initial_input_cmp_lex(
   const exp_t * const ea  = ev + va;
   const exp_t * const eb  = ev + vb;
 
-  for (i = 0; i < nvars; ++i) {
-    printf("%d ", ea[i]);
-  }
-  printf("\n");
-  for (i = 0; i < nvars; ++i) {
-    printf("%d ", eb[i]);
-  }
-  printf("\n");
-  printf("\n");
   /* lexicographical */
   for (i = 0; i < nvars; ++i) {
     if (ea[i] < eb[i]) {
@@ -78,7 +69,7 @@ static int matrix_row_initial_input_cmp_drl(
     const void *b
     )
 {
-  int32_t i;
+  len_t i;
   int64_t va, vb;
   const int64_t hl  = HASH_LEN;
 
@@ -98,11 +89,11 @@ static int matrix_row_initial_input_cmp_drl(
   }
 
   /* note: reverse lexicographical */
-  for (i = nvars-1; i >= 0; --i) {
-    if (ea[i] < eb[i]) {
+  for (i = nvars; i > 0; --i) {
+    if (ea[i-1] < eb[i-1]) {
       return -1;
     } else {
-      if (ea[i] != eb[i]) {
+      if (ea[i-1] != eb[i-1]) {
         return 1;
       }
     }
@@ -150,7 +141,7 @@ static int monomial_cmp_pivots_drl(
     const len_t b
     )
 {
-  int32_t i;
+  len_t i;
   const int64_t hl  = HASH_LEN;
 
   const exp_t * const ea  = ev + a*hl;
@@ -177,11 +168,11 @@ static int monomial_cmp_pivots_drl(
     }
 
     /* note: reverse lexicographical */
-    for (i = nvars-1; i >= 0; --i) {
-      if (ea[i] > eb[i]) {
+    for (i = nvars; i > 0; --i) {
+      if (ea[i-1] > eb[i-1]) {
         return 1;
       } else {
-        if (ea[i] != eb[i]) {
+        if (ea[i-1] != eb[i-1]) {
           return -1;
         }
       }
@@ -198,7 +189,7 @@ static int monomial_cmp_pivots_lex(
     const len_t b
     )
 {
-  int32_t i;
+  len_t i;
   const int64_t hl  = HASH_LEN;
 
   const exp_t * const ea  = ev + a*hl;
@@ -231,7 +222,7 @@ static inline int monomial_cmp_drl(
     const exp_t * const eb
     )
 {
-  int32_t i;
+  len_t i;
 
   if (ea[HASH_DEG] > eb[HASH_DEG]) {
     return 1;
@@ -241,11 +232,11 @@ static inline int monomial_cmp_drl(
     }
   }
 
-  for (i = nvars-1; i >= 0; --i) {
-    if (ea[i] < eb[i]) {
+  for (i = nvars; i > 0; --i) {
+    if (ea[i-1] < eb[i-1]) {
       return 1;
     } else {
-      if (ea[i] != eb[i]) {
+      if (ea[i-1] != eb[i-1]) {
         return -1;
       }
     }
@@ -258,7 +249,7 @@ static inline int monomial_cmp_lex(
     const exp_t * const eb
     )
 {
-  int32_t i;
+  len_t i;
 
   for (i = 0; i < nvars; ++i) {
     if (ea[i] < eb[i]) {

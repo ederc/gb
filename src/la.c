@@ -28,7 +28,7 @@ static inline void normalize_matrix_row(
   int32_t i;
   int64_t tmp1, tmp2, tmp3, tmp4;
 
-  const int32_t inv = mod_p_inverse_32(row[3], fc);
+  const int32_t inv = mod_p_inverse_32((int32_t)row[3], (int32_t)fc);
   
   for (i = 3; i < row[1]; i += 2) {
     tmp1    =   ((int64_t)row[i] * inv) % fc;
@@ -58,7 +58,7 @@ static val_t *reduce_dense_row_by_known_pivots_19_bit(
     const val_t dpiv    /* pivot of dense row at the beginning */
     )
 {
-  int32_t i, j, k;
+  len_t i, j, k;
   const int64_t mod = (int64_t)fc;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
@@ -146,7 +146,7 @@ static val_t *reduce_dense_row_by_known_pivots_31_bit(
     const val_t dpiv    /* pivot of dense row at the beginning */
     )
 {
-  int32_t i, j, k;
+  len_t i, j, k;
   const int64_t mod2  = (int64_t)fc * fc;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
@@ -213,7 +213,7 @@ static val_t **sparse_linear_algebra(
     val_t **mat
     )
 {
-  int32_t i, j, k;
+  len_t i, j, k;
   val_t sc    = 0;    /* starting column */
   val_t *npiv = NULL; /* new pivot row */
 
@@ -316,7 +316,7 @@ static val_t **probabilistic_sparse_linear_algebra(
     )
 {
   /* printf("HIER | ncols %d\n", ncols); */
-  int32_t i, j, k, l;
+  len_t i, j, k, l;
   val_t sc    = 0;    /* starting column */
   val_t *npiv = NULL; /* new pivot row */
   const int64_t mod2  = (int64_t)fc * fc;
@@ -354,12 +354,12 @@ static val_t **probabilistic_sparse_linear_algebra(
    * } */
 
   /* compute rows per block */
-  const int32_t nb  = (int32_t)(floor(sqrt(nrl/3)))+1;
+  const len_t nb  = (len_t)(floor(sqrt(nrl/3)))+1;
   /* const int32_t nb  = (int32_t)(floor(sqrt(nrl/4))) > 0 ?
    *   (int32_t)(floor(sqrt(nrl/4))) :
    *   (int32_t)(floor(sqrt(nrl/2)))+1; */
-  const int32_t rem = (nrl % nb == 0) ? 0 : 1;
-  const int32_t rpb = (nrl / nb) + rem;
+  const len_t rem = (nrl % nb == 0) ? 0 : 1;
+  const len_t rpb = (nrl / nb) + rem;
 
   int64_t *dr   = (int64_t *)malloc(
       (unsigned long)(nthrds * ncols) * sizeof(int64_t));

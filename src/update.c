@@ -35,7 +35,7 @@ static void initialize_pairset(
 }
 
 static inline void check_enlarge_pairset(
-    int32_t added
+    len_t added
     )
 {
   if (pload+added >= psize) {
@@ -61,7 +61,7 @@ static void insert_and_update_spairs(
     val_t *nelt
     )
 {
-  int32_t i, j, k, l;
+  len_t i, j, k, l;
   val_t *b;
   exp_t *ej;
 
@@ -283,7 +283,7 @@ static void update_basis(
     val_t **mat
     )
 {
-  int32_t i;
+  len_t i;
 
   /* timings */
   double ct0, ct1, rt0, rt1;

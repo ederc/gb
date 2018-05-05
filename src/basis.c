@@ -34,7 +34,7 @@ static void initialize_basis(
 }
 
 static inline void check_enlarge_basis(
-    int32_t added
+    len_t added
     )
 {
   if (bload+added >= bsize) {
@@ -48,7 +48,7 @@ static void free_basis(
     void
     )
 {
-  int32_t i;
+  len_t i;
   if (bs) {
     for (i = 0; i < bload; ++i) {
       /* reset pointer of possible redundant elements */

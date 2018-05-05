@@ -97,7 +97,7 @@ static void initialize_global_hash_table(
     void
     )
 {
-  int32_t i;
+  len_t i;
 
   /* generate map */
   bpv   = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
@@ -114,9 +114,9 @@ static void initialize_global_hash_table(
 
   /* generate random values */
   rv  = calloc((unsigned long)nvars, sizeof(val_t));
-  for (i = nvars-1; i >= 0; --i) {
+  for (i = nvars; i > 0; --i) {
     /* random values should not be zero */
-    rv[i] = pseudo_random_number_generator() | 1;
+    rv[i-1] = pseudo_random_number_generator() | 1;
   }
   /* generate exponent vector */
   esize = msize/2;
@@ -191,8 +191,8 @@ static void enlarge_global_hash_table(
     void
     )
 {
-  int32_t h, i, j, k;
-  int32_t *e;
+  len_t h, i, j, k;
+  exp_t *e;
   const int64_t hl  = HASH_LEN;
   const unsigned long hlu  = (unsigned long)HASH_LEN;
 
@@ -232,7 +232,7 @@ static inline sdm_t generate_short_divmask(
     const exp_t *a
     )
 {
-  int32_t i, j;
+  len_t i, j;
   int32_t res = 0;
   int32_t ctr = 0;
 
@@ -255,7 +255,7 @@ static inline void calculate_divmask(
     void
     )
 {
-  int32_t i, j, steps;
+  len_t i, j, steps;
   int32_t ctr = 0;
   const int64_t hl  = HASH_LEN;
 
@@ -270,8 +270,8 @@ static inline void calculate_divmask(
   }
 
   /* get maximal and minimal exponent element entries in hash table */
-  for (i = 2*HASH_LEN; i < eload; i = i + HASH_LEN) {
-    e = ev + i;
+  for (i = 2; i < eload; ++i) {
+    e = ev + i*hl;
     for (j = 0; j < ndvars; ++j) {
       if (e[j] > max_exp[j]) {
         max_exp[j]  = e[j];
@@ -289,7 +289,7 @@ static inline void calculate_divmask(
     if (steps == 0)
       steps++;
     for (j = 0; j < bpv; ++j) {
-      dm[ctr++] = steps++;
+      dm[ctr++] = (sdm_t)steps++;
     }
   }
 
@@ -309,8 +309,8 @@ static inline len_t check_monomial_division(
     const exp_t *const eb
     )
 {
-  int32_t i;
-  const int32_t nv  = nvars;
+  len_t i;
+  const len_t nv  = nvars;
 
   /* short divisor mask check */
   if (eb[HASH_SDM] & ~ea[HASH_SDM]) {
@@ -339,9 +339,10 @@ static inline len_t insert_in_global_hash_table(
     const exp_t *a
     )
 {
-  int32_t i, k, pos, deg;
+  len_t i, k, pos;
+  exp_t deg;
   exp_t *e;
-  int32_t h = 0;
+  len_t h = 0;
   const int64_t hl  = HASH_LEN;
 
   /* generate hash value */
@@ -390,9 +391,10 @@ static inline len_t insert_in_local_hash_table(
     const exp_t *a
     )
 {
-  int32_t i, k, pos, deg;
+  len_t i, k, pos;
+  exp_t deg;
   exp_t *e;
-  int32_t h = 0;
+  len_t h = 0;
   const int64_t hl  = HASH_LEN;
 
   /* generate hash value */
@@ -466,11 +468,11 @@ static inline len_t insert_in_global_hash_table_product_special(
     const exp_t * const a2
     )
 {
-  int32_t i, k, pos;
+  len_t i, k, pos;
   exp_t *e, *n;
 
   const int64_t hl  = HASH_LEN;
-  const int32_t h   = h1 + a2[HASH_VAL];
+  const len_t h   = h1 + a2[HASH_VAL];
   /* printf("hash %d\n", h); */
 
   n = ev + eload*hl;
@@ -519,11 +521,11 @@ static inline len_t insert_in_global_hash_table_product(
     const exp_t * const a2
     )
 {
-  int32_t i, k, pos;
+  len_t i, k, pos;
   exp_t *e, *n;
 
   const int64_t hl  = HASH_LEN;
-  const int32_t h   = a1[HASH_VAL] + a2[HASH_VAL];
+  const len_t h   = a1[HASH_VAL] + a2[HASH_VAL];
 
   /* printf("hash %d\n", h); */
   n = ev + (int64_t)HASH_LEN*eload;
@@ -593,7 +595,7 @@ static inline len_t get_lcm(
     const int64_t b
     )
 {
-  int32_t i;
+  len_t i;
 
   /* exponents of basis elements, thus from global hash table */
   const exp_t * const ea = ev + a;
@@ -628,7 +630,7 @@ static inline len_t monomial_division_with_check(
     const int64_t b
     )
 {
-  int32_t i;
+  len_t i;
 
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
@@ -664,7 +666,7 @@ static inline len_t monomial_division_no_check(
     const int64_t b
     )
 {
-  int32_t i;
+  len_t i;
 
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
@@ -687,7 +689,7 @@ static inline val_t *multiplied_polynomial_to_matrix_row(
     const val_t *poly
     )
 {
-  int32_t i;
+  len_t i;
   const int64_t hl  = HASH_LEN;
 
   val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));

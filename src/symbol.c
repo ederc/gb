@@ -26,7 +26,7 @@ static val_t **select_spairs_by_minimal_degree(
     void
     )
 {
-  int32_t i, j, k, l, md, npairs;
+  len_t i, j, k, l, md, npairs;
   val_t *b;
   deg_t d = 0;
   len_t lcm = 0, load = 0, load_old = 0;
@@ -154,7 +154,7 @@ static inline val_t *find_multiplied_reducer(
     int64_t m
     )
 {
-  int32_t i, k;
+  len_t i, k;
   const int64_t hl  = HASH_LEN;
   deg_t d = 0;
   val_t *b;
@@ -163,11 +163,11 @@ static inline val_t *find_multiplied_reducer(
 
   /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
-  const int32_t bl  = bload;
-  const int32_t os  = nvars & 1 ? 1 : 0;
+  const len_t bl  = bload;
+  const len_t os  = nvars & 1 ? 1 : 0;
   i = e[HASH_DIV];
 
-  const sdm_t ns = ~e[HASH_SDM];
+  const sdm_t ns = (sdm_t)~e[HASH_SDM];
 start:
   while (i < bl-3) {
     if (lms[i] & ns &&
@@ -245,7 +245,7 @@ static val_t **symbolic_preprocessing(
     val_t **mat
     )
 {
-  int32_t i, j;
+  len_t i, j;
   val_t *red;
   int64_t m;
 

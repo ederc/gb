@@ -43,12 +43,12 @@
 /* computational data */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
-typedef int32_t exp_t;    /* exponent type */
-typedef int32_t val_t;    /* core values like hashes, coefficients, etc. */
-typedef int32_t deg_t;    /* (total) degree of polynomial */
-typedef int32_t bi_t;     /* basis index of element */
-typedef int32_t bl_t;     /* basis load */
-typedef int32_t pl_t;     /* pair set load */
+typedef len_t exp_t;    /* exponent type */
+typedef len_t val_t;    /* core values like hashes, coefficients, etc. */
+typedef len_t deg_t;    /* (total) degree of polynomial */
+typedef len_t bi_t;     /* basis index of element */
+typedef len_t bl_t;     /* basis load */
+typedef len_t pl_t;     /* pair set load */
 
 /* S-pair types */
 typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
@@ -89,14 +89,14 @@ static const long bred  = (long)1;  /* maRking redundant elements */
 static const long bmask = ~(long)1; /* maSking redundant elements */
 
 /* matrix data */
-static int32_t nrall  = 0; /* allocated rows for matrix */
-static int32_t npivs  = 0; /* new pivots in the current round */
-static int32_t nrows  = 0; /* rows used in the current round */
-static int32_t ncols  = 0; /* columns used in the current round */
-static int32_t nru    = 0; /* number of upper rows (in ABCD splicing) */
-static int32_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
-static int32_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
-static int32_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
+static len_t nrall  = 0; /* allocated rows for matrix */
+static len_t npivs  = 0; /* new pivots in the current round */
+static len_t nrows  = 0; /* rows used in the current round */
+static len_t ncols  = 0; /* columns used in the current round */
+static len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
+static len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
+static len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
+static len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
 
 /* loop unrolling in sparse linear algebra:
  * we store the offset of the first elements not unrolled

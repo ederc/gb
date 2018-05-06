@@ -51,7 +51,7 @@ int64_t f4_julia(
   ct0 = cputime();
   rt0 = realtime();
 
-  int32_t i, round;
+  int32_t i, round, last_reset;
   val_t **mat;
   len_t *hcm; /* hash-column-map */
 
@@ -111,7 +111,14 @@ int64_t f4_julia(
 
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
+  last_reset  = 0;
   for (round = 1; pload > 0; ++round) {
+    if (round - last_reset == 10) {
+      last_reset  = round;
+      printf("eload before reset %d / %d\n", eload, esize);
+      reset_global_hash_table(); 
+      printf("eload after reset  %d / %d\n", eload, esize);
+    }
     GB_DEBUG(GBDBG, "%3d", round);
 
     /* preprocess data for next reduction round */

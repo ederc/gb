@@ -386,6 +386,54 @@ static inline len_t insert_in_global_hash_table(
   return pos;
 }
 
+static inline len_t insert_in_global_hash_table_no_enlargment_check(
+    const exp_t *a
+    )
+{
+  len_t i, k, pos;
+  exp_t deg;
+  exp_t *e;
+  len_t h = 0;
+  const int64_t hl  = HASH_LEN;
+
+  /* generate hash value */
+  for (i = 0; i < nvars; ++i) {
+    h +=  rv[i] * a[i];
+  }
+
+  /* probing */
+  k = h;
+  for (i = 0; i < msize; ++i) {
+    k = (k+i) & (msize-1);
+    if (!map[k]) {
+      break;
+    }
+    e = ev + map[k]*hl;
+    if (e[HASH_VAL] != h) {
+      continue;
+    }
+    if (memcmp(e, a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
+      return map[k];
+    }
+  }
+
+  /* add element to hash table */
+  map[k]  = pos = eload;
+  e   = ev + pos*hl;
+  deg = 0;
+  for (i = 0; i < nvars; ++i) {
+    e[i]  =   a[i];
+    deg   +=  a[i];
+  }
+  e[HASH_DEG] = deg;
+  e[HASH_SDM] = generate_short_divmask(e);
+  e[HASH_VAL] = h;
+
+  eload++;
+
+  return pos;
+}
+
 
 static inline len_t insert_in_local_hash_table(
     const exp_t *a
@@ -563,6 +611,37 @@ static inline len_t insert_in_global_hash_table_product(
    *   enlarge_global_hash_table();
    * } */
   return pos;
+}
+
+static void reset_global_hash_table(
+    void
+    )
+{
+  len_t i, j;
+  exp_t *e;
+  val_t *b;
+  const int64_t hl  = HASH_LEN;
+  const unsigned long hlu  = (unsigned long)HASH_LEN;
+
+  exp_t *oev  = ev;
+  ev    = calloc((unsigned long)esize * hlu,
+            sizeof(exp_t));
+  eload = 1;
+  memset(map, 0, (unsigned long)msize * sizeof(len_t));
+
+  /* reinsert known elements */
+  for (i = 0; i < bload; ++i) {
+    b = (val_t *)((long)bs[i] & bmask);
+    for (j = 2; j < b[0]; j = j+2) {
+      e = oev + b[j]*hl;
+      b[j]  = insert_in_global_hash_table_no_enlargment_check(e);
+    }
+  }
+  for (i = 0; i < pload; ++i) {
+    e = oev + ps[i].lcm*hl;
+    ps[i].lcm = insert_in_global_hash_table_no_enlargment_check(e);
+  }
+  free(oev);
 }
 
 /* we can check equality of lcm and multiplication of two monomials

@@ -43,6 +43,7 @@ int64_t f4_julia(
     const int32_t ht_size,
     const int32_t nr_threads,
     const int32_t max_nr_pairs,
+    const int32_t reset_hash_table,
     const int32_t la_option
     )
 {
@@ -58,7 +59,8 @@ int64_t f4_julia(
   /* checks and set all meta data. if a nonzero value is returned then
    * some of the input data is corrupted. */
   if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
-      nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
+      nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
+      la_option)) {
     return 0;
   }
 
@@ -113,7 +115,7 @@ int64_t f4_julia(
    * are left in the pairset */
   last_reset  = 0;
   for (round = 1; pload > 0; ++round) {
-    if (round - last_reset == 10) {
+    if (round - last_reset == rght) {
       last_reset  = round;
       printf("eload before reset %d / %d\n", eload, esize);
       reset_global_hash_table(); 

@@ -24,9 +24,11 @@ int main(
   const int32_t nr_threads    = 1;
   const int32_t la_option     = 1;
   const int32_t max_nr_pairs  = 100;
+  const int32_t reset_hash_table  = 0;
 
   if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
-      nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
+      nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
+      la_option)) {
     return 1;
   }
 

@@ -81,6 +81,7 @@ static inline int32_t check_and_set_meta_data(
     const int32_t ht_size,
     const int32_t nr_threads,
     const int32_t max_nr_pairs,
+    const int32_t reset_hash_table,
     const int32_t la_option
     )
 {
@@ -113,6 +114,12 @@ static inline int32_t check_and_set_meta_data(
     nthrds  = 1;
   } else {
     nthrds  = nr_threads;
+  }
+
+  if (reset_hash_table < 0) {
+    rght  = 0;
+  } else {
+    rght  = reset_hash_table;
   }
 
   if (max_nr_pairs <= 0) {

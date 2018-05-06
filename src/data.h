@@ -106,6 +106,9 @@ static len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
 /* threads data */
 static int32_t nthrds = 1; /* number of CPU threads */
 
+/* reset global hash table */
+static int32_t rght = 0; /* reset global hash table after rght rounds */
+
 /* linear algebra options */
 static int32_t laopt  = 0;
 
@@ -156,6 +159,7 @@ int64_t f4_julia(
     const int32_t ht_size,
     const int32_t nr_threads,
     const int32_t max_nr_pairs,
+    const int32_t reset_hash_table,
     const int32_t la_option
     );
 #endif

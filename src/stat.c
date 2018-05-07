@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 
+static double rght_ctime    = 0;
 static double select_ctime  = 0;
 static double symbol_ctime  = 0;
 static double la_ctime      = 0;
@@ -29,6 +30,7 @@ static double update_ctime  = 0;
 static double convert_ctime = 0;
 static double reduce_ctime  = 0;
 
+static double rght_rtime    = 0;
 static double select_rtime  = 0;
 static double symbol_rtime  = 0;
 static double la_rtime      = 0;

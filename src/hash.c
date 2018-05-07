@@ -617,6 +617,11 @@ static void reset_global_hash_table(
     void
     )
 {
+  /* timings */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
+
   len_t i, j;
   exp_t *e;
   val_t *b;
@@ -642,6 +647,12 @@ static void reset_global_hash_table(
     ps[i].lcm = insert_in_global_hash_table_no_enlargment_check(e);
   }
   free(oev);
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  rght_ctime  +=  ct1 - ct0;
+  rght_rtime  +=  rt1 - rt0;
 }
 
 /* we can check equality of lcm and multiplication of two monomials

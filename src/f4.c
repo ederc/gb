@@ -82,6 +82,7 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "linear algebra option  %15d\n", laopt);
   GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
       (int32_t)pow(2,htes), htes);
+  GB_DEBUG(GBDBG, "reset global hash table %14d\n", rght);
   GB_DEBUG(GBDBG, "maximal pair selection %15d\n", mnsel);
   GB_DEBUG(GBDBG, "#threads               %15d\n", nthrds);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
@@ -117,9 +118,9 @@ int64_t f4_julia(
   for (round = 1; pload > 0; ++round) {
     if (round - last_reset == rght) {
       last_reset  = round;
-      printf("eload before reset %d / %d\n", eload, esize);
+      /* printf("eload before reset %d / %d\n", eload, esize); */
       reset_global_hash_table(); 
-      printf("eload after reset  %d / %d\n", eload, esize);
+      /* printf("eload after reset  %d / %d\n", eload, esize); */
     }
     GB_DEBUG(GBDBG, "%3d", round);
 
@@ -172,6 +173,9 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "update                 %15.3f sec\n", update_rtime);
   GB_DEBUG(GBDBG, "update1                %15.3f sec\n", update1_rtime);
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
+  if (rght != 0) {
+    GB_DEBUG(GBDBG, "rght                   %15.3f sec\n", rght_rtime);
+  }
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
   GB_DEBUG(GBDBG, "size of basis          %15d\n", (*jl_basis[0]));

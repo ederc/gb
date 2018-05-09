@@ -151,7 +151,7 @@ static val_t **select_spairs_by_minimal_degree(
 }
 
 static inline val_t *find_multiplied_reducer(
-    int64_t m
+    const int64_t m
     )
 {
   len_t i, k;

@@ -386,7 +386,7 @@ static inline len_t insert_in_global_hash_table(
   return pos;
 }
 
-static inline len_t insert_in_global_hash_table_no_enlargment_check(
+static inline len_t insert_in_global_hash_table_no_enlargement_check(
     const exp_t *a
     )
 {
@@ -639,12 +639,12 @@ static void reset_global_hash_table(
     b = (val_t *)((long)bs[i] & bmask);
     for (j = 2; j < b[0]; j = j+2) {
       e = oev + b[j]*hl;
-      b[j]  = insert_in_global_hash_table_no_enlargment_check(e);
+      b[j]  = insert_in_global_hash_table_no_enlargement_check(e);
     }
   }
   for (i = 0; i < pload; ++i) {
     e = oev + ps[i].lcm*hl;
-    ps[i].lcm = insert_in_global_hash_table_no_enlargment_check(e);
+    ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(e);
   }
   free(oev);
 

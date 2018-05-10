@@ -247,12 +247,16 @@ static void insert_and_update_spairs(
     }
     ps[j++] = ps[i];
   }
+  if (esize - eload <= nl-pload) {
+    enlarge_global_hash_table();
+  }
   /* new pairs, wee need to add the lcm to the global hash table */
   for (; i < nl; ++i) {
     if (ps[i].deg < 0) {
       continue;
     }
-    ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm*hl);
+    ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(
+                  evl+ps[i].lcm*hl);
     ps[j++]   = ps[i];
   }
   num_gb_crit +=  nl - j;

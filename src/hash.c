@@ -371,6 +371,96 @@ static inline len_t insert_in_global_hash_table(
   return pos;
 }
 
+static inline len_t insert_in_global_hash_table_no_enlargement_check(
+    const exp_t *a
+    )
+{
+  int32_t i, k, pos, deg;
+  exp_t *e;
+  int32_t h = 0;
+
+  /* generate hash value */
+  for (i = 0; i < nvars; ++i) {
+    h +=  rv[i] * a[i];
+  }
+
+  /* probing */
+  k = h;
+  for (i = 0; i < msize; ++i) {
+    k = (k+i) & (msize-1);
+    if (!map[k]) {
+      break;
+    }
+    e = ev + map[k];
+    if (e[HASH_VAL] != h) {
+      continue;
+    }
+    if (memcmp(e, a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
+      return map[k];
+    }
+  }
+
+  /* add element to hash table */
+  map[k]  = pos = eload;
+  e   = ev + pos;
+  deg = 0;
+  for (i = 0; i < nvars; ++i) {
+    e[i]  =   a[i];
+    deg   +=  a[i];
+  }
+  e[HASH_DEG] = deg;
+  e[HASH_SDM] = generate_short_divmask(e);
+  e[HASH_VAL] = h;
+
+  eload +=  HASH_LEN;
+
+  return pos;
+}
+
+static void reset_global_hash_table(
+  bs_t *bs,
+  md_t *md
+    )
+{
+  /* timings */
+  double ct0, ct1, rt0, rt1;
+  ct0 = cputime();
+  rt0 = realtime();
+
+  len_t i, j;
+  exp_t *e;
+  len_t *b;
+
+  exp_t *oev  = ev;
+  ev    = calloc((unsigned long)esize,
+            sizeof(exp_t));
+  eload = HASH_LEN;
+  memset(map, 0, (unsigned long)msize * sizeof(len_t));
+
+  /* reinsert known elements */
+  for (i = 0; i < bs->ld; ++i) {
+    b = bs->p[i]->ch;
+    const len_t sz = bs->p[i]->sz;
+    /* b = (val_t *)((long)bs[i] & bmask); */
+    for (j = 0; j < sz; ++j) {
+      e = oev + b[j];
+      b[j]  = insert_in_global_hash_table_no_enlargement_check(e);
+    }
+  }
+  for (i = 0; i < pload; ++i) {
+    e = oev + ps[i].lcm;
+    ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(e);
+  }
+  free(oev);
+
+  /* timings */
+  ct1 = cputime();
+  rt1 = realtime();
+  md->rght_ctime  +=  ct1 - ct0;
+  md->rght_rtime  +=  rt1 - rt0;
+}
+
+
 
 static inline len_t insert_in_local_hash_table(
     const exp_t *a

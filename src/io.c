@@ -323,6 +323,7 @@ static inline int32_t check_and_set_meta_data(
     const int32_t ht_size,
     const int32_t nr_threads,
     const int32_t max_nr_pairs,
+    const int32_t reset_hash_table,
     const int32_t la_option
     )
 {
@@ -355,6 +356,12 @@ static inline int32_t check_and_set_meta_data(
     htes  = 12;
   }
 
+  /* reset global hash table? */
+  if (reset_hash_table <= 0) {
+    md->rght  = -1;
+  } else {
+    md->rght  = reset_hash_table;
+  }
   /* set number of threads */
   if (nr_threads <= 0) {
     nthrds  = 1;
@@ -390,6 +397,8 @@ static inline int32_t check_and_set_meta_data(
   md->convert_rtime     = 0;
   md->reduce_ctime      = 0;
   md->reduce_rtime      = 0;
+  md->rght_ctime        = 0;
+  md->rght_rtime        = 0;
   md->la_ctime          = 0;
   md->la_rtime          = 0;
   md->psort_rtime       = 0;

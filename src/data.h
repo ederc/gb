@@ -82,14 +82,15 @@ static val_t fc = 0;
 typedef struct md_t md_t;
 struct md_t
 {
-  int32_t nv; /* number of variables */
-  int32_t os; /* offset when looping over number of variables */
-  int32_t mo; /* monomial order: 0 = DRL, 1 = LEX */
-  int32_t fc; /* field characteristic */
-  int32_t la; /* linear algebra option */
-  int32_t ng; /* number of generators */
-  int32_t mp; /* maximal number of pairs selected at once */
-  int32_t nt; /* number of threads */
+  int32_t nv;   /* number of variables */
+  int32_t os;   /* offset when looping over number of variables */
+  int32_t mo;   /* monomial order: 0 = DRL, 1 = LEX */
+  int32_t fc;   /* field characteristic */
+  int32_t la;   /* linear algebra option */
+  int32_t ng;   /* number of generators */
+  int32_t mp;   /* maximal number of pairs selected at once */
+  int32_t nt;   /* number of threads */
+  int32_t rght; /* reset global hash table */
   double density;
   /* statistics */
   double select_ctime;
@@ -102,6 +103,8 @@ struct md_t
   double convert_rtime;
   double reduce_ctime;
   double reduce_rtime;
+  double rght_ctime;
+  double rght_rtime;
   double la_ctime;
   double la_rtime;
   double psort_rtime;
@@ -265,6 +268,7 @@ int64_t f4_julia_ff(
     const int32_t ht_size,
     const int32_t nr_threads,
     const int32_t max_nr_pairs,
+    const int32_t reset_hash_table,
     const int32_t la_option
     );
 #endif

@@ -45,6 +45,7 @@ int64_t f4_julia_ff(
     const int32_t ht_size,
     const int32_t nr_threads,
     const int32_t max_nr_pairs,
+    const int32_t reset_hash_table,
     const int32_t la_option
     )
 {
@@ -53,7 +54,7 @@ int64_t f4_julia_ff(
   ct0 = cputime();
   rt0 = realtime();
 
-  int32_t i, round;
+  int32_t i, round, reset_ht;
   /* basis */
   bs_t *bs;
   /* matrix */
@@ -66,7 +67,8 @@ int64_t f4_julia_ff(
   /* checks and set all meta data. if a nonzero value is returned then
    * some of the input data is corrupted. */
   if (check_and_set_meta_data(md, lens, cfs, exps, field_char, mon_order,
-      nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, la_option)) {
+      nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
+      la_option)) {
     return 0;
   }
 
@@ -89,6 +91,7 @@ int64_t f4_julia_ff(
   GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
       (int32_t)pow(2,htes), htes);
   GB_DEBUG(GBDBG, "maximal pair selection %15d\n", md->mp);
+  GB_DEBUG(GBDBG, "reset global hash table %14d\n", md->rght);
   GB_DEBUG(GBDBG, "#threads               %15d\n", md->nt);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
@@ -117,7 +120,14 @@ int64_t f4_julia_ff(
 
   /* let's start the f4 rounds, we are done when no more spairs
    * are left in the pairset */
-  for (round = 1; pload > 0; ++round) {
+
+  reset_ht  = 0;
+
+  for (round = 0; pload > 0; ++round) {
+    if (round - reset_ht == md->rght) {
+      reset_ht  = round;
+      reset_global_hash_table(bs, md);
+    }
     GB_DEBUG(GBDBG, "%3d", round);
 
     /* preprocess data for next reduction round */
@@ -167,6 +177,7 @@ int64_t f4_julia_ff(
   GB_DEBUG(GBDBG, "pair sort              %15.3f sec\n", md->psort_rtime);
   GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", md->symbol_rtime);
   GB_DEBUG(GBDBG, "update                 %15.3f sec\n", md->update_rtime);
+  GB_DEBUG(GBDBG, "rght                   %15.3f sec\n", md->rght_rtime);
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", md->convert_rtime);
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", md->la_rtime);
   GB_DEBUG(GBDBG, "-------------------------------------------------\n");

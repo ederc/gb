@@ -45,7 +45,6 @@ static mat_t *import_julia_data_16(
     mat->r[i] = (row_t *)malloc(sizeof(row_t));
     row = mat->r[i];
     row->sz = lens[i];
-    printf("sz %d\n", row->sz);
     row->os = lens[i] % UNROLL;
 
     row->cf = (int16_t *)malloc((unsigned long)row->sz * sizeof(int16_t));

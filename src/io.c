@@ -277,23 +277,34 @@ static inline void set_function_pointers(
     /* 16-bit integers can only handle prime field with
      * characteristic < 2^15 */
     if (md->fc < pow(2, 15)) {
-      sparse_linear_algebra = sparse_linear_algebra_16;
+      sparse_linear_algebra = sparse_linear_algebra_15;
       probabilistic_sparse_linear_algebra =
-        probabilistic_sparse_linear_algebra_16;
+        probabilistic_sparse_linear_algebra_15;
       import_julia_data     = import_julia_data_16;
       export_julia_data     = export_julia_data_16;
       multiplied_polynomial_to_matrix_row = 
         multiplied_polynomial_to_matrix_row_16;
       normalize_matrix_row  = normalize_matrix_row_16;
     } else {
-      sparse_linear_algebra = sparse_linear_algebra_32;
-      probabilistic_sparse_linear_algebra =
-        probabilistic_sparse_linear_algebra_32;
-      import_julia_data     = import_julia_data_32;
-      export_julia_data     = export_julia_data_32;
-      multiplied_polynomial_to_matrix_row = 
-        multiplied_polynomial_to_matrix_row_32;
-      normalize_matrix_row  = normalize_matrix_row_32;
+      if (md->fc < pow(2, 19)) {
+        sparse_linear_algebra = sparse_linear_algebra_19;
+        probabilistic_sparse_linear_algebra =
+          probabilistic_sparse_linear_algebra_19;
+        import_julia_data     = import_julia_data_32;
+        export_julia_data     = export_julia_data_32;
+        multiplied_polynomial_to_matrix_row = 
+          multiplied_polynomial_to_matrix_row_32;
+        normalize_matrix_row  = normalize_matrix_row_32;
+      } else {
+        sparse_linear_algebra = sparse_linear_algebra_31;
+        probabilistic_sparse_linear_algebra =
+          probabilistic_sparse_linear_algebra_31;
+        import_julia_data     = import_julia_data_32;
+        export_julia_data     = export_julia_data_32;
+        multiplied_polynomial_to_matrix_row = 
+          multiplied_polynomial_to_matrix_row_32;
+        normalize_matrix_row  = normalize_matrix_row_32;
+      }
     }
   } else {
     printf("no implementation for rationals yet!\n");

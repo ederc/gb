@@ -62,6 +62,9 @@ static exp_t *ev    = NULL;
 static len_t esize  = 0;
 static len_t eload  = 0;
 
+/* temporary exponent vector for different situations */
+static exp_t *etmp  = NULL;
+
 /* map with index from monomials to exponents */
 static len_t *map   = NULL;
 static len_t msize  = 0;
@@ -122,6 +125,8 @@ static void initialize_global_hash_table(
   /* keep first entry empty for faster divisibility checks */
   eload = HASH_LEN;
   ev    = calloc((unsigned long)esize, sizeof(exp_t));
+
+  etmp  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 }
 
 static void initialize_local_hash_table(
@@ -158,6 +163,10 @@ static void free_global_hash_table(
     free(ev);
     ev  = NULL;
   }
+  if (etmp) {
+    free(etmp);
+  }
+  etmp  = NULL;
   fc    = 0;
   nvars = 0;
   esize = 0;

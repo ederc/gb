@@ -178,8 +178,7 @@ start:
     while (bs->lm[i] & ns) {
       i++;
     }
-    b = bs->p[i];
-    f = ev+b->ch[0];
+    f = ev+bs->p[i]->ch[0];
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start;
@@ -190,14 +189,12 @@ start:
         goto start;
       }
     }
-    exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-    for (i = 0; i < nv; ++i) {
-      r[i]  =   e[i] - f[i];
-      d     +=  r[i];
+    for (k = 0; k < nv; ++k) {
+      etmp[k]  =   e[k] - f[k];
+      d     +=  etmp[k];
     }
     const val_t h = e[HASH_VAL] - f[HASH_VAL];
-    b = multiplied_polynomial_to_matrix_row(h, d, r, b);
-    free(r);
+    b = multiplied_polynomial_to_matrix_row(h, d, etmp, bs->p[i]);
     return b;
   }
 start2:
@@ -207,8 +204,7 @@ start2:
       i++;
       continue;
     }
-    b = bs->p[i];
-    f = ev+b->ch[0];
+    f = ev+bs->p[i]->ch[0];
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start2;
@@ -219,14 +215,12 @@ start2:
         goto start2;
       }
     }
-    exp_t *r = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
-    for (i = 0; i < nv; ++i) {
-      r[i]  =   e[i] - f[i];
-      d     +=  r[i];
+    for (k = 0; k < nv; ++k) {
+      etmp[k]  =   e[k] - f[k];
+      d     +=  etmp[k];
     }
     const val_t h = e[HASH_VAL] - f[HASH_VAL];
-    b = multiplied_polynomial_to_matrix_row(h, d, r, b);
-    free(r);
+    b = multiplied_polynomial_to_matrix_row(h, d, etmp, bs->p[i]);
     return b;
   }
   (ev+m)[HASH_DIV] = i;

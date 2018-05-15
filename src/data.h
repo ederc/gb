@@ -199,12 +199,6 @@ mat_t *(*import_julia_data)(
     const md_t * const md
     );
 
-int64_t (*export_julia_data)(
-    int32_t **bp,
-    const bs_t * const bs,
-    const md_t * const md
-    );
-
 row_t *(*multiplied_polynomial_to_matrix_row)(
     const len_t hm,
     const deg_t deg,

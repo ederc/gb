@@ -103,7 +103,7 @@ static mat_t *import_julia_data_32(
   return mat;
 }
 
-static int64_t export_julia_data_16(
+static int64_t export_julia_data(
     int32_t **bp,
     const bs_t * const bs,
     const md_t * const md
@@ -111,7 +111,6 @@ static int64_t export_julia_data_16(
 {
   int32_t i, j, k;
   row_t *p;
-  int16_t *cf;
   len_t *ch;
   int64_t ctr_lengths, ctr_elements;
   int32_t *basis  = *bp;
@@ -124,7 +123,7 @@ static int64_t export_julia_data_16(
   /* compute number of terms */
   for (i = 0; i < bs->ld; ++i) {
     p = bs->p[i];
-    if (p->rd) {
+    if (p->rd == 1) {
       continue;
     } else {
       len +=  (int64_t)(p->sz);
@@ -150,90 +149,42 @@ static int64_t export_julia_data_16(
   ctr_elements  = (int64_t)nb + 1;
 
   basis[0]  = (int32_t)nb;
-  /* basis[1]  = (int32_t)nb; */
-  for (i = 0; i < bload; ++i) {
-    p = bs->p[i];
-    if (p->rd) {
-      continue;
-    } else {
-      cf  = p->cf;
-      ch  = p->ch;
-      /* length of polynomial including this length entry itself */
-      basis[ctr_lengths++]  = p->sz * lterm;
-      for (j = 0; j < p->sz; ++j) {
-        basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
-        for (k = 0; k < md->nv; ++k) {
-          basis[ctr_elements++] = (ev + ch[j])[k];
+
+  if (md->fc >= pow(2, 15)) {
+    int32_t *cf;
+    for (i = 0; i < bs->ld; ++i) {
+      p = bs->p[i];
+      if (p->rd) {
+        continue;
+      } else {
+        cf  = p->cf;
+        ch  = p->ch;
+        /* length of polynomial including this length entry itself */
+        basis[ctr_lengths++]  = (int32_t)(p->sz * lterm);
+        for (j = 0; j < p->sz; ++j) {
+          basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
+          for (k = 0; k < md->nv; ++k) {
+            basis[ctr_elements++] = (int32_t)(ev + ch[j])[k];
+          }
         }
       }
     }
-  }
-  *bp = basis;
-
-  return len;
-}
-
-static int64_t export_julia_data_32(
-    int32_t **bp,
-    const bs_t * const bs,
-    const md_t * const md
-    )
-{
-  int32_t i, j, k;
-  row_t *p;
-  int32_t *cf;
-  len_t *ch;
-  int64_t ctr_lengths, ctr_elements;
-  int32_t *basis  = *bp;
-
-  int64_t len = 0; /* complete length of exported array */
-  int64_t nb  = 0; /* # elements in basis */
-
-  const int32_t lterm = 1 + md->nv; /* length of a term */
-
-  /* compute number of terms */
-  for (i = 0; i < bs->ld; ++i) {
-    p = bs->p[i];
-    if (p->rd) {
-      continue;
-    } else {
-      len +=  (int64_t)(p->sz);
-      nb++;
-    }
-  }
-
-  /* compute the length considering the number of variables per exponent */
-  len = len * (int64_t)lterm;
-  /* add storage for length of each element */
-  len = len + nb;
-  /* add storage for number of generators in basis */
-  len++;
-
-  basis  = (int32_t *)malloc((unsigned long)len * sizeof(int32_t));
-
-  if (nb > (int64_t)(pow(2, 31))) {
-    printf("basis too big\n");
-    return 0;
-  }
-
-  ctr_lengths   = 1;
-  ctr_elements  = (int64_t)nb + 1;
-
-  basis[0]  = (int32_t)nb;
-  /* basis[1]  = (int32_t)nb; */
-  for (i = 0; i < bload; ++i) {
-    p = bs->p[i];
-    if (p->rd) {
-      continue;
-    } else {
-      cf  = p->cf;
-      ch  = p->ch;
-      /* length of polynomial including this length entry itself */
-      basis[ctr_lengths++]  = p->sz * lterm;
-      for (j = 0; j < p->sz; ++j) {
-        basis[ctr_elements++] = cf[j]; /* coefficient */
-        for (k = 0; k < md->nv; ++k) {
-          basis[ctr_elements++] = (ev + ch[j])[k];
+  } else {
+    int16_t *cf;
+    for (i = 0; i < bs->ld; ++i) {
+      p = bs->p[i];
+      if (p->rd) {
+        continue;
+      } else {
+        cf  = p->cf;
+        ch  = p->ch;
+        /* length of polynomial including this length entry itself */
+        basis[ctr_lengths++]  = (int32_t)(p->sz * lterm);
+        for (j = 0; j < p->sz; ++j) {
+          basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
+          for (k = 0; k < md->nv; ++k) {
+            basis[ctr_elements++] = (int32_t)(ev + ch[j])[k];
+          }
         }
       }
     }
@@ -281,7 +232,6 @@ static inline void set_function_pointers(
       probabilistic_sparse_linear_algebra =
         probabilistic_sparse_linear_algebra_15;
       import_julia_data     = import_julia_data_16;
-      export_julia_data     = export_julia_data_16;
       multiplied_polynomial_to_matrix_row = 
         multiplied_polynomial_to_matrix_row_16;
       normalize_matrix_row  = normalize_matrix_row_16;
@@ -291,7 +241,6 @@ static inline void set_function_pointers(
         probabilistic_sparse_linear_algebra =
           probabilistic_sparse_linear_algebra_19;
         import_julia_data     = import_julia_data_32;
-        export_julia_data     = export_julia_data_32;
         multiplied_polynomial_to_matrix_row = 
           multiplied_polynomial_to_matrix_row_32;
         normalize_matrix_row  = normalize_matrix_row_32;
@@ -300,7 +249,6 @@ static inline void set_function_pointers(
         probabilistic_sparse_linear_algebra =
           probabilistic_sparse_linear_algebra_31;
         import_julia_data     = import_julia_data_32;
-        export_julia_data     = export_julia_data_32;
         multiplied_polynomial_to_matrix_row = 
           multiplied_polynomial_to_matrix_row_32;
         normalize_matrix_row  = normalize_matrix_row_32;

@@ -352,6 +352,7 @@ static inline int32_t check_and_set_meta_data(
   md->symbol_rtime      = 0;
   md->update_ctime      = 0;
   md->update_rtime      = 0;
+  md->update1_rtime      = 0;
   md->convert_ctime     = 0;
   md->convert_rtime     = 0;
   md->reduce_ctime      = 0;

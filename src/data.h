@@ -99,6 +99,7 @@ struct md_t
   double symbol_rtime;
   double update_ctime;
   double update_rtime;
+  double update1_rtime;
   double convert_ctime;
   double convert_rtime;
   double reduce_ctime;
@@ -125,11 +126,11 @@ struct md_t
 typedef struct row_t row_t;
 struct row_t
 {
+  len_t *ch;  /* column positions resp. hash positions */
+  void *cf;   /* coefficients */
   len_t sz;   /* size of row */
   len_t os;   /* offset for loop unrolling */
   int32_t rd; /* redundant? */
-  void *cf;   /* coefficients */
-  len_t *ch;  /* column positions resp. hash positions */
 };
 
 /* structured matrices */

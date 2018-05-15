@@ -679,12 +679,12 @@ static inline len_t get_lcm(
   const exp_t * const ea = ev + a;
   const exp_t * const eb = ev + b;
 
-  exp_t *e  = alloca((unsigned long)nvars * sizeof(exp_t));
+  /* exp_t *e  = alloca((unsigned long)nvars * sizeof(exp_t)); */
   for (i = 0; i < nvars; ++i) {
-    e[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
+    etmp[i] = ea[i] < eb[i] ? eb[i] : ea[i];
   }
   /* goes into local hash table for spairs */
-  return insert_in_local_hash_table(e);
+  return insert_in_local_hash_table(etmp);
 }
 
 static inline len_t monomial_multiplication(
@@ -722,19 +722,19 @@ static inline len_t monomial_division_with_check(
  *     return 0;
  *   }
  *  */
-  exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
-  e[0]  = ea[0] - eb[0];
+  /* exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t)); */
+  etmp[0] = ea[0] - eb[0];
 
   i = nvars & 1 ? 1 : 0;
   for (; i < nvars; i += 2) {
     if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
       return 0;
     } else {
-      e[i]    = ea[i] - eb[i];
-      e[i+1]  = ea[i+1] - eb[i+1];
+      etmp[i]   = ea[i] - eb[i];
+      etmp[i+1] = ea[i+1] - eb[i+1];
     }
   }
-  return insert_in_global_hash_table(e);
+  return insert_in_global_hash_table(etmp);
 }
 
 /* it is assumed that b divides a, thus no tests for
@@ -749,15 +749,15 @@ static inline len_t monomial_division_no_check(
   const exp_t * const ea  = ev + a;
   const exp_t * const eb  = ev + b;
 
-  exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t));
+  /* exp_t *e = (exp_t *)alloca((unsigned long)nvars * sizeof(exp_t)); */
 
   i = nvars & 1 ? 1 : 0;
   for (; i < nvars; i += 2) {
-    e[i]    = ea[i]   - eb[i];
-    e[i+1]  = ea[i+1] - eb[i+1];
+    etmp[i]   = ea[i]   - eb[i];
+    etmp[i+1] = ea[i+1] - eb[i+1];
   }
-  e[0]  = ea[0] - eb[0];
-  return insert_in_global_hash_table(e);
+  etmp[0] = ea[0] - eb[0];
+  return insert_in_global_hash_table(etmp);
 }
 
 static inline row_t *multiplied_polynomial_to_matrix_row_16(

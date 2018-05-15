@@ -155,7 +155,7 @@ static inline row_t *find_multiplied_reducer(
   row_t *b;
   const exp_t * const e  = ev+m;
   exp_t *f;
-  /* const len_t * const lms = bs->lm; */
+  const len_t * const lm = bs->lm;
   /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
   const len_t os  = md->os;
@@ -167,15 +167,15 @@ static inline row_t *find_multiplied_reducer(
   const sdm_t ns = ~e[HASH_SDM];
 start:
   while (i < bl-3) {
-    if (bs->lm[i] & ns &&
-        bs->lm[i+1] & ns &&
-        bs->lm[i+2] & ns &&
-        bs->lm[i+3] & ns) {
+    if (lm[i] & ns &&
+        lm[i+1] & ns &&
+        lm[i+2] & ns &&
+        lm[i+3] & ns) {
       md->num_sdm_found +=  4;
       i +=  4;
       continue;
     }
-    while (bs->lm[i] & ns) {
+    while (lm[i] & ns) {
       i++;
     }
     f = ev+bs->p[i]->ch[0];
@@ -199,7 +199,7 @@ start:
   }
 start2:
   while (i < bl) {
-    if (bs->lm[i] & ns) {
+    if (lm[i] & ns) {
       md->num_sdm_found++;
       i++;
       continue;

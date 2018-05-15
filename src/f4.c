@@ -177,6 +177,7 @@ int64_t f4_julia_ff(
   GB_DEBUG(GBDBG, "pair sort              %15.3f sec\n", md->psort_rtime);
   GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", md->symbol_rtime);
   GB_DEBUG(GBDBG, "update                 %15.3f sec\n", md->update_rtime);
+  GB_DEBUG(GBDBG, "update1                %15.3f sec\n", md->update1_rtime);
   GB_DEBUG(GBDBG, "rght                   %15.3f sec\n", md->rght_rtime);
   GB_DEBUG(GBDBG, "convert                %15.3f sec\n", md->convert_rtime);
   GB_DEBUG(GBDBG, "la                     %15.3f sec\n", md->la_rtime);

@@ -65,15 +65,17 @@ static void insert_and_update_spairs(
 {
   int32_t i, j, k, l;
   exp_t *ej;
-  row_t *p;
 
   const len_t pl  = pload;
   const len_t bl  = bs->ld;
 
   reset_local_hash_table(bl);
-  bs->p[bl]     = row;
-  bs->lm[bl]    = (ev+row->ch[0])[HASH_SDM];
-  bs->p[bl]->rd = 0;
+
+  const len_t rch = row->ch[0];
+  row_t **p       = bs->p;
+  p[bl]           = row;
+  bs->lm[bl]      = (ev+rch)[HASH_SDM];
+  row->rd         = 0;
   /* printf("new element added to basis: (%d) ", bl);
    * for (j = 0; j < row->sz; ++j) {
    *   for (i = 0; i < nvars; ++i) {
@@ -85,14 +87,13 @@ static void insert_and_update_spairs(
 
 #if INSERT_SMALL_FIRST
   for (i = bs->ol; i < bl; ++i) {
-    p = bs->p[i];
-    if (p->rd) {
+    if (p[i]->rd) {
       continue;
     }
-    if (check_monomial_division(ev+row->ch[0], ev+p->ch[0])) {
+    if (check_monomial_division(ev+row->ch[0], ev+p[i]->ch[0])) {
       ps[pl].gen1 = i;
       ps[pl].gen2 = bl;
-      ps[pl].lcm  = get_lcm(p->ch[0], row->ch[0]);
+      ps[pl].lcm  = get_lcm(p[i]->ch[0], row->ch[0]);
       ps[pl].deg  = (evl + ps[pl].lcm)[HASH_DEG];
       ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm);
       row->rd     = 1;
@@ -106,15 +107,14 @@ static void insert_and_update_spairs(
 
   /* create all possible new pairs */
   for (i = 0, k = pl; i < bl; ++i, ++k) {
-    p = bs->p[i];
     ps[k].gen1  = i;
     ps[k].gen2  = bl;
-    ps[k].lcm   = get_lcm(p->ch[0], row->ch[0]);
+    ps[k].lcm   = get_lcm(p[i]->ch[0], row->ch[0]);
 
-    if (p->rd) {
+    if (p[i]->rd) {
       ps[k].deg = -1; /* redundant pair */
     } else {
-      if (lcm_equals_multiplication(p->ch[0], row->ch[0], ps[k].lcm)) {
+      if (lcm_equals_multiplication(p[i]->ch[0], row->ch[0], ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
         ps[k].deg = (evl + ps[k].lcm)[HASH_DEG];
@@ -128,7 +128,7 @@ static void insert_and_update_spairs(
   for (i = 0; i < pl; ++i) {
     j = ps[i].gen1;
     l = ps[i].gen2;
-    if (check_monomial_division(ev+ps[i].lcm, ev+row->ch[0])
+    if (check_monomial_division(ev+ps[i].lcm, ev+rch)
         && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+j].lcm)[HASH_VAL]
         && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+l].lcm)[HASH_VAL]
         ) {
@@ -138,7 +138,6 @@ static void insert_and_update_spairs(
 
   /* sort new pairs by increasing lcm, earlier polys coming first */
   qsort(ps+pl, (unsigned long)bl, sizeof(spair_t), &spair_local_cmp);
-
 
   for (j = pl; j < nl; ++j) {
     if (ps[j].deg < 0) {
@@ -200,17 +199,20 @@ static void insert_and_update_spairs(
   pload       =   j;
 
   /* mark redundant elements in basis */
+  /* double rrt0, rrt1;
+   * rrt0  = realtime(); */
   for (i = 0; i < bl; ++i) {
-    p = bs->p[i];
-    if (p->rd) {
+    if (p[i]->rd) {
       continue;
     }
-    if (check_monomial_division(ev+p->ch[0], ev+row->ch[0])) {
-      p->rd = 1;
+    if (check_monomial_division(ev+p[i]->ch[0], ev+row->ch[0])) {
+      p[i]->rd = 1;
       md->num_redundant++;
     }
   }
   bs->ld++;
+  /* rrt1  = realtime();
+   * md->update1_rtime += rrt1-rrt0; */
 }
 
 static void update_basis(

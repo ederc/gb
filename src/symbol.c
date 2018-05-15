@@ -67,7 +67,7 @@ static void select_spairs_by_minimal_degree(
   }
   GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, mdeg);
   /* statistics */
-  num_pairsred  +=  npairs;
+  md->num_pairsred  +=  npairs;
   
   gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
@@ -145,9 +145,9 @@ static void select_spairs_by_minimal_degree(
 }
 
 static inline row_t *find_multiplied_reducer(
+    md_t * md,
     const len_t m,
-    const bs_t * const bs,
-    const md_t * md
+    const bs_t * const bs
     )
 {
   int32_t i, k;
@@ -171,7 +171,7 @@ start:
         bs->lm[i+1] & ns &&
         bs->lm[i+2] & ns &&
         bs->lm[i+3] & ns) {
-      num_sdm_found +=  4;
+      md->num_sdm_found +=  4;
       i +=  4;
       continue;
     }
@@ -203,7 +203,7 @@ start:
 start2:
   while (i < bl) {
     if (bs->lm[i] & ns) {
-      num_sdm_found++;
+      md->num_sdm_found++;
       i++;
       continue;
     }
@@ -230,7 +230,7 @@ start2:
     return b;
   }
   (ev+m)[HASH_DIV] = i;
-  num_not_sdm_found++;
+  md->num_not_sdm_found++;
   return NULL;
 }
 
@@ -272,7 +272,7 @@ static void symbolic_preprocessing(
       if (!(ev+m)[HASH_IND]) {
         (ev+m)[HASH_IND] = 1;
         mat->nc++;
-        red = find_multiplied_reducer(m, bs, md);
+        red = find_multiplied_reducer(md, m, bs);
         if (red) {
           (ev+m)[HASH_IND] = 2;
           /* add new reducer to matrix */

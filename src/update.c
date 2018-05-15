@@ -59,7 +59,8 @@ static void free_pairset(
 
 static void insert_and_update_spairs(
     bs_t *bs,
-    row_t *row
+    row_t *row,
+    md_t *md
     )
 {
   int32_t i, j, k, l;
@@ -95,7 +96,7 @@ static void insert_and_update_spairs(
       ps[pl].deg  = (evl + ps[pl].lcm)[HASH_DEG];
       ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm);
       row->rd     = 1;
-      num_redundant++;
+      md->num_redundant++;
       bs->ld++;
       pload++;
       return;
@@ -195,7 +196,7 @@ static void insert_and_update_spairs(
     ps[i].lcm = insert_in_global_hash_table(evl+ps[i].lcm);
     ps[j++]   = ps[i];
   }
-  num_gb_crit +=  nl - j;
+  md->num_gb_crit +=  nl - j;
   pload       =   j;
 
   /* mark redundant elements in basis */
@@ -206,7 +207,7 @@ static void insert_and_update_spairs(
     }
     if (check_monomial_division(ev+p->ch[0], ev+row->ch[0])) {
       p->rd = 1;
-      num_redundant++;
+      md->num_redundant++;
     }
   }
   bs->ld++;
@@ -236,11 +237,11 @@ static void update_basis(
 
 #if INSERT_SMALL_FIRST
   for (i = 0; i < mat->np; ++i) {
-    insert_and_update_spairs(bs, mat->r[i]);
+    insert_and_update_spairs(bs, mat->r[i], md);
   }
 #else
   for (i = 1; i <= mat->np; ++i) {
-    insert_and_update_spairs(bs, mat->r[mat->nr-i]);
+    insert_and_update_spairs(bs, mat->r[mat->nr-i], md);
   }
 #endif
   bs->ol  = bs->ld;

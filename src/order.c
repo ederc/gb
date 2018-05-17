@@ -314,5 +314,9 @@ static int spair_local_cmp(
   spair_t sa = *((spair_t *)a);
   spair_t sb = *((spair_t *)b);
 
+  if (sa.deg != sb.deg) {
+    return (sa.deg < sb.deg) ? -1 : 1;
+  }
+
   return (int)monomial_cmp(evl+sa.lcm, evl+sb.lcm);
 }

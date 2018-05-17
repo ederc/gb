@@ -223,7 +223,7 @@ static void enlarge_global_hash_table(
       break;
     }
   }
-  num_htenl++;
+  /* md->num_ht_enlarge++; */
 }
 
 static inline sdm_t generate_short_divmask(

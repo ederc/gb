@@ -105,19 +105,20 @@ static void insert_and_update_spairs(
   }
 #endif
 
+  len_t *plcm   = (len_t *)malloc((unsigned long)bl * sizeof(len_t));
   /* create all possible new pairs */
   for (i = 0, k = pl; i < bl; ++i, ++k) {
-    ps[k].gen1  = i;
-    ps[k].gen2  = bl;
-    ps[k].lcm   = get_lcm(p[i]->ch[0], row->ch[0]);
+    plcm[i] = ps[k].lcm   = get_lcm(p[i]->ch[0], rch);
 
     if (p[i]->rd) {
       ps[k].deg = -1; /* redundant pair */
     } else {
-      if (lcm_equals_multiplication(p[i]->ch[0], row->ch[0], ps[k].lcm)) {
+      if (lcm_equals_multiplication(p[i]->ch[0], rch, ps[k].lcm)) {
         ps[k].deg = -2; /* criterion */
       } else {
-        ps[k].deg = (evl + ps[k].lcm)[HASH_DEG];
+        ps[k].deg   = (evl + plcm[i])[HASH_DEG];
+        ps[k].gen1  = i;
+        ps[k].gen2  = bl;
       }
     }
   }
@@ -129,63 +130,79 @@ static void insert_and_update_spairs(
     j = ps[i].gen1;
     l = ps[i].gen2;
     if (check_monomial_division(ev+ps[i].lcm, ev+rch)
-        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+j].lcm)[HASH_VAL]
-        && (ev+ps[i].lcm)[HASH_VAL] != (evl+ps[pl+l].lcm)[HASH_VAL]
+        && (ev+ps[i].lcm)[HASH_VAL] != (evl+plcm[j])[HASH_VAL]
+        && (ev+ps[i].lcm)[HASH_VAL] != (evl+plcm[l])[HASH_VAL]
         ) {
       ps[i].deg = -1;
     }
   }
+  free(plcm);
 
   /* sort new pairs by increasing lcm, earlier polys coming first */
   qsort(ps+pl, (unsigned long)bl, sizeof(spair_t), &spair_local_cmp);
 
-  for (j = pl; j < nl; ++j) {
-    if (ps[j].deg < 0) {
+  spair_t *pp  = ps+pl;
+
+  /* adds dummy pair for faster end-of-list detection */
+  pp[bl].lcm  = 0;
+
+  /* for (i = 0; i < bl; ++i) {
+   *   printf("deg[%d] = %d\n", i, pp[i].deg);
+   * }
+   * printf("\n----\n"); */
+  j = 0;
+  while (pp[j].deg < 0) {
+    j++;
+  }
+  const len_t pc  = pl + j;
+  for (; j < bl; ++j) {
+    if (pp[j].deg < 0) {
       continue;
     }
-    ej  = evl+ps[j].lcm;
-    l = j;
-    i = j+1;
-    while (i < nl && ps[i].lcm == ps[j].lcm) {
+    ej  = evl+pp[j].lcm;
+    i   = j+1;
+    while (pp[i].lcm == pp[j].lcm) {
       ++i;
     }
-    l = i-1;
-    while (i < nl) {
-      if (ps[i].deg >= 0 &&
-          check_monomial_division(evl+ps[i].lcm, ej) != 0) {
-        ps[i].deg  = -1;
+    j = i-1;
+    while (i < bl) {
+      if (pp[i].deg >= 0 &&
+          check_monomial_division(evl+pp[i].lcm, ej) != 0) {
+        pp[i].deg  = -1;
       }
       ++i;
     }
-    j = l;
   }
 
   /* remove deg == -1 pairs from list */
   j = pl;
-  for (i = pl; i < nl; ++i) {
-    if (ps[i].deg == -1) {
-      continue;
+  for (i = pc; i < nl; ++i) {
+    if (ps[i].deg >= 0) {
+      ps[j++] = ps[i];
+      /* k = i+1;
+       * while (ps[i].lcm == ps[k].lcm) {
+       *   ++k;
+       * }
+       * i = k-1; */
     }
-    ps[j++] = ps[i];
   }
   nl = j;
 
   for (i = pl; i < nl; ++i) {
     j = i+1;
-    while (j < nl && ps[j].lcm == ps[i].lcm) {
+    while (ps[j].lcm == ps[i].lcm) {
       ps[j++].deg = -1;
     }
     i = j-1;
-  } 
+  }
 
   /* remove useless pairs from pairset */
   j = 0;
   /* old pairs */
   for (i = 0; i < pload; ++i) {
-    if (ps[i].deg < 0) {
-      continue;
+    if (ps[i].deg >= 0) {
+      ps[j++] = ps[i];
     }
-    ps[j++] = ps[i];
   }
   /* new pairs, wee need to add the lcm to the global hash table */
   for (; i < nl; ++i) {

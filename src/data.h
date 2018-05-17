@@ -65,6 +65,16 @@ struct spair_t
   spt_t type;
 };
 
+typedef struct ps_t ps_t;
+struct ps_t
+{
+  spair_t *l;
+  bl_t sz;
+};
+
+/* list of pair sets */
+static ps_t *psl = NULL;
+
 /* pair set data */
 static spair_t *ps    = NULL;
 static pl_t pload     = 0;

@@ -34,6 +34,8 @@ static bs_t *initialize_basis(
   bs->p   = (row_t **)malloc((unsigned long)bs->sz * sizeof(row_t *));
   bs->lm  = (len_t *)malloc((unsigned long)bs->sz * sizeof(len_t)); 
 
+  psl     = (ps_t *)malloc((unsigned long)bs->sz * sizeof(ps_t));
+
   return bs;
 }
 
@@ -47,6 +49,7 @@ static inline void check_enlarge_basis(
       (bs->sz * 2) : (bs->ld + added);
     bs->p   = realloc(bs->p, (unsigned long)bs->sz * sizeof(row_t *));
     bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(val_t));
+    psl     = realloc(psl, (unsigned long)bs->sz * sizeof(ps_t));
   }
 }
 
@@ -70,6 +73,8 @@ static void free_basis(
     bs->lm  = NULL;
     free(bs);
     bs      = NULL;
+    free(psl);
+    psl     = NULL;
   }
   *bsp  = bs;
 }

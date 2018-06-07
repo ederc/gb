@@ -30,6 +30,7 @@ TESTS = 											\
 	test_katsura_4_lex					\
 	test_katsura_5_lex					\
 	test_katsura_16							\
+	test_zhang_xxz_14_7					\
 	test_mayr_42
 
 XFAIL_TESTS = 								\

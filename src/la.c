@@ -475,7 +475,7 @@ static void sparse_linear_algebra_15(
       free(pivs[i]->ch);
       free(pivs[i]);
       pivs[i] = NULL;
-      pivs[i] = mat->r[mat->np++] =
+      pivs[i] = mat->r[npivs++] =
         reduce_dense_row_by_known_pivots_15(dr, sc, mat->nc, pivs, md);
     }
   }
@@ -484,8 +484,8 @@ static void sparse_linear_algebra_15(
 
   free(dr);
   dr  = NULL;
-  mat->r  = realloc(mat->r, (unsigned long)mat->np * sizeof(row_t *));
-  mat->nr = mat->na = mat->np;
+  mat->r  = realloc(mat->r, (unsigned long)npivs * sizeof(row_t *));
+  mat->nr = mat->na = mat->np = npivs;
 
   md->num_zerored += (mat->nrl - mat->np);
   /* timings */
@@ -597,7 +597,7 @@ static void sparse_linear_algebra_19(
       free(pivs[i]->ch);
       free(pivs[i]);
       pivs[i] = NULL;
-      pivs[i] = mat->r[mat->np++] =
+      pivs[i] = mat->r[npivs++] =
         reduce_dense_row_by_known_pivots_19(dr, sc, mat->nc, pivs, md);
     }
   }
@@ -606,8 +606,8 @@ static void sparse_linear_algebra_19(
 
   free(dr);
   dr  = NULL;
-  mat->r  = realloc(mat->r, (unsigned long)mat->np * sizeof(row_t *));
-  mat->nr = mat->na = mat->np;
+  mat->r  = realloc(mat->r, (unsigned long)npivs * sizeof(row_t *));
+  mat->nr = mat->na = mat->np = npivs;
 
   md->num_zerored += (mat->nrl - mat->np);
   /* timings */
@@ -719,7 +719,7 @@ static void sparse_linear_algebra_31(
       free(pivs[i]->ch);
       free(pivs[i]);
       pivs[i] = NULL;
-      pivs[i] = mat->r[mat->np++] =
+      pivs[i] = mat->r[npivs++] =
         reduce_dense_row_by_known_pivots_31(dr, sc, mat->nc, pivs, md);
     }
   }
@@ -728,8 +728,8 @@ static void sparse_linear_algebra_31(
 
   free(dr);
   dr  = NULL;
-  mat->r  = realloc(mat->r, (unsigned long)mat->np * sizeof(row_t *));
-  mat->nr = mat->na = mat->np;
+  mat->r  = realloc(mat->r, (unsigned long)npivs * sizeof(row_t *));
+  mat->nr = mat->na = mat->np = npivs;
 
   md->num_zerored += (mat->nrl - mat->np);
   /* timings */

@@ -49,11 +49,11 @@ static val_t **select_spairs_by_minimal_degree(
   rrt1 = realtime();
   pair_sort_rtime +=  rrt1 - rrt0;
   /* get minimal degree */
-  md  = ps[0].deg;
+  md  = (ev+ps[0].lcm*hl)[HASH_DEG];
 
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
-    if (ps[i].deg > md || i >= mnsel) {
+    if ((ev+ps[i].lcm*hl)[HASH_DEG] > md || i >= mnsel) {
       break;
     }
   }

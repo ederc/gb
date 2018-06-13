@@ -296,9 +296,8 @@ static int spair_cmp_deglex(
   spair_t *sb = (spair_t *)b;
 
   const int64_t hl  = HASH_LEN;
-
-  if (sa->deg != sb->deg) {
-    return (sa->deg < sb->deg) ? -1 : 1;
+  if ((ev+sa->lcm*hl)[HASH_DEG] != (ev+sb->lcm*hl)[HASH_DEG]) {
+    return ((ev+sa->lcm*hl)[HASH_DEG] < (ev+sb->lcm*hl)[HASH_DEG]) ? -1 : 1;
   } else {
     return (int)monomial_cmp(ev+sa->lcm*hl, ev+sb->lcm*hl);
   }

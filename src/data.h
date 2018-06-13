@@ -55,7 +55,6 @@ typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
 typedef struct spair_t spair_t;
 struct spair_t
 {
-  deg_t deg;   /* if criteria apply, information is stored here */
   val_t lcm;
   bi_t gen1;
   bi_t gen2;

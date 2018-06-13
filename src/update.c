@@ -68,9 +68,11 @@ static void insert_and_update_spairs(
   const len_t pl  = pload;
   const len_t bl  = bload;
 
+  const len_t nch = nelt[2]*HASH_LEN;
   const int64_t hl  = HASH_LEN;
 
   reset_local_hash_table(bl);
+
   /* move exponents to global hash table */
   /* for (i = 2; i < nelt[0]; i = i+2) {
    *   nelt[i] = insert_in_global_hash_table(evl + nelt[i]);
@@ -99,12 +101,11 @@ static void insert_and_update_spairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division(ev+nelt[2]*hl, ev+bs[i][2]*hl)) {
+    if (check_monomial_division(ev+nch, ev+bs[i][2]*hl)) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
       ps[pl].gen1 = i;
       ps[pl].gen2 = bl;
-      ps[pl].lcm  = get_lcm(bs[i][2]*hl, nelt[2]*hl);
-      ps[pl].deg  = (evl + ps[pl].lcm*hl)[HASH_DEG];
+      ps[pl].lcm  = get_lcm(bs[i][2]*hl, nch);
       ps[pl].lcm  = insert_in_global_hash_table(evl+ps[pl].lcm*hl);
       bs[bl]  = (val_t *)((long)bs[bl] | bred);
       num_redundant++;
@@ -115,20 +116,21 @@ static void insert_and_update_spairs(
   }
 #endif
 
+  len_t *plcm = (len_t *)malloc((unsigned long)(bl+1) * sizeof(len_t));
+
   /* create all possible new pairs */
   for (i = 0, k = pl; i < bl; ++i, ++k) {
     b = (val_t *)((long)bs[i] & bmask);
     ps[k].gen1  = i;
     ps[k].gen2  = bl;
-    ps[k].lcm   = get_lcm(b[2]*hl, nelt[2]*hl);
+    ps[k].lcm   = get_lcm(b[2]*hl, nch);
+    plcm[i] = ps[k].lcm*HASH_LEN;
 
     if (b != bs[i]) {
-      ps[k].deg = -1; /* redundant pair */
+      ps[k].lcm = -1; /* redundant pair */
     } else {
-      if (lcm_equals_multiplication(b[2]*hl, nelt[2]*hl, ps[k].lcm*hl)) {
-        ps[k].deg = -2; /* criterion */
-      } else {
-        ps[k].deg = (evl + ps[k].lcm*hl)[HASH_DEG];
+      if (lcm_equals_multiplication(b[2]*hl, nch, ps[k].lcm*hl)) {
+        ps[k].lcm = -2; /* criterion */
       }
     }
   }
@@ -140,109 +142,60 @@ static void insert_and_update_spairs(
     j = ps[i].gen1;
     l = ps[i].gen2;
     /* if (ps[i].lcm != ps[pload+j].lcm */
-    if (check_monomial_division(ev+ps[i].lcm*hl, ev+nelt[2]*hl)
-        && (ev+ps[i].lcm*hl)[HASH_VAL] != (evl+ps[pl+j].lcm*hl)[HASH_VAL]
-        && (ev+ps[i].lcm*hl)[HASH_VAL] != (evl+ps[pl+l].lcm*hl)[HASH_VAL]
+    if (check_monomial_division(ev+ps[i].lcm*hl, ev+nch)
+        && (ev+ps[i].lcm*hl)[HASH_VAL] != (evl+plcm[j])[HASH_VAL]
+        && (ev+ps[i].lcm*hl)[HASH_VAL] != (evl+plcm[l])[HASH_VAL]
         ) {
         /* && ps[i].lcm != ps[pload+j].lcm) { */
-      ps[i].deg = -1;
+      ps[i].lcm = -1;
     }
   }
 
   /* sort new pairs by increasing lcm, earlier polys coming first */
-  double rrt0, rrt1;
-  rrt0 = realtime();
-  qsort(ps+pl, (unsigned long)bl, sizeof(spair_t), &spair_local_cmp);
-  rrt1 = realtime();
-  update1_rtime  +=  rrt1 - rrt0;
+  spair_t *pp = ps+pl;
+  j = 0;
+  for (i = 0; i < bl; ++i) {
+    if (pp[i].lcm >= 0) {
+      pp[j++] = pp[i];
+    }
+  }
+  qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_local_cmp);
+  for (i = 0; i < j; ++i) {
+    plcm[i] = pp[i].lcm*HASH_LEN;
+  }
+  plcm[j]  = 0;
+  const len_t pc  = j;
 
-/*   for (i = pl; i < nl; ++i) {
- *     printf("%d || lcm %d | deg %d\n", i, ps[i].lcm, ps[i].deg);
- *   }
- *   printf("ctr %d\n", ctr);
- *   for (i = 0; i < ctr; ++i) {
- *     printf("lcm %d | fp %d\n", lcms[i], fp[i]);
- *   }
- *  */
+  j = 0;
+  while(plcm[j] < 0) {
+    j++;
+  }
 
-  /* check with earlier new pairs */
-  /* for (j = 0; j < ctr; ++j) {
-   *   if (ps[fp[j]].deg != -1) {
-   *     ej  = evl+ps[fp[j]].lcm;
-   *     for (i = j+1; i < ctr; ++i) {
-   *       if ([> ps[fp[i]].deg >= 0 && <]
-   *           check_monomial_division(evl+ps[fp[i]].lcm, ej) != 0) {
-   *         for (k = fp[i]; k < fp[i+1]; ++k) {
-   *           if (ps[k].deg >= 0) {
-   *             ps[k].deg = -1;
-   *           }
-   *         }
-   *       }
-   *     }
-   *   }
-   * } */
-
-  for (j = pl; j < nl; ++j) {
-    if (ps[j].deg < 0) {
+  for (; j < pc; ++j) {
+    if (plcm[j] < 0) {
       continue;
     }
-    ej  = evl+ps[j].lcm*hl;
-    l = j;
+    ej  = evl+plcm[j];
     i = j+1;
-    while (i < nl && ps[i].lcm == ps[j].lcm) {
+    while (plcm[i] == plcm[j]) {
+      plcm[i] = -1;
       ++i;
     }
-    l = i-1;
-    while (i < nl) {
-      if (ps[i].deg >= 0 &&
-          check_monomial_division(evl+ps[i].lcm*hl, ej) != 0) {
-        ps[i].deg  = -1;
+    j = i-1;
+    while (i < pc) {
+      if (plcm[i] >= 0 &&
+          check_monomial_division(evl+plcm[i], ej) != 0) {
+        plcm[i]  = -1;
       }
       ++i;
     }
-    j = l;
   }
-
-  /* remove deg == -1 pairs from list */
-  j = pl;
-  for (i = pl; i < nl; ++i) {
-    if (ps[i].deg == -1) {
-      continue;
-    }
-    ps[j++] = ps[i];
-  }
-  nl = j;
-
-  for (i = pl; i < nl; ++i) {
-    j = i+1;
-    while (j < nl && ps[j].lcm == ps[i].lcm) {
-      ps[j++].deg = -1;
-    }
-    i = j-1;
-  } 
-
-  /* for (i = 0; i < pload; ++i) {
-   *   printf("pair[%d] %d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg,
-   *       ps[i].lcm);
-   *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d ", (ev+ps[i].lcm*hl)[j]);
-   *   }
-   *   printf("\n");
-   * }
-   * for (; i < nl; ++i) {
-   *   printf("pair[%d] %d | %d | %d | %d || ", i, ps[i].gen1, ps[i].gen2, ps[i].deg,
-   *       ps[i].lcm);
-   *   for (j = 0; j < nvars; ++j) {
-   *     printf("%d ", (evl+ps[i].lcm*hl)[j]);
-   *   }
-   *   printf("\n");
-   * } */
 
   /* remove useless pairs from pairset */
   j = 0;
   /* old pairs */
   for (i = 0; i < pload; ++i) {
-    if (ps[i].deg < 0) {
+    if (ps[i].lcm < 0) {
       continue;
     }
     ps[j++] = ps[i];
@@ -251,18 +204,21 @@ static void insert_and_update_spairs(
     enlarge_global_hash_table();
   }
   /* new pairs, wee need to add the lcm to the global hash table */
-  for (; i < nl; ++i) {
-    if (ps[i].deg < 0) {
+  for (i = 0; i < pc; ++i) {
+    if (plcm[i] < 0) {
       continue;
     }
-    ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(
-                  evl+ps[i].lcm*hl);
-    ps[j++]   = ps[i];
+    pp[i].lcm = insert_in_global_hash_table_no_enlargement_check(
+                  evl+plcm[i]);
+    ps[j++]   = pp[i];
   }
+  free(plcm);
   num_gb_crit +=  nl - j;
   pload       =   j;
 
   /* mark redundant elements in basis */
+  double rrt0, rrt1;
+  rrt0 = realtime();
   for (i = 0; i < bl; ++i) {
     if ((long)bs[i] & bred) {
       continue;
@@ -274,6 +230,8 @@ static void insert_and_update_spairs(
     }
   }
   bload++;
+  rrt1 = realtime();
+  update1_rtime  +=  rrt1 - rrt0;
   /* printf("lms:\n");
    * for (j = 0; j < bload; ++j) {
    *   for (i = 0; i < LM_LEN; ++i) {

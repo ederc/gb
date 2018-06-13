@@ -223,7 +223,7 @@ static void insert_and_update_spairs(
     if ((long)bs[i] & bred) {
       continue;
     }
-    if (check_monomial_division(ev+bs[i][2]*hl, ev+nelt[2]*hl)) {
+    if (check_monomial_division(ev+bs[i][2]*hl, ev+nch)) {
       /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
       bs[i] = (val_t *)((long)bs[i] | bred);
       num_redundant++;

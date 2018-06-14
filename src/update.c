@@ -167,9 +167,6 @@ static void insert_and_update_spairs(
   const len_t pc  = j;
 
   j = 0;
-  while(plcm[j] < 0) {
-    j++;
-  }
 
   for (; j < pc; ++j) {
     if (plcm[j] < 0) {

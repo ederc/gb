@@ -59,7 +59,7 @@ int main(
   if (ps[0].gen2 != 2) {
     return 1;
   }
-  if (ps[0].deg != 2) {
+  if (hd[ps[0].lcm].deg != 2) {
     return 1;
   }
   
@@ -69,7 +69,7 @@ int main(
   if (ps[1].gen2 != 2) {
     return 1;
   }
-  if (ps[1].deg != 3) {
+  if (hd[ps[1].lcm].deg != 3) {
     return 1;
   }
 

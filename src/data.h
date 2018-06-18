@@ -41,21 +41,67 @@
 #define ORDER_COLUMNS 1
 
 /* computational data */
+typedef int32_t ind_t;    /* index in hash table structure */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
-typedef len_t exp_t;    /* exponent type */
-typedef len_t val_t;    /* core values like hashes, coefficients, etc. */
-typedef len_t deg_t;    /* (total) degree of polynomial */
+typedef int32_t exp_t;    /* exponent type */
+typedef int32_t val_t;    /* core values like hashes, coefficients, etc. */
+typedef val_t hl_t;       /* length of hash table */
+typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef len_t bi_t;     /* basis index of element */
 typedef len_t bl_t;     /* basis load */
 typedef len_t pl_t;     /* pair set load */
+
+/* hash data structure */
+typedef struct hd_t hd_t;
+struct hd_t
+{
+  sdm_t sdm;
+  deg_t deg;
+  len_t div;
+  ind_t idx;
+  val_t val;
+};
+/* global hash table data */
+static hl_t *hmap   = NULL; /* global hash map */
+static hl_t hsz     = 0;
+static exp_t **ev   = NULL; /* exponents from global hash table */
+static hd_t *hd     = NULL;
+static hl_t eld     = 0;
+static hl_t esz     = 0;
+
+/* local hash table data */
+static hl_t *hmapl  = NULL; /* local hash map */
+static hl_t hlsz    = 0;
+static exp_t **evl  = NULL; /* exponents from local hash table */
+static hd_t *hdl    = NULL;
+static hl_t elld    = 0;
+static hl_t elsz    = 0;
+
+static len_t htes   = 0;  /* hash table exponent at start */
+static len_t nvars  = 0; /* number of variables */
+static len_t bpv    = 0; /* bits per variable in divmask */
+static len_t ndvars = 0; /* number of variables for divmask */
+
+/* random values for generating hash values */
+static val_t *rv  = NULL;
+
+/* divisor map for short divisibility tests */
+static sdm_t *dm  = NULL;
+
+/* pseudo random number generator for hash value
+ * generation */
+uint32_t rseed  = 2463534242;
+
+/* temporary exponent vector for diffrerent situations */
+exp_t *etmp     = NULL;
 
 /* S-pair types */
 typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
 typedef struct spair_t spair_t;
 struct spair_t
 {
-  val_t lcm;
+  hl_t lcm;
   bi_t gen1;
   bi_t gen2;
   spt_t type;
@@ -82,7 +128,7 @@ static bl_t bload = 0;
 static bl_t bsize = 0;
 
 /* lead monomials of all basis elements */
-static val_t *lms = NULL;
+static sdm_t *lms = NULL;
 
 static const long bred  = (long)1;  /* maRking redundant elements */
 static const long bmask = ~(long)1; /* maSking redundant elements */
@@ -118,8 +164,13 @@ int (*matrix_row_initial_input_cmp)(
     );
 
 int (*monomial_cmp)(
-    const exp_t * const ea,
-    const exp_t * const eb
+    const hl_t a,
+    const hl_t b
+    );
+
+int (*monomial_local_cmp)(
+    const hl_t a,
+    const hl_t b
     );
 
 int (*spair_cmp)(

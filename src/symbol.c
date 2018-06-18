@@ -22,21 +22,18 @@
 
 #include "data.h"
 
-static val_t **select_spairs_by_minimal_degree(
+static hl_t **select_spairs_by_minimal_degree(
     void
     )
 {
   len_t i, j, k, l, md, npairs;
-  val_t *b;
+  hl_t *b;
   deg_t d = 0;
-  len_t lcm = 0, load = 0, load_old = 0;
-  val_t **mat;
+  len_t load = 0, load_old = 0;
+  hl_t lcm;
+  hl_t **mat;
   len_t *gens;
   exp_t *elcm, *eb;
-
-  const int64_t hl  = HASH_LEN;
-
-  exp_t *em = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
   /* timings */
   double ct0, ct1, rt0, rt1, rrt0, rrt1;
@@ -49,11 +46,11 @@ static val_t **select_spairs_by_minimal_degree(
   rrt1 = realtime();
   pair_sort_rtime +=  rrt1 - rrt0;
   /* get minimal degree */
-  md  = (ev+ps[0].lcm*hl)[HASH_DEG];
+  md  = hd[ps[0].lcm].deg;
 
   /* select pairs of this degree respecting maximal selection size mnsel */
   for (i = 0; i < pload; ++i) {
-    if ((ev+ps[i].lcm*hl)[HASH_DEG] > md || i >= mnsel) {
+    if (hd[ps[i].lcm].deg > md || i >= mnsel) {
       break;
     }
   }
@@ -74,7 +71,7 @@ static val_t **select_spairs_by_minimal_degree(
   gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
   /* preset matrix meta data */
-  mat   = (val_t **)malloc(2 * (unsigned long)npairs * sizeof(val_t *));
+  mat   = (hl_t **)malloc(2 * (unsigned long)npairs * sizeof(hl_t *));
   nrall = 2 * npairs;
   ncols = ncl = ncr = 0;
   nrows = 0;
@@ -110,19 +107,19 @@ static val_t **select_spairs_by_minimal_degree(
     for (k = load_old; k < load; ++k) {
       /* ev might change when enlarging the hash table during insertion of a new
        * row in the matrix, thus we have to reset elcm inside the for loop */
-      elcm  = ev + lcm*hl;
+      elcm  = ev[lcm];
       d = 0;
-      b = (val_t *)((long)bs[gens[k]] & bmask);
-      eb  = ev + b[2]*hl;
+      b = (hl_t *)((long)bs[gens[k]] & bmask);
+      eb  = ev[b[2]];
       /* m = monomial_division_no_check(lcm, b[2]); */
       for (l = 0; l < nvars; ++l) {
-        em[l] = elcm[l] - eb[l];
-        d     +=  em[l];
+        etmp[l] = elcm[l] - eb[l];
+        d     +=  etmp[l];
       }
-      const val_t h = elcm[HASH_VAL] - eb[HASH_VAL];
-      mat[nrows]  = multiplied_polynomial_to_matrix_row(h, d, em, b);
+      const hl_t h = hd[lcm].val - hd[b[2]].val;
+      mat[nrows]  = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
       /* mark lcm column as lead term column */
-      (ev+mat[nrows][2]*hl)[HASH_IND] = 2;
+      hd[mat[nrows][2]].idx = 2;
       nrows++;
     }
 
@@ -133,7 +130,6 @@ static val_t **select_spairs_by_minimal_degree(
   num_rowsred     +=  load;
 
   free(gens);
-  free(em);
 
   /* remove selected spairs from pairset */
   for (j = npairs; j < pload; ++j) {
@@ -150,24 +146,21 @@ static val_t **select_spairs_by_minimal_degree(
   return mat;
 }
 
-static inline val_t *find_multiplied_reducer(
-    const int64_t m
+static inline hl_t *find_multiplied_reducer(
+    const hl_t m
     )
 {
   len_t i, k;
-  const int64_t hl  = HASH_LEN;
   deg_t d = 0;
-  val_t *b;
-  const exp_t * const e  = ev+m;
+  hl_t *b;
+  const exp_t * const e  = ev[m];
   exp_t *f;
-
-  /* exp_t *r  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t)); */
 
   const len_t bl  = bload;
   const len_t os  = nvars & 1 ? 1 : 0;
-  i = e[HASH_DIV];
+  i = hd[m].div;
 
-  const sdm_t ns = (sdm_t)~e[HASH_SDM];
+  const sdm_t ns  = ~hd[m].sdm;
 start:
   while (i < bl-3) {
     if (lms[i] & ns &&
@@ -181,8 +174,8 @@ start:
     while (lms[i] & ns) {
       i++;
     }
-    b = (val_t *)((long)bs[i] & bmask);
-    f = ev+b[2]*hl;
+    b = (hl_t *)((long)bs[i] & bmask);
+    f = ev[b[2]];
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start;
@@ -193,16 +186,15 @@ start:
         goto start;
       }
     }
-    exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-    for (i = 0; i < nvars; ++i) {
-      r[i]  = e[i] - f[i];
+    for (k = 0; k < nvars; ++k) {
+      etmp[k] = e[k] - f[k];
     }
-    const val_t h = e[HASH_VAL] - f[HASH_VAL];
-    for (i = 0; i < nvars; ++i) {
-      d += r[i];
+    const hl_t h  = hd[m].val - hd[b[2]].val;
+    for (k = 0; k < nvars; ++k) {
+      d += etmp[k];
     }
-    b = multiplied_polynomial_to_matrix_row(h, d, r, b);
-    free(r);
+    b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+    hd[m].div = i;
     return b;
   }
 start2:
@@ -212,8 +204,8 @@ start2:
       i++;
       continue;
     }
-    b = (val_t *)((long)bs[i] & bmask);
-    f = ev+b[2]*hl;
+    b = (hl_t *)((long)bs[i] & bmask);
+    f = ev[b[2]];
     if ((e[0]-f[0]) < 0) {
       i++;
       goto start2;
@@ -224,32 +216,29 @@ start2:
         goto start2;
       }
     }
-    exp_t *r = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-    for (i = 0; i < nvars; ++i) {
-      r[i]  = e[i] - f[i];
+    for (k = 0; k < nvars; ++k) {
+      etmp[k] = e[k] - f[k];
     }
-    const val_t h = e[HASH_VAL] - f[HASH_VAL];
-    for (i = 0; i < nvars; ++i) {
-      d += r[i];
+    const hl_t h  = hd[m].val - hd[b[2]].val;
+    for (k = 0; k < nvars; ++k) {
+      d += etmp[k];
     }
-    b = multiplied_polynomial_to_matrix_row(h, d, r, b);
-    free(r);
+    b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+    hd[m].div = i;
     return b;
   }
-  (ev+m)[HASH_DIV] = i;
+  hd[m].div = i;
   num_not_sdm_found++;
   return NULL;
 }
 
-static val_t **symbolic_preprocessing(
-    val_t **mat
+static hl_t **symbolic_preprocessing(
+    hl_t **mat
     )
 {
   len_t i, j;
-  val_t *red;
-  int64_t m;
-
-  const int64_t hl  = HASH_LEN;
+  hl_t *red;
+  hl_t m;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -264,20 +253,20 @@ static val_t **symbolic_preprocessing(
 
   /* get reducers from basis */
   for (i = 0; i < nrows; ++i) {
-    const len_t len = mat[i][0];
+    const hl_t len = mat[i][0];
     /* check row reallocation only once per polynomial */
     if ((nrall - nrows) < (mat[i][0]-4)/2) {
-      nrall = 2*nrall > mat[i][0] ? 2*nrall : mat[i][0];
-      mat   = realloc(mat, (unsigned long)nrall * sizeof(val_t *));
+      nrall = 2*nrall > mat[i][0] ? 2*nrall : (len_t)mat[i][0];
+      mat   = realloc(mat, (unsigned long)nrall * sizeof(hl_t *));
     }
     for (j = 4; j < len; j += 2) {
-      m = mat[i][j]*hl;
-      if (!(ev+m)[HASH_IND]) {
-        (ev+m)[HASH_IND] = 1;
+      m = mat[i][j];
+      if (!hd[m].idx) {
+        hd[m].idx = 1;
         ncols++;
         red = find_multiplied_reducer(m);
         if (red) {
-          (ev+m)[HASH_IND] = 2;
+          hd[m].idx = 2;
           /* add new reducer to matrix */
           mat[nrows++]  = red;
         }
@@ -286,7 +275,7 @@ static val_t **symbolic_preprocessing(
   }
 
   /* realloc to real size */
-  mat   = realloc(mat, (unsigned long)nrows * sizeof(val_t *));
+  mat   = realloc(mat, (unsigned long)nrows * sizeof(hl_t *));
   nrall = nrows;
 
   /* timings */

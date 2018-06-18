@@ -27,16 +27,14 @@
  * hashes in the polynomials resp. rows. moreover, we have sorted each row
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
-static len_t *convert_hashes_to_columns(
+static hl_t *convert_hashes_to_columns(
     val_t **mat
     )
 {
   len_t i, j, k, l;
   val_t *row;
-  len_t *hcm; /* hash-to-column map */
+  hl_t *hcm; /* hash-to-column map */
   int64_t nterms = 0;
-
-  const int64_t hl  = HASH_LEN;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -49,13 +47,13 @@ static len_t *convert_hashes_to_columns(
    * have in the local hash table since we do not which of
    * them are corresponding to multipliers and which are
    * corresponding to the multiplied terms in reducers. */
-  hcm = (len_t *)malloc((unsigned long)ncols * sizeof(len_t));
+  hcm = (hl_t *)malloc((unsigned long)ncols * sizeof(hl_t));
   /* j counts all columns, k counts known pivots */
   for (j = 0, k = 0, i = 0; i < nrows; ++i) {
     row     =   mat[i];
     nterms  +=  (int64_t)(row[0]-2)/2;
     for (l = 2; l < row[0]; l += 2) {
-      hi  = (ev+row[l]*hl)[HASH_IND];
+      hi  = hd[row[l]].idx;
 #if ORDER_COLUMNS
       if (hi > 0) {
 #else
@@ -65,13 +63,13 @@ static len_t *convert_hashes_to_columns(
         if (hi == 2) {
           k++;
 #if ORDER_COLUMNS
-          (ev+row[l]*hl)[HASH_IND]  = -1;
+          hd[row[l]].idx  = -1;
         } else {
-          (ev+row[l]*hl)[HASH_IND]  = -2;
+          hd[row[l]].idx  = -2;
         }
 #else
         }
-        (ev+row[l]*hl)[HASH_IND] = 0;
+        hd[row[l]].idx  = 0;
 #endif
       }
     }
@@ -84,7 +82,7 @@ static len_t *convert_hashes_to_columns(
    *   printf("\n");
    * } */
   /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
-  qsort(hcm, (unsigned long)j, sizeof(len_t), hcm_cmp);
+  qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
   /* for (i = 0; i < j; ++i) {
    *   printf("hcm[%d] = ", i);
    *   for (l = 0; l < nvars; ++l) {
@@ -100,7 +98,7 @@ static len_t *convert_hashes_to_columns(
 
   /* store the other direction (hash -> column) in HASH_IND */
   for (i = 0; i < j; ++i) {
-    (ev + hcm[i]*hl)[HASH_IND]  = i;
+    hd[hcm[i]].idx  = i;
   }
 
 
@@ -110,13 +108,13 @@ static len_t *convert_hashes_to_columns(
   for (i = 0; i < nrows; ++i) {
     row = mat[i];
     for (j = 2; j < row[1]; j += 2) {
-      row[j]  = (ev + row[j]*hl)[HASH_IND];
+      row[j]  = hd[row[j]].idx;
     }
     for (; j < row[0]; j += 8) {
-      row[j]    = (ev + row[j]*hl)[HASH_IND];
-      row[j+2]  = (ev + row[j+2]*hl)[HASH_IND];
-      row[j+4]  = (ev + row[j+4]*hl)[HASH_IND];
-      row[j+6]  = (ev + row[j+6]*hl)[HASH_IND];
+      row[j]    = hd[row[j]].idx;
+      row[j+2]  = hd[row[j+2]].idx;
+      row[j+4]  = hd[row[j+4]].idx;
+      row[j+6]  = hd[row[j+6]].idx;
     }
   }
 
@@ -149,13 +147,12 @@ static len_t *convert_hashes_to_columns(
 
 static val_t **convert_columns_to_hashes(
     val_t **mat,
-    const len_t *hcm
+    const hl_t *hcm
     )
 {
   len_t i, j;
   val_t *row;
 
-  const int64_t hl  = HASH_LEN;
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -163,7 +160,7 @@ static val_t **convert_columns_to_hashes(
   rt0 = realtime();
 
   for (i = 0; i < ncols; ++i) {
-    (ev+hcm[i]*hl)[HASH_IND] = 0;
+    hd[hcm[i]].idx  = 0;
   }
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)

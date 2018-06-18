@@ -22,7 +22,7 @@
 #include "data.h"
 
 static inline void normalize_matrix_row(
-    val_t *row
+    hl_t *row
     )
 {
   int32_t i;
@@ -33,7 +33,7 @@ static inline void normalize_matrix_row(
   for (i = 3; i < row[1]; i += 2) {
     tmp1    =   ((int64_t)row[i] * inv) % fc;
     tmp1    +=  (tmp1 >> 63) & fc;
-    row[i]  =   (val_t)tmp1;
+    row[i]  =   (hl_t)tmp1;
   }
   for (; i < row[0]; i += 8) {
     tmp1      =   ((int64_t)row[i] * inv) % fc;
@@ -44,21 +44,21 @@ static inline void normalize_matrix_row(
     tmp2      +=  (tmp2 >> 63) & fc;
     tmp3      +=  (tmp3 >> 63) & fc;
     tmp4      +=  (tmp4 >> 63) & fc;
-    row[i]    =   (val_t)tmp1;
-    row[i+2]  =   (val_t)tmp2;
-    row[i+4]  =   (val_t)tmp3;
-    row[i+6]  =   (val_t)tmp4;
+    row[i]    =   (hl_t)tmp1;
+    row[i+2]  =   (hl_t)tmp2;
+    row[i+4]  =   (hl_t)tmp3;
+    row[i+6]  =   (hl_t)tmp4;
   }
   row[3]  = 1;
 }
 
-static val_t *reduce_dense_row_by_known_pivots_19_bit(
+static hl_t *reduce_dense_row_by_known_pivots_19_bit(
     int64_t *dr,
-    val_t *const *pivs,
-    const val_t dpiv    /* pivot of dense row at the beginning */
+    hl_t *const *pivs,
+    const hl_t dpiv    /* pivot of dense row at the beginning */
     )
 {
-  len_t i, j, k;
+  hl_t i, j, k;
   const int64_t mod = (int64_t)fc;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
@@ -106,21 +106,21 @@ static val_t *reduce_dense_row_by_known_pivots_19_bit(
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
-  val_t *row  = (val_t *)malloc(
-      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(val_t));
+  hl_t *row  = (hl_t *)malloc(
+      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(hl_t));
   j = 2;
   for (i = dpiv; i < ncols; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % mod;
       if (dr[i] != 0) {
-        row[j++]  = (val_t)i;
-        row[j++]  = (val_t)dr[i];
+        row[j++]  = (hl_t)i;
+        row[j++]  = (hl_t)dr[i];
       }
     }
   }
   row[0]  = j;
   row[1]  = 2 * (((j-2)/2) % UNROLL) + 2;
-  row     = realloc(row, (unsigned long)row[0] * sizeof(val_t));
+  row     = realloc(row, (unsigned long)row[0] * sizeof(hl_t));
 
   /* for (int32_t l = 0; l < row[0]; ++l) {
    *   printf("%2d ", row[l]);
@@ -140,13 +140,13 @@ static val_t *reduce_dense_row_by_known_pivots_19_bit(
   return row;
 }
 
-static val_t *reduce_dense_row_by_known_pivots_31_bit(
+static hl_t *reduce_dense_row_by_known_pivots_31_bit(
     int64_t *dr,
-    val_t *const *pivs,
-    const val_t dpiv    /* pivot of dense row at the beginning */
+    hl_t *const *pivs,
+    const hl_t dpiv    /* pivot of dense row at the beginning */
     )
 {
-  len_t i, j, k;
+  hl_t i, j, k;
   const int64_t mod2  = (int64_t)fc * fc;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
@@ -186,21 +186,21 @@ static val_t *reduce_dense_row_by_known_pivots_31_bit(
 
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
-  val_t *row  = (val_t *)malloc(
-      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(val_t));
+  hl_t *row  = (hl_t *)malloc(
+      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(hl_t));
   j = 2;
   for (i = dpiv; i < ncols; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % fc;
       if (dr[i] != 0) {
-        row[j++]  = (val_t)i;
-        row[j++]  = (val_t)dr[i];
+        row[j++]  = (hl_t)i;
+        row[j++]  = (hl_t)dr[i];
       }
     }
   }
   row[0]  = j;
   row[1]  = 2 * (((j-2)/2) % UNROLL) + 2;
-  row     = realloc(row, (unsigned long)row[0] * sizeof(val_t));
+  row     = realloc(row, (unsigned long)row[0] * sizeof(hl_t));
 
   if (row[3] != 1) {
     normalize_matrix_row(row);
@@ -209,13 +209,13 @@ static val_t *reduce_dense_row_by_known_pivots_31_bit(
   return row;
 }
 
-static val_t **sparse_linear_algebra(
-    val_t **mat
+static hl_t **sparse_linear_algebra(
+    hl_t **mat
     )
 {
   len_t i, j, k;
-  val_t sc    = 0;    /* starting column */
-  val_t *npiv = NULL; /* new pivot row */
+  hl_t sc    = 0;    /* starting column */
+  hl_t *npiv = NULL; /* new pivot row */
 
   /* timings */
   double ct0, ct1, rt0, rt1;
@@ -223,9 +223,9 @@ static val_t **sparse_linear_algebra(
   rt0 = realtime();
 
   /* all pivots, first we can only fill in all known lead terms */
-  val_t **pivs  = (val_t **)calloc((unsigned long)ncols, sizeof(val_t *));
+  hl_t **pivs  = (hl_t **)calloc((unsigned long)ncols, sizeof(hl_t *));
   /* unkown pivot rows we have to reduce with the known pivots first */
-  val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
+  hl_t **upivs = (hl_t **)malloc((unsigned long)nrl * sizeof(hl_t *));
 
   i = 0;
   j = 1;
@@ -277,7 +277,7 @@ static val_t **sparse_linear_algebra(
   npivs = 0; /* number of new pivots */
 
   dr  = realloc(dr, (unsigned long)ncols * sizeof(int64_t));
-  mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
+  mat = realloc(mat, (unsigned long)(ncr) * sizeof(hl_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
   for (i = (ncols-1); i >= nru; --i) {
     if (pivs[i]) {
@@ -285,7 +285,7 @@ static val_t **sparse_linear_algebra(
       for (j = 2; j < pivs[i][0]; j += 2) {
         dr[pivs[i][j]] = (int64_t)pivs[i][j+1];
       }
-      val_t sc  = pivs[i][2];
+      hl_t sc  = pivs[i][2];
       free(pivs[i]);
       pivs[i] = NULL;
       pivs[i] = mat[npivs++] = reduce_dense_row_by_known_pivots(dr, pivs, sc);
@@ -296,7 +296,7 @@ static val_t **sparse_linear_algebra(
 
   free(dr);
   dr  = NULL;
-  mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
+  mat   = realloc(mat, (unsigned long)npivs * sizeof(hl_t *));
   nrows = nrall = npivs;
 
   num_zerored += (nrl - npivs);
@@ -311,14 +311,14 @@ static val_t **sparse_linear_algebra(
   return mat;
 }
 
-static val_t **probabilistic_sparse_linear_algebra(
-    val_t **mat
+static hl_t **probabilistic_sparse_linear_algebra(
+    hl_t **mat
     )
 {
   /* printf("HIER | ncols %d\n", ncols); */
   len_t i, j, k, l;
-  val_t sc    = 0;    /* starting column */
-  val_t *npiv = NULL; /* new pivot row */
+  hl_t sc    = 0;    /* starting column */
+  hl_t *npiv = NULL; /* new pivot row */
   const int64_t mod2  = (int64_t)fc * fc;
 
   /* timings */
@@ -327,9 +327,9 @@ static val_t **probabilistic_sparse_linear_algebra(
   rt0 = realtime();
 
   /* all pivots, first we can only fill in all known lead terms */
-  val_t **pivs  = (val_t **)calloc((unsigned long)ncols, sizeof(val_t *));
+  hl_t **pivs  = (hl_t **)calloc((unsigned long)ncols, sizeof(hl_t *));
   /* unkown pivot rows we have to reduce with the known pivots first */
-  val_t **upivs = (val_t **)malloc((unsigned long)nrl * sizeof(val_t *));
+  hl_t **upivs = (hl_t **)malloc((unsigned long)nrl * sizeof(hl_t *));
 
   i = 0;
   j = 1;
@@ -439,7 +439,7 @@ static val_t **probabilistic_sparse_linear_algebra(
   dr  = realloc(dr, (unsigned long)ncols * sizeof(int64_t));
   npivs = 0; /* number of new pivots */
 
-  mat = realloc(mat, (unsigned long)(ncr) * sizeof(val_t *));
+  mat = realloc(mat, (unsigned long)(ncr) * sizeof(hl_t *));
   /* interreduce new pivots, i.e. pivs[ncl + ...] */
   for (i = (ncols-1); i >= nru; --i) {
   /* for (i = (ncols-1); i >= 0; --i) { */
@@ -460,7 +460,7 @@ static val_t **probabilistic_sparse_linear_algebra(
   dr    = NULL;
   pivs  = NULL;
 
-  mat   = realloc(mat, (unsigned long)npivs * sizeof(val_t *));
+  mat   = realloc(mat, (unsigned long)npivs * sizeof(hl_t *));
   nrows = nrall = npivs;
 
   num_zerored += (nrl - npivs);

@@ -40,7 +40,7 @@ int main(
     return 1;
   }
   initialize_local_hash_table();
-  if (msize/mlsize != 32) {
+  if (hsz/hlsz != 32) {
     return 1;
   }
 

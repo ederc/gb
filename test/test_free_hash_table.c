@@ -15,16 +15,16 @@ int main(
   initialize_global_hash_table();
   initialize_local_hash_table();
   free_local_hash_table();
-  if (mlsize != 0) {
+  if (hlsz != 0) {
     return 1;
   }
-  if (elload != 0) {
+  if (elld != 0) {
     return 1;
   }
-  if (elsize != 0) {
+  if (elsz != 0) {
     return 1;
   }
-  if (mapl != NULL) {
+  if (hmapl != NULL) {
     return 1;
   }
   if (evl != NULL) {
@@ -34,16 +34,16 @@ int main(
   if (fc != 0) {
     return 1;
   }
-  if (msize != 0) {
+  if (hsz != 0) {
     return 1;
   }
-  if (eload != 0) {
+  if (eld != 0) {
     return 1;
   }
-  if (esize != 0) {
+  if (esz != 0) {
     return 1;
   }
-  if (map != NULL) {
+  if (hmap != NULL) {
     return 1;
   }
   if (ev != NULL) {

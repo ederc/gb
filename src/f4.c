@@ -53,8 +53,8 @@ int64_t f4_julia(
   rt0 = realtime();
 
   int32_t i, round, last_reset;
-  val_t **mat;
-  len_t *hcm; /* hash-column-map */
+  hl_t **mat;
+  hl_t *hcm; /* hash-column-map */
 
   /* checks and set all meta data. if a nonzero value is returned then
    * some of the input data is corrupted. */
@@ -99,7 +99,7 @@ int64_t f4_julia(
   calculate_divmask();
 
   /* sort initial elements, smallest lead term first */
-  qsort(mat, (unsigned long)nrows, sizeof(val_t *),
+  qsort(mat, (unsigned long)nrows, sizeof(hl_t *),
       matrix_row_initial_input_cmp);
   /* normalize input generators */
   for (i = 0; i < nrows; ++i) {
@@ -115,7 +115,7 @@ int64_t f4_julia(
   /* let's start the f4 rounds,  we are done when no more spairs
    * are left in the pairset */
   last_reset  = 0;
-  for (round = 1; pload > 0; ++round) {
+  for (round = 0; pload > 0; ++round) {
     if (round - last_reset == rght) {
       last_reset  = round;
       /* printf("eload before reset %d / %d\n", eload, esize); */
@@ -187,9 +187,9 @@ int64_t f4_julia(
   GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
   GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
   GB_DEBUG(GBDBG, "global hash table load %15d <= 2^%d\n",
-      eload, (int32_t)((ceil(log(eload)/log(2)))));
+      eld, (int32_t)((ceil(log(eld)/log(2)))));
   GB_DEBUG(GBDBG, "local hash table load  %15d <= 2^%d\n",
-      elload, (int32_t)(ceil(log(elload)/log(2))));
+      elld, (int32_t)(ceil(log(elld)/log(2))));
   GB_DEBUG(GBDBG, "#ht enlargements       %15ld\n", num_htenl);
   GB_DEBUG(GBDBG, "#no reducer found      %15ld\n", num_sdm_found + num_not_sdm_found);
   GB_DEBUG(GBDBG, "sdm findings           %14.3f%% \n",

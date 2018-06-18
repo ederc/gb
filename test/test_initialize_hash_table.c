@@ -25,14 +25,14 @@ int main(
   if (bpv != 1) {
     return 1;
   }
-  if (eload != HASH_LEN) {
+  if (eld != 1) {
     return 1;
   }
   initialize_local_hash_table();
-  if (msize/mlsize != mlsize) {
+  if (hsz/hlsz != hlsz) {
     return 1;
   }
-  if (elload != HASH_LEN) {
+  if (elld != 1) {
     return 1;
   }
   free_local_hash_table();

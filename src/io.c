@@ -31,23 +31,26 @@ static inline void set_function_pointers(
     case 0:
       matrix_row_initial_input_cmp  =
         matrix_row_initial_input_cmp_drl;
-      monomial_cmp  = monomial_cmp_drl;
-      spair_cmp     = spair_cmp_drl;
-      hcm_cmp       = hcm_cmp_pivots_drl;
+      monomial_cmp        = monomial_cmp_drl;
+      monomial_local_cmp  = monomial_local_cmp_drl;
+      spair_cmp           = spair_cmp_drl;
+      hcm_cmp             = hcm_cmp_pivots_drl;
       break;
     case 1:
       matrix_row_initial_input_cmp  =
         matrix_row_initial_input_cmp_lex;
-      monomial_cmp  = monomial_cmp_lex;
-      spair_cmp     = spair_cmp_deglex;
-      hcm_cmp       = hcm_cmp_pivots_lex;
+      monomial_cmp        = monomial_cmp_lex;
+      monomial_local_cmp  = monomial_local_cmp_lex;
+      spair_cmp           = spair_cmp_deglex;
+      hcm_cmp             = hcm_cmp_pivots_lex;
       break;
     default:
       matrix_row_initial_input_cmp  =
         matrix_row_initial_input_cmp_drl;
-      monomial_cmp  = monomial_cmp_drl;
-      spair_cmp     = spair_cmp_drl;
-      hcm_cmp       = hcm_cmp_pivots_drl;
+      monomial_cmp        = monomial_cmp_drl;
+      monomial_local_cmp  = monomial_local_cmp_drl;
+      spair_cmp           = spair_cmp_drl;
+      hcm_cmp             = hcm_cmp_pivots_drl;
   }
 
   switch (laopt) {
@@ -116,8 +119,8 @@ static inline int32_t check_and_set_meta_data(
     nthrds  = nr_threads;
   }
 
-  if (reset_hash_table < 0) {
-    rght  = 0;
+  if (reset_hash_table <= 0) {
+    rght  = -1;
   } else {
     rght  = reset_hash_table;
   }
@@ -143,7 +146,7 @@ static inline int32_t check_and_set_meta_data(
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
-static val_t **import_julia_data(
+static hl_t **import_julia_data(
     const int32_t *lens,
     const int32_t *cfs,
     const int32_t *exps,
@@ -154,13 +157,13 @@ static val_t **import_julia_data(
   len_t k;
   int32_t off = 0; /* offset in arrays */
   exp_t *e  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-  val_t **mat = malloc((unsigned long)nr_gens * sizeof(val_t *));
+  hl_t **mat = malloc((unsigned long)nr_gens * sizeof(hl_t *));
   
   for (i = 0; i < nr_gens; ++i) {
     /* each matrix row has the following structure:
      * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
      * where piv? is a label for being a known or an unknown pivot */
-    mat[i]    = malloc((2*(unsigned long)lens[i]+2) * sizeof(val_t));
+    mat[i]    = malloc((2*(unsigned long)lens[i]+2) * sizeof(hl_t));
     mat[i][0] = 2*lens[i]+2;
     mat[i][1] = 2*(lens[i] % UNROLL)+2; /* offset for starting loop unrolling */
     for (j = off; j < off+lens[i]; ++j) {
@@ -168,7 +171,7 @@ static val_t **import_julia_data(
         e[k]  = (exp_t)(exps+(nvars*j))[k];
       }
       mat[i][2*(j+1-off)]   = insert_in_global_hash_table(e);
-      mat[i][2*(j+1-off)+1] = (val_t)cfs[j];
+      mat[i][2*(j+1-off)+1] = (hl_t)cfs[j];
     }
     /* mark initial generators, they have to be added to the basis first */
     off +=  lens[i];
@@ -192,7 +195,6 @@ static int64_t export_julia_data(
   int64_t nb  = 0; /* # elemnts in basis */
 
   const len_t lterm = 1 + nvars; /* length of a term */
-  const int64_t hl    = HASH_LEN;
 
   /* compute number of terms */
   for (i = 0; i < bload; ++i) {
@@ -233,7 +235,7 @@ static int64_t export_julia_data(
       for (j = 2; j < bs[i][0]; j += 2) {
         basis[ctr_elements++] = (int32_t)bs[i][j+1]; /* coefficient */
         for (k = 0; k < nvars; ++k) {
-          basis[ctr_elements++] = (int32_t)(ev + bs[i][j]*hl)[k];
+          basis[ctr_elements++] = (int32_t)(ev + bs[i][j])[k];
         }
       }
     }

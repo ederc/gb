@@ -58,7 +58,7 @@ int main(
       for (j = 2; j < mat[i][0]; j += 2) {
         printf("%3d | ", mat[i][j+1]);
         for (k = 0; k < nvars; ++k) {
-          printf("%d", (evl+mat[i][j])[k]);
+          printf("%d", evl[mat[i][j]][k]);
         }
         printf(" || ");
       }
@@ -85,9 +85,9 @@ int main(
         if (m > 0 && m % 2 == 0) {
           printf("(");
           for (int32_t o = 0; o < nvars; ++o) {
-            printf("%d", (evl+mat[l][m])[o]);
+            printf("%d", evl[mat[l][m]][o]);
           }
-          printf(",%d)  ",(evl+mat[l][m])[HASH_IND]);
+          printf(",%d)  ", hd[mat[l][m]].idx);
         }
 
       }
@@ -132,7 +132,7 @@ int main(
       for (j = 2; j < mat[i][0]; j += 2) {
         printf("%3d | ", mat[i][j+1]);
         for (k = 0; k < nvars; ++k) {
-          printf("%d", (evl+mat[i][j])[k]);
+          printf("%d", evl[mat[i][j]][k]);
         }
         printf(" || ");
       }

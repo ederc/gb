@@ -89,8 +89,14 @@ static void initialize_global_hash_table(
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
+  exp_t *tmp  = (exp_t *)malloc(
+      (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
+  if (tmp == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
   for (j = 0; j < esz; ++j) {
-    ev[j] = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+    ev[j]  = tmp + (unsigned long)(j*nvars);
   }
 
   etmp  = (exp_t *)malloc((unsigned long)esz * sizeof(exp_t));
@@ -116,8 +122,14 @@ static void initialize_local_hash_table(
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
+  exp_t *tmp  = (exp_t *)malloc(
+      (unsigned long)nvars * (unsigned long)elsz * sizeof(exp_t));
+  if (tmp == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
   for (j = 0; j < elsz; ++j) {
-    evl[j]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+    evl[j]  = tmp + (unsigned long)(j*nvars);
   }
 }
 
@@ -125,8 +137,6 @@ static void free_global_hash_table(
     void
     )
 {
-  hl_t i;
-
   if (hmap) {
     free(hmap);
     hmap = NULL;
@@ -144,9 +154,9 @@ static void free_global_hash_table(
     rv  = NULL;
   }
   if (ev) {
-    for (i = 0; i < esz; ++i) {
-      free(ev[i]);
-    }
+    /* note: memory is allocated as one big block,
+     *       so freeing ev[0] is enough */
+    free(ev[0]);
     free(ev);
     ev  = NULL;
   }
@@ -165,8 +175,6 @@ static void free_local_hash_table(
     void
     )
 {
-  hl_t i;
-
   if (hmapl) {
     free(hmapl);
     hmapl  = NULL;
@@ -176,9 +184,9 @@ static void free_local_hash_table(
     hdl = NULL;
   }
   if (evl) {
-    for (i = 0; i < elsz; ++i) {
-      free(evl[i]);
-    }
+    /* note: memory is allocated as one big block,
+     *       so freeing evl[0] is enough */
+    free(evl[0]);
     free(evl);
     evl = NULL;
   }
@@ -204,8 +212,18 @@ static void enlarge_global_hash_table(
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
-  for (i = j; i < esz; ++i) {
-    ev[i] = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+  /* note: memory is allocated as one big block, so reallocating
+   *       memory from ev[0] is enough    */
+  ev[0] = realloc(ev[0],
+      (unsigned long)esz * (unsigned long)nvars * sizeof(exp_t));
+  if (ev[0] == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
+  /* due to realloc we have to reset ALL ev entries,
+   * memory might have been moved */
+  for (i = 1; i < esz; ++i) {
+    ev[i] = ev[0] + (unsigned long)(i*nvars);
   }
 
   hsz   = 2 * hsz;
@@ -531,9 +549,21 @@ static inline void reset_local_hash_table(
         printf("Computation needs too much memory on this machine, \
             segmentation fault will follow.\n");
       }
-      for (i = j; i < elsz; ++i) {
-        evl[i]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+      /* note: memory is allocated as one big block, so reallocating
+      *       memory from evl[0] is enough    */
+      evl[0]  = realloc(evl[0],
+          (unsigned long)elsz * (unsigned long)nvars * sizeof(exp_t));
+      if (evl[0] == NULL) {
+        printf("Computation needs too much memory on this machine, \
+            segmentation fault will follow.\n");
       }
+      /* due to realloc we have to reset ALL evl entries, memory might be moved */
+      for (i = 1; i < elsz; ++i) {
+        evl[i] = evl[0] + (unsigned long)(i*nvars);
+      }
+      /* for (i = j; i < elsz; ++i) {
+       *   evl[i]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+       * } */
       hmapl = realloc(hmapl, (unsigned long)hlsz * sizeof(hl_t));
     }
     memset(hdl, 0, (unsigned long)elsz * sizeof(hd_t));
@@ -653,8 +683,14 @@ static void reset_global_hash_table(
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
+  exp_t *tmp  = (exp_t *)malloc(
+      (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
+  if (tmp == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
   for (k = 0; k < esz; ++k) {
-    ev[k] = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+    ev[k]  = tmp + k*nvars;
   }
   eld = 1;
   memset(hmap, 0, (unsigned long)hsz * sizeof(hl_t));
@@ -672,6 +708,9 @@ static void reset_global_hash_table(
     e = oev[ps[i].lcm];
     ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(e);
   }
+  /* note: all memory is allocated as a big block, so it is
+   *       enough to free oev[0].       */
+  free(oev[0]);
   free(oev);
 
   /* timings */

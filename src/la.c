@@ -109,7 +109,7 @@ static hl_t *reduce_dense_row_by_known_pivots_19_bit(
   hl_t *row  = (hl_t *)malloc(
       (unsigned long)(2*(ncols-dpiv)+2) * sizeof(hl_t));
   j = 2;
-  for (i = dpiv; i < ncols; ++i) {
+  for (i = ncl; i < ncols; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % mod;
       if (dr[i] != 0) {
@@ -189,7 +189,7 @@ static hl_t *reduce_dense_row_by_known_pivots_31_bit(
   hl_t *row  = (hl_t *)malloc(
       (unsigned long)(2*(ncols-dpiv)+2) * sizeof(hl_t));
   j = 2;
-  for (i = dpiv; i < ncols; ++i) {
+  for (i = ncl; i < ncols; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % fc;
       if (dr[i] != 0) {

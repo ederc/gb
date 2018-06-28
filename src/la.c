@@ -59,6 +59,7 @@ static hl_t *reduce_dense_row_by_known_pivots_19_bit(
     )
 {
   hl_t i, j, k;
+  hl_t np = 0;
   const int64_t mod = (int64_t)fc;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
@@ -69,6 +70,9 @@ static hl_t *reduce_dense_row_by_known_pivots_19_bit(
       continue;
     }
     if (pivs[i] == NULL) {
+      if (np == 0) {
+        np = i;
+      }
       k++;
       continue;
     }
@@ -107,7 +111,7 @@ static hl_t *reduce_dense_row_by_known_pivots_19_bit(
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
   hl_t *row  = (hl_t *)malloc(
-      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(hl_t));
+      (unsigned long)(2*(ncols-np)+2) * sizeof(hl_t));
   j = 2;
   for (i = ncl; i < ncols; ++i) {
     if (dr[i] != 0) {
@@ -148,6 +152,7 @@ static hl_t *reduce_dense_row_by_known_pivots_31_bit(
 {
   hl_t i, j, k;
   const int64_t mod2  = (int64_t)fc * fc;
+  hl_t np = 0;
 
   for (k = 0, i = dpiv; i < ncols; ++i) {
     if (dr[i] != 0) {
@@ -157,6 +162,9 @@ static hl_t *reduce_dense_row_by_known_pivots_31_bit(
       continue;
     }
     if (pivs[i] == NULL) {
+      if (np == 0) {
+        np = i;
+      }
       k++;
       continue;
     }
@@ -187,9 +195,9 @@ static hl_t *reduce_dense_row_by_known_pivots_31_bit(
   /* dense row is not reduced to zero, thus generate new sparse
    * pivot row and normalize it */
   hl_t *row  = (hl_t *)malloc(
-      (unsigned long)(2*(ncols-dpiv)+2) * sizeof(hl_t));
+      (unsigned long)(2*(ncols-np)+2) * sizeof(hl_t));
   j = 2;
-  for (i = ncl; i < ncols; ++i) {
+  for (i = np; i < ncols; ++i) {
     if (dr[i] != 0) {
       dr[i] = dr[i] % fc;
       if (dr[i] != 0) {

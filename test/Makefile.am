@@ -27,7 +27,7 @@ TESTS = 											\
 	test_initialize_hash_table	\
 	test_free_hash_table 				\
 	test_divmask								\
-	test_normalize_row					\
+	# test_normalize_row					\
 	test_input_meta_data				\
 	xtest_input_meta_data				\
 	test_julia_io								\

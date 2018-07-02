@@ -4,20 +4,20 @@
 #include "../src/gb.c"
 
 int main(
-    void
-    )
+        void
+        )
 {
-  /* initialize stuff */
-  initialize_pairset();
-  free_pairset();
-  if (ps != NULL) {
-    return 1;
-  }
-  if (pload != 0) {
-    return 1;
-  }
-  if (psize != 0) {
-    return 1;
-  }
-  return 0;
+    /* initialize stuff */
+    initialize_pairset();
+    free_pairset();
+    if (ps != NULL) {
+        return 1;
+    }
+    if (pload != 0) {
+        return 1;
+    }
+    if (psize != 0) {
+        return 1;
+    }
+    return 0;
 }

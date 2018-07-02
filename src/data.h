@@ -41,12 +41,15 @@
 #define ORDER_COLUMNS 1
 
 /* computational data */
+typedef int32_t cf_t;     /* coefficient type */
+typedef int32_t val_t;    /* core values like hashes */
+typedef val_t hl_t;       /* length of hash table */
+typedef hl_t dt_t;        /* data type for other polynomial informatio */
+/* like exponent hashes, etc. */
 typedef int32_t ind_t;    /* index in hash table structure */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
 typedef int16_t exp_t;    /* exponent type */
-typedef int32_t val_t;    /* core values like hashes, coefficients, etc. */
-typedef val_t hl_t;       /* length of hash table */
 typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef len_t bi_t;     /* basis index of element */
 typedef len_t bl_t;     /* basis load */
@@ -56,11 +59,11 @@ typedef len_t pl_t;     /* pair set load */
 typedef struct hd_t hd_t;
 struct hd_t
 {
-  sdm_t sdm;
-  deg_t deg;
-  len_t div;
-  ind_t idx;
-  val_t val;
+    sdm_t sdm;
+    deg_t deg;
+    len_t div;
+    ind_t idx;
+    val_t val;
 };
 /* global hash table data */
 static hl_t *hmap   = NULL; /* global hash map */
@@ -101,10 +104,10 @@ typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
 typedef struct spair_t spair_t;
 struct spair_t
 {
-  hl_t lcm;
-  bi_t gen1;
-  bi_t gen2;
-  spt_t type;
+    hl_t lcm;
+    bi_t gen1;
+    bi_t gen2;
+    spt_t type;
 };
 
 /* pair set data */
@@ -119,9 +122,27 @@ static int32_t mnsel  = 0; /* maximal number of pairs to be selected */
 static val_t mo = 0;
 
 /* field characteristic */
-static val_t fc = 0;
+static cf_t fc = 0;
 
 /* basis data */
+
+/* we need to store:
+ * idx of coefficient array
+ * length of array
+ * offset for loop unrolling
+ * => all in all length = real length + 3
+ *
+ * how to achieve the same offset, i.e. 3 in the coefficient array?
+ * redundant yes/no ?
+ * length ?
+ * offset ? */
+
+static cf_t **gbcf  = NULL;
+static dt_t **gbdt  = NULL;
+static dt_t **matdt = NULL;
+static cf_t **matcf = NULL;
+/* temporary coefficients for input data and transfer from matrix to basis */
+static cf_t **tmpcf = NULL;
 static val_t **bs = NULL;
 static bl_t blold = 0;
 static bl_t bload = 0;
@@ -159,57 +180,65 @@ static int32_t laopt  = 0;
 
 /* function pointers */
 int (*matrix_row_initial_input_cmp)(
-    const void *a,
-    const void *b
-    );
+        const void *a,
+        const void *b
+        );
 
 int (*monomial_cmp)(
-    const hl_t a,
-    const hl_t b
-    );
+        const hl_t a,
+        const hl_t b
+        );
 
 int (*monomial_local_cmp)(
-    const hl_t a,
-    const hl_t b
-    );
+        const hl_t a,
+        const hl_t b
+        );
 
 int (*spair_cmp)(
-    const void *a,
-    const void *b
-    );
+        const void *a,
+        const void *b
+        );
 
 int (*hcm_cmp)(
-    const void *a,
-    const void *b
-    );
+        const void *a,
+        const void *b
+        );
 
 /* linear algebra routines */
-val_t **(*linear_algebra)(
-    val_t **mat
-    );
+cf_t **(*linear_algebra)(
+        dt_t **mat
+        );
 
-val_t *(*reduce_dense_row_by_known_pivots)(
-    int64_t *dr,
-    val_t *const *pivs,
-    const val_t dpiv
-    );
+cf_t *(*reduce_dense_row_by_known_pivots)(
+        int64_t *dr,
+        dt_t *const *pivs,
+        const val_t dpiv
+        );
+
+len_t (*reduce_dense_row_by_dense_new_pivots)(
+        int64_t *dr,
+        cf_t **tbr,
+        const len_t pc,
+        const len_t idx,
+        cf_t *const *pivs
+        );
 
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
 int64_t f4_julia(
-    int32_t **jl_basis,
-    const int32_t *lens,
-    const int32_t *cfs,
-    const int32_t *exps,
-    const int32_t field_char,
-    const int32_t mon_order,
-    const int32_t nr_vars,
-    const int32_t nr_gens,
-    const int32_t ht_size,
-    const int32_t nr_threads,
-    const int32_t max_nr_pairs,
-    const int32_t reset_hash_table,
-    const int32_t la_option
-    );
+        int32_t **jl_basis,
+        const int32_t *lens,
+        const int32_t *cfs,
+        const int32_t *exps,
+        const int32_t field_char,
+        const int32_t mon_order,
+        const int32_t nr_vars,
+        const int32_t nr_gens,
+        const int32_t ht_size,
+        const int32_t nr_threads,
+        const int32_t max_nr_pairs,
+        const int32_t reset_hash_table,
+        const int32_t la_option
+        );
 #endif

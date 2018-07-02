@@ -23,51 +23,51 @@
 #include "data.h"
 
 static inline int32_t mod_p_inverse_32(
-    const int32_t val,
-    const int32_t p
-    )
+        const int32_t val,
+        const int32_t p
+        )
 {
-  int32_t a, b, c, d, e, f;
-  a =   p;
-  b =   val % p;
-  /* if b < 0 we shift correspondingly */
-  b +=  (b >> 31) & p;
-  c =   1;
-  d =   0;
+    int32_t a, b, c, d, e, f;
+    a =   p;
+    b =   val % p;
+    /* if b < 0 we shift correspondingly */
+    b +=  (b >> 31) & p;
+    c =   1;
+    d =   0;
 
-  while (b != 0) {
-    f = b;
-    e = a/f;
-    b = a - e*f;
-    a = f;
-    f = c;
-    c = d - e*f;
-    d = f;
-  }
+    while (b != 0) {
+        f = b;
+        e = a/f;
+        b = a - e*f;
+        a = f;
+        f = c;
+        c = d - e*f;
+        d = f;
+    }
 
-  /* if d < 0 we shift correspondingly */
-  d +=  (d >> 31) & p;
+    /* if d < 0 we shift correspondingly */
+    d +=  (d >> 31) & p;
 
-  return d;
+    return d;
 }
 
 static inline val_t compare_and_swap(
-    long *ptr,
-    long old,
-    long new
-    )
+        long *ptr,
+        long old,
+        long new
+        )
 {
-  val_t prev;
+    val_t prev;
 
 #if 0
-  __asm__ __volatile__(
-      "lock; cmpxchgl %2, %1" : "=a"(prev),
-      "+m"(*ptr) : "r"(new), "0"(old) : "memory");
-  /* on which systems do we need "cmpxchgq" instead of "cmpxchgl" ? */
+    __asm__ __volatile__(
+            "lock; cmpxchgl %2, %1" : "=a"(prev),
+            "+m"(*ptr) : "r"(new), "0"(old) : "memory");
+    /* on which systems do we need "cmpxchgq" instead of "cmpxchgl" ? */
 #else
-  __asm__ __volatile__(
-      "lock; cmpxchgq %2, %1" : "=a"(prev),
-      "+m"(*ptr) : "r"(new), "0"(old) : "memory");
+    __asm__ __volatile__(
+            "lock; cmpxchgq %2, %1" : "=a"(prev),
+            "+m"(*ptr) : "r"(new), "0"(old) : "memory");
 #endif
-  return prev;
+    return prev;
 }

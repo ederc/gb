@@ -824,37 +824,37 @@ static inline hl_t monomial_division_no_check(
   return insert_in_global_hash_table(etmp);
 }
 
-static inline val_t *multiplied_polynomial_to_matrix_row(
+static inline dt_t *multiplied_polynomial_to_matrix_row(
     const val_t hm,
     const deg_t deg,
     const exp_t * const em,
-    const val_t *poly
+    const dt_t *poly
     )
 {
   len_t i;
 
-  val_t *row  = (val_t *)malloc((unsigned long)poly[0] * sizeof(val_t));
-  memcpy(row, poly, (unsigned long)poly[0] * sizeof(val_t));
+  dt_t *row = (dt_t *)malloc((unsigned long)poly[2] * sizeof(dt_t));
+  row[0]    = poly[0];
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  if (eld+((poly[0]-2)/2) >= esz) {
+  if (eld+poly[2]-3 >= esz) {
     enlarge_global_hash_table();
   }
-  for (i = 2; i < poly[1]; i += 2) {
+  for (i = 3; i < poly[1]; ++i) {
     row[i]  = insert_in_global_hash_table_product_special(
                 hm, deg, em, poly[i]);
   }
 #if 1
-  for (;i < poly[0]; i += 8) {
+  for (;i < poly[2]; i += 4) {
     row[i]    = insert_in_global_hash_table_product_special(
                   hm, deg, em, poly[i]);
+    row[i+1]  = insert_in_global_hash_table_product_special(
+                  hm, deg, em, poly[i+1]);
     row[i+2]  = insert_in_global_hash_table_product_special(
                   hm, deg, em, poly[i+2]);
-    row[i+4]  = insert_in_global_hash_table_product_special(
-                  hm, deg, em, poly[i+4]);
-    row[i+6]  = insert_in_global_hash_table_product_special(
-                  hm, deg, em, poly[i+6]);
+    row[i+3]  = insert_in_global_hash_table_product_special(
+                  hm, deg, em, poly[i+3]);
   }
 #endif
 

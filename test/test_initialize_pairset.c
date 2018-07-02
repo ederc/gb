@@ -4,17 +4,17 @@
 #include "../src/gb.c"
 
 int main(
-    void
-    )
+        void
+        )
 {
-  /* initialize stuff */
-  initialize_pairset();
-  if (ps == NULL) {
-    return 1;
-  }
-  if (psize == 0) {
-    return 1;
-  }
-  free_pairset();
-  return 0;
+    /* initialize stuff */
+    initialize_pairset();
+    if (ps == NULL) {
+        return 1;
+    }
+    if (psize == 0) {
+        return 1;
+    }
+    free_pairset();
+    return 0;
 }

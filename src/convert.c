@@ -180,11 +180,11 @@ static void convert_dense_matrix_to_basis_elements(
             }
             /* store meta data in first entries */
             dts[0]  = bl;
-            dts[1]  = k + 3;
-            dts[2]  = (k % 4) + 3;
+            dts[1]  = (k % 4) + 3;
+            dts[2]  = k + 3;
             cfs[0]  = 0;
-            cfs[1]  = k + 3;
-            cfs[2]  = (k % 4) + 3;
+            cfs[1]  = dts[1];
+            cfs[2]  = dts[2];
 
             /* adjust memory usage */
             dts = realloc(dts, (unsigned long)(k+3) * sizeof(dt_t));

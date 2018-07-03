@@ -25,32 +25,39 @@ static inline void normalize_matrix_rows(
         cf_t **mat
         )
 {
-    len_t i;
+    len_t i, j;
     int64_t tmp1, tmp2, tmp3, tmp4;
 
+    printf("nrows in normalize %d\n", nrows);
     for (i = 0; i < nrows; ++i) {
         cf_t *row = mat[i];
+        printf("row[%d] = ", i);
+        for (int32_t p = 0; p < row[2]; ++p) {
+            printf("%d ", row[p]);
+        }
+        printf("\n");
 
         const int32_t inv = mod_p_inverse_32((int32_t)row[3], (int32_t)fc);
 
-        for (i = 3; i < row[1]; ++i) {
-            tmp1    =   ((int64_t)row[i] * inv) % fc;
+        for (j = 3; j < row[1]; ++j) {
+            tmp1    =   ((int64_t)row[j] * inv) % fc;
+            printf("%d | tmp1 %ld\n", j, tmp1);
             tmp1    +=  (tmp1 >> 63) & fc;
-            row[i]  =   (cf_t)tmp1;
+            row[j]  =   (cf_t)tmp1;
         }
-        for (; i < row[2]; i += 4) {
-            tmp1      =   ((int64_t)row[i] * inv) % fc;
-            tmp2      =   ((int64_t)row[i+1] * inv) % fc;
-            tmp3      =   ((int64_t)row[i+2] * inv) % fc;
-            tmp4      =   ((int64_t)row[i+3] * inv) % fc;
+        for (; j < row[2]; j += 4) {
+            tmp1      =   ((int64_t)row[j] * inv) % fc;
+            tmp2      =   ((int64_t)row[j+1] * inv) % fc;
+            tmp3      =   ((int64_t)row[j+2] * inv) % fc;
+            tmp4      =   ((int64_t)row[j+3] * inv) % fc;
             tmp1      +=  (tmp1 >> 63) & fc;
             tmp2      +=  (tmp2 >> 63) & fc;
             tmp3      +=  (tmp3 >> 63) & fc;
             tmp4      +=  (tmp4 >> 63) & fc;
-            row[i]    =   (hl_t)tmp1;
-            row[i+1]  =   (hl_t)tmp2;
-            row[i+2]  =   (hl_t)tmp3;
-            row[i+3]  =   (hl_t)tmp4;
+            row[j]    =   (hl_t)tmp1;
+            row[j+1]  =   (hl_t)tmp2;
+            row[j+2]  =   (hl_t)tmp3;
+            row[j+3]  =   (hl_t)tmp4;
         }
     }
 }

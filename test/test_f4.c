@@ -94,8 +94,8 @@ int main(
         GB_DEBUG(GBDBG, "%3d", round);
 
         /* preprocess data for next reduction round */
-        select_spairs_by_minimal_degree(mat);
-        symbolic_preprocessing(mat);
+        mat = select_spairs_by_minimal_degree(mat);
+        mat = symbolic_preprocessing(mat);
         /* for (int32_t o = 0; o < nrows; ++o) {
          *   printf("%d | %d | %d (%d) || ", o, mat[o][0], mat[o][2], (ev+mat[o][2])[HASH_IND]);
          *   for (int32_t p = 0; p < nvars; ++p) {

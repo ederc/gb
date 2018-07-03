@@ -30,10 +30,6 @@ static inline void normalize_matrix_rows(
 
     for (i = 0; i < nrows; ++i) {
         cf_t *row = mat[i];
-        for (int32_t p = 0; p < row[2]; ++p) {
-            printf("%d ", row[p]);
-        }
-        printf("\n");
 
         const int32_t inv = mod_p_inverse_32((int32_t)row[3], (int32_t)fc);
 

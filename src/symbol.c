@@ -22,7 +22,7 @@
 
 #include "data.h"
 
-static void select_spairs_by_minimal_degree(
+static dt_t **select_spairs_by_minimal_degree(
         dt_t **mat
         )
 {
@@ -66,11 +66,12 @@ static void select_spairs_by_minimal_degree(
     GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
     /* statistics */
     num_pairsred  +=  npairs;
+    printf("npairs %d\n", npairs);
 
     gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
     /* preset matrix meta data */
-    matdt = (dt_t **)malloc(2 * (unsigned long)npairs * sizeof(dt_t *));
+    mat   = (dt_t **)malloc(2 * (unsigned long)npairs * sizeof(dt_t *));
     nrall = 2 * npairs;
     ncols = ncl = ncr = 0;
     nrows = 0;
@@ -116,10 +117,10 @@ static void select_spairs_by_minimal_degree(
                 etmp[l] = elcm[l] - eb[l];
                 d     +=  etmp[l];
             }
-            const hl_t h = hd[lcm].val - hd[b[3]].val;
-            mat[nrows]  = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+            const hl_t h  = hd[lcm].val - hd[b[3]].val;
+            mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
             /* mark lcm column as lead term column */
-            hd[matdt[nrows][3]].idx = 2;
+            hd[mat[nrows][3]].idx = 2;
             nrows++;
         }
 
@@ -142,6 +143,8 @@ static void select_spairs_by_minimal_degree(
     rt1 = realtime();
     select_ctime  +=  ct1 - ct0;
     select_rtime  +=  rt1 - rt0;
+
+    return mat;
 }
 
 static inline dt_t *find_multiplied_reducer(
@@ -230,7 +233,7 @@ start2:
     return NULL;
 }
 
-static void symbolic_preprocessing(
+static dt_t **symbolic_preprocessing(
         dt_t **mat
         )
 {
@@ -255,7 +258,7 @@ static void symbolic_preprocessing(
         /* check row reallocation only once per polynomial */
         if ((nrall - nrows) < (mat[i][2]-3)) {
             nrall = 2*nrall > mat[i][2] ? 2*nrall : (len_t)mat[i][2];
-            matdt   = realloc(matdt, (unsigned long)nrall * sizeof(dt_t *));
+            mat   = realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
         }
         for (j = 4; j < len; ++j) {
             m = mat[i][j];
@@ -266,14 +269,14 @@ static void symbolic_preprocessing(
                 if (red) {
                     hd[m].idx = 2;
                     /* add new reducer to matrix */
-                    matdt[nrows++]  = red;
+                    mat[nrows++]  = red;
                 }
             }
         }
     }
 
     /* realloc to real size */
-    matdt = realloc(matdt, (unsigned long)nrows * sizeof(dt_t *));
+    mat   = realloc(mat, (unsigned long)nrows * sizeof(dt_t *));
     nrall = nrows;
 
     /* timings */
@@ -281,4 +284,6 @@ static void symbolic_preprocessing(
     rt1 = realtime();
     symbol_ctime  +=  ct1 - ct0;
     symbol_rtime  +=  rt1 - rt0;
+
+    return mat;
 }

@@ -29,7 +29,7 @@ int main(
         return 1;
     }
 
-    val_t **mat;
+    dt_t **mat;
 
     /* initialize stuff */
     initialize_basis(nr_gens);
@@ -39,35 +39,30 @@ int main(
         return 1;
     }
 
-    mat = import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data(lens, cfs, exps, nr_gens);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
     calculate_divmask();
 
+    /* sort initial elements, smallest lead term first */
+    qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
+            matrix_row_initial_input_cmp);
     /* normalize input generators */
-    for (i = 0; i < nrows; ++i) {
-        normalize_matrix_row(mat[i]);
-    }
+    normalize_matrix_rows(gbcf);
 
     /* move input generators to basis and generate first spairs */
-    update_basis(mat);
+    update_basis();
 
-    free(mat);
-    mat = NULL;
-
-    mat = select_spairs_by_minimal_degree();
+    mat = select_spairs_by_minimal_degree(mat);
 
     /* free and clean up */
     free_local_hash_table();
     free_global_hash_table();
-    /* since we have not moved data from matrix to basis we have to
-     * free the matrix rows in this test case */
-    for (i = 0; i < nrall; ++i) {
+    free_basis();
+    for (i = 0; i < nrows; ++i) {
         free(mat[i]);
-        mat[i]  = NULL;
     }
     free(mat);
-    free_basis();
     return 0;
 }

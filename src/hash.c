@@ -835,6 +835,8 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
 
   dt_t *row = (dt_t *)malloc((unsigned long)poly[2] * sizeof(dt_t));
   row[0]    = poly[0];
+  row[1]    = poly[1];
+  row[2]    = poly[2];
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
@@ -845,7 +847,6 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
     row[i]  = insert_in_global_hash_table_product_special(
                 hm, deg, em, poly[i]);
   }
-#if 1
   for (;i < poly[2]; i += 4) {
     row[i]    = insert_in_global_hash_table_product_special(
                   hm, deg, em, poly[i]);
@@ -856,7 +857,6 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
     row[i+3]  = insert_in_global_hash_table_product_special(
                   hm, deg, em, poly[i+3]);
   }
-#endif
 
   return row;
 }

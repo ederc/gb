@@ -35,12 +35,12 @@ int main(
 
     calculate_divmask();
     for (i = 0; i < 16; ++i) {
-        if (dm[i] != i) {
+        if (dm[i] != i+1) {
             return 1;
         }
     }
     for (i = 16; i < 32; ++i) {
-        if (dm[i] + 16 != i) {
+        if (dm[i] + 16 != i+1) {
             return 1;
         }
     }

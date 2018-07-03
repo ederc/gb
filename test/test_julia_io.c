@@ -28,7 +28,6 @@ int main(
                 la_option)) {
         return 1;
     }
-    val_t **mat;
 
     /* initialize stuff */
     initialize_basis(nr_gens);
@@ -44,18 +43,11 @@ int main(
         return 1;
     }
 
-    mat = import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data(lens, cfs, exps, nr_gens);
 
     /* free and clean up */
     free_local_hash_table();
     free_global_hash_table();
-    /* since we have not moved data from matrix to basis we have to
-     * free the matrix rows in this test case */
-    for (i = 0; i < nrall; ++i) {
-        free(mat[i]);
-        mat[i]  = NULL;
-    }
-    free(mat);
     free_basis();
     return 0;
 }

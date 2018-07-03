@@ -29,47 +29,51 @@ int main(
         return 1;
     }
 
-    val_t **mat;
-
     /* initialize stuff */
     initialize_basis(nr_gens);
     initialize_pairset();
     initialize_global_hash_table();
     initialize_local_hash_table();
 
-    mat = import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data(lens, cfs, exps, nr_gens);
     calculate_divmask();
     /* sort initial elements, smallest lead term first */
-    qsort(mat, (unsigned long)nrows, sizeof(val_t *),
+    qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
             matrix_row_initial_input_cmp);
+    /* normalize input generators */
+    normalize_matrix_rows(gbcf);
 
-    for (i = 0; i < nrows; ++i) {
-        normalize_matrix_row(mat[i]);
-    }
-
-    update_basis(mat);
+    /* move input generators to basis and generate first spairs */
+    update_basis();
 
     if (pload != 2) {
+        printf("pload wrong - %d != 2\n", pload);
         return 1;
     }
 
-    if (ps[0].gen1 != 1) {
+    if (ps[0].gen1 != 0) {
+        printf("ps[0].gen1 wrong - %d != 1\n", ps[0].gen1);
         return 1;
     }
-    if (ps[0].gen2 != 2) {
+    if (ps[0].gen2 != 1) {
+        printf("ps[0].gen2 wrong - %d != 2\n", ps[0].gen2);
         return 1;
     }
     if (hd[ps[0].lcm].deg != 2) {
+        printf("ps[0].lcm.deg wrong - %d != 2\n", hd[ps[0].lcm].deg);
         return 1;
     }
 
     if (ps[1].gen1 != 0) {
+        printf("ps[1].gen1 wrong - %d != 0\n", ps[1].gen1);
         return 1;
     }
     if (ps[1].gen2 != 2) {
+        printf("ps[1].gen2 wrong - %d != 2\n", ps[1].gen2);
         return 1;
     }
     if (hd[ps[1].lcm].deg != 3) {
+        printf("ps[1].lcm.deg wrong - %d != 3\n", hd[ps[1].lcm].deg);
         return 1;
     }
 
@@ -77,7 +81,6 @@ int main(
     free_local_hash_table();
     free_global_hash_table();
     free_pairset();
-    free(mat);
     free_basis();
     return 0;
 }

@@ -28,10 +28,8 @@ static inline void normalize_matrix_rows(
     len_t i, j;
     int64_t tmp1, tmp2, tmp3, tmp4;
 
-    printf("nrows in normalize %d\n", nrows);
     for (i = 0; i < nrows; ++i) {
         cf_t *row = mat[i];
-        printf("row[%d] = ", i);
         for (int32_t p = 0; p < row[2]; ++p) {
             printf("%d ", row[p]);
         }
@@ -41,7 +39,6 @@ static inline void normalize_matrix_rows(
 
         for (j = 3; j < row[1]; ++j) {
             tmp1    =   ((int64_t)row[j] * inv) % fc;
-            printf("%d | tmp1 %ld\n", j, tmp1);
             tmp1    +=  (tmp1 >> 63) & fc;
             row[j]  =   (cf_t)tmp1;
         }

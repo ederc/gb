@@ -31,14 +31,14 @@ static inline void normalize_matrix_rows(
     for (i = 0; i < nrows; ++i) {
         cf_t *row = mat[i];
 
-        const int32_t inv = mod_p_inverse_32((int32_t)row[0], (int32_t)fc);
+        const int32_t inv = mod_p_inverse_32((int32_t)row[3], (int32_t)fc);
 
         for (i = 3; i < row[1]; ++i) {
             tmp1    =   ((int64_t)row[i] * inv) % fc;
             tmp1    +=  (tmp1 >> 63) & fc;
             row[i]  =   (cf_t)tmp1;
         }
-        for (; i < row[0]; i += 4) {
+        for (; i < row[2]; i += 4) {
             tmp1      =   ((int64_t)row[i] * inv) % fc;
             tmp2      =   ((int64_t)row[i+1] * inv) % fc;
             tmp3      =   ((int64_t)row[i+2] * inv) % fc;

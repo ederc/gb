@@ -20,35 +20,26 @@ int main(
     for (i = 1; i < 16; ++i) {
         row[i]  = 300 - i;
     }
+    ncr = 16;
+    normalize_dense_matrix_row(row, 0);
     for (i=1; i < 16; ++i) {
-        printf("%d ", row[i]);
-    }
-    printf("\n");
-    normalize_matrix_row(row);
-    for (i=1; i < 16; ++i) {
-        printf("%d ", row[i]);
+        printf("%d | %d\n", i, row[i]);
     }
     printf("\n");
 
-    if (row[3] != 1) {
+    if (row[1] != 25) {
         return 1;
     }
-    if (row[5] != 35) {
+    if (row[2] != 6) {
         return 1;
     }
-    if (row[7] != 69) {
+    if (row[7] != 12) {
         return 1;
     }
-    if (row[9] != 2) {
+    if (row[11] != 37) {
         return 1;
     }
-    if (row[11] != 36) {
-        return 1;
-    }
-    if (row[13] != 70) {
-        return 1;
-    }
-    if (row[15] != 3) {
+    if (row[15] != 62) {
         return 1;
     }
     free(row);

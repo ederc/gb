@@ -51,10 +51,10 @@ static int matrix_row_initial_input_cmp_lex(
     /* lexicographical */
     for (i = 0; i < nvars; ++i) {
         if (ea[i] < eb[i]) {
-            return 1;
+            return -1;
         }
         if (ea[i] > eb[i]) {
-            return -1;
+            return 1;
         }
     }
     return 0;
@@ -68,18 +68,18 @@ static int matrix_row_initial_input_cmp_drl(
 {
     len_t i;
 
-    const dt_t va  = ((dt_t **)a)[0][2];
-    const dt_t vb  = ((dt_t **)b)[0][2];
+    const dt_t va  = ((dt_t **)a)[0][3];
+    const dt_t vb  = ((dt_t **)b)[0][3];
 
     const deg_t da = hd[va].deg;
     const deg_t db = hd[vb].deg;
 
     /* DRL */
     if (da < db) {
-        return 1;
+        return -1;
     } else {
         if (da != db) {
-            return -1;
+            return 1;
         }
     }
 
@@ -89,10 +89,10 @@ static int matrix_row_initial_input_cmp_drl(
     /* note: reverse lexicographical */
     for (i = nvars; i > 0; --i) {
         if (ea[i-1] < eb[i-1]) {
-            return 1;
+            return -1;
         } else {
             if (ea[i-1] != eb[i-1]) {
-                return -1;
+                return 1;
             }
         }
     }

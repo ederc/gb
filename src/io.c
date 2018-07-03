@@ -179,12 +179,9 @@ static void import_julia_data(
         for (j = off; j < off+lens[i]; ++j) {
             for (k = 0; k < nvars; ++k) {
                 e[k]  = (exp_t)(exps+(nvars*j))[k];
-                printf("%d ", e[k]);
             }
-            printf("\n");
             gbdt[i][j+3-off]  = insert_in_global_hash_table(e);
             gbcf[i][j+3-off]  = (cf_t)cfs[j];
-            printf("cfs %d = %d at %d\n", cfs[j], gbcf[i][j+3-off], j+3-off);
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];

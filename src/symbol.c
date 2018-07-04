@@ -153,7 +153,7 @@ static inline dt_t *find_multiplied_reducer(
 {
     len_t i, k;
     deg_t d = 0;
-    hl_t *b;
+    dt_t *b;
     const exp_t * const e  = ev[m];
     exp_t *f;
 
@@ -175,8 +175,8 @@ start:
         while (lms[i] & ns) {
             i++;
         }
-        b = (hl_t *)((long)bs[i] & bmask);
-        f = ev[b[2]];
+        b = gbdt[i];
+        f = ev[b[3]];
         if ((e[0]-f[0]) < 0) {
             i++;
             goto start;
@@ -190,7 +190,7 @@ start:
         for (k = 0; k < nvars; ++k) {
             etmp[k] = e[k] - f[k];
         }
-        const hl_t h  = hd[m].val - hd[b[2]].val;
+        const hl_t h  = hd[m].val - hd[b[3]].val;
         for (k = 0; k < nvars; ++k) {
             d += etmp[k];
         }
@@ -205,8 +205,8 @@ start2:
             i++;
             continue;
         }
-        b = (hl_t *)((long)bs[i] & bmask);
-        f = ev[b[2]];
+        b = gbdt[i];
+        f = ev[b[3]];
         if ((e[0]-f[0]) < 0) {
             i++;
             goto start2;
@@ -220,7 +220,7 @@ start2:
         for (k = 0; k < nvars; ++k) {
             etmp[k] = e[k] - f[k];
         }
-        const hl_t h  = hd[m].val - hd[b[2]].val;
+        const hl_t h  = hd[m].val - hd[b[3]].val;
         for (k = 0; k < nvars; ++k) {
             d += etmp[k];
         }

@@ -675,7 +675,7 @@ static void reset_global_hash_table(
   len_t i, j;
   hl_t k;
   exp_t *e;
-  val_t *b;
+  dt_t *b;
 
   exp_t **oev  = ev;
   ev  = calloc((unsigned long)esz, sizeof(exp_t *));
@@ -698,10 +698,20 @@ static void reset_global_hash_table(
 
   /* reinsert known elements */
   for (i = 0; i < bload; ++i) {
-    b = (val_t *)((long)bs[i] & bmask);
-    for (j = 2; j < b[0]; j = j+2) {
+    b = gbdt[i];
+    for (j = 3; j < b[1]; ++j) {
       e = oev[b[j]];
       b[j]  = insert_in_global_hash_table_no_enlargement_check(e);
+    }
+    for (; j < b[2]; j += 4) {
+      e       = oev[b[j]];
+      b[j]    = insert_in_global_hash_table_no_enlargement_check(e);
+      e       = oev[b[j+1]];
+      b[j+1]  = insert_in_global_hash_table_no_enlargement_check(e);
+      e       = oev[b[j+2]];
+      b[j+2]  = insert_in_global_hash_table_no_enlargement_check(e);
+      e       = oev[b[j+3]];
+      b[j+3]  = insert_in_global_hash_table_no_enlargement_check(e);
     }
   }
   for (i = 0; i < pload; ++i) {

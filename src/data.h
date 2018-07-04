@@ -139,14 +139,9 @@ static cf_t fc = 0;
 
 static cf_t **gbcf  = NULL;
 static dt_t **gbdt  = NULL;
-static dt_t **matdt = NULL;
-static cf_t **matcf = NULL;
-/* temporary coefficients for input data and transfer from matrix to basis */
-static cf_t **tmpcf = NULL;
-static val_t **bs = NULL;
-static bl_t blold = 0;
-static bl_t bload = 0;
-static bl_t bsize = 0;
+static bl_t blold   = 0;
+static bl_t bload   = 0;
+static bl_t bsize   = 0;
 
 /* lead monomials of all basis elements */
 static sdm_t *lms = NULL;

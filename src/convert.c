@@ -164,13 +164,19 @@ static void convert_dense_matrix_to_basis_elements(
     /* fix size of basis for entering new elements directly */
     check_enlarge_basis(npivs);
 
+    /* reset idx entries in hash table */
+    for (i = 0; i < ncols; ++i) {
+        hd[hcm[i]].idx  = 0;
+    }
+
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < ncr; ++i) {
         if (dm[i] != NULL) {
             dr  = dm[i];
             cfs = malloc((unsigned long)(ncr-i+3) * sizeof(cf_t));
             dts = malloc((unsigned long)(ncr-i+3) * sizeof(dt_t));
-            const dt_t os = (ncr-i) % 4;
+            const dt_t len  = ncr-i;
+            const dt_t os   = len % 4;
 
             for (k = 3, j = 0; j < os; ++j) {
                 if (dr[j] != 0) {
@@ -178,17 +184,37 @@ static void convert_dense_matrix_to_basis_elements(
                     dts[k++]  = hcm[j+ncl];
                 }
             }
+            /* TODO: LOOP UNROLLING!!! */
+            for (; j < len; j += 4) {
+                if (dr[j] != 0) {
+                    cfs[k]    = dr[j];
+                    dts[k++]  = hcm[j+ncl];
+                }
+                if (dr[j+1] != 0) {
+                    cfs[k]    = dr[j+1];
+                    dts[k++]  = hcm[j+1+ncl];
+                }
+                if (dr[j+2] != 0) {
+                    cfs[k]    = dr[j+2];
+                    dts[k++]  = hcm[j+2+ncl];
+                }
+                if (dr[j+3] != 0) {
+                    cfs[k]    = dr[j+3];
+                    dts[k++]  = hcm[j+3+ncl];
+                }
+            }
+
             /* store meta data in first entries */
             dts[0]  = bl;
-            dts[1]  = (k % 4) + 3;
-            dts[2]  = k + 3;
+            dts[1]  = ((k-3) % 4) + 3;
+            dts[2]  = k;
             cfs[0]  = 0;
             cfs[1]  = dts[1];
             cfs[2]  = dts[2];
 
             /* adjust memory usage */
-            dts = realloc(dts, (unsigned long)(k+3) * sizeof(dt_t));
-            cfs = realloc(cfs, (unsigned long)(k+3) * sizeof(cf_t));
+            dts = realloc(dts, (unsigned long)k * sizeof(dt_t));
+            cfs = realloc(cfs, (unsigned long)k * sizeof(cf_t));
 
             /* link to basis */
             gbdt[bl]  = dts;

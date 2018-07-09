@@ -242,7 +242,7 @@ static int64_t export_julia_data(
             for (j = 3; j < gbcf[i][2]; ++j) {
                 basis[ctr_elements++] = (int32_t)gbcf[i][j]; /* coefficient */
                 for (k = 0; k < nvars; ++k) {
-                    basis[ctr_elements++] = (int32_t)(ev + gbdt[i][j])[k];
+                    basis[ctr_elements++] = (int32_t)ev[gbdt[i][j]][k];
                 }
             }
         }

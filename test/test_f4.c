@@ -128,16 +128,6 @@ int main(
     }
 
 
-    /* free and clean up */
-    free_local_hash_table();
-    free_global_hash_table();
-    free_pairset();
-    /* note that all rows kept from mat during the overall computation are
-     * basis elements and thus we do not need to free the rows itself, but
-     * just the matrix structure */
-    free(mat);
-    free_basis();
-
     int32_t **basis = (int32_t **)malloc(sizeof(int32_t *));
     int64_t len = export_julia_data(basis);
 
@@ -150,6 +140,16 @@ int main(
             break;
         }
     }
+    /* free and clean up */
+    free_local_hash_table();
+    free_global_hash_table();
+    free_pairset();
+    /* note that all rows kept from mat during the overall computation are
+     * basis elements and thus we do not need to free the rows itself, but
+     * just the matrix structure */
+    free(mat);
+    free_basis();
+
     free(*basis);
     free(basis);
 

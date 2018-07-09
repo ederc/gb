@@ -21,6 +21,21 @@
  */
 #include "data.h"
 
+static inline cf_t **free_dense_matrix(
+        cf_t **dm
+        )
+{
+    len_t i;
+
+    for (i = 0; i < ncr; ++i) {
+        free(dm[i]);
+    }
+    free(dm);
+    dm  = NULL;
+
+    return dm;
+}
+
 static inline void normalize_matrix_rows(
         cf_t **mat
         )
@@ -61,6 +76,7 @@ static inline cf_t *normalize_dense_matrix_row(
         )
 {
     len_t i;
+    printf("normalize: %d != 1\n", row[0]);
 
     const dt_t os = (ncr-pc) % 4;
     int64_t tmp1, tmp2, tmp3, tmp4;
@@ -86,6 +102,7 @@ static inline cf_t *normalize_dense_matrix_row(
         row[i+2]  =   (cf_t)tmp3;
         row[i+3]  =   (cf_t)tmp4;
     }
+    row[0]  = 1;
 
     return row;
 }
@@ -96,18 +113,18 @@ static cf_t *reduce_dense_row_by_known_pivots_17_bit(
         const hl_t dpiv    /* pivot of dense row at the beginning */
         )
 {
-    hl_t i, j, k;
+    hl_t i, j;
     const int64_t mod = (int64_t)fc;
 
-    for (k = 0, i = dpiv; i < ncols; ++i) {
+    for (i = dpiv; i < ncl; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
         if (dr[i] == 0) {
             continue;
         }
+        printf("i %d\n", i);
         if (pivs[i] == NULL) {
-            k++;
             continue;
         }
 
@@ -120,6 +137,15 @@ static cf_t *reduce_dense_row_by_known_pivots_17_bit(
         const int64_t mul = mod - dr[i];
         const dt_t *dts   = pivs[i];
         const cf_t *cfs   = gbcf[dts[0]];
+        printf("cfs[%d]: ", dts[0]);
+        for (j = 3; j < dts[2]; ++j) {
+            printf("%d ", cfs[j]);
+        }
+        printf("\n");
+        for (j = 0; j < ncols; ++j) {
+            printf("%ld ", dr[j]);
+        }
+        printf("\n");
         for (j = 3; j < dts[1]; ++j) {
             dr[dts[j]]  +=  mul * cfs[j];
         }
@@ -130,23 +156,36 @@ static cf_t *reduce_dense_row_by_known_pivots_17_bit(
             dr[dts[j+3]]  +=  mul * cfs[j+3];
         }
         dr[i] = 0;
+        for (j = 0; j < ncols; ++j) {
+            printf("%ld ", dr[j]);
+        }
+        printf("\n----------\n");
     }
-    if (k == 0) {
-        return NULL;
-    }
+    printf("reduction step done\n");
 
     /* store a dense row for further dense gaussian elimination */
     cf_t *row  = (cf_t *)calloc(
             (unsigned long)(ncr), sizeof(cf_t));
+    j = 0;
     for (i = ncl; i < ncols; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
             if (dr[i] != 0) {
+                j++;
                 row[i-ncl]  = (cf_t)dr[i];
             }
         }
     }
-
+    if (j == 0) {
+        free(row);
+        row = NULL;
+    } else {
+        printf("returned row: ");
+        for (i= 0; i < ncr; ++i) {
+            printf("%d ", row[i]);
+        }
+        printf("\n");
+    }
     return row;
 }
 
@@ -156,11 +195,11 @@ static cf_t *reduce_dense_row_by_known_pivots_31_bit(
         const hl_t dpiv    /* pivot of dense row at the beginning */
         )
 {
-    hl_t i, j, k;
+    hl_t i, j;
     const int64_t mod   = (int64_t)fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
-    for (k = 0, i = dpiv; i < ncols; ++i) {
+    for (i = dpiv; i < ncols; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -168,7 +207,6 @@ static cf_t *reduce_dense_row_by_known_pivots_31_bit(
             continue;
         }
         if (pivs[i] == NULL) {
-            k++;
             continue;
         }
 
@@ -192,20 +230,24 @@ static cf_t *reduce_dense_row_by_known_pivots_31_bit(
         }
         dr[i] = 0;
     }
-    if (k == 0) {
-        return NULL;
-    }
 
     /* store a dense row for further dense gaussian elimination */
     cf_t *row  = (cf_t *)calloc(
             (unsigned long)(ncr), sizeof(cf_t));
+
+    j = 0;
     for (i = ncl; i < ncols; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
             if (dr[i] != 0) {
+                j++;
                 row[i-ncl]  = (cf_t)dr[i];
             }
         }
+    }
+    if (j == 0) {
+        free(row);
+        row = NULL;
     }
 
     return row;
@@ -220,7 +262,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
         )
 {
     hl_t i, j, k, l;
-    len_t np;
+    len_t np  = -1;
     const int64_t mod = (int64_t)fc;
 
     for (k = 0, i = pc; i < ncr; ++i) {
@@ -231,7 +273,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
             continue;
         }
         if (pivs[i] == NULL) {
-            if (np == 0) {
+            if (np == -1) {
                 np  = i;
             }
             k++;
@@ -254,19 +296,22 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
         return -1;
     }
 
+    printf("np %d || ncr - pc | %d -%d\n", np, ncr, pc);
     cf_t *row = (cf_t *)malloc((unsigned long)(ncr-pc) * sizeof(cf_t));
     for (i = np; i < ncr; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
             if (dr[i] != 0) {
-                row[i-ncl]  = (cf_t)dr[i];
+                row[i-np]  = (cf_t)dr[i];
             }
         }
     }
     if (row[0] != 1) {
         row = normalize_dense_matrix_row(row, np);
     }
+    printf("tbr[%d] = %p\n", idx, tbr[idx]);
     tbr[idx]  = row;
+    printf("tbr[%d] = %p\n", idx, tbr[idx]);
 
     return np;
 }
@@ -280,7 +325,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_31_bit(
         )
 {
     hl_t i, j, k, l;
-    len_t np;
+    len_t np  = 0;
     const int64_t mod = (int64_t)fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
@@ -332,6 +377,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_31_bit(
     if (row[0] != 1) {
         row = normalize_dense_matrix_row(row, np);
     }
+    printf("tbr[%d] = %p\n", idx, tbr[idx]);
     tbr[idx]  = row;
 
     return np;
@@ -346,7 +392,7 @@ static cf_t **sparse_AB_CD_linear_algebra(
     hl_t *npiv = NULL; /* new pivot row */
 
     /* we fill in all known lead terms in pivs */
-    dt_t **pivs  = (dt_t **)malloc((unsigned long)nru * sizeof(dt_t *));
+    dt_t **pivs  = (dt_t **)calloc((unsigned long)nru, sizeof(dt_t *));
     /* unkown pivot rows we have to reduce with the known pivots first */
     dt_t **upivs = (dt_t **)malloc((unsigned long)nrl * sizeof(dt_t *));
     /* dense rows representing updated D part;
@@ -356,14 +402,21 @@ static cf_t **sparse_AB_CD_linear_algebra(
     i = 0;
     j = 1;
     for (i = 0; i < nrows; ++i) {
-        if (!pivs[matdt[i][3]]) {
-            pivs[matdt[i][3]]   = mat[i];
+        if (!pivs[mat[i][3]]) {
+            pivs[mat[i][3]]   = mat[i];
+            printf("pivs %d is set by row %d\n", mat[i][3], i);
         } else {
             /* shorter rows first */
             upivs[nrl-j]  = mat[i];
             j++;
         }
     }
+
+    for (int32_t o = 0; o < nru; ++o) {
+        printf("%d | %d | %d | %d || %d\n", o, pivs[o][0], pivs[0][1], pivs[o][2], pivs[o][3]);
+    }
+    printf("nru %d | nrl %d | nrows %d || ncl %d | ncr %d | ncols %d\n",
+            nru, nrl, nrows, ncl, ncr, ncols);
 
     int64_t *dr  = (int64_t *)malloc(
             (unsigned long)(nthrds * ncols) * sizeof(int64_t));
@@ -391,6 +444,8 @@ static cf_t **sparse_AB_CD_linear_algebra(
         free(npiv);
         drs[i]  = reduce_dense_row_by_known_pivots(drl, pivs, sc);
     }
+    free(dr);
+    dr  = NULL;
     free(upivs);
     upivs = NULL;
 
@@ -399,6 +454,8 @@ static cf_t **sparse_AB_CD_linear_algebra(
         free(pivs[i]);
         pivs[i] = NULL;
     }
+    free(pivs);
+    pivs  = NULL;
 
     /* remove NULL dense rows */
     npivs = 0; /* number of new pivots */
@@ -406,6 +463,14 @@ static cf_t **sparse_AB_CD_linear_algebra(
         if (drs[i] != NULL) {
             drs[npivs++]  = drs[i];
         }
+    }
+    for (i = 0; i < npivs; ++i) {
+        printf("drs[%d] = %p\n", i, drs[i]);
+    }
+
+    if (npivs == 0) {
+        free(drs);
+        drs = NULL;
     }
 
     return drs;
@@ -420,7 +485,7 @@ static cf_t **interreduce_dense_matrix(
     int64_t *dr = malloc((unsigned long)ncr * sizeof(int64_t));
 
     npivs = 0;
-    for (i = ncl-1; i > -1; --i) {
+    for (i = ncr-1; i > -1; --i) {
         if (dm[i]) {
             memset(dr, 0, (unsigned long)ncr * sizeof(int64_t));
             npc  = i;
@@ -439,8 +504,10 @@ static cf_t **interreduce_dense_matrix(
             /* start with previous pivot the reduction process, so keep the
              * pivot element as it is */
             npc = reduce_dense_row_by_dense_new_pivots(dr, dm, i, i, dm);
+            printf("tbr to dm[%d] = %p\n", i, dm[i]);
         }
     }
+    free(dr);
     return dm;
 }
 
@@ -449,7 +516,7 @@ static cf_t **exact_dense_linear_algebra(
         const len_t nr
         )
 {
-    len_t i, j, k, l, pc;
+    len_t i, j, k, l;
     /* rows already representing new pivots */
     cf_t **nps  = (cf_t **)calloc((unsigned long)ncr, sizeof(cf_t *));
     /* rows to be further reduced */
@@ -461,20 +528,27 @@ static cf_t **exact_dense_linear_algebra(
      * be further reduced by these new pivots */
     j = 0;
     for (i = 0; i < nr; ++i) {
+        printf("dense row[%d] ", i);
+        for (int32_t p = 0; p < ncr; ++p) {
+            printf("%d ", dm[i][p]);
+        }
+        printf("\n");
         if (dm[i] != NULL) {
             k = 0;
             while (dm[i][k] == 0) {
                 ++k;
             }
-            pc  = dm[i][k];
-            if (nps[pc] != NULL) {
+            printf("pc %d -> %p\n", k, nps[k]);
+            if (nps[k] == NULL) {
                 /* we have a pivot, cut the dense row down to start
                  * at the first nonzero entry */
-                memmove(dm[i], dm[i]+pc+1, (unsigned long)(ncr-pc));
-                dm[i] = realloc(dm[i], (unsigned long)(ncr-pc) * sizeof(cf_t));
-                nps[pc] = dm[i];
+                printf("ncr - k = %d - %d\n", ncr, k);
+                memmove(dm[i], dm[i]+k, (unsigned long)(ncr-k) * sizeof(cf_t));
+                dm[i] = realloc(dm[i], (unsigned long)(ncr-k) * sizeof(cf_t));
+                nps[k] = dm[i];
             } else {
-                tbr[++j]  = dm[i];
+                printf("set tbr[%d]\n", j);
+                tbr[j++]  = dm[i];
             }
         }
     }
@@ -491,6 +565,7 @@ static cf_t **exact_dense_linear_algebra(
     private(i, j, k,l) shared(nps, tbr)
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
+        printf("tbr[%d] = %p\n", i, tbr[i]);
         dt_t npc  = tbr[i][0];
         dt_t os   = ncr % 4;
         for (j = 0; j < os; ++j) {
@@ -502,6 +577,11 @@ static cf_t **exact_dense_linear_algebra(
             drl[j+2]  = (int64_t)tbr[i][j+3];
             drl[j+3]  = (int64_t)tbr[i][j+4];
         }
+        printf("drl loaded: ");
+        for (j = 0; j < ncr; ++j) {
+            printf("%ld ", drl[j]);
+        }
+        printf("\n");
         free(tbr[i]);
         tbr[i] = NULL;
 
@@ -530,6 +610,7 @@ static cf_t **exact_dense_linear_algebra(
             }
         } while (!k);
     }
+    free(tbr);
     free(dr);
 
     return nps;
@@ -555,16 +636,30 @@ static cf_t **exact_linear_algebra(
     /* generate updated dense D part via reduction of CD with AB */
     cf_t **dm;
     dm  = sparse_AB_CD_linear_algebra(mat);
+    printf("npivs %d\n", npivs);
     if (npivs > 0) {      
         dm  = exact_dense_linear_algebra(dm, npivs);
-    }
-    dm = interreduce_dense_matrix(dm);
-
-    npivs = 0;
-    /* fix npivs for adding rows to basis in the next step */
-    for (i = 0; i < ncr; ++i) {
-        if (dm[i] != NULL) {
-            npivs++;
+        dm  = interreduce_dense_matrix(dm);
+        npivs = 0;
+        /* fix npivs for adding rows to basis in the next step */
+        for (i = 0; i < ncr; ++i) {
+            if (dm[i] != NULL) {
+                npivs++;
+            }
+        }
+        printf("npivs finally %d\n", npivs);
+        for (i = 0; i < ncr; ++i) {
+            if (dm[i] != NULL) {
+                printf("dm[%d]\n", i);
+                for (int32_t j = 0; j < ncr-i; ++j) {
+                    printf("%d ", dm[i][j]);
+                }
+                printf("\n");
+            }
+        }
+        if (npivs == 0) {
+            free(dm);
+            dm  = NULL;
         }
     }
 

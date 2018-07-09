@@ -115,10 +115,11 @@ int main(
          * } */
         /* linear algebra, depending on choice, see set_function_pointers() */
         dm = linear_algebra(mat);
+        free(mat);
+        mat = NULL;
         /* columns indices are mapped back to exponent hashes */
         convert_dense_matrix_to_basis_elements(dm, hcm);
-        /* mat = convert_columns_to_hashes(mat, hcm); */
-
+        free_dense_matrix(dm);
         free(hcm);
         hcm = NULL;
 

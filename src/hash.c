@@ -585,6 +585,7 @@ static inline hl_t insert_in_global_hash_table_product_special(
   exp_t *n;
   hd_t *d;
 
+  printf("b %d | bload %d\n", b, bload);
   const val_t h   = h1 + hd[b].val;
   const exp_t * const eb = ev[b];
 
@@ -853,6 +854,7 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
   if (eld+poly[2]-3 >= esz) {
     enlarge_global_hash_table();
   }
+  printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]);
   for (i = 3; i < poly[1]; ++i) {
     row[i]  = insert_in_global_hash_table_product_special(
                 hm, deg, em, poly[i]);

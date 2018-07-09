@@ -53,12 +53,18 @@ static hl_t *convert_hashes_to_columns(
         row     =   matdt[i];
         nterms  +=  (int64_t)row[2];
         for (l = 3; l < row[2]; ++l) {
+            printf("row[%d][%d] = %d | ", i, l, row[l]);
+            for (int32_t p = 0; p < nvars; ++p) {
+                printf("%d ", ev[row[l]][p]);
+            }
+            printf("\n");
             hi  = hd[row[l]].idx;
 #if ORDER_COLUMNS
             if (hi > 0) {
 #else
                 if (hi != 0) {
 #endif
+                    printf("j %d / %d ncols\n", j, ncols);
                     hcm[j++]  = row[l];
                     if (hi == 2) {
                         k++;
@@ -219,6 +225,14 @@ static void convert_dense_matrix_to_basis_elements(
             /* link to basis */
             gbdt[bl]  = dts;
             gbcf[bl]  = cfs;
+            for (int32_t p = 3; p < dts[2]; ++p) {
+                printf("%d | ", gbcf[bl][p]);
+                for (int32_t o = 0; o < nvars; ++o) {
+                    printf("%d ", ev[gbdt[bl][p]][o]);
+                }
+                printf(" || ");
+            }
+            printf("\n");
             bl++;
         }
     }

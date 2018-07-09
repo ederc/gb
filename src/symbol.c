@@ -144,6 +144,9 @@ static dt_t **select_spairs_by_minimal_degree(
     select_ctime  +=  ct1 - ct0;
     select_rtime  +=  rt1 - rt0;
 
+    for (i = 0; i < nrows; ++i) {
+        printf("%p | mat[%d][2] = %d\n", mat[i], i, mat[i][2]);
+    }
     return mat;
 }
 
@@ -254,6 +257,7 @@ static dt_t **symbolic_preprocessing(
 
     /* get reducers from basis */
     for (i = 0; i < nrows; ++i) {
+        printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows);
         const hl_t len = mat[i][2];
         /* check row reallocation only once per polynomial */
         if ((nrall - nrows) < (mat[i][2]-3)) {
@@ -262,6 +266,7 @@ static dt_t **symbolic_preprocessing(
         }
         for (j = 4; j < len; ++j) {
             m = mat[i][j];
+            printf("hd[%d].idx = %d\n", m, hd[m].idx);
             if (!hd[m].idx) {
                 hd[m].idx = 1;
                 ncols++;
@@ -275,6 +280,9 @@ static dt_t **symbolic_preprocessing(
         }
     }
 
+    for (i = 0; i < nrows; ++i) {
+        printf("row %d -- %d\n", i, mat[i][3]);
+    }
     /* realloc to real size */
     mat   = realloc(mat, (unsigned long)nrows * sizeof(dt_t *));
     nrall = nrows;

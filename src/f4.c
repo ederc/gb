@@ -123,15 +123,8 @@ int64_t f4_julia(
         GB_DEBUG(GBDBG, "%3d", round);
 
         /* preprocess data for next reduction round */
-        select_spairs_by_minimal_degree(mat);
-        symbolic_preprocessing(mat);
-        /* for (int32_t o = 0; o < nrows; ++o) {
-         *   printf("%d | %d | %d (%d) || ", o, mat[o][0], mat[o][2], (ev+mat[o][2])[HASH_IND]);
-         *   for (int32_t p = 0; p < nvars; ++p) {
-         *     printf("%d ", (ev+mat[o][2])[p]);
-         *   }
-         *   printf("\n");
-         * } */
+        mat = select_spairs_by_minimal_degree(mat);
+        mat = symbolic_preprocessing(mat);
         /* exponent hashes mapped to column indices for linear algebra */
         hcm = convert_hashes_to_columns(mat);
         /* sort matrix rows by decreasing pivots */
@@ -139,14 +132,16 @@ int64_t f4_julia(
          *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
          * } */
         mat = sort_matrix_rows(mat);
-        /* for (int32_t o = 0; o < nrows; ++o) {
-         *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
-         * } */
+        for (int32_t o = 0; o < nrows; ++o) {
+          printf("%d | %d | %d | %d\n", o, mat[o][0], mat[0][1], mat[o][2]);
+        }
         /* linear algebra, depending on choice, see set_function_pointers() */
         dm = linear_algebra(mat);
+        free(mat);
+        mat = NULL;
         /* columns indices are mapped back to exponent hashes */
         convert_dense_matrix_to_basis_elements(dm, hcm);
-        /* mat = convert_columns_to_hashes(mat, hcm); */
+        free_dense_matrix(dm);
 
         free(hcm);
         hcm = NULL;

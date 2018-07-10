@@ -140,9 +140,10 @@ int64_t f4_julia(
         free(mat);
         mat = NULL;
         /* columns indices are mapped back to exponent hashes */
-        convert_dense_matrix_to_basis_elements(dm, hcm);
-        free_dense_matrix(dm);
-
+        if (npivs > 0) {
+            convert_dense_matrix_to_basis_elements(dm, hcm);
+            free_dense_matrix(dm);
+        }
         free(hcm);
         hcm = NULL;
 

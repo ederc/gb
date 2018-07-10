@@ -89,13 +89,14 @@ static hl_t *convert_hashes_to_columns(
      * } */
     /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
     qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
-    /* for (i = 0; i < j; ++i) {
-     *   printf("hcm[%d] = ", i);
-     *   for (l = 0; l < nvars; ++l) {
-     *     printf("%d ", (ev+hcm[i]*hl)[l]);
-     *   }
-     *   printf("\n");
-     * } */
+    printf("ncl %d\n", k);
+    for (i = 0; i < j; ++i) {
+      printf("hcm[%d] = ", i);
+      for (l = 0; l < nvars; ++l) {
+        printf("%d ", ev[hcm[i]][l]);
+      }
+      printf("\n");
+    }
 
     /* set number of rows and columns in ABCD splicing */
     nru = ncl = k;
@@ -176,37 +177,38 @@ static void convert_dense_matrix_to_basis_elements(
     }
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)
-    for (i = 0; i < ncr; ++i) {
+    for (i = ncr-1; i > -1; --i) {
         if (dm[i] != NULL) {
             dr  = dm[i];
             cfs = malloc((unsigned long)(ncr-i+3) * sizeof(cf_t));
             dts = malloc((unsigned long)(ncr-i+3) * sizeof(dt_t));
-            const dt_t len  = ncr-i;
-            const dt_t os   = len % 4;
+            const dt_t len    = ncr-i;
+            const dt_t os     = len % 4;
+            const dt_t shift  = ncl+i; 
 
             for (k = 3, j = 0; j < os; ++j) {
                 if (dr[j] != 0) {
                     cfs[k]    = dr[j];
-                    dts[k++]  = hcm[j+ncl];
+                    dts[k++]  = hcm[j+shift];
                 }
             }
             /* TODO: LOOP UNROLLING!!! */
             for (; j < len; j += 4) {
                 if (dr[j] != 0) {
                     cfs[k]    = dr[j];
-                    dts[k++]  = hcm[j+ncl];
+                    dts[k++]  = hcm[j+shift];
                 }
                 if (dr[j+1] != 0) {
                     cfs[k]    = dr[j+1];
-                    dts[k++]  = hcm[j+1+ncl];
+                    dts[k++]  = hcm[j+1+shift];
                 }
                 if (dr[j+2] != 0) {
                     cfs[k]    = dr[j+2];
-                    dts[k++]  = hcm[j+2+ncl];
+                    dts[k++]  = hcm[j+2+shift];
                 }
                 if (dr[j+3] != 0) {
                     cfs[k]    = dr[j+3];
-                    dts[k++]  = hcm[j+3+ncl];
+                    dts[k++]  = hcm[j+3+shift];
                 }
             }
 
@@ -225,6 +227,7 @@ static void convert_dense_matrix_to_basis_elements(
             /* link to basis */
             gbdt[bl]  = dts;
             gbcf[bl]  = cfs;
+            printf("new basis element [%d]  ", bl);
             for (int32_t p = 3; p < dts[2]; ++p) {
                 printf("%d | ", gbcf[bl][p]);
                 for (int32_t o = 0; o < nvars; ++o) {

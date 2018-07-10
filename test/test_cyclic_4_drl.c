@@ -36,11 +36,6 @@ int main(
             nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
             la_option);
 
-    printf("len %ld\n", len);
-    for (i = 0; i < len; ++i) {
-        printf("%d, ", (*basis)[i]);
-    }
-    printf("\n");
     if (len != 158) {
         failure = 1;
         free(*basis);

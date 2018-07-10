@@ -202,7 +202,7 @@ static cf_t *reduce_dense_row_by_known_pivots_31_bit(
     const int64_t mod   = (int64_t)fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
-    for (i = dpiv; i < ncols; ++i) {
+    for (i = dpiv; i < ncl; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -328,7 +328,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_31_bit(
         )
 {
     hl_t i, j, k, l;
-    len_t np  = 0;
+    len_t np  = -1;
     const int64_t mod = (int64_t)fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
@@ -340,7 +340,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_31_bit(
             continue;
         }
         if (pivs[i] == NULL) {
-            if (np == 0) {
+            if (np == -1) {
                 np  = i;
             }
             k++;
@@ -349,7 +349,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_31_bit(
 
         const int64_t mul = (int64_t)dr[i];
         const len_t os    = (ncr - i) % 4;
-        for (l = 0, j = i; j < os; ++l, ++j) {
+        for (l = 0, j = i; l < os; ++l, ++j) {
             dr[j] -=  mul * pivs[i][l];
             dr[j] +=  (dr[j] >> 63) & mod2;
         }
@@ -373,7 +373,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_31_bit(
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
-        row[i-ncl]  = (cf_t)dr[i];
+        row[i-np]  = (cf_t)dr[i];
     }
     if (row[0] != 1) {
         row = normalize_dense_matrix_row(row, np);

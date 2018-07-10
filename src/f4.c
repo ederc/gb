@@ -108,6 +108,17 @@ int64_t f4_julia(
             matrix_row_initial_input_cmp);
     /* normalize input generators */
     normalize_matrix_rows(gbcf);
+    for (int32_t v = 0; v < nr_gens; ++v) {
+        printf("new basis element [%d]  ", v);
+        for (int32_t p = 3; p < gbdt[v][2]; ++p) {
+            printf("%d | ", gbcf[v][p]);
+            for (int32_t o = 0; o < nvars; ++o) {
+                printf("%d ", ev[gbdt[v][p]][o]);
+            }
+            printf(" || ");
+        }
+        printf("\n");
+    }
 
     /* move input generators to basis and generate first spairs */
     update_basis();

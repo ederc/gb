@@ -115,8 +115,8 @@ static int matrix_row_cmp(
         return -1;
     }
     /* same column index => compare density of row */
-    va  = ((dt_t **)a)[0][1];
-    vb  = ((dt_t **)b)[0][1];
+    va  = ((dt_t **)a)[0][2];
+    vb  = ((dt_t **)b)[0][2];
     if (va > vb) {
         return 1;
     }

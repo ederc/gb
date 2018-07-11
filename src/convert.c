@@ -227,7 +227,7 @@ static void convert_dense_matrix_to_basis_elements(
             /* link to basis */
             gbdt[bl]  = dts;
             gbcf[bl]  = cfs;
-            printf("new basis element [%d]  ", bl);
+            printf("new basis element [%d] (%d terms) ", bl, dts[2]-3);
             for (int32_t p = 3; p < dts[2]; ++p) {
                 printf("%d | ", gbcf[bl][p]);
                 for (int32_t o = 0; o < nvars; ++o) {

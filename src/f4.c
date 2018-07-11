@@ -109,7 +109,7 @@ int64_t f4_julia(
     /* normalize input generators */
     normalize_matrix_rows(gbcf);
     for (int32_t v = 0; v < nr_gens; ++v) {
-        printf("new basis element [%d]  ", v);
+        printf("new basis element [%d] (%d terms) ", v, gbdt[v][2]-3);
         for (int32_t p = 3; p < gbdt[v][2]; ++p) {
             printf("%d | ", gbcf[v][p]);
             for (int32_t o = 0; o < nvars; ++o) {
@@ -135,6 +135,13 @@ int64_t f4_julia(
 
         /* preprocess data for next reduction round */
         mat = select_spairs_by_minimal_degree(mat);
+        printf("coeffs of selected pairs\n");
+        for (int32_t i= 0 ;i < nrows; ++i) {
+            for (int32_t j = 3; j < mat[i][2]; ++j) {
+                printf("%d ", gbcf[mat[i][0]][j]);
+            }
+            printf("\n");
+        }
         mat = symbolic_preprocessing(mat);
         /* exponent hashes mapped to column indices for linear algebra */
         hcm = convert_hashes_to_columns(mat);

@@ -268,7 +268,9 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
     len_t np  = -1;
     const int64_t mod = (int64_t)fc;
 
+    printf("START DENSE ROW REDUCTION\n");
     for (k = 0, i = pc; i < ncr; ++i) {
+        printf("dr[%d] = %ld\n", i, dr[i]);
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -283,25 +285,39 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
             continue;
         }
 
+        printf("cfs ");
+        for (int32_t p = 0; p < ncr-i; ++p) {
+            printf("%d ", pivs[i][p]);
+        }
+        printf("\n");
+
+        for (int32_t p = 0; p < ncr; ++p) {
+            printf("%ld ", dr[p]);
+        }
+        printf("\n");
+
         const int64_t mul = mod - dr[i];
         const len_t os    = (ncr - i) % 4;
         for (l = 0, j = i; l < os; ++l, ++j) {
             dr[j] +=  mul * pivs[i][l];
         }
-        printf("j %d | l %d || os %d | ncr %d | i %d\n",
-                j, l, os, ncr, i);
         for (; j < ncr; l += 4, j += 4) {
             dr[j]   +=  mul * pivs[i][l];
             dr[j+1] +=  mul * pivs[i][l+1];
             dr[j+2] +=  mul * pivs[i][l+2];
             dr[j+3] +=  mul * pivs[i][l+3];
         }
+        for (int32_t p = 0; p < ncr; ++p) {
+            printf("%ld ", dr[p]);
+        }
+        printf("\n--------------------------------\n");
     }
     if (k == 0) {
         return -1;
     }
 
-    printf("np %d || ncr - pc | %d -%d\n", np, ncr, pc);
+    printf("dense reduction step done\n");
+
     cf_t *row = (cf_t *)calloc((unsigned long)(ncr-pc), sizeof(cf_t));
     for (i = np; i < ncr; ++i) {
         if (dr[i] != 0) {
@@ -312,9 +328,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
     if (row[0] != 1) {
         row = normalize_dense_matrix_row(row, np);
     }
-    printf("tbr[%d] = %p\n", idx, tbr[idx]);
     tbr[idx]  = row;
-    printf("tbr[%d] = %p\n", idx, tbr[idx]);
 
     return np;
 }
@@ -586,23 +600,17 @@ static cf_t **exact_dense_linear_algebra(
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
         printf("tbr[%d] = %p\n", i, tbr[i]);
-        dt_t npc  = tbr[i][0];
-        dt_t os   = (ncr-npc) % 4;
+        dt_t npc  = 0;
+        dt_t os   = (ncr) % 4;
         printf("ncr %d | npc %d | os %d\n", ncr, npc, os);
-        for (l = 0, j = npc; l < os; ++l, ++j) {
-            drl[j]  = (int64_t)tbr[i][l];
+        for (l = 0; l < os; ++l) {
+            drl[l]  = (int64_t)tbr[i][l];
         }
-        printf("j %d || l %d\n", j, l);
-        for (; j < ncr; l += 4, j += 4) {
-            printf("drin j %d | l %d\n", j, l);
-            printf("tbr[%d][%d] = %d\n", i, l, tbr[i][l]);
-            printf("tbr[%d][%d] = %d\n", i, l+1, tbr[i][l+1]);
-            printf("tbr[%d][%d] = %d\n", i, l+2, tbr[i][l+2]);
-            printf("tbr[%d][%d] = %d\n", i, l+3, tbr[i][l+3]);
-            drl[j]    = (int64_t)tbr[i][l];
-            drl[j+1]  = (int64_t)tbr[i][l+1];
-            drl[j+2]  = (int64_t)tbr[i][l+2];
-            drl[j+3]  = (int64_t)tbr[i][l+3];
+        for (; l < ncr; l += 4) {
+            drl[l]    = (int64_t)tbr[i][l];
+            drl[l+1]  = (int64_t)tbr[i][l+1];
+            drl[l+2]  = (int64_t)tbr[i][l+2];
+            drl[l+3]  = (int64_t)tbr[i][l+3];
         }
         printf("drl loaded: ");
         for (j = 0; j < ncr; ++j) {

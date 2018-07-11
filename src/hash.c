@@ -872,3 +872,17 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
 
   return row;
 }
+
+static inline hl_t *reset_idx_in_global_hash_table_and_free_hcm(
+        hl_t *hcm
+        )
+{
+    len_t i;
+
+    for (i = 0; i < ncols; ++i) {
+        hd[hcm[i]].idx  = 0;
+    }
+    free(hcm);
+
+    return NULL;
+}

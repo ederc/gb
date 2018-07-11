@@ -118,11 +118,11 @@ int main(
         free(mat);
         mat = NULL;
         /* columns indices are mapped back to exponent hashes */
-        convert_dense_matrix_to_basis_elements(dm, hcm);
-        free_dense_matrix(dm);
-        free(hcm);
-        hcm = NULL;
-
+        if (npivs > 0) {
+            convert_dense_matrix_to_basis_elements(dm, hcm);
+            free_dense_matrix(dm);
+        }
+        hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
         update_basis();
 
         GB_DEBUG(GBDBG, "\n");

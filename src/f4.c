@@ -144,7 +144,19 @@ int64_t f4_julia(
         }
         mat = symbolic_preprocessing(mat);
         /* exponent hashes mapped to column indices for linear algebra */
+        printf("first column entries in matrix rows\n");
+        for (int32_t i= 0 ;i < nrows; ++i) {
+            printf("%d -> ", i);
+            for (int32_t j = 0; j < nvars; ++j) {
+                printf("%d ", ev[mat[i][3]][j]);
+            }
+            printf("\n");
+        }
         hcm = convert_hashes_to_columns(mat);
+        printf("first column entries in matrix rows\n");
+        for (int32_t i= 0 ;i < nrows; ++i) {
+            printf("%d -> %d\n", i, mat[i][3]);
+        }
         /* sort matrix rows by decreasing pivots */
         /* for (int32_t o = 0; o < nrows; ++o) {
          *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
@@ -162,9 +174,7 @@ int64_t f4_julia(
             convert_dense_matrix_to_basis_elements(dm, hcm);
             free_dense_matrix(dm);
         }
-        free(hcm);
-        hcm = NULL;
-
+        hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
         update_basis();
 
         GB_DEBUG(GBDBG, "\n");

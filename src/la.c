@@ -407,9 +407,9 @@ static cf_t **sparse_AB_CD_linear_algebra(
     hl_t *npiv = NULL; /* new pivot row */
 
     /* we fill in all known lead terms in pivs */
-    dt_t **pivs  = (dt_t **)calloc((unsigned long)nru, sizeof(dt_t *));
+    dt_t **pivs   = (dt_t **)calloc((unsigned long)nru, sizeof(dt_t *));
     /* unkown pivot rows we have to reduce with the known pivots first */
-    dt_t **upivs = (dt_t **)malloc((unsigned long)nrl * sizeof(dt_t *));
+    dt_t **upivs  = (dt_t **)malloc((unsigned long)nrl * sizeof(dt_t *));
     /* dense rows representing updated D part;
      * after reducing CD part with AB */
     cf_t **drs    = (cf_t **)calloc((unsigned long)nrl, sizeof(cf_t *));

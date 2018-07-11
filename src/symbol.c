@@ -272,6 +272,11 @@ static dt_t **symbolic_preprocessing(
                 ncols++;
                 red = find_multiplied_reducer(m);
                 if (red) {
+                    printf("hd.idx = 2 for ");
+                    for (int32_t k = 0; k < nvars; ++k) {
+                        printf("%d ", ev[m][k]);
+                    }
+                    printf("\n");
                     hd[m].idx = 2;
                     /* add new reducer to matrix */
                     mat[nrows++]  = red;

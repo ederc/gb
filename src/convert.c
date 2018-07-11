@@ -59,6 +59,7 @@ static hl_t *convert_hashes_to_columns(
             }
             printf("\n");
             hi  = hd[row[l]].idx;
+            printf("hi %d\n", hi);
 #if ORDER_COLUMNS
             if (hi > 0) {
 #else
@@ -170,11 +171,6 @@ static void convert_dense_matrix_to_basis_elements(
 
     /* fix size of basis for entering new elements directly */
     check_enlarge_basis(npivs);
-
-    /* reset idx entries in hash table */
-    for (i = 0; i < ncols; ++i) {
-        hd[hcm[i]].idx  = 0;
-    }
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = ncr-1; i > -1; --i) {

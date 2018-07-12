@@ -172,7 +172,6 @@ static void convert_dense_matrix_to_basis_elements(
     /* fix size of basis for entering new elements directly */
     check_enlarge_basis(npivs);
 
-#pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = ncr-1; i > -1; --i) {
         if (dm[i] != NULL) {
             dr  = dm[i];

@@ -595,7 +595,7 @@ static cf_t **exact_dense_linear_algebra(
 
     /* reduction process to get all possible pivots, no interreduction here */
 #pragma omp parallel for num_threads(nthrds) \
-    private(i, j, k,l) shared(nps, tbr)
+    private(i, j, k, l) shared(nps, tbr)
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
@@ -629,7 +629,7 @@ static cf_t **exact_dense_linear_algebra(
             /* some other thread has already added a pivot so we have to
              * recall the dense reduction process */
             if (!k) {
-                npc  = tbr[i][0];
+                /* npc  = tbr[i][0]; */
                 os   = (ncr-npc) % 4;
                 memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
                 for (l = 0, j = npc; l < os; ++l, ++j) {

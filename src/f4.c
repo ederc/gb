@@ -108,17 +108,17 @@ int64_t f4_julia(
             matrix_row_initial_input_cmp);
     /* normalize input generators */
     normalize_matrix_rows(gbcf);
-    for (int32_t v = 0; v < nr_gens; ++v) {
-        printf("new basis element [%d] (%d terms) ", v, gbdt[v][2]-3);
-        for (int32_t p = 3; p < gbdt[v][2]; ++p) {
-            printf("%d | ", gbcf[v][p]);
-            for (int32_t o = 0; o < nvars; ++o) {
-                printf("%d ", ev[gbdt[v][p]][o]);
-            }
-            printf(" || ");
-        }
-        printf("\n");
-    }
+    /* for (int32_t v = 0; v < nr_gens; ++v) {
+     *     printf("new basis element [%d] (%d terms) ", v, gbdt[v][2]-3);
+     *     for (int32_t p = 3; p < gbdt[v][2]; ++p) {
+     *         printf("%d | ", gbcf[v][p]);
+     *         for (int32_t o = 0; o < nvars; ++o) {
+     *             printf("%d ", ev[gbdt[v][p]][o]);
+     *         }
+     *         printf(" || ");
+     *     }
+     *     printf("\n");
+     * } */
 
     /* move input generators to basis and generate first spairs */
     update_basis();
@@ -135,36 +135,36 @@ int64_t f4_julia(
 
         /* preprocess data for next reduction round */
         mat = select_spairs_by_minimal_degree(mat);
-        printf("coeffs of selected pairs\n");
-        for (int32_t i= 0 ;i < nrows; ++i) {
-            for (int32_t j = 3; j < mat[i][2]; ++j) {
-                printf("%d ", gbcf[mat[i][0]][j]);
-            }
-            printf("\n");
-        }
+        /* printf("coeffs of selected pairs\n");
+         * for (int32_t i= 0 ;i < nrows; ++i) {
+         *     for (int32_t j = 3; j < mat[i][2]; ++j) {
+         *         printf("%d ", gbcf[mat[i][0]][j]);
+         *     }
+         *     printf("\n");
+         * } */
         mat = symbolic_preprocessing(mat);
         /* exponent hashes mapped to column indices for linear algebra */
-        printf("first column entries in matrix rows\n");
-        for (int32_t i= 0 ;i < nrows; ++i) {
-            printf("%d -> ", i);
-            for (int32_t j = 0; j < nvars; ++j) {
-                printf("%d ", ev[mat[i][3]][j]);
-            }
-            printf("\n");
-        }
+        /* printf("first column entries in matrix rows\n");
+         * for (int32_t i= 0 ;i < nrows; ++i) {
+         *     printf("%d -> ", i);
+         *     for (int32_t j = 0; j < nvars; ++j) {
+         *         printf("%d ", ev[mat[i][3]][j]);
+         *     }
+         *     printf("\n");
+         * } */
         hcm = convert_hashes_to_columns(mat);
-        printf("first column entries in matrix rows\n");
-        for (int32_t i= 0 ;i < nrows; ++i) {
-            printf("%d -> %d\n", i, mat[i][3]);
-        }
+        /* printf("first column entries in matrix rows\n");
+         * for (int32_t i= 0 ;i < nrows; ++i) {
+         *     printf("%d -> %d\n", i, mat[i][3]);
+         * } */
         /* sort matrix rows by decreasing pivots */
         /* for (int32_t o = 0; o < nrows; ++o) {
          *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
          * } */
         mat = sort_matrix_rows(mat);
-        for (int32_t o = 0; o < nrows; ++o) {
-          printf("%d | %d | %d | %d\n", o, mat[o][0], mat[0][1], mat[o][2]);
-        }
+        /* for (int32_t o = 0; o < nrows; ++o) {
+         *   printf("%d | %d | %d | %d\n", o, mat[o][0], mat[0][1], mat[o][2]);
+         * } */
         /* linear algebra, depending on choice, see set_function_pointers() */
         dm = linear_algebra(mat);
         free(mat);

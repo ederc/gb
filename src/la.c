@@ -76,11 +76,11 @@ static inline cf_t *normalize_dense_matrix_row(
         )
 {
     len_t i;
-    printf("normalize: %d != 1\n", row[0]);
+    /* printf("normalize: %d != 1\n", row[0]); */
 
     const dt_t len  = ncr - pc;
     const dt_t os   = len % 4;
-    printf("ncr %d | pc %d | os %d\n", ncr, pc, os);
+    /* printf("ncr %d | pc %d | os %d\n", ncr, pc, os); */
     int64_t tmp1, tmp2, tmp3, tmp4;
 
     const int32_t inv = mod_p_inverse_32((int32_t)row[0], (int32_t)fc);
@@ -126,7 +126,7 @@ static cf_t *reduce_dense_row_by_known_pivots_17_bit(
         if (dr[i] == 0) {
             continue;
         }
-        printf("i %d\n", i);
+        /* printf("i %d\n", i); */
         if (pivs[i] == NULL) {
             continue;
         }
@@ -140,15 +140,15 @@ static cf_t *reduce_dense_row_by_known_pivots_17_bit(
         const int64_t mul = mod - dr[i];
         const dt_t *dts   = pivs[i];
         const cf_t *cfs   = gbcf[dts[0]];
-        printf("cfs[%d]: ", dts[0]);
-        for (j = 3; j < dts[2]; ++j) {
-            printf("%d ", cfs[j]);
-        }
-        printf("\n");
-        for (j = 0; j < ncols; ++j) {
-            printf("%ld ", dr[j]);
-        }
-        printf("\n");
+        /* printf("cfs[%d]: ", dts[0]);
+         * for (j = 3; j < dts[2]; ++j) {
+         *     printf("%d ", cfs[j]);
+         * }
+         * printf("\n");
+         * for (j = 0; j < ncols; ++j) {
+         *     printf("%ld ", dr[j]);
+         * }
+         * printf("\n"); */
         for (j = 3; j < dts[1]; ++j) {
             dr[dts[j]]  +=  mul * cfs[j];
         }
@@ -159,12 +159,12 @@ static cf_t *reduce_dense_row_by_known_pivots_17_bit(
             dr[dts[j+3]]  +=  mul * cfs[j+3];
         }
         dr[i] = 0;
-        for (j = 0; j < ncols; ++j) {
-            printf("%ld ", dr[j]);
-        }
-        printf("\n----------\n");
+        /* for (j = 0; j < ncols; ++j) {
+         *     printf("%ld ", dr[j]);
+         * }
+         * printf("\n----------\n"); */
     }
-    printf("reduction step done\n");
+    /* printf("reduction step done\n"); */
 
     /* store a dense row for further dense gaussian elimination */
     cf_t *row  = (cf_t *)calloc(
@@ -183,11 +183,11 @@ static cf_t *reduce_dense_row_by_known_pivots_17_bit(
         free(row);
         row = NULL;
     } else {
-        printf("returned row: ");
-        for (i= 0; i < ncr; ++i) {
-            printf("%d ", row[i]);
-        }
-        printf("\n");
+        /* printf("returned row: ");
+         * for (i= 0; i < ncr; ++i) {
+         *     printf("%d ", row[i]);
+         * }
+         * printf("\n"); */
     }
     return row;
 }
@@ -268,9 +268,9 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
     len_t np  = -1;
     const int64_t mod = (int64_t)fc;
 
-    printf("START DENSE ROW REDUCTION\n");
+    /* printf("START DENSE ROW REDUCTION\n"); */
     for (k = 0, i = pc; i < ncr; ++i) {
-        printf("dr[%d] = %ld\n", i, dr[i]);
+        /* printf("dr[%d] = %ld\n", i, dr[i]); */
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -285,16 +285,16 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
             continue;
         }
 
-        printf("cfs ");
-        for (int32_t p = 0; p < ncr-i; ++p) {
-            printf("%d ", pivs[i][p]);
-        }
-        printf("\n");
-
-        for (int32_t p = 0; p < ncr; ++p) {
-            printf("%ld ", dr[p]);
-        }
-        printf("\n");
+/*         printf("cfs ");
+ *         for (int32_t p = 0; p < ncr-i; ++p) {
+ *             printf("%d ", pivs[i][p]);
+ *         }
+ *         printf("\n");
+ *
+ *         for (int32_t p = 0; p < ncr; ++p) {
+ *             printf("%ld ", dr[p]);
+ *         }
+ *         printf("\n"); */
 
         const int64_t mul = mod - dr[i];
         const len_t os    = (ncr - i) % 4;
@@ -307,16 +307,16 @@ static len_t reduce_dense_row_by_dense_new_pivots_17_bit(
             dr[j+2] +=  mul * pivs[i][l+2];
             dr[j+3] +=  mul * pivs[i][l+3];
         }
-        for (int32_t p = 0; p < ncr; ++p) {
-            printf("%ld ", dr[p]);
-        }
-        printf("\n--------------------------------\n");
+        /* for (int32_t p = 0; p < ncr; ++p) {
+         *     printf("%ld ", dr[p]);
+         * }
+         * printf("\n--------------------------------\n"); */
     }
     if (k == 0) {
         return -1;
     }
 
-    printf("dense reduction step done\n");
+    /* printf("dense reduction step done\n"); */
 
     cf_t *row = (cf_t *)calloc((unsigned long)(ncr-pc), sizeof(cf_t));
     for (i = np; i < ncr; ++i) {
@@ -392,7 +392,7 @@ static len_t reduce_dense_row_by_dense_new_pivots_31_bit(
     if (row[0] != 1) {
         row = normalize_dense_matrix_row(row, np);
     }
-    printf("tbr[%d] = %p\n", idx, tbr[idx]);
+    /* printf("tbr[%d] = %p\n", idx, tbr[idx]); */
     tbr[idx]  = row;
 
     return np;
@@ -419,7 +419,7 @@ static cf_t **sparse_AB_CD_linear_algebra(
     for (i = 0; i < nrows; ++i) {
         if (!pivs[mat[i][3]]) {
             pivs[mat[i][3]]   = mat[i];
-            printf("pivs %d is set by row %d\n", mat[i][3], i);
+            /* printf("pivs %d is set by row %d\n", mat[i][3], i); */
         } else {
             /* shorter rows first */
             upivs[nrl-j]  = mat[i];
@@ -427,11 +427,11 @@ static cf_t **sparse_AB_CD_linear_algebra(
         }
     }
 
-    for (int32_t o = 0; o < nru; ++o) {
-        printf("%d | %d | %d | %d || %d\n", o, pivs[o][0], pivs[0][1], pivs[o][2], pivs[o][3]);
-    }
-    printf("nru %d | nrl %d | nrows %d || ncl %d | ncr %d | ncols %d\n",
-            nru, nrl, nrows, ncl, ncr, ncols);
+    /* for (int32_t o = 0; o < nru; ++o) {
+     *     printf("%d | %d | %d | %d || %d\n", o, pivs[o][0], pivs[0][1], pivs[o][2], pivs[o][3]);
+     * }
+     * printf("nru %d | nrl %d | nrows %d || ncl %d | ncr %d | ncols %d\n",
+     *         nru, nrl, nrows, ncl, ncr, ncols); */
 
     int64_t *dr  = (int64_t *)malloc(
             (unsigned long)(nthrds * ncols) * sizeof(int64_t));
@@ -479,9 +479,9 @@ static cf_t **sparse_AB_CD_linear_algebra(
             drs[npivs++]  = drs[i];
         }
     }
-    for (i = 0; i < npivs; ++i) {
-        printf("drs[%d] = %p\n", i, drs[i]);
-    }
+    /* for (i = 0; i < npivs; ++i) {
+     *     printf("drs[%d] = %p\n", i, drs[i]);
+     * } */
 
     if (npivs == 0) {
         free(drs);
@@ -502,7 +502,7 @@ static cf_t **interreduce_dense_matrix(
     npivs = 0;
     for (i = ncr-1; i > -1; --i) {
         if (dm[i]) {
-            printf("interreduce dm[%d]\n", i);
+            /* printf("interreduce dm[%d]\n", i); */
             memset(dr, 0, (unsigned long)ncr * sizeof(int64_t));
             npc  = ncr - i;
             os   = npc % 4;
@@ -515,20 +515,20 @@ static cf_t **interreduce_dense_matrix(
                 dr[j+2] = (int64_t)dm[i][l+2];
                 dr[j+3] = (int64_t)dm[i][l+3];
             }
-            for (j = 0; j < ncr; ++j) {
-                printf("%ld ", dr[j]);
-            }
-            printf("\n");
+            /* for (j = 0; j < ncr; ++j) {
+             *     printf("%ld ", dr[j]);
+             * }
+             * printf("\n"); */
             free(dm[i]);
             dm[i] = NULL;
             /* start with previous pivot the reduction process, so keep the
              * pivot element as it is */
             npc = reduce_dense_row_by_dense_new_pivots(dr, dm, i, i, dm);
-            printf("tbr to dm[%d] = %p\n", i, dm[i]);
-            for (j = i; j < ncr; ++j) {
-                printf("%d ", dm[i][j-i]);
-            }
-            printf("\n");
+            /* printf("tbr to dm[%d] = %p\n", i, dm[i]);
+             * for (j = i; j < ncr; ++j) {
+             *     printf("%d ", dm[i][j-i]);
+             * }
+             * printf("\n"); */
         }
     }
     free(dr);
@@ -552,35 +552,35 @@ static cf_t **exact_dense_linear_algebra(
      * be further reduced by these new pivots */
     j = 0;
     for (i = 0; i < nr; ++i) {
-        printf("dense row[%d] ", i);
-        for (int32_t p = 0; p < ncr; ++p) {
-            printf("%d ", dm[i][p]);
-        }
-        printf("\n");
+        /* printf("dense row[%d] ", i);
+         * for (int32_t p = 0; p < ncr; ++p) {
+         *     printf("%d ", dm[i][p]);
+         * }
+         * printf("\n"); */
         if (dm[i] != NULL) {
             k = 0;
             while (dm[i][k] == 0) {
                 ++k;
             }
-            printf("pc %d -> %p\n", k, nps[k]);
+            /* printf("pc %d -> %p\n", k, nps[k]); */
             if (nps[k] == NULL) {
                 /* we have a pivot, cut the dense row down to start
                  * at the first nonzero entry */
-                printf("ncr - k = %d - %d\n", ncr, k);
+                /* printf("ncr - k = %d - %d\n", ncr, k); */
                 memmove(dm[i], dm[i]+k, (unsigned long)(ncr-k) * sizeof(cf_t));
                 dm[i] = realloc(dm[i], (unsigned long)(ncr-k) * sizeof(cf_t));
                 nps[k] = dm[i];
-                printf("nps[%d] = ", k);
+                /* printf("nps[%d] = ", k); */
                 if (nps[k][0] != 1) {
                     nps[k]  = normalize_dense_matrix_row(nps[k], k);
                 }
-                for (int32_t o = 0; o < ncr-k; ++o) {
-                    printf("%d ", nps[k][o]);
-                }
-                printf("\n");
+                /* for (int32_t o = 0; o < ncr-k; ++o) {
+                 *     printf("%d ", nps[k][o]);
+                 * }
+                 * printf("\n"); */
 
             } else {
-                printf("set tbr[%d]\n", j);
+                /* printf("set tbr[%d]\n", j); */
                 tbr[j++]  = dm[i];
             }
         }
@@ -599,10 +599,10 @@ static cf_t **exact_dense_linear_algebra(
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
-        printf("tbr[%d] = %p\n", i, tbr[i]);
+        /* printf("tbr[%d] = %p\n", i, tbr[i]); */
         dt_t npc  = 0;
         dt_t os   = (ncr) % 4;
-        printf("ncr %d | npc %d | os %d\n", ncr, npc, os);
+        /* printf("ncr %d | npc %d | os %d\n", ncr, npc, os); */
         for (l = 0; l < os; ++l) {
             drl[l]  = (int64_t)tbr[i][l];
         }
@@ -612,11 +612,11 @@ static cf_t **exact_dense_linear_algebra(
             drl[l+2]  = (int64_t)tbr[i][l+2];
             drl[l+3]  = (int64_t)tbr[i][l+3];
         }
-        printf("drl loaded: ");
-        for (j = 0; j < ncr; ++j) {
-            printf("%ld ", drl[j]);
-        }
-        printf("\n");
+        /* printf("drl loaded: ");
+         * for (j = 0; j < ncr; ++j) {
+         *     printf("%ld ", drl[j]);
+         * }
+         * printf("\n"); */
         free(tbr[i]);
         tbr[i] = NULL;
 
@@ -672,7 +672,7 @@ static cf_t **exact_linear_algebra(
     /* generate updated dense D part via reduction of CD with AB */
     cf_t **dm;
     dm  = sparse_AB_CD_linear_algebra(mat);
-    printf("npivs %d\n", npivs);
+    /* printf("npivs %d\n", npivs); */
     if (npivs > 0) {      
         dm  = exact_dense_linear_algebra(dm, npivs);
         dm  = interreduce_dense_matrix(dm);
@@ -683,16 +683,16 @@ static cf_t **exact_linear_algebra(
                 npivs++;
             }
         }
-        printf("npivs finally %d\n", npivs);
-        for (i = 0; i < ncr; ++i) {
-            if (dm[i] != NULL) {
-                printf("dm[%d]\n", i);
-                for (int32_t j = 0; j < ncr-i; ++j) {
-                    printf("%d\n", dm[i][j]);
-                }
-                printf("\n");
-            }
-        }
+        /* printf("npivs finally %d\n", npivs);
+         * for (i = 0; i < ncr; ++i) {
+         *     if (dm[i] != NULL) {
+         *         printf("dm[%d]\n", i);
+         *         for (int32_t j = 0; j < ncr-i; ++j) {
+         *             printf("%d\n", dm[i][j]);
+         *         }
+         *         printf("\n");
+         *     }
+         * } */
         if (npivs == 0) {
             free(dm);
             dm  = NULL;

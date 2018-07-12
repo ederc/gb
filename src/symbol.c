@@ -66,7 +66,7 @@ static dt_t **select_spairs_by_minimal_degree(
     GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
     /* statistics */
     num_pairsred  +=  npairs;
-    printf("npairs %d\n", npairs);
+    /* printf("npairs %d\n", npairs); */
 
     gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
@@ -144,9 +144,9 @@ static dt_t **select_spairs_by_minimal_degree(
     select_ctime  +=  ct1 - ct0;
     select_rtime  +=  rt1 - rt0;
 
-    for (i = 0; i < nrows; ++i) {
-        printf("%p | mat[%d][2] = %d\n", mat[i], i, mat[i][2]);
-    }
+    /* for (i = 0; i < nrows; ++i) {
+     *     printf("%p | mat[%d][2] = %d\n", mat[i], i, mat[i][2]);
+     * } */
     return mat;
 }
 
@@ -257,26 +257,29 @@ static dt_t **symbolic_preprocessing(
 
     /* get reducers from basis */
     for (i = 0; i < nrows; ++i) {
-        printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows);
+        /* printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows); */
         const hl_t len = mat[i][2];
         /* check row reallocation only once per polynomial */
-        if ((nrall - nrows) < (mat[i][2]-3)) {
-            nrall = 2*nrall > mat[i][2] ? 2*nrall : (len_t)mat[i][2];
+        if ((nrall - nrows) < (len-3)) {
+            /* printf("nrall %d | nrows %d | len %d\n", nrall, nrows, len); */
+            nrall += nrall > len ? nrall : (len_t)len;
+            /* printf("=> nrall %d\n", nrall); */
+
             mat   = realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
         }
         for (j = 4; j < len; ++j) {
             m = mat[i][j];
-            printf("hd[%d].idx = %d\n", m, hd[m].idx);
+            /* printf("hd[%d].idx = %d\n", m, hd[m].idx); */
             if (!hd[m].idx) {
                 hd[m].idx = 1;
                 ncols++;
                 red = find_multiplied_reducer(m);
                 if (red) {
-                    printf("hd.idx = 2 for ");
-                    for (int32_t k = 0; k < nvars; ++k) {
-                        printf("%d ", ev[m][k]);
-                    }
-                    printf("\n");
+                    /* printf("hd.idx = 2 for ");
+                     * for (int32_t k = 0; k < nvars; ++k) {
+                     *     printf("%d ", ev[m][k]);
+                     * }
+                     * printf("\n"); */
                     hd[m].idx = 2;
                     /* add new reducer to matrix */
                     mat[nrows++]  = red;
@@ -285,9 +288,9 @@ static dt_t **symbolic_preprocessing(
         }
     }
 
-    for (i = 0; i < nrows; ++i) {
-        printf("row %d -- %d\n", i, mat[i][3]);
-    }
+    /* for (i = 0; i < nrows; ++i) {
+     *     printf("row %d -- %d\n", i, mat[i][3]);
+     * } */
     /* realloc to real size */
     mat   = realloc(mat, (unsigned long)nrows * sizeof(dt_t *));
     nrall = nrows;

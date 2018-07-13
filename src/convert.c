@@ -153,14 +153,12 @@ static hl_t *convert_hashes_to_columns(
     return hcm;
 }
 
-static void convert_dense_matrix_to_basis_elements(
-        cf_t * const *dm,
-        const dt_t *hcm
+static void convert_sparse_matrix_rows_to_basis_elements(
+        dt_t **mat,
+        const hl_t *hcm
         )
 {
-    len_t i, j, k;
-    cf_t *cfs, *dr;
-    dt_t *dts;
+    len_t i, j;
 
     len_t bl  = bload;
 
@@ -172,68 +170,30 @@ static void convert_dense_matrix_to_basis_elements(
     /* fix size of basis for entering new elements directly */
     check_enlarge_basis(npivs);
 
-    for (i = ncr-1; i > -1; --i) {
-        if (dm[i] != NULL) {
-            dr  = dm[i];
-            cfs = malloc((unsigned long)(ncr-i+3) * sizeof(cf_t));
-            dts = malloc((unsigned long)(ncr-i+3) * sizeof(dt_t));
-            const dt_t len    = ncr-i;
-            const dt_t os     = len % 4;
-            const dt_t shift  = ncl+i; 
 
-            for (k = 3, j = 0; j < os; ++j) {
-                if (dr[j] != 0) {
-                    cfs[k]    = dr[j];
-                    dts[k++]  = hcm[j+shift];
-                }
-            }
-            /* TODO: LOOP UNROLLING!!! */
-            for (; j < len; j += 4) {
-                if (dr[j] != 0) {
-                    cfs[k]    = dr[j];
-                    dts[k++]  = hcm[j+shift];
-                }
-                if (dr[j+1] != 0) {
-                    cfs[k]    = dr[j+1];
-                    dts[k++]  = hcm[j+1+shift];
-                }
-                if (dr[j+2] != 0) {
-                    cfs[k]    = dr[j+2];
-                    dts[k++]  = hcm[j+2+shift];
-                }
-                if (dr[j+3] != 0) {
-                    cfs[k]    = dr[j+3];
-                    dts[k++]  = hcm[j+3+shift];
-                }
-            }
-
-            /* store meta data in first entries */
-            dts[0]  = bl;
-            dts[1]  = ((k-3) % 4) + 3;
-            dts[2]  = k;
-            cfs[0]  = 0;
-            cfs[1]  = dts[1];
-            cfs[2]  = dts[2];
-
-            /* adjust memory usage */
-            dts = realloc(dts, (unsigned long)k * sizeof(dt_t));
-            cfs = realloc(cfs, (unsigned long)k * sizeof(cf_t));
-
-            /* link to basis */
-            gbdt[bl]  = dts;
-            gbcf[bl]  = cfs;
-            /* printf("new basis element [%d] (%d terms) ", bl, dts[2]-3);
-             * for (int32_t p = 3; p < dts[2]; ++p) {
-             *     printf("%d | ", gbcf[bl][p]);
-             *     for (int32_t o = 0; o < nvars; ++o) {
-             *         printf("%d ", ev[gbdt[bl][p]][o]);
-             *     }
-             *     printf(" || ");
-             * }
-             * printf("\n"); */
-            bl++;
+#pragma omp parallel for num_threads(nthrds) private(i, j)
+    for (i = 0; i < npivs; ++i) {
+        for (j = 3; j < mat[i][1]; ++j) {
+            mat[i][j] = hcm[mat[i][j]];
+        }
+        for (; j < mat[i][2]; j += 4) {
+            mat[i][j]   = hcm[mat[i][j]];
+            mat[i][j+1] = hcm[mat[i][j+1]];
+            mat[i][j+2] = hcm[mat[i][j+2]];
+            mat[i][j+3] = hcm[mat[i][j+3]];
         }
     }
+
+    /* move data to basis */
+    for (i =0; i < npivs; ++i) {
+        gbcf[bl]  = tmpcf[mat[i][0]];
+        mat[i][0] = bl;
+        gbdt[bl]  = mat[i];
+        bl++;
+    }
+
+    free(tmpcf);
+    tmpcf = NULL;
 
     /* timings */
     ct1 = cputime();

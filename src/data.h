@@ -138,6 +138,7 @@ static cf_t fc = 0;
  * offset ? */
 
 static cf_t **gbcf  = NULL;
+static cf_t **tmpcf = NULL;
 static dt_t **gbdt  = NULL;
 static bl_t blold   = 0;
 static bl_t bload   = 0;
@@ -207,7 +208,14 @@ cf_t **(*linear_algebra)(
 cf_t *(*reduce_dense_row_by_known_pivots)(
         int64_t *dr,
         dt_t *const *pivs,
-        const val_t dpiv
+        const hl_t dpiv
+        );
+
+cf_t *(*reduce_dense_row_by_known_pivots_sparse)(
+        int64_t *dr,
+        dt_t *const *pivs,
+        const hl_t dpiv,
+        const dt_t tmp_pos
         );
 
 len_t (*reduce_dense_row_by_dense_new_pivots)(

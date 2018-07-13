@@ -25,9 +25,6 @@ int main(
 
     int32_t round, last_reset;
     hl_t *hcm; /* hash-column-map */
-    /* dense matrices, results from linear algebra, before converting
-     * the rows back to polynomial representations in the basis */
-    cf_t **dm;
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
     dt_t **mat;
@@ -114,14 +111,13 @@ int main(
          *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
          * } */
         /* linear algebra, depending on choice, see set_function_pointers() */
-        dm = linear_algebra(mat);
-        free(mat);
-        mat = NULL;
+        mat = linear_algebra(mat);
         /* columns indices are mapped back to exponent hashes */
         if (npivs > 0) {
-            convert_dense_matrix_to_basis_elements(dm, hcm);
-            free_dense_matrix(dm);
+            convert_sparse_matrix_rows_to_basis_elements(mat, hcm);
         }
+        free(mat);
+        mat = NULL;
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
         update_basis();
 

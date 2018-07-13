@@ -54,9 +54,6 @@ int64_t f4_julia(
 
     int32_t round, last_reset;
     hl_t *hcm; /* hash-column-map */
-    /* dense matrices, results from linear algebra, before converting
-     * the rows back to polynomial representations in the basis */
-    cf_t **dm;
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
     dt_t **mat;
@@ -166,14 +163,30 @@ int64_t f4_julia(
          *   printf("%d | %d | %d | %d\n", o, mat[o][0], mat[0][1], mat[o][2]);
          * } */
         /* linear algebra, depending on choice, see set_function_pointers() */
-        dm = linear_algebra(mat);
-        free(mat);
-        mat = NULL;
+        mat = linear_algebra(mat);
+        /* for (int32_t p = 0; p < npivs; ++p) {
+         *     printf("mat[%d][0] = %d | %d | %d\n", p, mat[p][0], mat[p][1], mat[p][2]);
+         * } */
+
         /* columns indices are mapped back to exponent hashes */
         if (npivs > 0) {
-            convert_dense_matrix_to_basis_elements(dm, hcm);
-            free_dense_matrix(dm);
+            convert_sparse_matrix_rows_to_basis_elements(mat, hcm);
         }
+        /* if (npivs > 0) {
+         *     for (int32_t v = bload; v < bload+npivs; ++v) {
+         *         printf("new basis element [%d] (%d terms) ", v, gbdt[v][2]-3);
+         *         for (int32_t p = 3; p < gbdt[v][2]; ++p) {
+         *             printf("%d | ", gbcf[gbdt[v][0]][p]);
+         *             for (int32_t o = 0; o < nvars; ++o) {
+         *                 printf("%d ", ev[gbdt[v][p]][o]);
+         *             }
+         *             printf(" || ");
+         *         }
+         *         printf("\n");
+         *     }
+         * } */
+        free(mat);
+        mat = NULL;
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
         update_basis();
 

@@ -55,13 +55,13 @@ static inline void set_function_pointers(
 
     switch (laopt) {
         case 1:
-            linear_algebra  = exact_linear_algebra;
+            linear_algebra  = exact_sparse_dense_linear_algebra;
             break;
         case 42:
-            linear_algebra  = probabilistic_linear_algebra;
+            linear_algebra  = probabilistic_sparse_dense_linear_algebra;
             break;
         default:
-            linear_algebra  = exact_linear_algebra;
+            linear_algebra  = exact_sparse_dense_linear_algebra;
     }
 
     /* up to 17 bits we can use one modular operation for reducing a row. this works
@@ -69,11 +69,15 @@ static inline void set_function_pointers(
     if (fc < pow(2, 17)) {
         reduce_dense_row_by_known_pivots =
             reduce_dense_row_by_known_pivots_17_bit;
+        reduce_dense_row_by_known_pivots_sparse =
+            reduce_dense_row_by_known_pivots_sparse_17_bit;
         reduce_dense_row_by_dense_new_pivots  =
             reduce_dense_row_by_dense_new_pivots_17_bit;
     } else {
         reduce_dense_row_by_known_pivots =
             reduce_dense_row_by_known_pivots_31_bit;
+        reduce_dense_row_by_known_pivots_sparse =
+            reduce_dense_row_by_known_pivots_sparse_31_bit;
         reduce_dense_row_by_dense_new_pivots  =
             reduce_dense_row_by_dense_new_pivots_31_bit;
     }

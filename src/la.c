@@ -499,7 +499,6 @@ static cf_t **interreduce_dense_matrix(
     dt_t npc, os;
     int64_t *dr = malloc((unsigned long)ncr * sizeof(int64_t));
 
-    npivs = 0;
     for (i = ncr-1; i > -1; --i) {
         if (dm[i]) {
             /* printf("interreduce dm[%d]\n", i); */
@@ -550,7 +549,8 @@ static cf_t **exact_dense_linear_algebra(
 
     /* separate rows already representing new pivots and rows to
      * be further reduced by these new pivots */
-    j = 0;
+    j     = 0;
+    npivs = 0;
     for (i = 0; i < nr; ++i) {
         /* printf("dense row[%d] ", i);
          * for (int32_t p = 0; p < ncr; ++p) {
@@ -578,7 +578,7 @@ static cf_t **exact_dense_linear_algebra(
                  *     printf("%d ", nps[k][o]);
                  * }
                  * printf("\n"); */
-
+                npivs++;
             } else {
                 /* printf("set tbr[%d]\n", j); */
                 tbr[j++]  = dm[i];
@@ -601,26 +601,21 @@ static cf_t **exact_dense_linear_algebra(
         memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
         /* printf("tbr[%d] = %p\n", i, tbr[i]); */
         dt_t npc  = 0;
-        dt_t os   = (ncr) % 4;
-        /* printf("ncr %d | npc %d | os %d\n", ncr, npc, os); */
-        for (l = 0; l < os; ++l) {
-            drl[l]  = (int64_t)tbr[i][l];
-        }
-        for (; l < ncr; l += 4) {
-            drl[l]    = (int64_t)tbr[i][l];
-            drl[l+1]  = (int64_t)tbr[i][l+1];
-            drl[l+2]  = (int64_t)tbr[i][l+2];
-            drl[l+3]  = (int64_t)tbr[i][l+3];
-        }
-        /* printf("drl loaded: ");
-         * for (j = 0; j < ncr; ++j) {
-         *     printf("%ld ", drl[j]);
-         * }
-         * printf("\n"); */
-        free(tbr[i]);
-        tbr[i] = NULL;
-
+        dt_t os   = 0;
         do {
+            os   = (ncr-npc) % 4;
+            memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
+            for (l = 0, j = npc; l < os; ++l, ++j) {
+                drl[j]  = (int64_t)tbr[i][l];
+            }
+            for (; j < ncr; l += 4, j += 4) {
+                drl[j]    = (int64_t)tbr[i][l];
+                drl[j+1]  = (int64_t)tbr[i][l+1];
+                drl[j+2]  = (int64_t)tbr[i][l+2];
+                drl[j+3]  = (int64_t)tbr[i][l+3];
+            }
+            free(tbr[i]);
+            tbr[i] = NULL;
             npc = reduce_dense_row_by_dense_new_pivots(drl, tbr, npc, i, nps);
             if (npc == -1) {
                 break;
@@ -628,23 +623,10 @@ static cf_t **exact_dense_linear_algebra(
             k = __sync_bool_compare_and_swap(&nps[npc], NULL, tbr[i]);
             /* some other thread has already added a pivot so we have to
              * recall the dense reduction process */
-            if (!k) {
-                /* npc  = tbr[i][0]; */
-                os   = (ncr-npc) % 4;
-                memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
-                for (l = 0, j = npc; l < os; ++l, ++j) {
-                    drl[j]  = (int64_t)tbr[i][l];
-                }
-                for (; j < ncr; l += 4, j += 4) {
-                    drl[j]    = (int64_t)tbr[i][l];
-                    drl[j+1]  = (int64_t)tbr[i][l+1];
-                    drl[j+2]  = (int64_t)tbr[i][l+2];
-                    drl[j+3]  = (int64_t)tbr[i][l+3];
-                }
-                free(tbr[i]);
-                tbr[i] = NULL;
-            }
         } while (!k);
+        if (npc != -1) {
+            npivs++;
+        }
     }
     free(tbr);
     free(dr);
@@ -662,8 +644,6 @@ static cf_t **exact_linear_algebra(
         dt_t **mat
         )
 {
-    len_t i;
-
     /* timings */
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
@@ -676,23 +656,6 @@ static cf_t **exact_linear_algebra(
     if (npivs > 0) {      
         dm  = exact_dense_linear_algebra(dm, npivs);
         dm  = interreduce_dense_matrix(dm);
-        npivs = 0;
-        /* fix npivs for adding rows to basis in the next step */
-        for (i = 0; i < ncr; ++i) {
-            if (dm[i] != NULL) {
-                npivs++;
-            }
-        }
-        /* printf("npivs finally %d\n", npivs);
-         * for (i = 0; i < ncr; ++i) {
-         *     if (dm[i] != NULL) {
-         *         printf("dm[%d]\n", i);
-         *         for (int32_t j = 0; j < ncr-i; ++j) {
-         *             printf("%d\n", dm[i][j]);
-         *         }
-         *         printf("\n");
-         *     }
-         * } */
         if (npivs == 0) {
             free(dm);
             dm  = NULL;

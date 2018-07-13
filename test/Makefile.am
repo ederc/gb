@@ -47,6 +47,8 @@ TESTS = 											\
 	test_pearson_9							\
 	test_katsura_4_lex					\
 	test_katsura_5_lex					\
+	test_katsura_12_drl_17_bit	\
+	test_katsura_13_drl_17_bit	\
 	test_katsura_16							\
 	test_mayr_42
 

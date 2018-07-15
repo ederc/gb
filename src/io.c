@@ -57,6 +57,9 @@ static inline void set_function_pointers(
         case 1:
             linear_algebra  = exact_sparse_dense_linear_algebra;
             break;
+        case 2:
+            linear_algebra  = exact_sparse_linear_algebra;
+            break;
         case 42:
             linear_algebra  = probabilistic_sparse_dense_linear_algebra;
             break;

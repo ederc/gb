@@ -201,7 +201,7 @@ int (*hcm_cmp)(
         );
 
 /* linear algebra routines */
-cf_t **(*linear_algebra)(
+dt_t **(*linear_algebra)(
         dt_t **mat
         );
 

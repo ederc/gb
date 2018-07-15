@@ -157,7 +157,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
     cf_t *cfs;
     const int64_t mod = (int64_t)fc;
 
-    for (i = dpiv; i < ncl; ++i) {
+    for (i = dpiv; i < ncols; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -182,12 +182,14 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
         } else {
             cfs   = tmpcf[dts[0]];
         }
-        /* printf("cfs[%d]: ", dts[0]);
-         * for (j = 3; j < dts[2]; ++j) {
-         *     printf("%d ", cfs[j]);
-         * }
-         * printf("\n");
-         * for (j = 0; j < ncols; ++j) {
+        /* if (i >= ncl) {
+         *     printf("cfs[%d]: ", dts[0]);
+         *     for (j = 3; j < dts[2]; ++j) {
+         *         printf("%d ", cfs[j]);
+         *     }
+         *     printf("\n");
+         * } */
+         /* for (j = 0; j < ncols; ++j) {
          *     printf("%ld ", dr[j]);
          * }
          * printf("\n"); */
@@ -250,7 +252,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
     const int64_t mod   = (int64_t)fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
-    for (i = dpiv; i < ncl; ++i) {
+    for (i = dpiv; i < ncols; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -662,7 +664,14 @@ static cf_t **sparse_reduced_echelon_form(
             if (!npiv) {
                 break;
             }
-            k   = __sync_bool_compare_and_swap(&pivs[npiv[2]], NULL, npiv);
+            /* normalize coefficient array
+             * NOTE: this has to be done here, otherwise the reduction may
+             * lead to wrong results in a parallel computation since other
+             * threads might directly use the new pivot once it is synced. */
+            if (tmpcf[npiv[0]][3] != 1) {
+                normalize_sparse_matrix_row(tmpcf[npiv[0]]);
+            }
+            k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
             cfs = tmpcf[i];
         } while (!k);
     }
@@ -674,8 +683,6 @@ static cf_t **sparse_reduced_echelon_form(
         free(pivs[i]);
         pivs[i] = NULL;
     }
-    free(pivs);
-    pivs  = NULL;
 
     npivs = 0; /* number of new pivots */
 
@@ -705,10 +712,6 @@ static cf_t **sparse_reduced_echelon_form(
             pivs[i] = NULL;
             pivs[i] = mat[npivs++] =
                 reduce_dense_row_by_known_pivots_sparse(dr, pivs, sc, cf_array_pos);
-            /* normalize row if needed */
-            if (tmpcf[pivs[i][0]][0] != 1) {
-                normalize_sparse_matrix_row(tmpcf[pivs[i][0]]);
-            }
         }
     }
     free(pivs);

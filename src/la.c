@@ -1116,8 +1116,6 @@ static cf_t **probabilistic_sparse_dense_echelon_form(
     *matp = mat;
     /* rows already representing new pivots */
     cf_t **nps  = (cf_t **)calloc((unsigned long)ncr, sizeof(cf_t *));
-    /* rows to be further reduced */
-    /* cf_t **tbr  = (cf_t **)calloc((unsigned long)ncl, sizeof(cf_t *)); */
 
     const int64_t mod2  = (int64_t)fc * fc;
 
@@ -1139,7 +1137,6 @@ static cf_t **probabilistic_sparse_dense_echelon_form(
         int64_t *mull = mul + (omp_get_thread_num() * rpb);
         const int32_t nbl   = (int32_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
         const int32_t nrbl  = (int32_t) (nbl - i*rpb);
-        memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
         if (nrbl != 0) {
             dt_t *npiv;
             cf_t *cfs;
@@ -1190,11 +1187,11 @@ static cf_t **probabilistic_sparse_dense_echelon_form(
                     * recall the dense reduction process */
                     if (!k) {
                         memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
-                        os  = (ncols-npc) % 4;
+                        os  = (ncr-npc) % 4;
                         for (l = 0, j = npc+ncl; l < os; ++l, ++j) {
                             drl[j]  = tmp[l];
                         }
-                        for (; j < ncols; l += 4, j += 4) {
+                        for (; l < ncr-npc; l += 4, j += 4) {
                             drl[j]    = tmp[l];
                             drl[j+1]  = tmp[l+1];
                             drl[j+2]  = tmp[l+2];

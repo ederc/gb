@@ -211,6 +211,7 @@ int64_t f4_julia(
         GB_DEBUG(GBDBG, "rght                   %15.3f sec\n", rght_rtime);
     }
     GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
+    GB_DEBUG(GBDBG, "la step1               %15.3f sec\n", step1_rtime);
     GB_DEBUG(GBDBG, "-------------------------------------------------\n");
     GB_DEBUG(GBDBG, "size of basis          %15d\n", (*jl_basis[0]));
     GB_DEBUG(GBDBG, "#terms in basis        %15ld\n",

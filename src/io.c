@@ -70,6 +70,8 @@ static inline void set_function_pointers(
     /* up to 17 bits we can use one modular operation for reducing a row. this works
      * for matrices with #rows <= 54 million */
     if (fc < pow(2, 17)) {
+        reduce_dense_row_by_all_pivots =
+            reduce_dense_row_by_all_pivots_17_bit;
         reduce_dense_row_by_known_pivots =
             reduce_dense_row_by_known_pivots_17_bit;
         reduce_dense_row_by_known_pivots_sparse =
@@ -77,6 +79,8 @@ static inline void set_function_pointers(
         reduce_dense_row_by_dense_new_pivots  =
             reduce_dense_row_by_dense_new_pivots_17_bit;
     } else {
+        reduce_dense_row_by_all_pivots =
+            reduce_dense_row_by_all_pivots_31_bit;
         reduce_dense_row_by_known_pivots =
             reduce_dense_row_by_known_pivots_31_bit;
         reduce_dense_row_by_known_pivots_sparse =

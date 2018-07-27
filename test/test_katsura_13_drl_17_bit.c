@@ -23,7 +23,7 @@ int main(
     const int32_t mon_order         = 0;
     const int32_t nr_threads        = 1;
     const int32_t max_nr_pairs      = 0;
-    const int32_t la_option         = 1;
+    const int32_t la_option         = 2;
     /* const int32_t la_option         = 42; */
     const int32_t reset_hash_table  = 0;
 

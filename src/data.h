@@ -218,11 +218,18 @@ cf_t *(*reduce_dense_row_by_known_pivots_sparse)(
         const dt_t tmp_pos
         );
 
+len_t (*reduce_dense_row_by_all_pivots)(
+        int64_t *dr,
+        cf_t **tbr,
+        dt_t *const *pivs,
+        cf_t *const *dpivs,
+        const len_t pc
+        );
+
 len_t (*reduce_dense_row_by_dense_new_pivots)(
         int64_t *dr,
         cf_t **tbr,
         const len_t pc,
-        const len_t idx,
         cf_t *const *pivs
         );
 

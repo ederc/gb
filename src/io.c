@@ -200,9 +200,6 @@ static void import_julia_data(
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
-    for (i = 0; i < nr_gens; ++i) {
-        printf("import gbdt[%d][0] = %d\n", i, gbdt[i][0]);
-    }
     npivs = nrows = nrall = nr_gens;
     free(e);
 }

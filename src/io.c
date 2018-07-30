@@ -200,6 +200,9 @@ static void import_julia_data(
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
+    for (i = 0; i < nr_gens; ++i) {
+        printf("import gbdt[%d][0] = %d\n", i, gbdt[i][0]);
+    }
     npivs = nrows = nrall = nr_gens;
     free(e);
 }
@@ -247,14 +250,13 @@ static int64_t export_julia_data(
     basis[0]  = (int32_t)nb;
     /* basis[1]  = (int32_t)nb; */
     for (i = 0; i < bload; ++i) {
-        if (gbcf[i][0]) {
+        if (gbcf[gbdt[i][0]][0]) {
             continue;
         } else {
-            /* printf("ctr_lengths %d | %d / %d\n", ctr_lengths, i, bload); */
             /* length of polynomial including this length entry itself */
-            basis[ctr_lengths++]  = (int32_t)((gbcf[i][2]-3) * lterm);
-            for (j = 3; j < gbcf[i][2]; ++j) {
-                basis[ctr_elements++] = (int32_t)gbcf[i][j]; /* coefficient */
+            basis[ctr_lengths++]  = (int32_t)((gbdt[i][2]-3) * lterm);
+            for (j = 3; j < gbdt[i][2]; ++j) {
+                basis[ctr_elements++] = (int32_t)gbcf[gbdt[i][0]][j]; /* coefficient */
                 for (k = 0; k < nvars; ++k) {
                     basis[ctr_elements++] = (int32_t)ev[gbdt[i][j]][k];
                 }

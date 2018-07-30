@@ -1120,7 +1120,7 @@ static cf_t **probabilistic_sparse_dense_echelon_form(
 
     /* reduction process to get all possible pivots, no interreduction here */
 #pragma omp parallel for num_threads(nthrds) \
-    private(i, j, k, l, m) shared(nps, npivs)
+    private(i, j, k, l, m) shared(nps)
     for (i = 0; i < nb; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         int64_t *mull = mul + (omp_get_thread_num() * rpb);
@@ -1292,14 +1292,13 @@ static cf_t **exact_dense_linear_algebra(
 
     /* reduction process to get all possible pivots, no interreduction here */
 #pragma omp parallel for num_threads(nthrds) \
-    private(i, j, k, l) shared(nps, tbr, npivs)
+    private(i, j, k, l) shared(nps, tbr)
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
-        /* printf("tbr[%d] = %p\n", i, tbr[i]); */
         dt_t npc  = 0;
         dt_t os   = 0;
-        cf_t *npiv  = tbr[i];;
+        cf_t *npiv  = tbr[i];
         do {
             os   = (ncr-npc) % 4;
             memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
@@ -1312,7 +1311,6 @@ static cf_t **exact_dense_linear_algebra(
                 drl[j+2]  = (int64_t)npiv[l+2];
                 drl[j+3]  = (int64_t)npiv[l+3];
             }
-            free(npiv);
             npiv = NULL;
             npiv = reduce_dense_row_by_dense_new_pivots(drl, &npc, nps);
             if (npc == -1) {
@@ -1322,6 +1320,173 @@ static cf_t **exact_dense_linear_algebra(
             /* some other thread has already added a pivot so we have to
              * recall the dense reduction process */
         } while (!k);
+    }
+    /* count number of pivots */
+    const len_t os  = ncr % 4;
+    for (i = 0; i < os; ++i) {
+        if (nps[i] != NULL) {
+            npivs++;
+        }
+    }
+    for (; i < ncr; i += 4) {
+        if (nps[i] != NULL) {
+            npivs++;
+        }
+        if (nps[i+1] != NULL) {
+            npivs++;
+        }
+        if (nps[i+2] != NULL) {
+            npivs++;
+        }
+        if (nps[i+3] != NULL) {
+            npivs++;
+        }
+    }
+    free(tbr);
+    free(dr);
+
+    return nps;
+}
+
+static cf_t **probabilistic_dense_linear_algebra(
+        cf_t **dm,
+        const len_t nr
+        )
+{
+    len_t i, j, k, l, m;
+    /* rows already representing new pivots */
+    cf_t **nps  = (cf_t **)calloc((unsigned long)ncr, sizeof(cf_t *));
+    /* rows to be further reduced */
+    cf_t **tbr  = (cf_t **)calloc((unsigned long)nr, sizeof(cf_t *));
+
+    /* separate rows already representing new pivots and rows to
+     * be further reduced by these new pivots */
+    j     = 0;
+    npivs = 0;
+    for (i = 0; i < nr; ++i) {
+        /* printf("dense row[%d] ", i);
+         * for (int32_t p = 0; p < ncr; ++p) {
+         *     printf("%d ", dm[i][p]);
+         * }
+         * printf("\n"); */
+        if (dm[i] != NULL) {
+            k = 0;
+            while (dm[i][k] == 0) {
+                ++k;
+            }
+            /* printf("pc %d -> %p\n", k, nps[k]); */
+            if (nps[k] == NULL) {
+                /* we have a pivot, cut the dense row down to start
+                 * at the first nonzero entry */
+                /* printf("ncr - k = %d - %d\n", ncr, k); */
+                memmove(dm[i], dm[i]+k, (unsigned long)(ncr-k) * sizeof(cf_t));
+                dm[i] = realloc(dm[i], (unsigned long)(ncr-k) * sizeof(cf_t));
+                nps[k] = dm[i];
+                /* printf("nps[%d] = ", k); */
+                if (nps[k][0] != 1) {
+                    nps[k]  = normalize_dense_matrix_row(nps[k], k);
+                }
+                /* npivs++; */
+            } else {
+                /* printf("set tbr[%d]\n", j); */
+                tbr[j++]  = dm[i];
+            }
+        }
+    }
+    free(dm);
+    dm  = NULL;
+
+    const len_t ntr = j;
+    tbr = realloc(tbr, (unsigned long)ntr * sizeof(cf_t *));
+
+    const int64_t mod2  = (int64_t)fc * fc;
+
+    /* compute rows per block */
+    const len_t nb  = (len_t)(floor(sqrt(ntr/3)))+1;
+    const len_t rem = (ntr % nb == 0) ? 0 : 1;
+    const len_t rpb = (ntr / nb) + rem;
+
+    int64_t *dr   = (int64_t *)malloc(
+        (unsigned long)(nthrds * ncols) * sizeof(int64_t));
+    int64_t *mul  = (int64_t *)malloc(
+        (unsigned long)(nthrds * rpb) * sizeof(int64_t));
+
+    /* reduction process to get all possible pivots, no interreduction here */
+#pragma omp parallel for num_threads(nthrds) \
+    private(i, j, k, l) shared(nps, tbr)
+    for (i = 0; i < ntr; ++i) {
+        int64_t *drl  = dr + (omp_get_thread_num() * ncr);
+        int64_t *mull = mul + (omp_get_thread_num() * rpb);
+        const int32_t nbl   = (int32_t) (ntr > (i+1)*rpb ? (i+1)*rpb : ntr);
+        const int32_t nrbl  = (int32_t) (nbl - i*rpb);
+
+        if (nrbl != 0) {
+            dt_t npc;
+            dt_t os;
+            cf_t *tmp;
+            len_t bctr  = 0;
+            while (bctr < nrbl) {
+                npc = 0;
+                os  = ncr % 4;
+
+                /* fill random value array */
+                for (j = 0; j < nrbl; ++j) {
+                    mull[j] = (int64_t)rand() % fc;
+                }
+                /* generate one dense row as random linear combination
+                 * of the rows of the block */
+                memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
+
+                for (k = 0, m = i*rpb; m < nbl; ++k, ++m) {
+                    tmp  = tbr[m];
+                    for (l = 0, j = npc; l < os; ++l, ++j) {
+                        drl[j]  -=  mull[k] * tmp[l];
+                        drl[j]  +=  (drl[j] >> 63) & mod2;
+                    }
+                    for (; j < ncr; l += 4, j += 4) {
+                        drl[j]    -=  mull[k] * tmp[l];
+                        drl[j]    +=  (drl[j] >> 63) & mod2;
+                        drl[j+1]  -=  mull[k] * tmp[l+1];
+                        drl[j+1]  +=  (drl[j+1] >> 63) & mod2;
+                        drl[j+2]  -=  mull[k] * tmp[l+2];
+                        drl[j+2]  +=  (drl[j+2] >> 63) & mod2;
+                        drl[j+3]  -=  mull[k] * tmp[l+3];
+                        drl[j+3]  +=  (drl[j+3] >> 63) & mod2;
+                    }
+                }
+                k   = 0;
+                npc = 0;
+                /* do the reduction */
+                do {
+                    tmp = reduce_dense_row_by_dense_new_pivots(drl, &npc, nps);
+                    if (npc == -1) {
+                        bctr  = nrbl;
+                        break;
+                    }
+                    k = __sync_bool_compare_and_swap(&nps[npc], NULL, tmp);
+                    /* some other thread has already added a pivot so we have to
+                    * recall the dense reduction process */
+                    if (!k) {
+                        memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
+                        os  = (ncr-npc) % 4;
+                        for (l = 0, j = npc+ncl; l < os; ++l, ++j) {
+                            drl[j]  = tmp[l];
+                        }
+                        for (; l < ncr-npc; l += 4, j += 4) {
+                            drl[j]    = tmp[l];
+                            drl[j+1]  = tmp[l+1];
+                            drl[j+2]  = tmp[l+2];
+                            drl[j+3]  = tmp[l+3];
+                        }
+                    }
+                } while (!k);
+                bctr++;
+            }
+            for (j = i*rpb; j < nbl; ++j) {
+                free(tbr[j]);
+                tbr[j]  = NULL;
+            }
+        }
     }
     /* count number of pivots */
     const len_t os  = ncr % 4;
@@ -1470,6 +1635,50 @@ static dt_t **exact_sparse_dense_linear_algebra(
     dm  = sparse_AB_CD_linear_algebra(&mat);
     if (npivs > 0) {      
         dm  = exact_dense_linear_algebra(dm, npivs);
+        dm  = interreduce_dense_matrix(dm);
+    }
+
+    /* convert dense matrix back to sparse matrix representation,
+     * use tmpcf for storing the coefficient arrays */
+    mat = convert_to_sparse_matrix_rows(dm, mat);
+
+    /* free dm */
+    if (dm) {
+        for (i = 0; i < ncr; ++i) {
+            free(dm[i]);
+        }
+        free(dm);
+        dm  = NULL;
+    }
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    la_ctime  +=  ct1 - ct0;
+    la_rtime  +=  rt1 - rt0;
+
+    num_zerored += (nrl - npivs);
+    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+    
+    return mat;
+}
+
+static dt_t **probabilistic_sparse_dense_linear_algebra_2(
+        dt_t **mat
+        )
+{
+    len_t i;
+
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
+
+    /* generate updated dense D part via reduction of CD with AB */
+    cf_t **dm;
+    dm  = sparse_AB_CD_linear_algebra(&mat);
+    if (npivs > 0) {      
+        dm  = probabilistic_dense_linear_algebra(dm, npivs);
         dm  = interreduce_dense_matrix(dm);
     }
 

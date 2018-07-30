@@ -63,6 +63,9 @@ static inline void set_function_pointers(
         case 42:
             linear_algebra  = probabilistic_sparse_dense_linear_algebra;
             break;
+        case 43:
+            linear_algebra  = probabilistic_sparse_dense_linear_algebra_2;
+            break;
         default:
             linear_algebra  = exact_sparse_dense_linear_algebra;
     }

@@ -330,10 +330,6 @@ static len_t reduce_dense_row_by_all_pivots_17_bit(
     len_t np  = -1;
     cf_t *red;
 
-    /* timings */
-    double ct0, ct1, rt0, rt1;
-    ct0 = cputime();
-    rt0 = realtime();
     /* step 1: reduce by sparse known pivots */
     for (i = pc; i < ncl; ++i) {
         if (dr[i] != 0) {
@@ -377,11 +373,6 @@ static len_t reduce_dense_row_by_all_pivots_17_bit(
          * printf("\n---------------------\n"); */
     }
     k = 0;
-    /* timings */
-    ct1 = cputime();
-    rt1 = realtime();
-    step1_ctime  +=  ct1 - ct0;
-    step1_rtime  +=  rt1 - rt0;
     /* step 2: reduce by new dense pivots */
     for (i = ncl; i < ncols; ++i) {
         /* printf("dr[%d] = %ld\n", i, dr[i]); */

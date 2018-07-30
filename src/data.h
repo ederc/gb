@@ -226,10 +226,9 @@ len_t (*reduce_dense_row_by_all_pivots)(
         const len_t pc
         );
 
-len_t (*reduce_dense_row_by_dense_new_pivots)(
+cf_t *(*reduce_dense_row_by_dense_new_pivots)(
         int64_t *dr,
-        cf_t **tbr,
-        const len_t pc,
+        len_t *pc,
         cf_t *const *pivs
         );
 

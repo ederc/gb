@@ -182,13 +182,9 @@ static void convert_sparse_matrix_rows_to_basis_elements(
             mat[i][j+2] = hcm[mat[i][j+2]];
             mat[i][j+3] = hcm[mat[i][j+3]];
         }
-    }
-
-    /* move data to basis */
-    for (i =0; i < npivs; ++i) {
-        gbcf[bl]  = tmpcf[mat[i][0]];
-        mat[i][0] = bl;
-        gbdt[bl]  = mat[i];
+        gbcf[bl+i]  = tmpcf[mat[i][0]];
+        mat[i][0]   = bl+i;
+        gbdt[bl+i]  = mat[i];
         /* printf("new element [%d]\n", bl);
          * for (int32_t p = 3; p < gbcf[bl][2]; ++p) {
          *     printf("%d | ", gbcf[bl][p]);
@@ -198,9 +194,9 @@ static void convert_sparse_matrix_rows_to_basis_elements(
          *     printf(" || ");
          * }
          * printf("\n"); */
-        bl++;
     }
 
+    /* printf("thread %d frees tmpcf %p\n", omp_get_thread_num(), tmpcf); */
     free(tmpcf);
     tmpcf = NULL;
 

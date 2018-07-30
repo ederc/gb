@@ -62,8 +62,6 @@ static void free_basis(
         gbdt  = NULL;
         free(lms);
         lms   = NULL;
-        free(tmpcf);
-        tmpcf = NULL;
         blold = 0;
         bload = 0;
         bsize = 0;

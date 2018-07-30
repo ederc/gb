@@ -21,7 +21,7 @@ int main(
     const int32_t ht_size           = 12;
     const int32_t field_char        = 65521;
     const int32_t mon_order         = 0;
-    const int32_t nr_threads        = 1;
+    const int32_t nr_threads        = 4;
     const int32_t max_nr_pairs      = 2000;
     const int32_t la_option         = 42;
     /* const int32_t la_option         = 42; */

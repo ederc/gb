@@ -40,11 +40,15 @@ TESTS =															\
 	test_cyclic_5_drl_17_bit					\
 	test_cyclic_5_lex_17_bit					\
 	test_cyclic_6_drl_17_bit_la1_t1		\
-	test_cyclic_6_drl_17_bit_la1_t4		\
+	test_cyclic_6_drl_17_bit_la1_t2		\
 	test_cyclic_6_drl_17_bit_la2_t1		\
-	test_cyclic_6_drl_17_bit_la2_t4		\
+	test_cyclic_6_drl_17_bit_la2_t2		\
 	test_cyclic_6_drl_17_bit_la42_t1	\
-	test_cyclic_6_drl_17_bit_la42_t4	\
+	test_cyclic_6_drl_17_bit_la42_t2	\
+	test_cyclic_6_drl_17_bit_la43_t1	\
+	test_cyclic_6_drl_17_bit_la43_t2	\
+	test_cyclic_6_drl_17_bit_la44_t1	\
+	test_cyclic_6_drl_17_bit_la44_t2	\
 	test_ideal_q											\
 	test_cyclic_7											\
 	test_cyclic_9											\

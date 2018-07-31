@@ -55,6 +55,7 @@ TESTS =															\
 	test_katsura_13_drl_17_bit				\
 	test_katsura_16										\
 	test_mayr_42											\
+	test_bayes_148										\
 	test_cyclic_6_lex_17_bit		
 
 XFAIL_TESTS = 											\

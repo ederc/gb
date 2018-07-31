@@ -918,6 +918,7 @@ static cf_t **probabilistic_sparse_reduced_echelon_form(
                     npiv  = reduce_dense_row_by_known_pivots_sparse(
                                 drl, pivs, sc, cfp);
                     if (!npiv) {
+                        bctr  = nrbl;
                         break;
                     }
                     /* normalize coefficient array

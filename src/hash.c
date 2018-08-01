@@ -851,7 +851,7 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  if (eld+poly[2]-3 >= esz) {
+  while (eld+poly[2]-3 >= esz) {
     enlarge_global_hash_table();
   }
   /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */

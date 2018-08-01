@@ -50,6 +50,7 @@ static int64_t num_zerored    = 0;
 static int64_t num_htenl          = 0;
 static int64_t num_sdm_found      = 0;
 static int64_t num_not_sdm_found  = 0;
+
 static double density = 0;
 
 static void initialize_statistics(
@@ -82,5 +83,6 @@ static void initialize_statistics(
   num_htenl         = 0;
   num_sdm_found     = 0;
   num_not_sdm_found = 0;
-  density           = 0;
+
+  density = 0;
 }

@@ -140,6 +140,16 @@ int64_t f4_julia(
          *     printf("\n");
          * } */
         mat = symbolic_preprocessing(mat);
+        /* int32_t *ctr = calloc((unsigned long)bload, sizeof(int32_t));
+         * for (int32_t j = 0; j < nrows; ++j) {
+         *     ctr[mat[j][0]]++;
+         * }
+         * for (int32_t i = 0; i < bload; ++i) {
+         *     printf("basis element %d used %d times\n",
+         *             i, ctr[i]);
+         * }
+         * free(ctr); */
+
         /* exponent hashes mapped to column indices for linear algebra */
         /* printf("first column entries in matrix rows\n");
          * for (int32_t i= 0 ;i < nrows; ++i) {

@@ -18,12 +18,12 @@ int main(
 
     const int32_t nr_vars           = 7;
     const int32_t nr_gens           = 7;
-    const int32_t ht_size           = 14;
+    const int32_t ht_size           = 6;
     /* const int32_t field_char        = 65521; */
     const int32_t field_char        = 2147483647;
     const int32_t mon_order         = 0;
-    const int32_t nr_threads        = 2;
-    const int32_t la_option         = 44;
+    const int32_t nr_threads        = 1;
+    const int32_t la_option         = 2;
     const int32_t max_nr_pairs      = 0;
     const int32_t reset_hash_table  = 0;
 

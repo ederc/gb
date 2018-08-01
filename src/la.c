@@ -152,11 +152,13 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
         const dt_t tmp_pos  /* position of new coeffs array in tmpcf */
         )
 {
-    hl_t i, j;
+    hl_t i, j, k;
     dt_t *dts;
     cf_t *cfs;
+    len_t np  = 0;
     const int64_t mod = (int64_t)fc;
 
+    k = 0;
     for (i = dpiv; i < ncols; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
@@ -166,6 +168,10 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
         }
         /* printf("i %d\n", i); */
         if (pivs[i] == NULL) {
+            if (np == 0) {
+                np  = i;
+            }
+            k++;
             continue;
         }
 
@@ -208,10 +214,13 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
          * }
          * printf("\n----------\n"); */
     }
+    if (k == 0) {
+        return NULL;
+    }
     /* printf("reduction step done\n"); */
 
-    dt_t *dt  = (dt_t *)malloc((unsigned long)(ncr+3) * sizeof(dt_t));
-    cf_t *cf  = (cf_t *)malloc((unsigned long)(ncr+3) * sizeof(cf_t));
+    dt_t *dt  = (dt_t *)malloc((unsigned long)(ncols-np+3) * sizeof(dt_t));
+    cf_t *cf  = (cf_t *)malloc((unsigned long)(ncols-np+3) * sizeof(cf_t));
     j = 3;
     for (i = ncl; i < ncols; ++i) {
         if (dr[i] != 0) {
@@ -248,12 +257,14 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
         const dt_t tmp_pos  /* position of new coeffs array in tmpcf */
         )
 {
-    hl_t i, j;
+    hl_t i, j, k;
     cf_t *cfs;
     dt_t *dts;
+    len_t np  = -1;
     const int64_t mod   = (int64_t)fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
+    k = 0;
     for (i = dpiv; i < ncols; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
@@ -262,6 +273,10 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
             continue;
         }
         if (pivs[i] == NULL) {
+            if (np == -1) {
+                np  = i;
+            }
+            k++;
             continue;
         }
 
@@ -290,8 +305,12 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
         dr[i] = 0;
     }
 
-    dt_t *dt  = (dt_t *)malloc((unsigned long)(ncr+3) * sizeof(dt_t));
-    cf_t *cf  = (cf_t *)malloc((unsigned long)(ncr+3) * sizeof(cf_t));
+    if (k == 0) {
+        return NULL;
+    }
+
+    dt_t *dt  = (dt_t *)malloc((unsigned long)(ncols-np+3) * sizeof(dt_t));
+    cf_t *cf  = (cf_t *)malloc((unsigned long)(ncols-np+3) * sizeof(cf_t));
     j = 3;
     for (i = ncl; i < ncols; ++i) {
         if (dr[i] != 0) {
@@ -1706,58 +1725,6 @@ static cf_t **probabilistic_dense_linear_algebra(
     return nps;
 }
 
-static dt_t **probabilistic_sparse_linear_algebra(
-        dt_t **mat
-        )
-{
-    /* timings */
-    double ct0, ct1, rt0, rt1;
-    ct0 = cputime();
-    rt0 = realtime();
-
-    /* allocate temporary storage space for sparse
-     * coefficients of new pivot rows */
-    tmpcf = realloc(tmpcf, (unsigned long)nrl * sizeof(cf_t *));
-    mat   = probabilistic_sparse_reduced_echelon_form(mat);
-
-    /* timings */
-    ct1 = cputime();
-    rt1 = realtime();
-    la_ctime  +=  ct1 - ct0;
-    la_rtime  +=  rt1 - rt0;
-
-    num_zerored += (nrl - npivs);
-    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
-    
-    return mat;
-}
-
-static dt_t **exact_sparse_linear_algebra(
-        dt_t **mat
-        )
-{
-    /* timings */
-    double ct0, ct1, rt0, rt1;
-    ct0 = cputime();
-    rt0 = realtime();
-
-    /* allocate temporary storage space for sparse
-     * coefficients of new pivot rows */
-    tmpcf = realloc(tmpcf, (unsigned long)nrl * sizeof(cf_t *));
-    mat   = exact_sparse_reduced_echelon_form(mat);
-
-    /* timings */
-    ct1 = cputime();
-    rt1 = realtime();
-    la_ctime  +=  ct1 - ct0;
-    la_rtime  +=  rt1 - rt0;
-
-    num_zerored += (nrl - npivs);
-    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
-    
-    return mat;
-}
-
 static dt_t **convert_to_sparse_matrix_rows(
         cf_t * const *dm,
         dt_t **mat
@@ -1836,6 +1803,58 @@ static dt_t **convert_to_sparse_matrix_rows(
  * the same for both. this generates a dense D' part which is then
  * either reduced via exact linear algebra or via probabilistic
  * linear algebra */
+static dt_t **probabilistic_sparse_linear_algebra(
+        dt_t **mat
+        )
+{
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
+
+    /* allocate temporary storage space for sparse
+     * coefficients of new pivot rows */
+    tmpcf = realloc(tmpcf, (unsigned long)nrl * sizeof(cf_t *));
+    mat   = probabilistic_sparse_reduced_echelon_form(mat);
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    la_ctime  +=  ct1 - ct0;
+    la_rtime  +=  rt1 - rt0;
+
+    num_zerored += (nrl - npivs);
+    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+    
+    return mat;
+}
+
+static dt_t **exact_sparse_linear_algebra(
+        dt_t **mat
+        )
+{
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
+
+    /* allocate temporary storage space for sparse
+     * coefficients of new pivot rows */
+    tmpcf = realloc(tmpcf, (unsigned long)nrl * sizeof(cf_t *));
+    mat   = exact_sparse_reduced_echelon_form(mat);
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    la_ctime  +=  ct1 - ct0;
+    la_rtime  +=  rt1 - rt0;
+
+    num_zerored += (nrl - npivs);
+    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+    
+    return mat;
+}
+
 static dt_t **exact_sparse_dense_linear_algebra(
         dt_t **mat
         )

@@ -199,8 +199,6 @@ static void insert_and_update_spairs(
         pload       =   j;
 
         /* mark redundant elements in basis */
-        double rrt0, rrt1;
-        rrt0 = realtime();
         for (i = 0; i < bl; ++i) {
             if (gbcf[i][0]) {
                 continue;
@@ -212,15 +210,6 @@ static void insert_and_update_spairs(
             }
         }
         bload++;
-        rrt1 = realtime();
-        update1_rtime  +=  rrt1 - rrt0;
-        /* printf("lms:\n");
-         * for (j = 0; j < bload; ++j) {
-         *   for (i = 0; i < LM_LEN; ++i) {
-         *     printf("%d ", lms[j*LM_LEN+i]);
-         *   }
-         * }
-         * printf("\n"); */
     }
 
     static void update_basis(

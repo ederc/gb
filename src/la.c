@@ -1824,8 +1824,10 @@ static dt_t **probabilistic_sparse_linear_algebra(
     la_rtime  +=  rt1 - rt0;
 
     num_zerored += (nrl - npivs);
-    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
-    
+    if (il > 1) {
+        printf("%7d new %7d zero", npivs, nrl-npivs);
+        fflush(stdout);
+    }
     return mat;
 }
 
@@ -1850,7 +1852,10 @@ static dt_t **exact_sparse_linear_algebra(
     la_rtime  +=  rt1 - rt0;
 
     num_zerored += (nrl - npivs);
-    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+    if (il > 1) {
+        printf("%7d new %7d zero", npivs, nrl-npivs);
+        fflush(stdout);
+    }
     
     return mat;
 }
@@ -1894,7 +1899,10 @@ static dt_t **exact_sparse_dense_linear_algebra(
     la_rtime  +=  rt1 - rt0;
 
     num_zerored += (nrl - npivs);
-    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+    if (il > 1) {
+        printf("%7d new %7d zero", npivs, nrl-npivs);
+        fflush(stdout);
+    }
     
     return mat;
 }
@@ -1938,7 +1946,10 @@ static dt_t **probabilistic_sparse_dense_linear_algebra_2(
     la_rtime  +=  rt1 - rt0;
 
     num_zerored += (nrl - npivs);
-    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+    if (il > 1) {
+        printf("%7d new %7d zero", npivs, nrl-npivs);
+        fflush(stdout);
+    }
     
     return mat;
 }
@@ -1980,7 +1991,10 @@ static dt_t **probabilistic_sparse_dense_linear_algebra(
     la_rtime  +=  rt1 - rt0;
 
     num_zerored += (nrl - npivs);
-    GB_DEBUG(LADBG, "%7d new %7d zero - %9.3f sec", npivs, nrl-npivs, rt1-rt0);
+    if (il > 1) {
+        printf("%7d new %7d zero", npivs, nrl-npivs);
+        fflush(stdout);
+    }
     
     return mat;
 }

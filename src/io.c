@@ -108,7 +108,8 @@ static inline int32_t check_and_set_meta_data(
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
-        const int32_t la_option
+        const int32_t la_option,
+        const int32_t info_level
         )
 {
     if (nr_gens <= 0
@@ -133,6 +134,13 @@ static inline int32_t check_and_set_meta_data(
     htes  = ht_size;
     if (htes <= 0) {
         htes  = 12;
+    }
+    il  = info_level;
+    if (il < 0) {
+        il = 0;
+    }
+    if (il > 2) {
+        il = 2;
     }
 
     /* set number of threads */

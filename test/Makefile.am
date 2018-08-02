@@ -33,7 +33,6 @@ TESTS =															\
 	test_julia_io											\
 	test_pairset_update								\
 	test_select_spairs								\
-	test_f4														\
 	test_cyclic_4_drl_17_bit					\
 	test_cyclic_4_drl_31_bit					\
 	test_cyclic_4_lex_17_bit					\

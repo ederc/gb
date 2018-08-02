@@ -86,6 +86,8 @@ static len_t nvars  = 0; /* number of variables */
 static len_t bpv    = 0; /* bits per variable in divmask */
 static len_t ndvars = 0; /* number of variables for divmask */
 
+static int il       = 0; /* info level for printed output */
+
 /* random values for generating hash values */
 static val_t *rv  = NULL;
 
@@ -248,6 +250,7 @@ int64_t f4_julia(
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
-        const int32_t la_option
+        const int32_t la_option,
+        const int32_t info_level
         );
 #endif

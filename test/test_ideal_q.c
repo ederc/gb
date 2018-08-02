@@ -24,14 +24,15 @@ int main(
     const int32_t mon_order         = 0;
     const int32_t nr_threads        = 1;
     const int32_t max_nr_pairs      = 1000;
-    const int32_t la_option         = 42;
+    const int32_t info_level				=	2;
+		const int32_t la_option         = 42;
     const int32_t reset_hash_table  = 0;
 
     int32_t **basis = (int32_t **)malloc(sizeof(int32_t *));
     int64_t len     = f4_julia(
             basis, lens, cfs, exps, field_char, mon_order, nr_vars,
             nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
-            la_option);
+            la_option, info_level);
 
     free(*basis);
     free(basis);

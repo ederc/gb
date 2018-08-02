@@ -44,11 +44,13 @@ int64_t f4_julia(
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
-        const int32_t la_option
+        const int32_t la_option,
+        const int32_t info_level
         )
 {
     /* timings */
     double ct0, ct1, rt0, rt1;
+    double rct0, rct1, rrt0, rrt1; /* for one round only */
     ct0 = cputime();
     rt0 = realtime();
 
@@ -62,32 +64,35 @@ int64_t f4_julia(
      * some of the input data is corrupted. */
     if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
-                la_option)) {
+                la_option, info_level)) {
         return 0;
     }
 
     /* initialize stuff */
     initialize_statistics();
-    GB_DEBUG(GBDBG, "-------------------------------------------------\n");
-    GB_DEBUG(GBDBG, "#variables             %15d\n", nvars);
-    GB_DEBUG(GBDBG, "#equations             %15d\n", nr_gens);
-    GB_DEBUG(GBDBG, "field characteristic   %15d\n", fc);
-    if (mo == 0) {
-        GB_DEBUG(GBDBG, "monomial order                     DRL\n");
+    if (il > 0) {
+        printf("\n--------------- INPUT DATA ---------------\n");
+        printf("#variables             %11d\n", nvars);
+        printf("#equations             %11d\n", nr_gens);
+        printf("field characteristic   %11d\n", fc);
+        if (mo == 0) {
+            printf("monomial order                 DRL\n");
+        }
+        if (mo == 1) {
+            printf("monomial order                 LEX\n");
+        }
+        if ((mo != 0) && (mo != 1)) {
+            printf("monomial order           DONT KNOW\n");
+        }
+        printf("linear algebra option  %11d\n", laopt);
+        printf("intial hash table size %11d (2^%d)\n",
+                (int32_t)pow(2,htes), htes);
+        printf("reset hash table after %11d step(s)\n", rght);
+        printf("max pair selection     %11d\n", mnsel);
+        printf("#threads               %11d\n", nthrds);
+        printf("info level             %11d\n", il);
+        printf("------------------------------------------\n");
     }
-    if (mo == 1) {
-        GB_DEBUG(GBDBG, "monomial order                     LEX\n");
-    }
-    if ((mo != 0) && (mo != 1)) {
-        GB_DEBUG(GBDBG, "monomial order               DONT KNOW\n");
-    }
-    GB_DEBUG(GBDBG, "linear algebra option  %15d\n", laopt);
-    GB_DEBUG(GBDBG, "intial hash table size %15d (2^%d)\n",
-            (int32_t)pow(2,htes), htes);
-    GB_DEBUG(GBDBG, "reset global hash table %14d\n", rght);
-    GB_DEBUG(GBDBG, "maximal pair selection %15d\n", mnsel);
-    GB_DEBUG(GBDBG, "#threads               %15d\n", nthrds);
-    GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
     initialize_basis(nr_gens);
     initialize_pairset();
@@ -123,12 +128,20 @@ int64_t f4_julia(
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
     last_reset  = 0;
+    if (il > 1) {
+        printf("\ndeg     sel   pairs        mat          density \
+           new data            time(rd)\n");
+        printf("-------------------------------------------------\
+----------------------------------------\n");
+    }
     for (round = 0; pload > 0; ++round) {
+        rct0 = cputime();
+        rrt0 = realtime();
+
         if (round - last_reset == rght) {
             last_reset  = round;
             reset_global_hash_table(); 
         }
-        GB_DEBUG(GBDBG, "%3d", round);
 
         /* preprocess data for next reduction round */
         mat = select_spairs_by_minimal_degree(mat);
@@ -199,8 +212,17 @@ int64_t f4_julia(
         mat = NULL;
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
         update_basis();
+    
 
-        GB_DEBUG(GBDBG, "\n");
+        rct1 = cputime();
+        rrt1 = realtime();
+        if (il > 1) {
+            printf("%13.3f sec\n", rrt1-rrt0);
+        }
+    }
+    if (il > 1) {
+        printf("-------------------------------------------------\
+----------------------------------------\n");
     }
 
     int64_t len = export_julia_data(jl_basis);
@@ -208,37 +230,42 @@ int64_t f4_julia(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    GB_DEBUG(GBDBG, "-------------------------------------------------\n");
-    GB_DEBUG(GBDBG, "overall                %15.3f sec\n", rt1-rt0);
-    GB_DEBUG(GBDBG, "overall(cpu)           %15.3f sec\n", ct1-ct0);
-    GB_DEBUG(GBDBG, "select                 %15.3f sec\n", select_rtime);
-    GB_DEBUG(GBDBG, "pair sort              %15.3f sec\n", pair_sort_rtime);
-    GB_DEBUG(GBDBG, "symbol                 %15.3f sec\n", symbol_rtime);
-    GB_DEBUG(GBDBG, "update                 %15.3f sec\n", update_rtime);
-    GB_DEBUG(GBDBG, "update1                %15.3f sec\n", update1_rtime);
-    GB_DEBUG(GBDBG, "convert                %15.3f sec\n", convert_rtime);
-    if (rght != 0) {
-        GB_DEBUG(GBDBG, "rght                   %15.3f sec\n", rght_rtime);
+    if (il > 0) {
+        printf("\n---------------- TIMINGS ---------------\n");
+        printf("overall      %15.3f sec\n", rt1-rt0);
+        printf("overall(cpu) %15.3f sec\n", ct1-ct0);
+        printf("select       %15.3f sec %5.1f%%\n",
+                select_rtime, (double)100*(double)select_rtime / (double)(rt1-rt0));
+        printf("symbol       %15.3f sec %5.1f%%\n",
+                symbol_rtime, (double)100*(double)symbol_rtime / (double)(rt1-rt0));
+        printf("update       %15.3f sec %5.1f%%\n",
+                update_rtime, (double)100*(double)update_rtime / (double)(rt1-rt0));
+        printf("convert      %15.3f sec %5.1f%%\n",
+                convert_rtime, (double)100*(double)convert_rtime / (double)(rt1-rt0));
+        printf("rght         %15.3f sec %5.1f%%\n",
+                rght_rtime, (double)100*(double)rght_rtime / (double)(rt1-rt0));
+        printf("la           %15.3f sec %5.1f%%\n",
+                la_rtime, (double)100*(double)la_rtime / (double)(rt1-rt0));
+        printf("-----------------------------------------\n");
+        printf("\n---------- COMPUTATIONAL DATA -----------\n");
+        printf("size of basis      %9d\n", (*jl_basis[0]));
+        printf("#terms in basis    %9ld\n",
+                (len-(*jl_basis)[0]-1)/(1+nvars));
+        printf("#pairs reduced     %9ld\n", num_pairsred);
+        printf("#GM criterion      %9ld\n", num_gb_crit);
+        printf("#redundant         %9ld\n", num_redundant);
+        printf("#rows reduced      %9ld\n", num_rowsred);
+        printf("#zero reductions   %9ld\n", num_zerored);
+        printf("#global hash table %9d <= 2^%d\n",
+                eld, (int32_t)((ceil(log(eld)/log(2)))));
+        printf("#local hash table  %9d <= 2^%d\n",
+                elld, (int32_t)(ceil(log(elld)/log(2))));
+        printf("#ht enlargements   %9ld\n", num_htenl);
+        printf("#no reducer found  %9ld\n", num_sdm_found + num_not_sdm_found);
+        printf("sdm findings       %8.3f%% \n",
+                (double)100*(double)num_sdm_found/(double)(num_sdm_found + num_not_sdm_found));
+        printf("-----------------------------------------\n\n");
     }
-    GB_DEBUG(GBDBG, "la                     %15.3f sec\n", la_rtime);
-    GB_DEBUG(GBDBG, "-------------------------------------------------\n");
-    GB_DEBUG(GBDBG, "size of basis          %15d\n", (*jl_basis[0]));
-    GB_DEBUG(GBDBG, "#terms in basis        %15ld\n",
-            (len-(*jl_basis)[0]-1)/(1+nvars));
-    GB_DEBUG(GBDBG, "#pairs reduced         %15ld\n", num_pairsred);
-    GB_DEBUG(GBDBG, "#GM criterion          %15ld\n", num_gb_crit);
-    GB_DEBUG(GBDBG, "#redundant             %15ld\n", num_redundant);
-    GB_DEBUG(GBDBG, "#rows reduced          %15ld\n", num_rowsred);
-    GB_DEBUG(GBDBG, "#zero reductions       %15ld\n", num_zerored);
-    GB_DEBUG(GBDBG, "global hash table load %15d <= 2^%d\n",
-            eld, (int32_t)((ceil(log(eld)/log(2)))));
-    GB_DEBUG(GBDBG, "local hash table load  %15d <= 2^%d\n",
-            elld, (int32_t)(ceil(log(elld)/log(2))));
-    GB_DEBUG(GBDBG, "#ht enlargements       %15ld\n", num_htenl);
-    GB_DEBUG(GBDBG, "#no reducer found      %15ld\n", num_sdm_found + num_not_sdm_found);
-    GB_DEBUG(GBDBG, "sdm findings           %14.3f%% \n",
-            (double)100*(double)num_sdm_found/(double)(num_sdm_found + num_not_sdm_found));
-    GB_DEBUG(GBDBG, "-------------------------------------------------\n");
 
     /* free and clean up */
     free_local_hash_table();

@@ -35,15 +35,12 @@ static dt_t **select_spairs_by_minimal_degree(
     exp_t *elcm, *eb;
 
     /* timings */
-    double ct0, ct1, rt0, rt1, rrt0, rrt1;
+    double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
 
     /* sort pair set */
-    rrt0 = realtime();
     qsort(ps, (unsigned long)pload, sizeof(spair_t), spair_cmp);
-    rrt1 = realtime();
-    pair_sort_rtime +=  rrt1 - rrt0;
     /* get minimal degree */
     md  = hd[ps[0].lcm].deg;
 
@@ -63,7 +60,10 @@ static dt_t **select_spairs_by_minimal_degree(
         }
         npairs = j;
     }
-    GB_DEBUG(SELDBG, " %6d/%6d pairs - deg %2d", npairs, pload, md);
+    if (il > 1) {
+        printf("%3d  %6d %7d", md, npairs, pload);
+        fflush(stdout);
+    }
     /* statistics */
     num_pairsred  +=  npairs;
     /* printf("npairs %d\n", npairs); */

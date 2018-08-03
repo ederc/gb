@@ -105,6 +105,8 @@ static hl_t *convert_hashes_to_columns(
     nrl = nrows - nru;
     ncr = j - ncl;
 
+    st->num_rowsred     +=  nrl;
+
     /* store the other direction (hash -> column) in HASH_IND */
     for (i = 0; i < j; ++i) {
         hd[hcm[i]].idx  = i;

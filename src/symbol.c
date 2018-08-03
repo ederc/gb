@@ -29,11 +29,9 @@ static dt_t **select_spairs_by_minimal_degree_test(
 {
     len_t i, j, k, l, md, npairs;
     dt_t *b;
-    deg_t d = 0;
-    hl_t lcm  = -1;
-    len_t load = 0, load_old = 0;
-    len_t *gens;
     exp_t *elcm, *eb;
+    deg_t d   = 0;
+    hl_t lcm  = -1;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -97,6 +95,8 @@ static dt_t **select_spairs_by_minimal_degree_test(
     ncols = ncl = ncr = 0;
     nrows = 0;
 
+    st->num_duplicates  +=  0;
+
     for (i = 0; i < k; i += 2) {
         if (lcm != s[i]) {
             ncols++;
@@ -125,9 +125,6 @@ static dt_t **select_spairs_by_minimal_degree_test(
         nrows++;
     }
     free(s);
-
-    st->num_duplicates  +=  0;
-    st->num_rowsred     +=  load;
 
     /* remove selected spairs from pairset */
     for (j = npairs; j < pload; ++j) {
@@ -274,6 +271,48 @@ static dt_t **select_spairs_by_minimal_degree(
     return mat;
 }
 
+static inline dt_t *find_multiplied_reducer_test(
+        const dt_t m
+        )
+{
+    len_t i, k;
+    deg_t d = 0;
+    dt_t *b;
+    const exp_t * const e  = ev[m];
+    exp_t *f;
+
+    const len_t bl  = bload;
+    i = hd[m].div;
+
+    const sdm_t ns  = ~hd[m].sdm;
+again:
+    for (; i < bl; ++i) {
+        if (lms[i] & ns) {
+            /* st->num_sdm_found++; */
+            continue;
+        }
+        b = gbdt[i];
+        f = ev[b[3]];
+        for (k = 0; k < nvars; ++k) {
+            etmp[k] = e[k] - f[k];
+            if (etmp[k] < 0) {
+                i++;
+                goto again;
+            }
+        }
+        const hl_t h  = hd[m].val - hd[b[3]].val;
+        for (k = 0; k < nvars; ++k) {
+            d += etmp[k];
+        }
+        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+        hd[m].div = i;
+        return b;
+    }
+    hd[m].div = i;
+    /* st->num_not_sdm_found++; */
+    return NULL;
+}
+
 static inline dt_t *find_multiplied_reducer(
         const dt_t m,
         stat_t *st
@@ -399,7 +438,7 @@ static dt_t **symbolic_preprocessing(
             if (!hd[m].idx) {
                 hd[m].idx = 1;
                 ncols++;
-                red = find_multiplied_reducer(m, st);
+                red = find_multiplied_reducer_test(m);
                 if (red) {
                     /* printf("hd.idx = 2 for ");
                      * for (int32_t k = 0; k < nvars; ++k) {

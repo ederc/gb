@@ -134,7 +134,7 @@ int64_t f4_julia(
         }
 
         /* preprocess data for next reduction round */
-        mat = select_spairs_by_minimal_degree_test(mat, st);
+        mat = select_spairs_by_minimal_degree(mat, st);
         mat = symbolic_preprocessing(mat, st);
         hcm = convert_hashes_to_columns(mat, st);
         mat = sort_matrix_rows(mat);

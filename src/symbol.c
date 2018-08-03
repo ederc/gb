@@ -22,126 +22,6 @@
 
 #include "data.h"
 
-static dt_t **select_spairs_by_minimal_degree_test(
-        dt_t **mat,
-        stat_t *st
-        )
-{
-    len_t i, j, k, l, md, npairs;
-    dt_t *b;
-    exp_t *elcm, *eb;
-    deg_t d   = 0;
-    hl_t lcm  = -1;
-
-    /* timings */
-    double ct0, ct1, rt0, rt1;
-    ct0 = cputime();
-    rt0 = realtime();
-
-    /* sort pair set */
-    qsort(ps, (unsigned long)pload, sizeof(spair_t), spair_cmp);
-    /* get minimal degree */
-    md  = hd[ps[0].lcm].deg;
-
-    /* select pairs of this degree respecting maximal selection size mnsel */
-    for (i = 0; i < pload; ++i) {
-        if (hd[ps[i].lcm].deg > md || i >= mnsel) {
-            break;
-        }
-    }
-    npairs  = i;
-    /* if we stopped due to maximal selection size we still get the following
-     * pairs of the same lcm in this matrix */
-    if (i > mnsel) {
-        j = i+1;
-        while (ps[j].lcm == ps[i].lcm) {
-            ++j;
-        }
-        npairs = j;
-    }
-    if (il > 1) {
-        printf("%3d  %6d %7d", md, npairs, pload);
-        fflush(stdout);
-    }
-    /* statistics */
-    st->num_pairsred  +=  npairs;
-    /* printf("npairs %d\n", npairs); */
-
-    int32_t *s  = (int32_t *)malloc(
-            4 * (unsigned long)npairs * sizeof(int32_t));
-    
-    for (j = 0, i = 0; i < npairs; ++i) {
-        s[j++]  = ps[i].lcm;
-        s[j++]  = ps[i].gen1;
-        s[j++]  = ps[i].lcm;
-        s[j++]  = ps[i].gen2;
-    }
-
-    for (k = 0, i = 0; i < 4*npairs; i += 2) {
-        for (j = 0; j < k; j += 2) {
-            if (s[i] == s[j] && s[i+1] == s[j+1]) {
-                break;
-            }
-        }
-        if (j == k) {
-            s[k++] = s[i];
-            s[k++] = s[i+1];
-        }
-    }
-    l   = k/2;
-
-    mat = (dt_t **)malloc((unsigned long)l * sizeof(dt_t *));
-    nrall = l;
-    ncols = ncl = ncr = 0;
-    nrows = 0;
-
-    st->num_duplicates  +=  0;
-
-    for (i = 0; i < k; i += 2) {
-        if (lcm != s[i]) {
-            ncols++;
-        }
-        lcm = s[i];
-        /* ev might change when enlarging the hash table during insertion of a new
-            * row in the matrix, thus we have to reset elcm inside the for loop */
-        elcm  = ev[s[i]];
-        d = 0;
-        b = gbdt[s[i+1]];
-        /* b = (hl_t *)((long)bs[gens[k]] & bmask); */
-        eb  = ev[b[3]];
-        /* m = monomial_division_no_check(lcm, b[2]); */
-        for (l = 0; l < nvars; ++l) {
-            etmp[l] = elcm[l] - eb[l];
-            d     +=  etmp[l];
-        }
-        const hl_t h  = hd[s[i]].val - hd[b[3]].val;
-        mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        /* for (int32_t p = 0; p < mat[nrows][2]; ++p) {
-         *     printf("%d ", mat[nrows][p]);
-         * }
-         * printf("\n"); */
-        /* mark lcm column as lead term column */
-        hd[mat[nrows][3]].idx = 2;
-        nrows++;
-    }
-    free(s);
-
-    /* remove selected spairs from pairset */
-    for (j = npairs; j < pload; ++j) {
-        ps[j-npairs]  = ps[j];
-    }
-    pload = pload - npairs;
-
-    /* timings */
-    ct1 = cputime();
-    rt1 = realtime();
-    st->select_ctime  +=  ct1 - ct0;
-    st->select_rtime  +=  rt1 - rt0;
-
-    return mat;
-
-}
-
 static dt_t **select_spairs_by_minimal_degree(
         dt_t **mat,
         stat_t *st
@@ -271,51 +151,8 @@ static dt_t **select_spairs_by_minimal_degree(
     return mat;
 }
 
-static inline dt_t *find_multiplied_reducer_test(
-        const dt_t m
-        )
-{
-    len_t i, k;
-    deg_t d = 0;
-    dt_t *b;
-    const exp_t * const e  = ev[m];
-    exp_t *f;
-
-    const len_t bl  = bload;
-    i = hd[m].div;
-
-    const sdm_t ns  = ~hd[m].sdm;
-again:
-    for (; i < bl; ++i) {
-        if (lms[i] & ns) {
-            /* st->num_sdm_found++; */
-            continue;
-        }
-        b = gbdt[i];
-        f = ev[b[3]];
-        for (k = 0; k < nvars; ++k) {
-            etmp[k] = e[k] - f[k];
-            if (etmp[k] < 0) {
-                i++;
-                goto again;
-            }
-        }
-        const hl_t h  = hd[m].val - hd[b[3]].val;
-        for (k = 0; k < nvars; ++k) {
-            d += etmp[k];
-        }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hd[m].div = i;
-        return b;
-    }
-    hd[m].div = i;
-    /* st->num_not_sdm_found++; */
-    return NULL;
-}
-
 static inline dt_t *find_multiplied_reducer(
-        const dt_t m,
-        stat_t *st
+        const dt_t m
         )
 {
     len_t i, k;
@@ -335,7 +172,6 @@ start:
                 lms[i+1] & ns &&
                 lms[i+2] & ns &&
                 lms[i+3] & ns) {
-            st->num_sdm_found +=  4;
             i +=  4;
             continue;
         }
@@ -368,7 +204,6 @@ start:
 start2:
     while (i < bl) {
         if (lms[i] & ns) {
-            st->num_sdm_found++;
             i++;
             continue;
         }
@@ -396,7 +231,6 @@ start2:
         return b;
     }
     hd[m].div = i;
-    st->num_not_sdm_found++;
     return NULL;
 }
 
@@ -438,7 +272,7 @@ static dt_t **symbolic_preprocessing(
             if (!hd[m].idx) {
                 hd[m].idx = 1;
                 ncols++;
-                red = find_multiplied_reducer_test(m);
+                red = find_multiplied_reducer(m);
                 if (red) {
                     /* printf("hd.idx = 2 for ");
                      * for (int32_t k = 0; k < nvars; ++k) {

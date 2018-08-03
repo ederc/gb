@@ -245,7 +245,6 @@ static void enlarge_global_hash_table(
       break;
     }
   }
-  num_htenl++;
 }
 
 static inline sdm_t generate_short_divmask(
@@ -665,7 +664,7 @@ static inline hl_t insert_in_global_hash_table_product(
 }
 
 static void reset_global_hash_table(
-    void
+    stat_t *st
     )
 {
   /* timings */
@@ -727,8 +726,8 @@ static void reset_global_hash_table(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  rght_ctime  +=  ct1 - ct0;
-  rght_rtime  +=  rt1 - rt0;
+  st->rght_ctime  +=  ct1 - ct0;
+  st->rght_rtime  +=  rt1 - rt0;
 }
 
 /* we can check equality of lcm and multiplication of two monomials

@@ -57,7 +57,7 @@ static void free_pairset(
 }
 
 static void insert_and_update_spairs(
-        void
+        stat_t *st
         )
 {
     len_t i, j, k, l;
@@ -93,7 +93,7 @@ static void insert_and_update_spairs(
             ps[pl].lcm  = get_lcm(gbdt[i][3], nch);
             ps[pl].lcm  = insert_in_global_hash_table(evl[ps[pl].lcm]);
             gbcf[bl][0] = 1;
-            num_redundant++;
+            st->num_redundant++;
             bload++;
             pload++;
             return;
@@ -195,7 +195,7 @@ static void insert_and_update_spairs(
             ps[j++]   = pp[i];
         }
         free(plcm);
-        num_gb_crit +=  nl - j;
+        st->num_gb_crit +=  nl - j;
         pload       =   j;
 
         /* mark redundant elements in basis */
@@ -206,14 +206,14 @@ static void insert_and_update_spairs(
             if (check_monomial_division(gbdt[i][3], nch)) {
                 /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
                 gbcf[i][0]  = 1;
-                num_redundant++;
+                st->num_redundant++;
             }
         }
         bload++;
     }
 
     static void update_basis(
-            void
+            stat_t *st 
             )
     {
         len_t i;
@@ -233,7 +233,7 @@ static void insert_and_update_spairs(
         check_enlarge_pairset(np);
 
         for (i = 0; i < npivs; ++i) {
-            insert_and_update_spairs();
+            insert_and_update_spairs(st);
         }
 
         blold = bload;
@@ -241,6 +241,6 @@ static void insert_and_update_spairs(
         /* timings */
         ct1 = cputime();
         rt1 = realtime();
-        update_ctime  +=  ct1 - ct0;
-        update_rtime  +=  rt1 - rt0;
+        st->update_ctime  +=  ct1 - ct0;
+        st->update_rtime  +=  rt1 - rt0;
     }

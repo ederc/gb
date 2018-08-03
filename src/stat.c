@@ -20,67 +20,41 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include <stdint.h>
+#include "data.h"
 
-static double round_ctime   = 0;
-static double rght_ctime    = 0;
-static double select_ctime  = 0;
-static double symbol_ctime  = 0;
-static double la_ctime      = 0;
-static double update_ctime  = 0;
-static double convert_ctime = 0;
 
-static double round_rtime   = 0;
-static double rght_rtime    = 0;
-static double select_rtime  = 0;
-static double symbol_rtime  = 0;
-static double la_rtime      = 0;
-static double update_rtime  = 0;
-static double convert_rtime = 0;
-
-static int64_t num_pairsred   = 0;
-static int64_t num_gb_crit    = 0;
-static int64_t num_redundant  = 0;
-static int64_t num_duplicates = 0;
-static int64_t num_rowsred    = 0;
-static int64_t num_zerored    = 0;
-
-static int64_t num_htenl          = 0;
-static int64_t num_sdm_found      = 0;
-static int64_t num_not_sdm_found  = 0;
-
-static double density = 0;
-
-static void initialize_statistics(
+static stat_t *initialize_statistics(
     void
     )
 {
-    round_ctime   = 0;
-    rght_ctime    = 0;
-	  select_ctime  = 0;
-    symbol_ctime  = 0;
-    la_ctime      = 0;
-    update_ctime  = 0;
-    convert_ctime = 0;
+    stat_t *st  = (stat_t *)malloc(sizeof(stat_t));
 
-    round_rtime   = 0;
-    rght_rtime    = 0;
-    select_rtime  = 0;
-    symbol_rtime  = 0;
-    la_rtime      = 0;
-    update_rtime  = 0;
-    convert_rtime = 0;
+    st->round_ctime   = 0;
+    st->rght_ctime    = 0;
+	  st->select_ctime  = 0;
+    st->symbol_ctime  = 0;
+    st->la_ctime      = 0;
+    st->update_ctime  = 0;
+    st->convert_ctime = 0;
 
-    num_pairsred    = 0;
-    num_gb_crit     = 0;
-    num_redundant   = 0;
-    num_duplicates  = 0;
-    num_rowsred     = 0;
-    num_zerored     = 0;
+    st->round_rtime   = 0;
+    st->rght_rtime    = 0;
+    st->select_rtime  = 0;
+    st->symbol_rtime  = 0;
+    st->la_rtime      = 0;
+    st->update_rtime  = 0;
+    st->convert_rtime = 0;
 
-    num_htenl         = 0;
-    num_sdm_found     = 0;
-    num_not_sdm_found = 0;
+    st->num_pairsred    = 0;
+    st->num_gb_crit     = 0;
+    st->num_redundant   = 0;
+    st->num_duplicates  = 0;
+    st->num_rowsred     = 0;
+    st->num_zerored     = 0;
 
-    density = 0;
+    st->max_ht_size       = 0;
+    st->num_sdm_found     = 0;
+    st->num_not_sdm_found = 0;
+
+    return st;
 }

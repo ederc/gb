@@ -86,7 +86,37 @@ static len_t nvars  = 0; /* number of variables */
 static len_t bpv    = 0; /* bits per variable in divmask */
 static len_t ndvars = 0; /* number of variables for divmask */
 
+/* statistic stuff */
 static int il       = 0; /* info level for printed output */
+typedef struct stat_t stat_t;
+struct stat_t
+{
+    double round_ctime;
+    double rght_ctime;
+    double select_ctime;
+    double symbol_ctime;
+    double la_ctime;
+    double update_ctime;
+    double convert_ctime;
+    double round_rtime;
+    double rght_rtime;
+    double select_rtime;
+    double symbol_rtime;
+    double la_rtime;
+    double update_rtime;
+    double convert_rtime;
+
+    int64_t num_pairsred;
+    int64_t num_gb_crit;
+    int64_t num_redundant;
+    int64_t num_duplicates;
+    int64_t num_rowsred;
+    int64_t num_zerored;
+
+    int64_t max_ht_size;
+    int64_t num_sdm_found;
+    int64_t num_not_sdm_found;
+};
 
 /* random values for generating hash values */
 static val_t *rv  = NULL;
@@ -204,7 +234,8 @@ int (*hcm_cmp)(
 
 /* linear algebra routines */
 dt_t **(*linear_algebra)(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         );
 
 cf_t *(*reduce_dense_row_by_known_pivots)(

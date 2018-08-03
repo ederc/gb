@@ -23,7 +23,8 @@
 #include "data.h"
 
 static dt_t **select_spairs_by_minimal_degree(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         )
 {
     len_t i, j, k, l, md, npairs;
@@ -65,7 +66,7 @@ static dt_t **select_spairs_by_minimal_degree(
         fflush(stdout);
     }
     /* statistics */
-    num_pairsred  +=  npairs;
+    st->num_pairsred  +=  npairs;
     /* printf("npairs %d\n", npairs); */
 
     gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
@@ -127,8 +128,8 @@ static dt_t **select_spairs_by_minimal_degree(
         i = j;
     }
 
-    num_duplicates  +=  0;
-    num_rowsred     +=  load;
+    st->num_duplicates  +=  0;
+    st->num_rowsred     +=  load;
 
     free(gens);
 
@@ -141,8 +142,8 @@ static dt_t **select_spairs_by_minimal_degree(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    select_ctime  +=  ct1 - ct0;
-    select_rtime  +=  rt1 - rt0;
+    st->select_ctime  +=  ct1 - ct0;
+    st->select_rtime  +=  rt1 - rt0;
 
     /* for (i = 0; i < nrows; ++i) {
      *     printf("%p | mat[%d][2] = %d\n", mat[i], i, mat[i][2]);
@@ -151,7 +152,8 @@ static dt_t **select_spairs_by_minimal_degree(
 }
 
 static inline dt_t *find_multiplied_reducer(
-        const dt_t m
+        const dt_t m,
+        stat_t *st
         )
 {
     len_t i, k;
@@ -171,7 +173,7 @@ start:
                 lms[i+1] & ns &&
                 lms[i+2] & ns &&
                 lms[i+3] & ns) {
-            num_sdm_found +=  4;
+            st->num_sdm_found +=  4;
             i +=  4;
             continue;
         }
@@ -204,7 +206,7 @@ start:
 start2:
     while (i < bl) {
         if (lms[i] & ns) {
-            num_sdm_found++;
+            st->num_sdm_found++;
             i++;
             continue;
         }
@@ -232,12 +234,13 @@ start2:
         return b;
     }
     hd[m].div = i;
-    num_not_sdm_found++;
+    st->num_not_sdm_found++;
     return NULL;
 }
 
 static dt_t **symbolic_preprocessing(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         )
 {
     len_t i, j;
@@ -273,7 +276,7 @@ static dt_t **symbolic_preprocessing(
             if (!hd[m].idx) {
                 hd[m].idx = 1;
                 ncols++;
-                red = find_multiplied_reducer(m);
+                red = find_multiplied_reducer(m, st);
                 if (red) {
                     /* printf("hd.idx = 2 for ");
                      * for (int32_t k = 0; k < nvars; ++k) {
@@ -298,8 +301,8 @@ static dt_t **symbolic_preprocessing(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    symbol_ctime  +=  ct1 - ct0;
-    symbol_rtime  +=  rt1 - rt0;
+    st->symbol_ctime  +=  ct1 - ct0;
+    st->symbol_rtime  +=  rt1 - rt0;
 
     return mat;
 }

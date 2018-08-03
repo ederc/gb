@@ -69,7 +69,7 @@ int64_t f4_julia(
     }
 
     /* initialize stuff */
-    initialize_statistics();
+    stat_t *st  = initialize_statistics();
     if (il > 0) {
         printf("\n--------------- INPUT DATA ---------------\n");
         printf("#variables             %11d\n", nvars);
@@ -110,27 +110,16 @@ int64_t f4_julia(
             matrix_row_initial_input_cmp);
     /* normalize input generators */
     normalize_matrix_rows(gbcf);
-    /* for (int32_t v = 0; v < nr_gens; ++v) {
-     *     printf("new basis element [%d] (%d terms) ", v, gbdt[v][2]-3);
-     *     for (int32_t p = 3; p < gbdt[v][2]; ++p) {
-     *         printf("%d | ", gbcf[v][p]);
-     *         for (int32_t o = 0; o < nvars; ++o) {
-     *             printf("%d ", ev[gbdt[v][p]][o]);
-     *         }
-     *         printf(" || ");
-     *     }
-     *     printf("\n");
-     * } */
 
     /* move input generators to basis and generate first spairs */
-    update_basis();
+    update_basis(st);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
     last_reset  = 0;
     if (il > 1) {
         printf("\ndeg     sel   pairs        mat          density \
-           new data            time(rd)\n");
+          new data             time(rd)\n");
         printf("-------------------------------------------------\
 ----------------------------------------\n");
     }
@@ -138,81 +127,28 @@ int64_t f4_julia(
         rct0 = cputime();
         rrt0 = realtime();
 
+        st->max_ht_size = hsz;
         if (round - last_reset == rght) {
             last_reset  = round;
-            reset_global_hash_table(); 
+            reset_global_hash_table(st); 
         }
 
         /* preprocess data for next reduction round */
-        mat = select_spairs_by_minimal_degree(mat);
-        /* printf("coeffs of selected pairs\n");
-         * for (int32_t i= 0 ;i < nrows; ++i) {
-         *     for (int32_t j = 3; j < mat[i][2]; ++j) {
-         *         printf("%d ", gbcf[mat[i][0]][j]);
-         *     }
-         *     printf("\n");
-         * } */
-        mat = symbolic_preprocessing(mat);
-        /* int32_t *ctr = calloc((unsigned long)bload, sizeof(int32_t));
-         * for (int32_t j = 0; j < nrows; ++j) {
-         *     ctr[mat[j][0]]++;
-         * }
-         * for (int32_t i = 0; i < bload; ++i) {
-         *     printf("basis element %d used %d times\n",
-         *             i, ctr[i]);
-         * }
-         * free(ctr); */
-
-        /* exponent hashes mapped to column indices for linear algebra */
-        /* printf("first column entries in matrix rows\n");
-         * for (int32_t i= 0 ;i < nrows; ++i) {
-         *     printf("%d -> ", i);
-         *     for (int32_t j = 0; j < nvars; ++j) {
-         *         printf("%d ", ev[mat[i][3]][j]);
-         *     }
-         *     printf("\n");
-         * } */
-        hcm = convert_hashes_to_columns(mat);
-        /* printf("first column entries in matrix rows\n");
-         * for (int32_t i= 0 ;i < nrows; ++i) {
-         *     printf("%d -> %d\n", i, mat[i][3]);
-         * } */
-        /* sort matrix rows by decreasing pivots */
-        /* for (int32_t o = 0; o < nrows; ++o) {
-         *   printf("%d | %d | %d\n", o, mat[o][0], mat[o][2]);
-         * } */
+        mat = select_spairs_by_minimal_degree(mat, st);
+        mat = symbolic_preprocessing(mat, st);
+        hcm = convert_hashes_to_columns(mat, st);
         mat = sort_matrix_rows(mat);
-        /* for (int32_t o = 0; o < nrows; ++o) {
-         *   printf("%d | %d | %d | %d\n", o, mat[o][0], mat[0][1], mat[o][2]);
-         * } */
         /* linear algebra, depending on choice, see set_function_pointers() */
-        mat = linear_algebra(mat);
-        /* for (int32_t p = 0; p < npivs; ++p) {
-         *     printf("mat[%d][0] = %d | %d | %d\n", p, mat[p][0], mat[p][1], mat[p][2]);
-         * } */
-
+        mat = linear_algebra(mat, st);
         /* columns indices are mapped back to exponent hashes */
         if (npivs > 0) {
-            convert_sparse_matrix_rows_to_basis_elements(mat, hcm);
+            convert_sparse_matrix_rows_to_basis_elements(mat, hcm, st);
         }
-        /* if (npivs > 0) {
-         *     for (int32_t v = bload; v < bload+npivs; ++v) {
-         *         printf("new basis element [%d] (%d terms) ", v, gbdt[v][2]-3);
-         *         for (int32_t p = 3; p < gbdt[v][2]; ++p) {
-         *             printf("%d | ", gbcf[gbdt[v][0]][p]);
-         *             for (int32_t o = 0; o < nvars; ++o) {
-         *                 printf("%d ", ev[gbdt[v][p]][o]);
-         *             }
-         *             printf(" || ");
-         *         }
-         *         printf("\n");
-         *     }
-         * } */
         free(mat);
         mat = NULL;
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
-        update_basis();
-    
+
+        update_basis(st);
 
         rct1 = cputime();
         rrt1 = realtime();
@@ -235,35 +171,44 @@ int64_t f4_julia(
         printf("overall      %15.3f sec\n", rt1-rt0);
         printf("overall(cpu) %15.3f sec\n", ct1-ct0);
         printf("select       %15.3f sec %5.1f%%\n",
-                select_rtime, (double)100*(double)select_rtime / (double)(rt1-rt0));
+                st->select_rtime,
+                (double)100*(double)st->select_rtime / (double)(rt1-rt0));
         printf("symbol       %15.3f sec %5.1f%%\n",
-                symbol_rtime, (double)100*(double)symbol_rtime / (double)(rt1-rt0));
+                st->symbol_rtime,
+                (double)100*(double)st->symbol_rtime / (double)(rt1-rt0));
         printf("update       %15.3f sec %5.1f%%\n",
-                update_rtime, (double)100*(double)update_rtime / (double)(rt1-rt0));
+                st->update_rtime,
+                (double)100*(double)st->update_rtime / (double)(rt1-rt0));
         printf("convert      %15.3f sec %5.1f%%\n",
-                convert_rtime, (double)100*(double)convert_rtime / (double)(rt1-rt0));
+                st->convert_rtime,
+                (double)100*(double)st->convert_rtime / (double)(rt1-rt0));
         printf("rght         %15.3f sec %5.1f%%\n",
-                rght_rtime, (double)100*(double)rght_rtime / (double)(rt1-rt0));
+                st->rght_rtime,
+                (double)100*(double)st->rght_rtime / (double)(rt1-rt0));
         printf("la           %15.3f sec %5.1f%%\n",
-                la_rtime, (double)100*(double)la_rtime / (double)(rt1-rt0));
+                st->la_rtime,
+                (double)100*(double)st->la_rtime / (double)(rt1-rt0));
         printf("-----------------------------------------\n");
         printf("\n---------- COMPUTATIONAL DATA -----------\n");
         printf("size of basis      %9d\n", (*jl_basis[0]));
         printf("#terms in basis    %9ld\n",
                 (len-(*jl_basis)[0]-1)/(1+nvars));
-        printf("#pairs reduced     %9ld\n", num_pairsred);
-        printf("#GM criterion      %9ld\n", num_gb_crit);
-        printf("#redundant         %9ld\n", num_redundant);
-        printf("#rows reduced      %9ld\n", num_rowsred);
-        printf("#zero reductions   %9ld\n", num_zerored);
+        printf("#pairs reduced     %9ld\n", st->num_pairsred);
+        printf("#GM criterion      %9ld\n", st->num_gb_crit);
+        printf("#redundant         %9ld\n", st->num_redundant);
+        printf("#rows reduced      %9ld\n", st->num_rowsred);
+        printf("#zero reductions   %9ld\n", st->num_zerored);
         printf("#global hash table %9d <= 2^%d\n",
                 eld, (int32_t)((ceil(log(eld)/log(2)))));
         printf("#local hash table  %9d <= 2^%d\n",
                 elld, (int32_t)(ceil(log(elld)/log(2))));
-        printf("#ht enlargements   %9ld\n", num_htenl);
-        printf("#no reducer found  %9ld\n", num_sdm_found + num_not_sdm_found);
+        printf("maximal ht size         2^%d\n",
+                (int32_t)(ceil(log(st->max_ht_size)/log(2))));
+        printf("#no reducer found  %9ld\n",
+                st->num_sdm_found + st->num_not_sdm_found);
         printf("sdm findings       %8.3f%% \n",
-                (double)100*(double)num_sdm_found/(double)(num_sdm_found + num_not_sdm_found));
+                (double)100*(double)st->num_sdm_found/
+                (double)(st->num_sdm_found + st->num_not_sdm_found));
         printf("-----------------------------------------\n\n");
     }
 

@@ -28,7 +28,8 @@
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
 static hl_t *convert_hashes_to_columns(
-        dt_t **matdt
+        dt_t **matdt,
+        stat_t *st
         )
 {
     len_t i, j, k, l;
@@ -141,13 +142,13 @@ static hl_t *convert_hashes_to_columns(
 
     /* compute density of matrix */
     nterms  *=  100; /* for percentage */
-    density = (double)nterms / (double)nrows / (double)ncols;
+    double density = (double)nterms / (double)nrows / (double)ncols;
 
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    convert_ctime +=  ct1 - ct0;
-    convert_rtime +=  rt1 - rt0;
+    st->convert_ctime +=  ct1 - ct0;
+    st->convert_rtime +=  rt1 - rt0;
     if (il > 1) {
         printf(" %7d x %-7d %8.3f%%", nrows, ncols, density);
         fflush(stdout);
@@ -158,7 +159,8 @@ static hl_t *convert_hashes_to_columns(
 
 static void convert_sparse_matrix_rows_to_basis_elements(
         dt_t **mat,
-        const hl_t *hcm
+        const hl_t *hcm,
+        stat_t *st
         )
 {
     len_t i, j;
@@ -206,6 +208,6 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    convert_ctime +=  ct1 - ct0;
-    convert_rtime +=  rt1 - rt0;
+    st->convert_ctime +=  ct1 - ct0;
+    st->convert_rtime +=  rt1 - rt0;
 }

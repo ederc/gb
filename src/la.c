@@ -1804,7 +1804,8 @@ static dt_t **convert_to_sparse_matrix_rows(
  * either reduced via exact linear algebra or via probabilistic
  * linear algebra */
 static dt_t **probabilistic_sparse_linear_algebra(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         )
 {
     /* timings */
@@ -1820,10 +1821,10 @@ static dt_t **probabilistic_sparse_linear_algebra(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    la_ctime  +=  ct1 - ct0;
-    la_rtime  +=  rt1 - rt0;
+    st->la_ctime  +=  ct1 - ct0;
+    st->la_rtime  +=  rt1 - rt0;
 
-    num_zerored += (nrl - npivs);
+    st->num_zerored += (nrl - npivs);
     if (il > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
@@ -1832,7 +1833,8 @@ static dt_t **probabilistic_sparse_linear_algebra(
 }
 
 static dt_t **exact_sparse_linear_algebra(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         )
 {
     /* timings */
@@ -1848,10 +1850,10 @@ static dt_t **exact_sparse_linear_algebra(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    la_ctime  +=  ct1 - ct0;
-    la_rtime  +=  rt1 - rt0;
+    st->la_ctime  +=  ct1 - ct0;
+    st->la_rtime  +=  rt1 - rt0;
 
-    num_zerored += (nrl - npivs);
+    st->num_zerored += (nrl - npivs);
     if (il > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
@@ -1861,7 +1863,8 @@ static dt_t **exact_sparse_linear_algebra(
 }
 
 static dt_t **exact_sparse_dense_linear_algebra(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         )
 {
     len_t i;
@@ -1895,10 +1898,10 @@ static dt_t **exact_sparse_dense_linear_algebra(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    la_ctime  +=  ct1 - ct0;
-    la_rtime  +=  rt1 - rt0;
+    st->la_ctime  +=  ct1 - ct0;
+    st->la_rtime  +=  rt1 - rt0;
 
-    num_zerored += (nrl - npivs);
+    st->num_zerored += (nrl - npivs);
     if (il > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
@@ -1908,7 +1911,8 @@ static dt_t **exact_sparse_dense_linear_algebra(
 }
 
 static dt_t **probabilistic_sparse_dense_linear_algebra_2(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         )
 {
     len_t i;
@@ -1942,10 +1946,10 @@ static dt_t **probabilistic_sparse_dense_linear_algebra_2(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    la_ctime  +=  ct1 - ct0;
-    la_rtime  +=  rt1 - rt0;
+    st->la_ctime  +=  ct1 - ct0;
+    st->la_rtime  +=  rt1 - rt0;
 
-    num_zerored += (nrl - npivs);
+    st->num_zerored += (nrl - npivs);
     if (il > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
@@ -1955,7 +1959,8 @@ static dt_t **probabilistic_sparse_dense_linear_algebra_2(
 }
 
 static dt_t **probabilistic_sparse_dense_linear_algebra(
-        dt_t **mat
+        dt_t **mat,
+        stat_t *st
         )
 {
     len_t i;
@@ -1987,10 +1992,10 @@ static dt_t **probabilistic_sparse_dense_linear_algebra(
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
-    la_ctime  +=  ct1 - ct0;
-    la_rtime  +=  rt1 - rt0;
+    st->la_ctime  +=  ct1 - ct0;
+    st->la_rtime  +=  rt1 - rt0;
 
-    num_zerored += (nrl - npivs);
+    st->num_zerored += (nrl - npivs);
     if (il > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);

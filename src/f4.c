@@ -161,55 +161,17 @@ int64_t f4_julia(
 ----------------------------------------\n");
     }
 
-    int64_t len = export_julia_data(jl_basis);
+    st->len_output  = export_julia_data(jl_basis);
+    st->size_basis  = (*jl_basis)[0];
 
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
+    st->overall_ctime = ct1 - ct0;
+    st->overall_rtime = rt1 - rt0;
+
     if (il > 0) {
-        printf("\n---------------- TIMINGS ---------------\n");
-        printf("overall      %15.3f sec\n", rt1-rt0);
-        printf("overall(cpu) %15.3f sec\n", ct1-ct0);
-        printf("select       %15.3f sec %5.1f%%\n",
-                st->select_rtime,
-                (double)100*(double)st->select_rtime / (double)(rt1-rt0));
-        printf("symbol       %15.3f sec %5.1f%%\n",
-                st->symbol_rtime,
-                (double)100*(double)st->symbol_rtime / (double)(rt1-rt0));
-        printf("update       %15.3f sec %5.1f%%\n",
-                st->update_rtime,
-                (double)100*(double)st->update_rtime / (double)(rt1-rt0));
-        printf("convert      %15.3f sec %5.1f%%\n",
-                st->convert_rtime,
-                (double)100*(double)st->convert_rtime / (double)(rt1-rt0));
-        printf("rght         %15.3f sec %5.1f%%\n",
-                st->rght_rtime,
-                (double)100*(double)st->rght_rtime / (double)(rt1-rt0));
-        printf("la           %15.3f sec %5.1f%%\n",
-                st->la_rtime,
-                (double)100*(double)st->la_rtime / (double)(rt1-rt0));
-        printf("-----------------------------------------\n");
-        printf("\n---------- COMPUTATIONAL DATA -----------\n");
-        printf("size of basis      %9d\n", (*jl_basis[0]));
-        printf("#terms in basis    %9ld\n",
-                (len-(*jl_basis)[0]-1)/(1+nvars));
-        printf("#pairs reduced     %9ld\n", st->num_pairsred);
-        printf("#GM criterion      %9ld\n", st->num_gb_crit);
-        printf("#redundant         %9ld\n", st->num_redundant);
-        printf("#rows reduced      %9ld\n", st->num_rowsred);
-        printf("#zero reductions   %9ld\n", st->num_zerored);
-        printf("#global hash table %9d <= 2^%d\n",
-                eld, (int32_t)((ceil(log(eld)/log(2)))));
-        printf("#local hash table  %9d <= 2^%d\n",
-                elld, (int32_t)(ceil(log(elld)/log(2))));
-        printf("maximal ht size         2^%d\n",
-                (int32_t)(ceil(log(st->max_ht_size)/log(2))));
-        printf("#no reducer found  %9ld\n",
-                st->num_sdm_found + st->num_not_sdm_found);
-        printf("sdm findings       %8.3f%% \n",
-                (double)100*(double)st->num_sdm_found/
-                (double)(st->num_sdm_found + st->num_not_sdm_found));
-        printf("-----------------------------------------\n\n");
+        print_final_statistics(st);
     }
 
     /* free and clean up */
@@ -222,5 +184,5 @@ int64_t f4_julia(
     free(mat);
     free_basis();
 
-    return len;
+    return st->len_output;
 }

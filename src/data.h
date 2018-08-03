@@ -98,6 +98,8 @@ struct stat_t
     double la_ctime;
     double update_ctime;
     double convert_ctime;
+    double overall_ctime;
+
     double round_rtime;
     double rght_rtime;
     double select_rtime;
@@ -105,6 +107,7 @@ struct stat_t
     double la_rtime;
     double update_rtime;
     double convert_rtime;
+    double overall_rtime;
 
     int64_t num_pairsred;
     int64_t num_gb_crit;
@@ -116,6 +119,8 @@ struct stat_t
     int64_t max_ht_size;
     int64_t num_sdm_found;
     int64_t num_not_sdm_found;
+    int64_t len_output;
+    int32_t size_basis;
 };
 
 /* random values for generating hash values */

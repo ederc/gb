@@ -50,13 +50,10 @@ static stat_t *initialize_statistics(
     st->num_pairsred    = 0;
     st->num_gb_crit     = 0;
     st->num_redundant   = 0;
-    st->num_duplicates  = 0;
     st->num_rowsred     = 0;
     st->num_zerored     = 0;
 
     st->max_ht_size       = 0;
-    st->num_sdm_found     = 0;
-    st->num_not_sdm_found = 0;
     st->len_output        = 0;
     st->size_basis        = 0;
 
@@ -110,10 +107,5 @@ static void print_final_statistics(
             elld, (int32_t)(ceil(log(elld)/log(2))));
     printf("maximal ht size         2^%d\n",
             (int32_t)(ceil(log(st->max_ht_size)/log(2))));
-    printf("#no reducer found  %9ld\n",
-            st->num_sdm_found + st->num_not_sdm_found);
-    printf("sdm findings       %8.3f%% \n",
-            (double)100*(double)st->num_sdm_found/
-            (double)(st->num_sdm_found + st->num_not_sdm_found));
     printf("-----------------------------------------\n\n");
 }

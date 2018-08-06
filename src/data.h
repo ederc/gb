@@ -112,13 +112,10 @@ struct stat_t
     int64_t num_pairsred;
     int64_t num_gb_crit;
     int64_t num_redundant;
-    int64_t num_duplicates;
     int64_t num_rowsred;
     int64_t num_zerored;
 
     int64_t max_ht_size;
-    int64_t num_sdm_found;
-    int64_t num_not_sdm_found;
     int64_t len_output;
     int32_t size_basis;
 };

@@ -128,7 +128,6 @@ static dt_t **select_spairs_by_minimal_degree(
         i = j;
     }
 
-    st->num_duplicates  +=  0;
     st->num_rowsred     +=  load;
 
     free(gens);

@@ -36,6 +36,8 @@ int main(
     initialize_basis(nr_gens);
     initialize_global_hash_table();
     initialize_local_hash_table();
+
+    stat_t *st  = initialize_statistics();
     if (hsz/hlsz != 32) {
         return 1;
     }
@@ -53,9 +55,9 @@ int main(
     normalize_matrix_rows(gbcf);
 
     /* move input generators to basis and generate first spairs */
-    update_basis();
+    update_basis(st);
 
-    mat = select_spairs_by_minimal_degree(mat);
+    mat = select_spairs_by_minimal_degree(mat, st);
 
     /* free and clean up */
     free_local_hash_table();

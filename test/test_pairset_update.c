@@ -44,8 +44,9 @@ int main(
     /* normalize input generators */
     normalize_matrix_rows(gbcf);
 
+    stat_t *st  = initialize_statistics();
     /* move input generators to basis and generate first spairs */
-    update_basis();
+    update_basis(st);
 
     if (pload != 2) {
         printf("pload wrong - %d != 2\n", pload);

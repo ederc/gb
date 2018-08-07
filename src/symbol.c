@@ -30,7 +30,7 @@ static dt_t **select_spairs_by_minimal_degree(
     len_t i, j, k, l, md, npairs;
     dt_t *b;
     deg_t d = 0;
-    len_t load = 0, load_old = 0;
+    len_t load = 0, load_all = 0;
     hl_t lcm;
     len_t *gens;
     exp_t *elcm, *eb;
@@ -81,13 +81,14 @@ static dt_t **select_spairs_by_minimal_degree(
     while (i < npairs) {
         /* ncols initially counts number of different lcms */
         ncols++;
-        load_old  = load;
+        load_all  += load;
+        load  = 0;
         lcm   = ps[i].lcm;
         gens[load++] = ps[i].gen1;
         gens[load++] = ps[i].gen2;
         j = i+1;
         while (j < npairs && ps[j].lcm == lcm) {
-            for (k = load_old; k < load; ++k) {
+            for (k = 0; k < load; ++k) {
                 if (ps[j].gen1 == gens[k]) {
                     break;
                 }
@@ -95,7 +96,7 @@ static dt_t **select_spairs_by_minimal_degree(
             if (k == load) {
                 gens[load++]  = ps[j].gen1;
             }
-            for (k = load_old; k < load; ++k) {
+            for (k = 0; k < load; ++k) {
                 if (ps[j].gen2 == gens[k]) {
                     break;
                 }
@@ -105,7 +106,7 @@ static dt_t **select_spairs_by_minimal_degree(
             }
             j++;
         }
-        for (k = load_old; k < load; ++k) {
+        for (k = 0; k < load; ++k) {
             /* ev might change when enlarging the hash table during insertion of a new
              * row in the matrix, thus we have to reset elcm inside the for loop */
             elcm  = ev[lcm];
@@ -128,7 +129,11 @@ static dt_t **select_spairs_by_minimal_degree(
         i = j;
     }
 
-    st->num_rowsred     +=  load;
+    /* load_all are all rows from the chosen spairs. for each column, i.e.
+     * each lcm we have one reducer, the other rows have to be reduced.
+     * thus in the end we have to subtract ncols from the number of rows
+     * considered. */
+    st->num_rowsred     +=  load_all - ncols;
 
     free(gens);
 

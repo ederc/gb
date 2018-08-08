@@ -1071,19 +1071,21 @@ static cf_t **exact_sparse_reduced_echelon_form(
         dt_t *npiv    = upivs[i];
         cf_t *cfs     = gbcf[npiv[0]];
         k = 0;
+        memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
+        for (j = 3; j < npiv[1]; ++j) {
+            drl[npiv[j]] = (int64_t)cfs[j];
+        }
+        for (; j < npiv[2]; j += 4) {
+            drl[npiv[j]]    = (int64_t)cfs[j];
+            drl[npiv[j+1]]  = (int64_t)cfs[j+1];
+            drl[npiv[j+2]]  = (int64_t)cfs[j+2];
+            drl[npiv[j+3]]  = (int64_t)cfs[j+3];
+        }
+        cfs = NULL;
         do {
-            memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
-            for (j = 3; j < npiv[1]; ++j) {
-                drl[npiv[j]] = (int64_t)cfs[j];
-            }
-            for (; j < npiv[2]; j += 4) {
-                drl[npiv[j]]    = (int64_t)cfs[j];
-                drl[npiv[j+1]]  = (int64_t)cfs[j+1];
-                drl[npiv[j+2]]  = (int64_t)cfs[j+2];
-                drl[npiv[j+3]]  = (int64_t)cfs[j+3];
-            }
             sc  = npiv[3];
             free(npiv);
+            free(cfs);
             npiv  = reduce_dense_row_by_known_pivots_sparse(drl, pivs, sc, i);
             if (!npiv) {
                 break;
@@ -1096,7 +1098,7 @@ static cf_t **exact_sparse_reduced_echelon_form(
                 normalize_sparse_matrix_row(tmpcf[npiv[0]]);
             }
             k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
-            cfs = tmpcf[i];
+            cfs = tmpcf[npiv[0]];
         } while (!k);
     }
     free(upivs);
@@ -1509,19 +1511,20 @@ static cf_t **exact_dense_linear_algebra(
         dt_t npc  = 0;
         dt_t os   = 0;
         cf_t *npiv  = tbr[i];
+        os   = (ncr-npc) % 4;
+        for (l = 0, j = npc; l < os; ++l, ++j) {
+            drl[j]  = (int64_t)npiv[l];
+        }
+        for (; j < ncr; l += 4, j += 4) {
+            drl[j]    = (int64_t)npiv[l];
+            drl[j+1]  = (int64_t)npiv[l+1];
+            drl[j+2]  = (int64_t)npiv[l+2];
+            drl[j+3]  = (int64_t)npiv[l+3];
+        }
         do {
-            os   = (ncr-npc) % 4;
-            memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
-            for (l = 0, j = npc; l < os; ++l, ++j) {
-                drl[j]  = (int64_t)npiv[l];
-            }
-            for (; j < ncr; l += 4, j += 4) {
-                drl[j]    = (int64_t)npiv[l];
-                drl[j+1]  = (int64_t)npiv[l+1];
-                drl[j+2]  = (int64_t)npiv[l+2];
-                drl[j+3]  = (int64_t)npiv[l+3];
-            }
+            free(npiv);
             npiv = NULL;
+            os   = (ncr-npc) % 4;
             npiv = reduce_dense_row_by_dense_new_pivots(drl, &npc, nps);
             if (npc == -1) {
                 break;

@@ -184,5 +184,8 @@ int64_t f4_julia(
     free(mat);
     free_basis();
 
-    return st->len_output;
+    int64_t output  = st->len_output;
+    free(st);
+
+    return output;
 }

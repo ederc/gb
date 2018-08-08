@@ -340,12 +340,11 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
     return dt;
 }
 
-static len_t reduce_dense_row_by_all_pivots_17_bit(
+static cf_t *reduce_dense_row_by_all_pivots_17_bit(
         int64_t *dr,
-        cf_t **tbr,
+        len_t *pc,
         dt_t *const *pivs,
-        cf_t *const *dpivs,
-        const len_t pc
+        cf_t *const *dpivs
         )
 {
     hl_t i, j, k, l;
@@ -354,7 +353,7 @@ static len_t reduce_dense_row_by_all_pivots_17_bit(
     cf_t *red;
 
     /* step 1: reduce by sparse known pivots */
-    for (i = pc; i < ncl; ++i) {
+    for (i = *pc; i < ncl; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -437,7 +436,8 @@ static len_t reduce_dense_row_by_all_pivots_17_bit(
          * printf("\n"); */
     }
     if (k == 0) {
-        return -1;
+        *pc = -1;
+        return NULL;
     }
 
     cf_t *row = (cf_t *)calloc((unsigned long)(ncols-np), sizeof(cf_t));
@@ -450,17 +450,16 @@ static len_t reduce_dense_row_by_all_pivots_17_bit(
     if (row[0] != 1) {
         row = normalize_dense_matrix_row(row, np-ncl);
     }
-    *tbr  = row;
 
-    return np-ncl;
+    *pc = np -ncl;
+    return row;
 }
 
-static len_t reduce_dense_row_by_all_pivots_31_bit(
+static cf_t *reduce_dense_row_by_all_pivots_31_bit(
         int64_t *dr,
-        cf_t **tbr,
+        len_t *pc,
         dt_t *const *pivs,
-        cf_t *const *dpivs,
-        const len_t pc
+        cf_t *const *dpivs
         )
 {
     hl_t i, j, k, l;
@@ -470,7 +469,7 @@ static len_t reduce_dense_row_by_all_pivots_31_bit(
     cf_t *red;
 
     /* step 1: reduce by sparse known pivots */
-    for (i = pc; i < ncl; ++i) {
+    for (i = *pc; i < ncl; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
@@ -539,7 +538,8 @@ static len_t reduce_dense_row_by_all_pivots_31_bit(
         }
     }
     if (k == 0) {
-        return -1;
+        *pc = -1;
+        return NULL;
     }
 
     cf_t *row = (cf_t *)calloc((unsigned long)(ncols-np), sizeof(cf_t));
@@ -552,9 +552,10 @@ static len_t reduce_dense_row_by_all_pivots_31_bit(
     if (row[0] != 1) {
         row = normalize_dense_matrix_row(row, np-ncl);
     }
-    *tbr  = row;
 
-    return np-ncl;
+    *pc = np-ncl;
+
+    return row;
 }
 
 static cf_t *reduce_dense_row_by_known_pivots_17_bit(
@@ -1340,7 +1341,6 @@ static cf_t **probabilistic_sparse_dense_echelon_form(
         const int32_t nrbl  = (int32_t) (nbl - i*rpb);
         if (nrbl != 0) {
             dt_t *npiv;
-            cf_t *cfs;
             cf_t *tmp;
             dt_t npc;
             dt_t os;
@@ -1359,27 +1359,29 @@ static cf_t **probabilistic_sparse_dense_echelon_form(
 
                 for (k = 0, m = i*rpb; m < nbl; ++k, ++m) {
                     npiv  = upivs[m];
-                    cfs   = gbcf[npiv[0]];
+                    tmp   = gbcf[npiv[0]];
                     for (l = 3; l < npiv[1]; ++l) {
-                        drl[npiv[l]]  -=  mull[k] * cfs[l];
+                        drl[npiv[l]]  -=  mull[k] * tmp[l];
                         drl[npiv[l]]  +=  (drl[npiv[l]] >> 63) & mod2;
                     }
                     for (; l < npiv[2]; l += 4) {
-                        drl[npiv[l]]    -=  mull[k] * cfs[l];
+                        drl[npiv[l]]    -=  mull[k] * tmp[l];
                         drl[npiv[l]]    +=  (drl[npiv[l]] >> 63) & mod2;
-                        drl[npiv[l+1]]  -=  mull[k] * cfs[l+1];
+                        drl[npiv[l+1]]  -=  mull[k] * tmp[l+1];
                         drl[npiv[l+1]]  +=  (drl[npiv[l+1]] >> 63) & mod2;
-                        drl[npiv[l+2]]  -=  mull[k] * cfs[l+2];
+                        drl[npiv[l+2]]  -=  mull[k] * tmp[l+2];
                         drl[npiv[l+2]]  +=  (drl[npiv[l+2]] >> 63) & mod2;
-                        drl[npiv[l+3]]  -=  mull[k] * cfs[l+3];
+                        drl[npiv[l+3]]  -=  mull[k] * tmp[l+3];
                         drl[npiv[l+3]]  +=  (drl[npiv[l+3]] >> 63) & mod2;
                     }
                 }
                 k   = 0;
                 npc = 0;
                 /* do the reduction */
+                tmp = NULL;
                 do {
-                    npc = reduce_dense_row_by_all_pivots(drl, &tmp, pivs, nps, npc);
+                    free(tmp);
+                    tmp = reduce_dense_row_by_all_pivots(drl, &npc, pivs, nps);
                     if (npc == -1) {
                         bctr  = nrbl;
                         break;
@@ -1387,19 +1389,6 @@ static cf_t **probabilistic_sparse_dense_echelon_form(
                     k = __sync_bool_compare_and_swap(&nps[npc], NULL, tmp);
                     /* some other thread has already added a pivot so we have to
                     * recall the dense reduction process */
-                    if (!k) {
-                        memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
-                        os  = (ncr-npc) % 4;
-                        for (l = 0, j = npc+ncl; l < os; ++l, ++j) {
-                            drl[j]  = tmp[l];
-                        }
-                        for (; l < ncr-npc; l += 4, j += 4) {
-                            drl[j]    = tmp[l];
-                            drl[j+1]  = tmp[l+1];
-                            drl[j+2]  = tmp[l+2];
-                            drl[j+3]  = tmp[l+3];
-                        }
-                    }
                 } while (!k);
                 bctr++;
             }
@@ -1524,7 +1513,6 @@ static cf_t **exact_dense_linear_algebra(
         do {
             free(npiv);
             npiv = NULL;
-            os   = (ncr-npc) % 4;
             npiv = reduce_dense_row_by_dense_new_pivots(drl, &npc, nps);
             if (npc == -1) {
                 break;

@@ -1670,7 +1670,9 @@ static cf_t **probabilistic_dense_linear_algebra(
                 k   = 0;
                 npc = 0;
                 /* do the reduction */
+                tmp = NULL;
                 do {
+                    free(tmp);
                     tmp = reduce_dense_row_by_dense_new_pivots(drl, &npc, nps);
                     if (npc == -1) {
                         bctr  = nrbl;
@@ -1679,19 +1681,6 @@ static cf_t **probabilistic_dense_linear_algebra(
                     k = __sync_bool_compare_and_swap(&nps[npc], NULL, tmp);
                     /* some other thread has already added a pivot so we have to
                     * recall the dense reduction process */
-                    if (!k) {
-                        memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
-                        os  = (ncr-npc) % 4;
-                        for (l = 0, j = npc+ncl; l < os; ++l, ++j) {
-                            drl[j]  = tmp[l];
-                        }
-                        for (; l < ncr-npc; l += 4, j += 4) {
-                            drl[j]    = tmp[l];
-                            drl[j+1]  = tmp[l+1];
-                            drl[j+2]  = tmp[l+2];
-                            drl[j+3]  = tmp[l+3];
-                        }
-                    }
                 } while (!k);
                 bctr++;
             }
@@ -1722,6 +1711,7 @@ static cf_t **probabilistic_dense_linear_algebra(
             npivs++;
         }
     }
+    free(mul);
     free(tbr);
     free(dr);
 

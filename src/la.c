@@ -895,7 +895,7 @@ static cf_t **probabilistic_sparse_reduced_echelon_form(
         const int32_t nbl   = (int32_t) (nrl > (i+1)*rpb ? (i+1)*rpb : nrl);
         const int32_t nrbl  = (int32_t) (nbl - i*rpb);
         if (nrbl != 0) {
-            dt_t *npiv;
+            dt_t *npiv  = NULL;
             cf_t *cfs;
             /* starting column, offset, coefficient array position in tmpcf */
             dt_t sc, os, cfp;
@@ -932,9 +932,15 @@ static cf_t **probabilistic_sparse_reduced_echelon_form(
                         drl[npiv[l+3]]  +=  (drl[npiv[l+3]] >> 63) & mod2;
                     }
                 }
-                k   = 0;
+                k     = 0;
+                cfs   = NULL;
+                npiv  = NULL;
                 /* do the reduction */
                 do {
+                    free(cfs);
+                    cfs = NULL;
+                    free(npiv);
+                    npiv  = NULL;
                     npiv  = reduce_dense_row_by_known_pivots_sparse(
                                 drl, pivs, sc, cfp);
                     if (!npiv) {
@@ -948,26 +954,9 @@ static cf_t **probabilistic_sparse_reduced_echelon_form(
                     if (tmpcf[npiv[0]][3] != 1) {
                         normalize_sparse_matrix_row(tmpcf[npiv[0]]);
                     }
+                    cfs = tmpcf[npiv[0]];
+                    sc  = npiv[3];
                     k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
-                    if (!k) {
-                        memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
-                        cfs = tmpcf[npiv[0]];
-                        sc  = npiv[3];
-                        cfp = npiv[0];
-                        for (j = 3; j < npiv[1]; ++j) {
-                            drl[npiv[j]] = (int64_t)cfs[j];
-                        }
-                        for (; j < npiv[2]; j += 4) {
-                            drl[npiv[j]]    = (int64_t)cfs[j];
-                            drl[npiv[j+1]]  = (int64_t)cfs[j+1];
-                            drl[npiv[j+2]]  = (int64_t)cfs[j+2];
-                            drl[npiv[j+3]]  = (int64_t)cfs[j+3];
-                        }
-                        free(npiv);
-                        npiv  = NULL;
-                        free(cfs);
-                        cfs = NULL;
-                    }
                 } while (!k);
                 bctr++;
             }

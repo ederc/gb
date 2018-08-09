@@ -1,11 +1,11 @@
 # Check for GMP
 # Modified by Pascal Giorgi, 2003-12-03
 
-dnl LB_CHECK_GMP ([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
+dnl AC_CHECK_GMP ([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl
 dnl Test for the GNU Multiprecision library and define GMP_CFLAGS and GMP_LIBS
 
-AC_DEFUN([LB_CHECK_GMP],
+AC_DEFUN([AC_CHECK_GMP],
 [
 DEFAULT_CHECKING_PATH="/usr /usr/local /sw /opt/local"
 

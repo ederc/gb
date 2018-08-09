@@ -12,9 +12,9 @@ AM_CFLAGS	=	-std=gnu99 -march=native -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wno-format-zero-length -Wformat-nonliteral \
 						-Wformat-security -Wno-unknown-pragmas -mpopcnt \
 						-funroll-loops -finline-functions -fpic \
-						${OPENMP_CFLAGS} ${CL_CFLAGS}
+						${OPENMP_CFLAGS} ${CL_CFLAGS} ${GMP_CFLAGS}
 
-#AM_LIBS	=	${CL_LIBS}
+LDADD = ${GMP_LIBS} ${CL_LIBS}
 
 lib_LTLIBRARIES = libgb.la
 
@@ -35,6 +35,6 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gb.pc
 
 libgb_la_LDFLAGS = $(LDFLAGS) -release $(RELEASE) -no-undefined -rdynamic
-libgb_la_LIBADD = $(LIBPNG_LIBADD)
+libgb_la_LIBADD = $(LDADD)
 
 SUBDIRS	=	. test

@@ -63,6 +63,7 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([gettimeofday pow memset strchr strstr strtol])
 
+AC_CHECK_GMP
 AC_OPENMP
 AX_OPENMP
 AX_CHECK_CL

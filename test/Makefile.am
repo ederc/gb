@@ -13,10 +13,10 @@ TOPBUILDDIR = $(builddir)/..
 DEFINES =
 # include TOPBUILDIR for m4ri_config.h
 AM_CFLAGS = -I$(TOPSRCDIR) -I$(TOPBUILDDIR) \
-						${OPENMP_CFLAGS} ${CL_CFLAGS}
+						${OPENMP_CFLAGS} ${CL_CFLAGS} ${GMP_CFLAGS}
 
 STAGEDIR := $(realpath -s $(TOPBUILDDIR)/.libs)
-AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb -lm
+AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb ${GMP_LIBS} ${CL_LIBS}
 LDFLAGS = -no-install
 
 TESTS =															\

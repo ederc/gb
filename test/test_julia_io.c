@@ -24,7 +24,8 @@ int main(
     const int32_t max_nr_pairs      = 100;
     const int32_t reset_hash_table  = 0;
 
-    if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
+    ps_t *ps  = initialize_pairset();
+    if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
                 la_option, info_level)) {
         return 1;
@@ -50,5 +51,6 @@ int main(
     free_local_hash_table();
     free_global_hash_table();
     free_basis();
+    free_pairset(&ps);
     return 0;
 }

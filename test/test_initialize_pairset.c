@@ -8,13 +8,16 @@ int main(
         )
 {
     /* initialize stuff */
-    initialize_pairset();
+    ps_t *ps  = initialize_pairset();
     if (ps == NULL) {
         return 1;
     }
-    if (psize == 0) {
+    if (ps->sz == 0) {
         return 1;
     }
-    free_pairset();
+    if (ps->ld != 0) {
+        return 1;
+    }
+    free_pairset(&ps);
     return 0;
 }

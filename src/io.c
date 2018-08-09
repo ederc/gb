@@ -97,6 +97,7 @@ static inline void set_function_pointers(
 }
 
 static inline int32_t check_and_set_meta_data(
+        ps_t *ps,
         const int32_t *lens,
         const int32_t *cfs,
         const int32_t *exps,
@@ -157,9 +158,9 @@ static inline int32_t check_and_set_meta_data(
     }
 
     if (max_nr_pairs <= 0) {
-        mnsel = 2147483647; /* 2^31-1 */
+        ps->mnsel = 2147483647; /* 2^31-1 */
     } else {
-        mnsel = max_nr_pairs;
+        ps->mnsel = max_nr_pairs;
     }
 
     /* set linear algebra option */

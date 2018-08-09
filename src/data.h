@@ -144,11 +144,14 @@ struct spair_t
     spt_t type;
 };
 
-/* pair set data */
-static spair_t *ps    = NULL;
-static pl_t pload     = 0;
-static pl_t psize     = 0;
-static int32_t mnsel  = 0; /* maximal number of pairs to be selected */
+typedef struct ps_t ps_t;
+struct ps_t
+{
+    len_t ld;
+    len_t sz;
+    len_t mnsel;  /* maximal number of pairs selected */
+    spair_t *p;
+};
 
 /* monomial order - until we have general orders:
  * 0 = DRL

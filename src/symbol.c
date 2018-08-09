@@ -23,6 +23,7 @@
 #include "data.h"
 
 static dt_t **select_spairs_by_minimal_degree(
+        ps_t *psl,
         dt_t **mat,
         stat_t *st
         )
@@ -40,21 +41,23 @@ static dt_t **select_spairs_by_minimal_degree(
     ct0 = cputime();
     rt0 = realtime();
 
+    spair_t *ps = psl->p;
+
     /* sort pair set */
-    qsort(ps, (unsigned long)pload, sizeof(spair_t), spair_cmp);
+    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp);
     /* get minimal degree */
     md  = hd[ps[0].lcm].deg;
 
     /* select pairs of this degree respecting maximal selection size mnsel */
-    for (i = 0; i < pload; ++i) {
-        if (hd[ps[i].lcm].deg > md || i >= mnsel) {
+    for (i = 0; i < psl->ld; ++i) {
+        if (hd[ps[i].lcm].deg > md || i >= psl->mnsel) {
             break;
         }
     }
     npairs  = i;
     /* if we stopped due to maximal selection size we still get the following
      * pairs of the same lcm in this matrix */
-    if (i > mnsel) {
+    if (i > psl->mnsel) {
         j = i+1;
         while (ps[j].lcm == ps[i].lcm) {
             ++j;
@@ -62,7 +65,7 @@ static dt_t **select_spairs_by_minimal_degree(
         npairs = j;
     }
     if (il > 1) {
-        printf("%3d  %6d %7d", md, npairs, pload);
+        printf("%3d  %6d %7d", md, npairs, psl->ld);
         fflush(stdout);
     }
     /* statistics */
@@ -138,10 +141,8 @@ static dt_t **select_spairs_by_minimal_degree(
     free(gens);
 
     /* remove selected spairs from pairset */
-    for (j = npairs; j < pload; ++j) {
-        ps[j-npairs]  = ps[j];
-    }
-    pload = pload - npairs;
+    memmove(ps, ps+npairs, (unsigned long)(psl->ld-npairs) * sizeof(spair_t));
+    psl->ld -=  npairs;
 
     /* timings */
     ct1 = cputime();

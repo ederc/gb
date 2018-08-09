@@ -23,46 +23,57 @@
 #include "data.h" 
 #define INSERT_SMALL_FIRST 1
 
-static void initialize_pairset(
+static ps_t *initialize_pairset(
         void
         )
 {
-    pload = 0;
-    psize = 192;
+    ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
+    ps->ld  = 0;
+    ps->sz  = 192;
+    ps->p = (spair_t *)malloc((unsigned long)ps->sz * sizeof(spair_t));
 
-    ps  = malloc((unsigned long)psize * sizeof(spair_t));
+    return ps;
 }
 
 static inline void check_enlarge_pairset(
+        ps_t *ps,
         len_t added
         )
 {
-    if (pload+added >= psize) {
-        psize = psize*2 > pload+added ? psize*2 : pload+added;
-        ps    = realloc(ps, (unsigned long)psize * sizeof(spair_t));
-        memset(ps+pload, 0, (unsigned long)(psize-pload) * sizeof(spair_t));
+    if (ps->ld+added >= ps->sz) {
+        ps->sz  = ps->sz*2 > ps->ld+added ? ps->sz*2 : ps->ld+added;
+        ps->p   = realloc(ps->p, (unsigned long)ps->sz * sizeof(spair_t));
+        memset(ps->p+ps->ld, 0,
+                (unsigned long)(ps->sz-ps->ld) * sizeof(spair_t));
     }
 }
 
 static void free_pairset(
-        void
+        ps_t **psp
         )
 {
-    if (ps) {
-        free(ps);
-        ps    = NULL;
-        pload = 0;
-        psize = 0;
+    ps_t *ps  = *psp;
+    if (ps->p) {
+        free(ps->p);
+        ps->p   = NULL;
+        ps->ld  = 0;
+        ps->sz  = 0;
     }
+    free(ps);
+    ps  = NULL;
+    *psp  = ps;
 }
 
 static void insert_and_update_spairs(
+        ps_t *psl,
         stat_t *st
         )
 {
     len_t i, j, k, l;
 
-    const len_t pl  = pload;
+    spair_t *ps = psl->p;
+
+    const len_t pl  = psl->ld;
     const len_t bl  = bload;
 
     const dt_t nch = gbdt[bl][3];
@@ -95,7 +106,7 @@ static void insert_and_update_spairs(
             gbcf[bl][0] = 1;
             st->num_redundant++;
             bload++;
-            pload++;
+            psl->ld++;
             return;
         }
     }
@@ -126,121 +137,120 @@ static void insert_and_update_spairs(
     for (i = 0; i < pl; ++i) {
         j = ps[i].gen1;
         l = ps[i].gen2;
-        /* if (ps[i].lcm != ps[pload+j].lcm */
         if (check_monomial_division(ps[i].lcm, nch)
                 && hd[ps[i].lcm].val != hdl[plcm[j]].val
                 && hd[ps[i].lcm].val != hdl[plcm[l]].val
            ) {
-            /* && ps[i].lcm != ps[pload+j].lcm) { */
             ps[i].lcm = -1;
         }
-        }
-
-        /* sort new pairs by increasing lcm, earlier polys coming first */
-        spair_t *pp = ps+pl;
-        j = 0;
-        for (i = 0; i < bl; ++i) {
-            if (pp[i].lcm >= 0) {
-                pp[j++] = pp[i];
-            }
-        }
-        qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_local_cmp);
-        for (i = 0; i < j; ++i) {
-            plcm[i] = pp[i].lcm;
-        }
-        plcm[j]  = 0;
-        const len_t pc  = j;
-
-        j = 0;
-
-        for (; j < pc; ++j) {
-            if (plcm[j] < 0) {
-                continue;
-            }
-            const hl_t plcmj = plcm[j];
-            i = j+1;
-            while (plcm[i] == plcmj) {
-                plcm[i] = -1;
-                ++i;
-            }
-            j = i-1;
-            while (i < pc) {
-                if (plcm[i] >= 0 &&
-                        check_monomial_division_local(plcm[i], plcmj) != 0) {
-                    plcm[i]  = -1;
-                }
-                ++i;
-            }
-        }
-
-        /* remove useless pairs from pairset */
-        j = 0;
-        /* old pairs */
-        for (i = 0; i < pload; ++i) {
-            if (ps[i].lcm < 0) {
-                continue;
-            }
-            ps[j++] = ps[i];
-        }
-        if (esz - eld <= nl-pload) {
-            enlarge_global_hash_table();
-        }
-        /* new pairs, wee need to add the lcm to the global hash table */
-        for (i = 0; i < pc; ++i) {
-            if (plcm[i] < 0) {
-                continue;
-            }
-            pp[i].lcm = insert_in_global_hash_table_no_enlargement_check(
-                    evl[plcm[i]]);
-            ps[j++]   = pp[i];
-        }
-        free(plcm);
-        st->num_gb_crit +=  nl - j;
-        pload       =   j;
-
-        /* mark redundant elements in basis */
-        for (i = 0; i < bl; ++i) {
-            if (gbcf[i][0]) {
-                continue;
-            }
-            if (check_monomial_division(gbdt[i][3], nch)) {
-                /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
-                gbcf[i][0]  = 1;
-                st->num_redundant++;
-            }
-        }
-        bload++;
     }
 
-    static void update_basis(
-            stat_t *st 
-            )
-    {
-        len_t i;
-
-        /* timings */
-        double ct0, ct1, rt0, rt1;
-        ct0 = cputime();
-        rt0 = realtime();
-
-        check_enlarge_basis(npivs);
-
-        /* compute number of new pairs we need to handle at most */
-        len_t np  = bload * npivs;
-        for (i = 1; i < npivs; ++i) {
-            np  = np + i;
+    /* sort new pairs by increasing lcm, earlier polys coming first */
+    spair_t *pp = ps+pl;
+    j = 0;
+    for (i = 0; i < bl; ++i) {
+        if (pp[i].lcm >= 0) {
+            pp[j++] = pp[i];
         }
-        check_enlarge_pairset(np);
-
-        for (i = 0; i < npivs; ++i) {
-            insert_and_update_spairs(st);
-        }
-
-        blold = bload;
-
-        /* timings */
-        ct1 = cputime();
-        rt1 = realtime();
-        st->update_ctime  +=  ct1 - ct0;
-        st->update_rtime  +=  rt1 - rt0;
     }
+    qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_local_cmp);
+    for (i = 0; i < j; ++i) {
+        plcm[i] = pp[i].lcm;
+    }
+    plcm[j]  = 0;
+    const len_t pc  = j;
+
+    j = 0;
+
+    for (; j < pc; ++j) {
+        if (plcm[j] < 0) {
+            continue;
+        }
+        const hl_t plcmj = plcm[j];
+        i = j+1;
+        while (plcm[i] == plcmj) {
+            plcm[i] = -1;
+            ++i;
+        }
+        j = i-1;
+        while (i < pc) {
+            if (plcm[i] >= 0 &&
+                    check_monomial_division_local(plcm[i], plcmj) != 0) {
+                plcm[i]  = -1;
+            }
+            ++i;
+        }
+    }
+
+    /* remove useless pairs from pairset */
+    j = 0;
+    /* old pairs */
+    for (i = 0; i < psl->ld; ++i) {
+        if (ps[i].lcm < 0) {
+            continue;
+        }
+        ps[j++] = ps[i];
+    }
+    if (esz - eld <= nl-psl->ld) {
+        enlarge_global_hash_table();
+    }
+    /* new pairs, wee need to add the lcm to the global hash table */
+    for (i = 0; i < pc; ++i) {
+        if (plcm[i] < 0) {
+            continue;
+        }
+        pp[i].lcm = insert_in_global_hash_table_no_enlargement_check(
+                evl[plcm[i]]);
+        ps[j++]   = pp[i];
+    }
+    free(plcm);
+    psl->ld = j;
+    st->num_gb_crit +=  nl - j;
+
+    /* mark redundant elements in basis */
+    for (i = 0; i < bl; ++i) {
+        if (gbcf[i][0]) {
+            continue;
+        }
+        if (check_monomial_division(gbdt[i][3], nch)) {
+            /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
+            gbcf[i][0]  = 1;
+            st->num_redundant++;
+        }
+    }
+    bload++;
+}
+
+static void update_basis(
+        ps_t *ps,
+        stat_t *st
+        )
+{
+    len_t i;
+
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
+
+    check_enlarge_basis(npivs);
+
+    /* compute number of new pairs we need to handle at most */
+    len_t np  = bload * npivs;
+    for (i = 1; i < npivs; ++i) {
+        np  = np + i;
+    }
+    check_enlarge_pairset(ps, np);
+
+    for (i = 0; i < npivs; ++i) {
+        insert_and_update_spairs(ps, st);
+    }
+
+    blold = bload;
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    st->update_ctime  +=  ct1 - ct0;
+    st->update_rtime  +=  rt1 - rt0;
+}

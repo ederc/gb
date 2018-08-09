@@ -664,6 +664,7 @@ static inline hl_t insert_in_global_hash_table_product(
 }
 
 static void reset_global_hash_table(
+    ps_t *psl,
     stat_t *st
     )
 {
@@ -676,6 +677,8 @@ static void reset_global_hash_table(
   hl_t k;
   exp_t *e;
   dt_t *b;
+
+  spair_t *ps = psl->p;
 
   exp_t **oev  = ev;
   ev  = calloc((unsigned long)esz, sizeof(exp_t *));
@@ -714,7 +717,8 @@ static void reset_global_hash_table(
       b[j+3]  = insert_in_global_hash_table_no_enlargement_check(e);
     }
   }
-  for (i = 0; i < pload; ++i) {
+  const len_t pld = psl->ld;
+  for (i = 0; i < pld; ++i) {
     e = oev[ps[i].lcm];
     ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(e);
   }

@@ -8,15 +8,9 @@ int main(
         )
 {
     /* initialize stuff */
-    initialize_pairset();
-    free_pairset();
+    ps_t *ps  = initialize_pairset();
+    free_pairset(&ps);
     if (ps != NULL) {
-        return 1;
-    }
-    if (pload != 0) {
-        return 1;
-    }
-    if (psize != 0) {
         return 1;
     }
     return 0;

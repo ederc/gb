@@ -24,11 +24,13 @@ int main(
     const int32_t max_nr_pairs      = 102;
     const int32_t reset_hash_table  = -2;
 
-    if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
+    ps_t *ps  = initialize_pairset();
+    if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
                 la_option, info_level)) {
         return 1;
     }
 
+    free_pairset(&ps);
     return 0;
 }

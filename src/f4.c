@@ -60,9 +60,10 @@ int64_t f4_julia(
      * during symbolic preprocessing */
     dt_t **mat;
 
+    ps_t * ps  = initialize_pairset();
     /* checks and set all meta data. if a nonzero value is returned then
      * some of the input data is corrupted. */
-    if (check_and_set_meta_data(lens, cfs, exps, field_char, mon_order,
+    if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
                 la_option, info_level)) {
         return 0;
@@ -88,14 +89,13 @@ int64_t f4_julia(
         printf("intial hash table size %11d (2^%d)\n",
                 (int32_t)pow(2,htes), htes);
         printf("reset hash table after %11d step(s)\n", rght);
-        printf("max pair selection     %11d\n", mnsel);
+        printf("max pair selection     %11d\n", ps->mnsel);
         printf("#threads               %11d\n", nthrds);
         printf("info level             %11d\n", il);
         printf("------------------------------------------\n");
     }
 
     initialize_basis(nr_gens);
-    initialize_pairset();
     initialize_global_hash_table();
     initialize_local_hash_table();
 
@@ -112,7 +112,7 @@ int64_t f4_julia(
     normalize_matrix_rows(gbcf);
 
     /* move input generators to basis and generate first spairs */
-    update_basis(st);
+    update_basis(ps, st);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
@@ -123,18 +123,18 @@ int64_t f4_julia(
         printf("-------------------------------------------------\
 ----------------------------------------\n");
     }
-    for (round = 0; pload > 0; ++round) {
+    for (round = 0; ps->ld > 0; ++round) {
         rct0 = cputime();
         rrt0 = realtime();
 
         st->max_ht_size = hsz;
         if (round - last_reset == rght) {
             last_reset  = round;
-            reset_global_hash_table(st); 
+            reset_global_hash_table(ps, st);
         }
 
         /* preprocess data for next reduction round */
-        mat = select_spairs_by_minimal_degree(mat, st);
+        mat = select_spairs_by_minimal_degree(ps, mat, st);
         mat = symbolic_preprocessing(mat, st);
         hcm = convert_hashes_to_columns(mat, st);
         mat = sort_matrix_rows(mat);
@@ -148,7 +148,7 @@ int64_t f4_julia(
         mat = NULL;
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
 
-        update_basis(st);
+        update_basis(ps, st);
 
         rct1 = cputime();
         rrt1 = realtime();
@@ -177,7 +177,7 @@ int64_t f4_julia(
     /* free and clean up */
     free_local_hash_table();
     free_global_hash_table();
-    free_pairset();
+    free_pairset(&ps);
     /* note that all rows kept from mat during the overall computation are
      * basis elements and thus we do not need to free the rows itself, but
      * just the matrix structure */

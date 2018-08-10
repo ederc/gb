@@ -34,10 +34,10 @@ for GMP_HOME in ${GMP_HOME_PATH}
 
 		if test "x$GMP_HOME" != "x/usr"; then
 			GMP_CFLAGS="-I${GMP_HOME}/include"
-			GMP_LIBS="-L${GMP_HOME}/lib -lgmp -lgmpxx"	
+			GMP_LIBS="-L${GMP_HOME}/lib -lgmp"	
 		else
 			GMP_CFLAGS=
-			GMP_LIBS="-lgmp -lgmpxx"
+			GMP_LIBS="-lgmp"
 		fi
 	
 		CPPFLAGS="${CPPFLAGS} ${GMP_CFLAGS}"

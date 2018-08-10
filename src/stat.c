@@ -29,6 +29,17 @@ static stat_t *initialize_statistics(
 {
     stat_t *st  = (stat_t *)malloc(sizeof(stat_t));
 
+    st->info_level    = 0;
+    st->mon_order     = 0;
+    st->field_char    = 0;
+    st->la_variant    = 0;
+    st->reset_ht      = 0;
+    st->nthrds        = 0;
+    st->nr_vars       = 0;
+    st->max_nr_pairs  = 0;
+    st->nr_gens       = 0;
+    st->init_ht_sz    = 0; 
+
     st->round_ctime   = 0;
     st->rght_ctime    = 0;
 	  st->select_ctime  = 0;
@@ -47,17 +58,44 @@ static stat_t *initialize_statistics(
     st->convert_rtime = 0;
     st->overall_rtime = 0;
 
-    st->num_pairsred    = 0;
-    st->num_gb_crit     = 0;
-    st->num_redundant   = 0;
-    st->num_rowsred     = 0;
-    st->num_zerored     = 0;
+    st->num_pairsred  = 0;
+    st->num_gm_crit   = 0;
+    st->num_redundant = 0;
+    st->num_rowsred   = 0;
+    st->num_zerored   = 0;
 
-    st->max_ht_size       = 0;
-    st->len_output        = 0;
-    st->size_basis        = 0;
+    st->max_ht_size   = 0;
+    st->len_output    = 0;
+    st->size_basis    = 0;
 
     return st;
+}
+
+static void print_initial_statistics(
+        const stat_t *st
+        )
+{
+    printf("\n--------------- INPUT DATA ---------------\n");
+    printf("#variables             %11d\n", st->nr_vars);
+    printf("#equations             %11d\n", st->nr_gens);
+    printf("field characteristic   %11d\n", st->field_char);
+    if (st->mon_order == 0) {
+        printf("monomial order                 DRL\n");
+    }
+    if (st->mon_order == 1) {
+        printf("monomial order                 LEX\n");
+    }
+    if ((st->mon_order != 0) && (st->mon_order != 1)) {
+        printf("monomial order           DONT KNOW\n");
+    }
+    printf("linear algebra option  %11d\n", st->la_variant);
+    printf("intial hash table size %11d (2^%d)\n",
+            (int32_t)pow(2,st->init_ht_sz), st->init_ht_sz);
+    printf("reset hash table after %11d step(s)\n", st->reset_ht);
+    printf("max pair selection     %11d\n", st->max_nr_pairs);
+    printf("#threads               %11d\n", st->nthrds);
+    printf("info level             %11d\n", st->info_level);
+    printf("------------------------------------------\n");
 }
 
 static void print_final_statistics(
@@ -97,7 +135,7 @@ static void print_final_statistics(
     printf("#terms in basis    %9ld\n",
             (st->len_output-st->size_basis-1)/(1+nvars));
     printf("#pairs reduced     %9ld\n", st->num_pairsred);
-    printf("#GM criterion      %9ld\n", st->num_gb_crit);
+    printf("#GM criterion      %9ld\n", st->num_gm_crit);
     printf("#redundant         %9ld\n", st->num_redundant);
     printf("#rows reduced      %9ld\n", st->num_rowsred);
     printf("#zero reductions   %9ld\n", st->num_zerored);

@@ -64,7 +64,7 @@ static dt_t **select_spairs_by_minimal_degree(
         }
         npairs = j;
     }
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("%3d  %6d %7d", md, npairs, psl->ld);
         fflush(stdout);
     }

@@ -24,13 +24,14 @@
 #define INSERT_SMALL_FIRST 1
 
 static ps_t *initialize_pairset(
-        void
+        const stat_t *st
         )
 {
     ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
-    ps->ld  = 0;
-    ps->sz  = 192;
-    ps->p = (spair_t *)malloc((unsigned long)ps->sz * sizeof(spair_t));
+    ps->ld    = 0;
+    ps->sz    = 192;
+    ps->mnsel = st->max_nr_pairs;
+    ps->p     = (spair_t *)malloc((unsigned long)ps->sz * sizeof(spair_t));
 
     return ps;
 }
@@ -205,7 +206,7 @@ static void insert_and_update_spairs(
     }
     free(plcm);
     psl->ld = j;
-    st->num_gb_crit +=  nl - j;
+    st->num_gm_crit +=  nl - j;
 
     /* mark redundant elements in basis */
     for (i = 0; i < bl; ++i) {

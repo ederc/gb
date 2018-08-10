@@ -41,7 +41,8 @@
 #define ORDER_COLUMNS 1
 
 /* computational data */
-typedef int32_t cf_t;     /* coefficient type */
+typedef int16_t cf16_t;   /* coefficient type */
+typedef int32_t cf32_t;   /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t dt_t;        /* data type for other polynomial informatio */
@@ -55,6 +56,8 @@ typedef len_t bi_t;     /* basis index of element */
 typedef len_t bl_t;     /* basis load */
 typedef len_t pl_t;     /* pair set load */
 
+/* hash table data */
+
 /* hash data structure */
 typedef struct hd_t hd_t;
 struct hd_t
@@ -65,41 +68,50 @@ struct hd_t
     ind_t idx;
     val_t val;
 };
-/* global hash table data */
-static hl_t *hmap   = NULL; /* global hash map */
-static hl_t hsz     = 0;
-static exp_t **ev   = NULL; /* exponents from global hash table */
-static hd_t *hd     = NULL;
-static hl_t eld     = 0;
-static hl_t esz     = 0;
 
-/* local hash table data */
-static hl_t *hmapl  = NULL; /* local hash map */
-static hl_t hlsz    = 0;
-static exp_t **evl  = NULL; /* exponents from local hash table */
-static hd_t *hdl    = NULL;
-static hl_t elld    = 0;
-static hl_t elsz    = 0;
-
-static len_t htes   = 0;  /* hash table exponent at start */
-static len_t nvars  = 0; /* number of variables */
-static len_t bpv    = 0; /* bits per variable in divmask */
-static len_t ndvars = 0; /* number of variables for divmask */
+typedef struct ht_t ht_t;
+struct ht_t
+{
+    hl_t hsz;         /* size of hash data array */
+    hl_t eld;         /* load of exponent vector */
+    hl_t esz;         /* allocated exponent vector size */
+    len_t nv;         /* number of variables */
+    uint32_t rseed;   /* random seed */
+    hl_t *map;        /* map between hash data and exponent vector */
+    hd_t *hd;         /* hash data array */
+    val_t *rv;        /* randomizing array for hashing */
+    sdm_t *dm;        /* divisor mask */
+    exp_t *ev;        /* exponent vector array */
+};
 
 /* statistic stuff */
-static int il       = 0; /* info level for printed output */
 typedef struct stat_t stat_t;
 struct stat_t
 {
+    int32_t info_level;   /* printout level */
+
+    /* global computational data */
+    int32_t mon_order;    /* monomial order */
+    int32_t field_char;   /* field characteristic */
+    int32_t la_variant;   /* linear algebra variant */
+    int32_t reset_ht;     /* resetting the global hash table */
+    int32_t nthrds;       /* number of threads */
+    int32_t nr_vars;      /* number of variables */
+    int32_t max_nr_pairs; /* maximal number of pairs per matrix */
+    int32_t nr_gens;      /* number of generators of input */
+    int32_t init_ht_sz;   /* initial hash table size */
+
+    /* CPU timings for different parts */
     double round_ctime;
     double rght_ctime;
-    double select_ctime;
+    double select_ctime;  
     double symbol_ctime;
     double la_ctime;
     double update_ctime;
     double convert_ctime;
     double overall_ctime;
 
+    /* real timings for different parts */
     double round_rtime;
     double rght_rtime;
     double select_rtime;
@@ -109,8 +121,9 @@ struct stat_t
     double convert_rtime;
     double overall_rtime;
 
-    int64_t num_pairsred;
-    int64_t num_gb_crit;
+    /* meta data */
+    int64_t num_pairsred; 
+    int64_t num_gm_crit;
     int64_t num_redundant;
     int64_t num_rowsred;
     int64_t num_zerored;
@@ -174,18 +187,20 @@ static cf_t fc = 0;
  * length ?
  * offset ? */
 
-static cf_t **gbcf  = NULL;
-static cf_t **tmpcf = NULL;
-static dt_t **gbdt  = NULL;
-static bl_t blold   = 0;
-static bl_t bload   = 0;
-static bl_t bsize   = 0;
-
-/* lead monomials of all basis elements */
-static sdm_t *lms = NULL;
-
-static const long bred  = (long)1;  /* maRking redundant elements */
-static const long bmask = ~(long)1; /* maSking redundant elements */
+/* basis definition */
+struct bs_t
+{
+    bl_t lo;    /* old load before last update */
+    bl_t ld;    /* current load of basis */
+    bl_t sz;    /* size of basis allocated */
+    void **cf;  /* coefficient arrays of eleuments, type depends on */
+                /* underlying ring, e.g. finite field or rationals or ... */
+    dt_t **hd;  /* hash data arrays of elements */
+    sdm_t *lm;  /* lead monomials of elements */
+    void **tcf; /* temporary coefficient arrays for storing coefficents */
+                /* during linear algebra computation, type depends on */
+                /* underlying ring, see above */
+};
 
 /* matrix data */
 static len_t nrall  = 0; /* allocated rows for matrix */
@@ -201,15 +216,6 @@ static len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
  * we store the offset of the first elements not unrolled
  * in the second entry of the sparse row resp. sparse polynomial. */
 #define UNROLL  4
-
-/* threads data */
-static int32_t nthrds = 1; /* number of CPU threads */
-
-/* reset global hash table */
-static int32_t rght = 0; /* reset global hash table after rght rounds */
-
-/* linear algebra options */
-static int32_t laopt  = 0;
 
 /* function pointers */
 int (*matrix_row_initial_input_cmp)(

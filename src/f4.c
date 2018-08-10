@@ -60,44 +60,24 @@ int64_t f4_julia(
      * during symbolic preprocessing */
     dt_t **mat;
 
-    ps_t * ps  = initialize_pairset();
+    /* initialize stuff */
+    stat_t *st  = initialize_statistics();
     /* checks and set all meta data. if a nonzero value is returned then
      * some of the input data is corrupted. */
-    if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
+    if (check_and_set_meta_data(st, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
                 la_option, info_level)) {
         return 0;
     }
 
-    /* initialize stuff */
-    stat_t *st  = initialize_statistics();
-    if (il > 0) {
-        printf("\n--------------- INPUT DATA ---------------\n");
-        printf("#variables             %11d\n", nvars);
-        printf("#equations             %11d\n", nr_gens);
-        printf("field characteristic   %11d\n", fc);
-        if (mo == 0) {
-            printf("monomial order                 DRL\n");
-        }
-        if (mo == 1) {
-            printf("monomial order                 LEX\n");
-        }
-        if ((mo != 0) && (mo != 1)) {
-            printf("monomial order           DONT KNOW\n");
-        }
-        printf("linear algebra option  %11d\n", laopt);
-        printf("intial hash table size %11d (2^%d)\n",
-                (int32_t)pow(2,htes), htes);
-        printf("reset hash table after %11d step(s)\n", rght);
-        printf("max pair selection     %11d\n", ps->mnsel);
-        printf("#threads               %11d\n", nthrds);
-        printf("info level             %11d\n", il);
-        printf("------------------------------------------\n");
+    if (st->info_level > 0) {
+        print_initial_statistics(st);
     }
 
-    initialize_basis(nr_gens);
+    bs_ff_t *bs = initialize_basis_ff(st);
     initialize_global_hash_table();
     initialize_local_hash_table();
+    ps_t * ps  = initialize_pairset(st);
 
     import_julia_data(lens, cfs, exps, nr_gens);
 
@@ -117,7 +97,7 @@ int64_t f4_julia(
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
     last_reset  = 0;
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("\ndeg     sel   pairs        mat          density \
           new data             time(rd)\n");
         printf("-------------------------------------------------\
@@ -156,7 +136,7 @@ int64_t f4_julia(
             printf("%13.3f sec\n", rrt1-rrt0);
         }
     }
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("-------------------------------------------------\
 ----------------------------------------\n");
     }
@@ -170,7 +150,7 @@ int64_t f4_julia(
     st->overall_ctime = ct1 - ct0;
     st->overall_rtime = rt1 - rt0;
 
-    if (il > 0) {
+    if (st->info_level > 0) {
         print_final_statistics(st);
     }
 

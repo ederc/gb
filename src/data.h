@@ -166,27 +166,6 @@ struct ps_t
     spair_t *p;
 };
 
-/* monomial order - until we have general orders:
- * 0 = DRL
- * 1 = LEX */
-static val_t mo = 0;
-
-/* field characteristic */
-static cf_t fc = 0;
-
-/* basis data */
-
-/* we need to store:
- * idx of coefficient array
- * length of array
- * offset for loop unrolling
- * => all in all length = real length + 3
- *
- * how to achieve the same offset, i.e. 3 in the coefficient array?
- * redundant yes/no ?
- * length ?
- * offset ? */
-
 /* basis definition */
 struct bs_t
 {
@@ -203,14 +182,19 @@ struct bs_t
 };
 
 /* matrix data */
-static len_t nrall  = 0; /* allocated rows for matrix */
-static len_t npivs  = 0; /* new pivots in the current round */
-static len_t nrows  = 0; /* rows used in the current round */
-static len_t ncols  = 0; /* columns used in the current round */
-static len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
-static len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
-static len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
-static len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
+typedef struct mat_t mat_t;
+struct mat_t
+{
+    len_t na;   /* number of rows allocated */
+    len_t nr;   /* number of rows */
+    len_t nc;   /* number of columns */
+    len_t np;   /* number of pivots */
+    len_t nru;  /* number of upper rows (ABCD splicing) */
+    len_t nrl;  /* number of lower rows (ABCD splicing) */
+    len_t ncl;  /* number of left columns (ABCD splicing) */
+    len_t ncr;  /* number of right columns (ABCD splicing) */
+    dt_t **r;   /* rows of matrix */
+};
 
 /* loop unrolling in sparse linear algebra:
  * we store the offset of the first elements not unrolled

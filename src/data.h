@@ -76,11 +76,13 @@ struct ht_t
     hl_t eld;         /* load of exponent vector */
     hl_t esz;         /* allocated exponent vector size */
     len_t nv;         /* number of variables */
+    len_t ndv;        /* number of variables used for divmask */
+    len_t bpv;        /* bits per variable for divmask */
     uint32_t rseed;   /* random seed */
     hl_t *map;        /* map between hash data and exponent vector */
     hd_t *hd;         /* hash data array */
     val_t *rv;        /* randomizing array for hashing */
-    sdm_t *dm;        /* divisor mask */
+    sdm_t *dm;        /* short divisor mask */
     exp_t *ev;        /* exponent vector array */
 };
 

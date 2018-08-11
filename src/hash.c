@@ -43,493 +43,364 @@
 
 /* The idea of the structure of the hash table is taken from an
  * implementation by Roman Pearce and Michael Monagan in Maple. */
-static val_t pseudo_random_number_generator(
-    void
+val_t pseudo_random_number_generator(
+    ht_t *ht
     )
 {
-	rseed ^= (rseed << 13);
-	rseed ^= (rseed >> 17);
-	rseed ^= (rseed << 5);
-	return (val_t)rseed;
+    ht->rseed ^= (ht->rseed << 13);
+    ht->rseed ^= (ht->rseed >> 17);
+    ht->rseed ^= (ht->rseed << 5);
+
+    return (val_t)ht->rseed;
 }
 
-static void initialize_global_hash_table(
-    void
+ht_t *initialize_global_hash_table(
+    const stat_t *st
     )
 {
-  len_t i;
-  hl_t j;
+    len_t i;
+    hl_t j;
 
-  /* generate map */
-  bpv   = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
-  if (bpv == 0) {
-    bpv++;
-  }
-  ndvars  = (unsigned long)nvars < (CHAR_BIT * sizeof(sdm_t)) ?
-    nvars : (len_t)((CHAR_BIT * sizeof(sdm_t)));
-  hsz   = (hl_t)pow(2, htes);
-  hmap  = calloc((unsigned long)hsz, sizeof(hl_t));
+    ht_t *ht  = (ht_t *)calloc(1, sizeof(ht_t));
+    ht->nv    = st->nr_vars;
+    ht->rseed = 2463534242;
 
-  /* generate divmask map */
-  dm  = calloc((unsigned long)(ndvars * bpv), sizeof(sdm_t));
+    /* generate map */
+    ht->bpv = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
+    if (ht->bpv == 0) {
+        ht->bpv++;
+    }
+    ht->ndv = (unsigned long)ht->nv < (CHAR_BIT * sizeof(sdm_t)) ?
+        ht->nv : (len_t)((CHAR_BIT * sizeof(sdm_t)));
+    ht->hsz = (hl_t)pow(2, st->init_ht_sz);
+    ht->map = calloc((unsigned long)ht->hsz, sizeof(hl_t));
 
-  /* generate random values */
-  rv  = calloc((unsigned long)nvars, sizeof(val_t));
-  for (i = nvars; i > 0; --i) {
-    /* random values should not be zero */
-    rv[i-1] = pseudo_random_number_generator() | 1;
-  }
-  /* generate exponent vector */
-  esz = hsz/2;
-  /* keep first entry empty for faster divisibility checks */
-  eld = 1;
-  hd  = (hd_t *)calloc((unsigned long)esz, sizeof(hd_t));
-  ev  = (exp_t **)malloc((unsigned long)esz * sizeof(exp_t *));
-  if (ev == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
-  if (tmp == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  for (j = 0; j < esz; ++j) {
-    ev[j]  = tmp + (unsigned long)(j*nvars);
-  }
+    /* generate divmask map */
+    ht->dm  = calloc((unsigned long)(ht->ndv * ht->bpv), sizeof(sdm_t));
 
-  etmp  = (exp_t *)malloc((unsigned long)esz * sizeof(exp_t));
+    /* generate random values */
+    ht->rv  = calloc((unsigned long)ht->nv, sizeof(val_t));
+    for (i = 0 ; i < ht->nv; ++i) {
+        /* random values should not be zero */
+        rv[i] = pseudo_random_number_generator() | 1;
+    }
+    /* generate exponent vector */
+    ht->esz = ht->hsz / 2;
+    /* keep first entry empty for faster divisibility checks */
+    ht->eld = 1;
+    ht->hd  = (hd_t *)calloc((unsigned long)ht->esz, sizeof(hd_t));
+    ht->ev  = (exp_t **)malloc((unsigned long)ht->esz * sizeof(exp_t *));
+    if (ht->ev == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    exp_t *tmp  = (exp_t *)malloc(
+            (unsigned long)ht->nv * (unsigned long)ht->esz * sizeof(exp_t));
+    if (tmp == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    for (j = 0; j < ht->esz; ++j) {
+        ht->ev[j]  = tmp + (unsigned long)(j * ht->nv);
+    }
+
+    return ht;
 }
 
-static void initialize_local_hash_table(
-    void
+ht_t *initialize_local_hash_table(
+    const stat_t *st,
+    const ht_t *ght
     )
 {
-  hl_t j;
+    hl_t j;
 
-  /* generate map */
-  hlsz  = (hl_t)pow(2, htes-5);
-  hmapl = calloc((unsigned long)hlsz, sizeof(hl_t));
+    ht_t *ht  = (ht_t *)calloc(1, sizeof(ht_t));
+    ht->nv    = st->nr_vars;
 
-  /* generate exponent vector */
-  elsz  = hlsz/2;
-  /* keep first entry empty for faster divisibility checks */
-  elld  = 1;
-  hdl   = (hd_t *)calloc((unsigned long)elsz, sizeof(hd_t));
-  evl   = (exp_t **)malloc((unsigned long)elsz * sizeof(exp_t *));
-  if (evl == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)elsz * sizeof(exp_t));
-  if (tmp == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  for (j = 0; j < elsz; ++j) {
-    evl[j]  = tmp + (unsigned long)(j*nvars);
-  }
+    ht->rv  = ght->rv;
+
+    /* generate map */
+    ht->sz  = (hl_t)pow(2, st->init_ht_sz - 5);
+    ht->map = calloc((unsigned long)ht->sz, sizeof(hl_t));
+
+    /* generate exponent vector */
+    ht->esz = ht->sz / 2;
+    /* keep first entry empty for faster divisibility checks */
+    ht->eld = 1;
+    ht->hd  = (hd_t *)calloc((unsigned long)ht->esz, sizeof(hd_t));
+    ht->ev  = (exp_t **)malloc((unsigned long)ht->esz * sizeof(exp_t *));
+    if (ht->ev == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    exp_t *tmp  = (exp_t *)malloc(
+            (unsigned long)ht->nv * (unsigned long)elsz * sizeof(exp_t));
+    if (tmp == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    for (j = 0; j < ht->esz; ++j) {
+        ht->ev[j]  = tmp + (unsigned long)(j*ht->nv);
+    }
+
+    return ht;
 }
 
-static void free_global_hash_table(
-    void
+void free_hash_table(
+    ht_t **htp
     )
 {
-  if (hmap) {
-    free(hmap);
-    hmap = NULL;
-  }
-  if (hd) {
-    free(hd);
-    hd  = NULL;
-  }
-  if (dm) {
-    free(dm);
-    dm  = NULL;
-  }
-  if (rv) {
-    free(rv);
-    rv  = NULL;
-  }
-  if (ev) {
-    /* note: memory is allocated as one big block,
-     *       so freeing ev[0] is enough */
-    free(ev[0]);
-    free(ev);
-    ev  = NULL;
-  }
-  if (etmp) {
-    free(etmp);
-    etmp  = NULL;
-  }
-  fc    = 0;
-  nvars = 0;
-  esz   = 0;
-  eld   = 0;
-  hsz   = 0;
-}
-
-static void free_local_hash_table(
-    void
-    )
-{
-  if (hmapl) {
-    free(hmapl);
-    hmapl  = NULL;
-  }
-  if (hdl) {
-    free(hdl);
-    hdl = NULL;
-  }
-  if (evl) {
-    /* note: memory is allocated as one big block,
-     *       so freeing evl[0] is enough */
-    free(evl[0]);
-    free(evl);
-    evl = NULL;
-  }
-  elsz  = 0;
-  elld  = 0;
-  hlsz  = 0;
+    ht_t *ht  = *htp;
+    if (ht->map) {
+        free(ht->map);
+    }
+    if (ht->hd) {
+        free(ht->hd);
+    }
+    if (ht->dm) {
+        free(ht->dm);
+    }
+    if (ht->rv) {
+        free(ht->rv);
+    }
+    if (ht->ev) {
+        /* note: memory is allocated as one big block,
+         *       so freeing ev[0] is enough */
+        free(ht->ev[0]);
+        free(ht->ev);
+    }
+    free(ht);
+    ht    = NULL;
+    *htp  = ht;
 }
 
 /* we just double the hash table size */
-static void enlarge_global_hash_table(
-    void
+void enlarge_global_hash_table(
+    ht_t *ht
     )
 {
-  hl_t i, j;
-  val_t h, k;
+    hl_t i, j;
+    val_t h, k;
 
-  j   = esz; /* store old size */
-  esz = 2 * esz;
-  hd  = realloc(hd, (unsigned long)esz * sizeof(hd_t));
-  memset(hd+eld, 0, (unsigned long)(esz-eld) * sizeof(hd_t));
-  ev  = realloc(ev, (unsigned long)esz * sizeof(exp_t *));
-  if (ev == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  /* note: memory is allocated as one big block, so reallocating
-   *       memory from ev[0] is enough    */
-  ev[0] = realloc(ev[0],
-      (unsigned long)esz * (unsigned long)nvars * sizeof(exp_t));
-  if (ev[0] == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  /* due to realloc we have to reset ALL ev entries,
-   * memory might have been moved */
-  for (i = 1; i < esz; ++i) {
-    ev[i] = ev[0] + (unsigned long)(i*nvars);
-  }
-
-  hsz   = 2 * hsz;
-  hmap  = realloc(hmap, (unsigned long)hsz * sizeof(hl_t));
-  memset(hmap, 0, (unsigned long)hsz * sizeof(hl_t));
-
-  /* reinsert known elements */
-  for (i = 1; i < eld; ++i) {
-    h = hd[i].val;
-
-    /* probing */
-    k = h;
-    for (j = 0; j < hsz; ++j) {
-      k = (k+j) & (hsz-1);
-      if (hmap[k]) {
-        continue;
-      }
-      hmap[k] = i;
-      break;
+    ht->esz = 2 * ht->esz;
+    ht->hd  = realloc(ht->hd, (unsigned long)ht->esz * sizeof(hd_t));
+    memset(ht->hd+ht->eld, 0, (unsigned long)(ht->esz-ht->eld) * sizeof(hd_t));
+    ht->ev  = realloc(ht->ev, (unsigned long)ht->esz * sizeof(exp_t *));
+    if (ht->ev == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
     }
-  }
+    /* note: memory is allocated as one big block, so reallocating
+     *       memory from ev[0] is enough    */
+    ht->ev[0] = realloc(ht->ev[0],
+            (unsigned long)ht->esz * (unsigned long)ht->nv * sizeof(exp_t));
+    if (ht->ev[0] == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    /* due to realloc we have to reset ALL ev entries,
+     * memory might have been moved */
+    for (i = 1; i < ht->esz; ++i) {
+        ht->ev[i] = ht->ev[0] + (unsigned long)(i*nvars);
+    }
+
+    ht->hsz = 2 * ht->hsz;
+    ht->map = realloc(ht->map, (unsigned long)ht->hsz * sizeof(hl_t));
+    memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hl_t));
+
+    const hl_t hsz  = ht->hsz;
+    const hk_t eld  = ht->eld;
+    /* reinsert known elements */
+    for (i = 1; i < eld; ++i) {
+        h = ht->hd[i].val;
+
+        /* probing */
+        k = h;
+        for (j = 0; j < hsz; ++j) {
+            k = (k+j) & (hsz-1);
+            if (ht->map[k]) {
+                continue;
+            }
+            ht->map[k]  = i;
+            break;
+        }
+    }
 }
 
-static inline sdm_t generate_short_divmask(
-    const exp_t * const a
+inline sdm_t generate_short_divmask(
+    const exp_t * const a,
+    const ht_t *ht
     )
 {
-  len_t i, j;
-  int32_t res = 0;
-  int32_t ctr = 0;
+    len_t i, j;
+    int32_t res = 0;
+    int32_t ctr = 0;
 
-  for (i = 0; i < ndvars; ++i) {
-    for (j = 0; j < bpv; ++j) {
-      if ((sdm_t)a[i] >= dm[ctr]) {
-        res |= 1 << ctr;
-      }
-      ctr++;
+    const len_t ndv = ht->ndv;
+    const len_t bpv = ht->bpv;
+
+    for (i = 0; i < ndv; ++i) {
+        for (j = 0; j < bpv; ++j) {
+            if ((sdm_t)a[i] >= ht->dm[ctr]) {
+                res |= 1 << ctr;
+            }
+            ctr++;
+        }
     }
-  }
- 
-  return res;
+
+    return res;
 }
 
 /* note: we calculate the divmask after reading in the input generators. those
  * are first stored in the local hash table. thus we use the local exponents to
  * generate the divmask */
-static inline void calculate_divmask(
-    void
+inline void calculate_divmask(
+    ht_t *ht
     )
 {
-  hl_t i;
-  len_t j, steps;
-  int32_t ctr = 0;
+    hl_t i;
+    len_t j, steps;
+    int32_t ctr = 0;
 
-  deg_t *max_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
-  deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
+    deg_t *max_exp  = (deg_t *)malloc((unsigned long)ht->ndv * sizeof(deg_t));
+    deg_t *min_exp  = (deg_t *)malloc((unsigned long)ht->ndv * sizeof(deg_t));
 
-  exp_t *e  = ev[1];
+    exp_t *e  = ht->ev[1];
 
-  /* get initial values from first hash table entry */
-  for (i = 0; i < ndvars; ++i) {
-    max_exp[i]  = min_exp[i]  = e[i];
-  }
-
-  /* get maximal and minimal exponent element entries in hash table */
-  for (i = 2; i < eld; ++i) {
-    e = ev[i];
-    for (j = 0; j < ndvars; ++j) {
-      if (e[j] > max_exp[j]) {
-        max_exp[j]  = e[j];
-        continue;
-      }
-      if (e[j] < min_exp[j]) {
-        min_exp[j]  = e[j];
-      }
+    /* get initial values from first hash table entry */
+    for (i = 0; i < ht->ndv; ++i) {
+        max_exp[i]  = min_exp[i]  = e[i];
     }
-  }
 
-  /* calculate average values for generating divmasks */
-  for (i = 0; i < ndvars; ++i) {
-    steps = (max_exp[i] - min_exp[i]) / bpv;
-    if (steps == 0)
-      steps++;
-    for (j = 0; j < bpv; ++j) {
-      dm[ctr++] = (sdm_t)steps++;
+    /* get maximal and minimal exponent element entries in hash table */
+    for (i = 2; i < ht->eld; ++i) {
+        e = ht->ev[i];
+        for (j = 0; j < ht->ndv; ++j) {
+            if (e[j] > max_exp[j]) {
+                max_exp[j]  = e[j];
+                continue;
+            }
+            if (e[j] < min_exp[j]) {
+                min_exp[j]  = e[j];
+            }
+        }
     }
-  }
 
-  /* initialize divmasks for elements already added to hash table */
-  for (i = 1; i < eld; i++) {
-    hd[i].sdm = generate_short_divmask(ev[i]);
-  }
+    /* calculate average values for generating divmasks */
+    for (i = 0; i < ht->ndv; ++i) {
+        steps = (max_exp[i] - min_exp[i]) / ht->bpv;
+        if (steps == 0)
+            steps++;
+        for (j = 0; j < ht->bpv; ++j) {
+            ht->dm[ctr++] = (sdm_t)steps++;
+        }
+    }
 
-  free(max_exp);
-  free(min_exp);
+    /* initialize divmasks for elements already added to hash table */
+    for (i = 1; i < ht->eld; i++) {
+        ht->hd[i].sdm = generate_short_divmask(ht->ev[i], ht);
+    }
+
+    free(max_exp);
+    free(min_exp);
 }
 
 /* returns zero if a is not divisible by b, else 1 is returned */
-static inline hl_t check_monomial_division(
+inline hl_t check_monomial_division(
     const hl_t a,
-    const hl_t b
+    const hl_t b,
+    const ht_t *ht
     )
 {
-  len_t i;
-  const len_t nv  = nvars;
+    len_t i;
+    const len_t nv  = ht->nv;
 
-  /* short divisor mask check */
-  if (hd[b].sdm & ~hd[a].sdm) {
-    return 0;
-  }
-
-  const exp_t *const ea = ev[a];
-  const exp_t *const eb = ev[b];
-  /* exponent check */
-  if (ea[0] < eb[0]) {
-    return 0;
-  }
-  i = nv & 1 ? 1 : 0;
-  for (; i < nv; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
+    /* short divisor mask check */
+    if (hd[b].sdm & ~hd[a].sdm) {
+        return 0;
     }
-  }
-  return 1;
+
+    const exp_t *const ea = ht->ev[a];
+    const exp_t *const eb = ht->ev[b];
+    /* exponent check */
+    if (ea[0] < eb[0]) {
+        return 0;
+    }
+    i = nv & 1 ? 1 : 0;
+    for (; i < nv; i += 2) {
+        if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
-static inline hl_t check_monomial_division_local(
-    const hl_t a,
-    const hl_t b
+inline hl_t insert_in_hash_table_no_enlargement_check(
+    const exp_t *a,
+    ht_t *ht
     )
 {
-  len_t i;
-  const len_t nv  = nvars;
+    hl_t i, k, pos;
+    len_t j;
+    exp_t deg;
+    exp_t *e;
+    hd_t *d;
+    val_t h = 0;
 
-  /* short divisor mask check */
-  if (hdl[b].sdm & ~hdl[a].sdm) {
-    return 0;
-  }
-
-  const exp_t *const ea = evl[a];
-  const exp_t *const eb = evl[b];
-  /* exponent check */
-  if (ea[0] < eb[0]) {
-    return 0;
-  }
-  i = nv & 1 ? 1 : 0;
-  for (; i < nv; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
+    /* generate hash value */
+    for (j = 0; j < ht->nv; ++j) {
+        h +=  ht->rv[j] * a[j];
     }
-  }
-  return 1;
+
+    const hl_t hsz  = ht->hsz;
+    /* probing */
+    k = h;
+    for (i = 0; i < hsz; ++i) {
+        k = (k+i) & (hsz-1);
+        if (!ht->map[k]) {
+            break;
+        }
+        if (ht->hd[ht->map[k]].val != h) {
+            continue;
+        }
+        if (memcmp(ht->ev + ht->map[k], a,
+                    (unsigned long)ht->nv * sizeof(exp_t)) == 0) {
+            return ht->map[k];
+        }
+    }
+
+    /* add element to hash table */
+    ht->map[k]  = pos = ht->eld;
+    e   = ht->ev + pos;
+    d   = ht->hd + pos;
+    deg = 0;
+    for (j = 0; j < ht->nv; ++j) {
+        e[j]  =   a[j];
+        deg   +=  a[j];
+    }
+    d->deg  = deg;
+    d->sdm  = generate_short_divmask(e, ht);
+    d->val  = h;
+
+    return pos;
 }
 
-static inline hl_t insert_in_global_hash_table(
-    const exp_t *a
+inline hl_t insert_in_hash_table(
+    const exp_t *a,
+    ht_t *ht
     )
 {
-  hl_t i, k, pos;
-  len_t j;
-  exp_t deg;
-  exp_t *e;
-  hd_t *d;
-  val_t h = 0;
+    hl_t pos  = insert_in_hash_table_no_enlargement_check(a, ht);
 
-  /* generate hash value */
-  for (j = 0; j < nvars; ++j) {
-    h +=  rv[j] * a[j];
-  }
-
-  /* probing */
-  k = h;
-  for (i = 0; i < hsz; ++i) {
-    k = (k+i) & (hsz-1);
-    if (!hmap[k]) {
-      break;
+    ht->eld++;
+    if (ht->eld >= ht->esz) {
+        enlarge_global_hash_table(ht);
     }
-    if (hd[hmap[k]].val != h) {
-      continue;
-    }
-    if (memcmp(ev[hmap[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
-    }
-  }
 
-  /* add element to hash table */
-  hmap[k]  = pos = eld;
-  e   = ev[pos];
-  d   = hd + pos;
-  deg = 0;
-  for (j = 0; j < nvars; ++j) {
-    e[j]  =   a[j];
-    deg   +=  a[j];
-  }
-  d->deg  = deg;
-  d->sdm  = generate_short_divmask(e);
-  d->val  = h;
-
-  eld++;
-  if (eld >= esz) {
-    enlarge_global_hash_table();
-  }
-
-  return pos;
+    return pos;
 }
 
-static inline hl_t insert_in_global_hash_table_no_enlargement_check(
-    const exp_t *a
-    )
-{
-  hl_t i, k, pos;
-  len_t j;
-  exp_t deg;
-  exp_t *e;
-  hd_t *d;
-  val_t h = 0;
-
-  /* generate hash value */
-  for (j = 0; j < nvars; ++j) {
-    h +=  rv[j] * a[j];
-  }
-
-  /* probing */
-  k = h;
-  for (i = 0; i < hsz; ++i) {
-    k = (k+i) & (hsz-1);
-    if (!hmap[k]) {
-      break;
-    }
-    if (hd[hmap[k]].val != h) {
-      continue;
-    }
-    if (memcmp(ev[hmap[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
-    }
-  }
-
-  /* add element to hash table */
-  hmap[k]  = pos = eld;
-  e   = ev[pos];
-  d   = hd + pos;
-  deg = 0;
-  for (j = 0; j < nvars; ++j) {
-    e[j]  =   a[j];
-    deg   +=  a[j];
-  }
-  d->deg  = deg;
-  d->sdm  = generate_short_divmask(e);
-  d->val  = h;
-
-  eld++;
-
-  return pos;
-}
-
-
-static inline hl_t insert_in_local_hash_table(
-    const exp_t *a
-    )
-{
-  hl_t i, k, pos;
-  len_t j;
-  exp_t deg;
-  exp_t *e;
-  hd_t *d;
-  val_t h = 0;
-
-  /* generate hash value */
-  for (j = 0; j < nvars; ++j) {
-    h +=  rv[j] * a[j];
-  }
-
-  /* probing */
-  k = h;
-  for (i = 0; i < hlsz; ++i) {
-    k = (k+i) & (hlsz-1);
-    if (!hmapl[k]) {
-      break;
-    }
-    if (hd[hmapl[k]].val != h) {
-      continue;
-    }
-    if (memcmp(evl[hmapl[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmapl[k];
-    }
-  }
-
-  /* add element to hash table */
-  hmapl[k]  = pos = elld;
-  e   = evl[pos];
-  d   = hdl + pos;
-  deg = 0;
-  for (j = 0; j < nvars; ++j) {
-    e[j]  =   a[j];
-    deg   +=  a[j];
-  }
-  d->deg  = deg;
-  d->sdm  = generate_short_divmask(e);
-  d->val  = h;
-
-  elld++;
-
-  return pos;
-}
-
-static inline void reset_local_hash_table(
+inline void reset_local_hash_table(
     const len_t size
     )
 {
@@ -611,7 +482,7 @@ static inline hl_t insert_in_global_hash_table_product_special(
   hmap[k] = pos = eld;
   d = hd + eld;
   d->deg  = deg + hd[b].deg;
-  d->sdm  = generate_short_divmask(n);
+  d->sdm  = generate_short_divmask(n, ht);
   d->val  = h;
 
   eld++;
@@ -656,7 +527,7 @@ static inline hl_t insert_in_global_hash_table_product(
   hmap[k] = pos = eld;
   d = hd + eld;
   d->deg  = hd[a].deg + hd[b].deg;
-  d->sdm  = generate_short_divmask(n);
+  d->sdm  = generate_short_divmask(n, ht);
   d->val  = h;
 
   eld++;

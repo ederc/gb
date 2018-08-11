@@ -22,48 +22,57 @@
 
 #include "data.h"
 
-static void initialize_basis(
-        int32_t ngens
+bs_t *initialize_basis(
+        const stat_t *st
         )
 {
-    bload = 0;
-    bsize = 2*ngens;
+    bs_t *bs  = (bs_t *)malloc(sizeof(bs_t));
 
-    gbcf  = (cf_t **)malloc((unsigned long)bsize * sizeof(cf_t *));
-    gbdt  = (dt_t **)malloc((unsigned long)bsize * sizeof(dt_t *));
-    lms   = (sdm_t *)malloc((unsigned long)bsize * sizeof(sdm_t));
+    bs->lo  = 0;
+    bs->ld  = 0;
+    bs->sz  = 2 * st->nr_gens;
+
+    bs->cf  = (void **)malloc((unsigned long)bs->sz * sizeof(void *));
+    bs->hd  = (dt_t **)malloc((unsigned long)bs->sz * sizeof(dt_t *));
+    bs->lm  = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
+
+    bs->tcf = NULL;
+
+    return bs;
 }
 
-static inline void check_enlarge_basis(
+inline void check_enlarge_basis(
+        bs_t *bs,
         len_t added
         )
 {
-    if (bload+added >= bsize) {
-        bsize = bsize*2 > bload+added ? bsize*2 : bload+added;
-        gbcf  = realloc(gbcf, (unsigned long)bsize * sizeof(cf_t *));
-        gbdt  = realloc(gbdt, (unsigned long)bsize * sizeof(dt_t *));
-        lms   = realloc(lms, (unsigned long)bsize * sizeof(sdm_t));
+    if (bs->ld+added >= bs->sz) {
+        bs->sz  = bs->sz*2 > bs->ld+added ? bs->sz*2 : bs->ld+added;
+        bs->cf  = realloc(bs->cf, (unsigned long)bsize * sizeof(void *));
+        bs->hd  = realloc(bs->hd, (unsigned long)bsize * sizeof(dt_t *));
+        bs->lm  = realloc(bs->lm, (unsigned long)bsize * sizeof(sdm_t));
     }
 }
 
 static void free_basis(
-        void
+        bs_t **bsp
         )
 {
+    bs_t *bs  = *bsp;
     len_t i;
-    if (gbcf) {
-        for (i = 0; i < bload; ++i) {
-            free(gbcf[i]);
-            free(gbdt[i]);
+    if (bs->hd) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf[i]);
+            free(bs->hd[i]);
         }
-        free(gbcf);
-        gbcf  = NULL;
-        free(gbdt);
-        gbdt  = NULL;
-        free(lms);
-        lms   = NULL;
-        blold = 0;
-        bload = 0;
-        bsize = 0;
+        free(bs->cf);
+        bs->cf  = NULL;
+        free(bs->hd);
+        bs->hd  = NULL;
+        free(bs->lm);
+        bs->lm  = NULL;
     }
+
+    bs    = NULL;
+    *bsp  = bs;
 }

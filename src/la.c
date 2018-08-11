@@ -21,6 +21,24 @@
  */
 #include "data.h"
 
+inline mat_t *initialize_matrix(
+        void
+        )
+{
+    mat_t *mat  = (mat_t *)calloc(sizeof(mat_t));
+
+    return mat;
+}
+
+inline void free_matrix(
+        mat_t **matp
+        )
+{
+    mat_t *mat  = *matp;
+    free(mat);
+    *matp = mat;
+}
+
 static inline cf_t **free_dense_matrix(
         cf_t **dm
         )

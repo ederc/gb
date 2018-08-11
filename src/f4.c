@@ -74,16 +74,19 @@ int64_t f4_julia(
         print_initial_statistics(st);
     }
 
-    bs_ff_t *bs = initialize_basis_ff(st);
-    initialize_global_hash_table();
-    initialize_local_hash_table();
-    ps_t * ps  = initialize_pairset(st);
+    bs_t *bs    = initialize_basis(st);
+    ht_t *ght   = initialize_global_hash_table(st);
+    ht_t *lht   = initialize_local_hash_table(st, ght);
+    ps_t *ps    = initialize_pairset(st);
+    mat_t *mat  = initialize_matrix();
 
     import_julia_data(lens, cfs, exps, nr_gens);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
-    calculate_divmask();
+    calculate_divmask(ght);
+    /* set short divisor mask also for local hash table */
+    lht->dm = ght->dm;
 
     /* sort initial elements, smallest lead term first */
     qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
@@ -98,10 +101,7 @@ int64_t f4_julia(
      * are left in the pairset */
     last_reset  = 0;
     if (st->info_level > 1) {
-        printf("\ndeg     sel   pairs        mat          density \
-          new data             time(rd)\n");
-        printf("-------------------------------------------------\
-----------------------------------------\n");
+        print_round_statistics_header();
     }
     for (round = 0; ps->ld > 0; ++round) {
         rct0 = cputime();
@@ -132,13 +132,12 @@ int64_t f4_julia(
 
         rct1 = cputime();
         rrt1 = realtime();
-        if (il > 1) {
+        if (st->info_level > 1) {
             printf("%13.3f sec\n", rrt1-rrt0);
         }
     }
     if (st->info_level > 1) {
-        printf("-------------------------------------------------\
-----------------------------------------\n");
+        print_round_statistics_footer();
     }
 
     st->len_output  = export_julia_data(jl_basis);
@@ -155,14 +154,15 @@ int64_t f4_julia(
     }
 
     /* free and clean up */
-    free_local_hash_table();
-    free_global_hash_table();
+    free_hash_table(&ght);
+    /* rv and dm is shared with ght, thus already removed. we have
+     * to set them to NULL in order to prevent a second free'ing. */
+    lht->rv = NULL;
+    lht->dm = NULL;
+    free_hash_table(&lht);
     free_pairset(&ps);
-    /* note that all rows kept from mat during the overall computation are
-     * basis elements and thus we do not need to free the rows itself, but
-     * just the matrix structure */
-    free(mat);
-    free_basis();
+    free_matrix(&mat);
+    free_basis(&bs);
 
     int64_t output  = st->len_output;
     free(st);

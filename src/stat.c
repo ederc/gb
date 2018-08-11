@@ -71,7 +71,26 @@ static stat_t *initialize_statistics(
     return st;
 }
 
-static void print_initial_statistics(
+void print_round_statistics_header(
+        void
+        )
+{
+        printf("\ndeg     sel   pairs        mat          density \
+          new data             time(rd)\n");
+        printf("-------------------------------------------------\
+----------------------------------------\n");
+}
+
+void print_round_statistics_footer(
+        void
+        )
+{
+        printf("-------------------------------------------------\
+----------------------------------------\n");
+}
+
+
+void print_initial_statistics(
         const stat_t *st
         )
 {

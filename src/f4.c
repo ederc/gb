@@ -95,7 +95,7 @@ int64_t f4_julia(
     normalize_matrix_rows(gbcf);
 
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, st);
+    update_basis(ps, ght, lht, st);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
@@ -128,7 +128,7 @@ int64_t f4_julia(
         mat = NULL;
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
 
-        update_basis(ps, st);
+        update_basis(ps, ght, lht, st);
 
         rct1 = cputime();
         rrt1 = realtime();

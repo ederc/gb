@@ -35,6 +35,7 @@ bs_t *initialize_basis(
     bs->cf  = (void **)malloc((unsigned long)bs->sz * sizeof(void *));
     bs->hd  = (dt_t **)malloc((unsigned long)bs->sz * sizeof(dt_t *));
     bs->lm  = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
+    bs->red = (red_t *)malloc((unsigned long)bs->sz * sizeof(red_t));
 
     bs->tcf = NULL;
 
@@ -48,9 +49,10 @@ inline void check_enlarge_basis(
 {
     if (bs->ld+added >= bs->sz) {
         bs->sz  = bs->sz*2 > bs->ld+added ? bs->sz*2 : bs->ld+added;
-        bs->cf  = realloc(bs->cf, (unsigned long)bsize * sizeof(void *));
-        bs->hd  = realloc(bs->hd, (unsigned long)bsize * sizeof(dt_t *));
-        bs->lm  = realloc(bs->lm, (unsigned long)bsize * sizeof(sdm_t));
+        bs->cf  = realloc(bs->cf, (unsigned long)bs->sz * sizeof(void *));
+        bs->hd  = realloc(bs->hd, (unsigned long)bs->sz * sizeof(dt_t *));
+        bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
+        bs->red = realloc(bs->red, (unsigned long)bs->sz * sizeof(red_t));
     }
 }
 
@@ -71,6 +73,8 @@ static void free_basis(
         bs->hd  = NULL;
         free(bs->lm);
         bs->lm  = NULL;
+        free(bs->red);
+        bs->red = NULL;
     }
 
     bs    = NULL;

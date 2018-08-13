@@ -46,6 +46,7 @@ typedef int32_t cf32_t;   /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t dt_t;        /* data type for other polynomial informatio */
+typedef int8_t red_t;     /* redundancy type */
 /* like exponent hashes, etc. */
 typedef int32_t ind_t;    /* index in hash table structure */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
@@ -83,7 +84,7 @@ struct ht_t
     hd_t *hd;         /* hash data array */
     val_t *rv;        /* randomizing array for hashing */
     sdm_t *dm;        /* short divisor mask */
-    exp_t *ev;        /* exponent vector array */
+    exp_t **ev;       /* exponent vector array */
 };
 
 /* statistic stuff */
@@ -178,6 +179,7 @@ struct bs_t
                 /* underlying ring, e.g. finite field or rationals or ... */
     dt_t **hd;  /* hash data arrays of elements */
     sdm_t *lm;  /* lead monomials of elements */
+    red_t *red; /* is the element redundant? */
     void **tcf; /* temporary coefficient arrays for storing coefficents */
                 /* during linear algebra computation, type depends on */
                 /* underlying ring, see above */

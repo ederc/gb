@@ -443,166 +443,125 @@ inline void reset_local_hash_table(
   }
 }
 
-static inline hl_t insert_in_global_hash_table_product_special(
+inline hl_t insert_in_hash_table_product_special(
     const val_t h1,
     const deg_t deg,
     const exp_t * const ea,
-    const hl_t b
+    const hl_t b,
+    ht_t *ht
     )
 {
-  hl_t i, k, pos;
-  len_t j;
-  exp_t *n;
-  hd_t *d;
+    hl_t i, k, pos;
+    len_t j;
+    exp_t *n;
+    hd_t *d;
 
-  /* printf("b %d | bload %d\n", b, bload); */
-  const val_t h   = h1 + hd[b].val;
-  const exp_t * const eb = ev[b];
+    /* printf("b %d | bload %d\n", b, bload); */
+    const val_t h   = h1 + ht->hd[b].val;
+    const exp_t * const eb = ht->ev[b];
 
-  n = ev[eld];
-  for (j = 0; j < nvars; ++j) {
-    n[j]  = ea[j] + eb[j];
-  }
-  /* probing */
-  k = h;
-  for (i = 0; i < hsz; ++i) {
-    k = (k+i) & (hsz-1);
-    if (!hmap[k]) {
-      break;
+    n = ht->ev[ht->eld];
+    const hl_t hsz  = ht->hsz;
+    for (j = 0; j < ht->nv; ++j) {
+        n[j]  = ea[j] + eb[j];
     }
-    if (hd[hmap[k]].val != h) {
-      continue;
+    /* probing */
+    k = h;
+    for (i = 0; i < hsz; ++i) {
+        k = (k+i) & (hsz-1);
+        if (!ht->map[k]) {
+            break;
+        }
+        if (ht->hd[ht->map[k]].val != h) {
+            continue;
+        }
+        if (memcmp(n, ht->ev[ht->map[k]],
+                    (unsigned long)ht->nv * sizeof(exp_t)) == 0) {
+            return ht->map[k];
+        }
     }
-    if (memcmp(n, ev[hmap[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
-    }
-  }
 
-  /* add element to hash table */
-  hmap[k] = pos = eld;
-  d = hd + eld;
-  d->deg  = deg + hd[b].deg;
-  d->sdm  = generate_short_divmask(n, ht);
-  d->val  = h;
+    /* add element to hash table */
+    ht->map[k]  = pos = ht->eld;
+    d           = ht->hd + ht->eld;
+    d->deg      = deg + ht->hd[b].deg;
+    d->sdm      = generate_short_divmask(n, ht);
+    d->val      = h;
 
-  eld++;
-  return pos;
+    ht->eld++;
+    return pos;
 }
 
-/* note that the product insertion, i.e. monomial x polynomial
- * is only needed for the local hash table. in the global one we
- * only add the basis elements, i.e. no multiplication is applied. */
-static inline hl_t insert_in_global_hash_table_product(
-    const hl_t a,
-    const hl_t b
-    )
-{
-  hl_t i, k, pos;
-  len_t j;
-  exp_t *n;
-  hd_t *d;
-
-  const val_t h   = hd[a].val + hd[b].val;
-
-  /* printf("hash %d\n", h); */
-  n = ev[eld];
-  for (j = 0; j < nvars; ++j) {
-    n[j]  = ev[a][j] + ev[b][j];
-  }
-  k = h;
-  for (i = 0; i < hsz; ++i) {
-    k = (k+i) & (hsz-1);
-    if (!hmap[k]) {
-      break;
-    }
-    if (hd[hmap[k]].val != h) {
-      continue;
-    }
-    if (memcmp(n, ev[hmap[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
-    }
-  }
-
-  /* add element to hash table */
-  hmap[k] = pos = eld;
-  d = hd + eld;
-  d->deg  = hd[a].deg + hd[b].deg;
-  d->sdm  = generate_short_divmask(n, ht);
-  d->val  = h;
-
-  eld++;
-  return pos;
-}
-
-static void reset_global_hash_table(
+void reset_global_hash_table(
+    ht_t *ht,
     ps_t *psl,
     stat_t *st
     )
 {
-  /* timings */
-  double ct0, ct1, rt0, rt1;
-  ct0 = cputime();
-  rt0 = realtime();
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
 
-  len_t i, j;
-  hl_t k;
-  exp_t *e;
-  dt_t *b;
+    len_t i, j;
+    hl_t k;
+    exp_t *e;
+    dt_t *b;
 
-  spair_t *ps = psl->p;
-
-  exp_t **oev  = ev;
-  ev  = calloc((unsigned long)esz, sizeof(exp_t *));
-  if (ev == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
-  if (tmp == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  for (k = 0; k < esz; ++k) {
-    ev[k]  = tmp + k*nvars;
-  }
-  eld = 1;
-  memset(hmap, 0, (unsigned long)hsz * sizeof(hl_t));
-  memset(hd, 0, (unsigned long)esz * sizeof(hd_t));
-
-  /* reinsert known elements */
-  for (i = 0; i < bload; ++i) {
-    b = gbdt[i];
-    for (j = 3; j < b[1]; ++j) {
-      e = oev[b[j]];
-      b[j]  = insert_in_global_hash_table_no_enlargement_check(e);
+    exp_t **oev  = ht->ev;
+    ht->ev  = calloc((unsigned long)ht->esz, sizeof(exp_t *));
+    if (ht->ev == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
     }
-    for (; j < b[2]; j += 4) {
-      e       = oev[b[j]];
-      b[j]    = insert_in_global_hash_table_no_enlargement_check(e);
-      e       = oev[b[j+1]];
-      b[j+1]  = insert_in_global_hash_table_no_enlargement_check(e);
-      e       = oev[b[j+2]];
-      b[j+2]  = insert_in_global_hash_table_no_enlargement_check(e);
-      e       = oev[b[j+3]];
-      b[j+3]  = insert_in_global_hash_table_no_enlargement_check(e);
+    exp_t *tmp  = (exp_t *)malloc(
+            (unsigned long)ht->nv * (unsigned long)ht->esz * sizeof(exp_t));
+    if (tmp == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
     }
-  }
-  const len_t pld = psl->ld;
-  for (i = 0; i < pld; ++i) {
-    e = oev[ps[i].lcm];
-    ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(e);
-  }
-  /* note: all memory is allocated as a big block, so it is
-   *       enough to free oev[0].       */
-  free(oev[0]);
-  free(oev);
+    for (k = 0; k < ht->esz; ++k) {
+        ht->ev[k]  = tmp + k*ht-<nv;
+    }
+    ht->eld = 1;
+    memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hl_t));
+    memset(ht->hd, 0, (unsigned long)ht->esz * sizeof(hd_t));
 
-  /* timings */
-  ct1 = cputime();
-  rt1 = realtime();
-  st->rght_ctime  +=  ct1 - ct0;
-  st->rght_rtime  +=  rt1 - rt0;
+    /* reinsert known elements */
+    for (i = 0; i < bs->ld; ++i) {
+        b = bs->hd[i];
+        for (j = 3; j < b[1]; ++j) {
+            e = oev[b[j]];
+            b[j]  = insert_in_hash_table_no_enlargement_check(e, ht);
+        }
+        for (; j < b[2]; j += 4) {
+            e       = oev[b[j]];
+            b[j]    = insert_in_hash_table_no_enlargement_check(e, ht);
+            e       = oev[b[j+1]];
+            b[j+1]  = insert_in_hash_table_no_enlargement_check(e, ht);
+            e       = oev[b[j+2]];
+            b[j+2]  = insert_in_hash_table_no_enlargement_check(e, ht);
+            e       = oev[b[j+3]];
+            b[j+3]  = insert_in_hash_table_no_enlargement_check(e, ht);
+        }
+    }
+
+    const len_t pld = psl->ld;
+    spair_t *ps = psl->p;
+    for (i = 0; i < pld; ++i) {
+        e = oev[ps[i].lcm];
+        ps[i].lcm = insert_in_hash_table_no_enlargement_check(e, ht);
+    }
+    /* note: all memory is allocated as a big block, so it is
+     *       enough to free oev[0].       */
+    free(oev[0]);
+    free(oev);
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    st->rght_ctime  +=  ct1 - ct0;
+    st->rght_rtime  +=  rt1 - rt0;
 }
 
 /* we can check equality of lcm and multiplication of two monomials
@@ -611,109 +570,110 @@ static void reset_global_hash_table(
 static inline int lcm_equals_multiplication(
     const hl_t a,
     const hl_t b,
-    const hl_t lcm
+    const ht_t * const ght,
+    const hl_t lcm,
+    const ht_t *const lht
     )
 {
-  const hd_t ha = hd[a];
-  const hd_t hb = hd[b];
-  const hd_t hl = hdl[lcm];
+    const hd_t ha = ght->hd[a];
+    const hd_t hb = ght->hd[b];
+    const hd_t hl = lht->hd[lcm];
 
-  if (hl.deg != ha.deg + hb.deg) {
-    return 0;
-  }
-  if (hl.val != ha.val + hb.val) {
-    return 0;
-  } else {
-    /* both have the same degree and the same hash value, either they
-     * are the same or our hashing is broken resp. really bad */
-    return 1;
-  }
+    if (hl.deg != ha.deg + hb.deg) {
+        return 0;
+    }
+    if (hl.val != ha.val + hb.val) {
+        return 0;
+    } else {
+        /* both have the same degree and the same hash value, either they
+         * are the same or our hashing is broken resp. really bad */
+        return 1;
+    }
 }
 
 static inline hl_t get_lcm(
     const hl_t a,
-    const hl_t b
+    const hl_t b,
+    const ht_t * const ght,
+    ht_t *lht
     )
 {
-  len_t i;
+    len_t i;
 
-  /* exponents of basis elements, thus from global hash table */
-  const exp_t * const ea = ev[a];
-  const exp_t * const eb = ev[b];
+    /* exponents of basis elements, thus from global hash table */
+    const exp_t * const ea = ght->ev + a;
+    const exp_t * const eb = ght->ev + b;
 
-  for (i = 0; i < nvars; ++i) {
-    etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
-  }
-  /* goes into local hash table for spairs */
-  return insert_in_local_hash_table(etmp);
-}
-
-static inline hl_t monomial_multiplication(
-    const hl_t a,
-    const hl_t b
-    )
-{
-  return insert_in_global_hash_table_product(a, b);
+    for (i = 0; i < ght->nv; ++i) {
+        etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
+    }
+    /* goes into local hash table for spairs */
+    return insert_in_hash_table(etmp, lht);
 }
 
 /* we try monomial division including check if divisibility is
  * fulfilled. */
 static inline hl_t monomial_division_with_check(
     const hl_t a,
-    const hl_t b
+    const hl_t b,
+    ht_t * ht
     )
 {
-  len_t i;
+    len_t i;
 
-  const hd_t ha = hd[a];
-  const hd_t hb = hd[b];
-  /* short divisor mask check */
-  if (hb.sdm & ~ha.sdm) {
-    return 0;
-  }
-
-  const exp_t * const ea  = ev[a];
-  const exp_t * const eb  = ev[b];
-  etmp[0]  = ea[0] - eb[0];
-
-  i = nvars & 1 ? 1 : 0;
-  for (; i < nvars; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
-    } else {
-      etmp[i]    = ea[i] - eb[i];
-      etmp[i+1]  = ea[i+1] - eb[i+1];
+    const hd_t ha = ht->hd[a];
+    const hd_t hb = ht->hd[b];
+    /* short divisor mask check */
+    if (hb.sdm & ~ha.sdm) {
+        return 0;
     }
-  }
-  return insert_in_global_hash_table(etmp);
+
+    const len_t nv  = ht->nv;
+    const exp_t * const ea  = ht->ev[a];
+    const exp_t * const eb  = ht->ev[b];
+    etmp[0]  = ea[0] - eb[0];
+
+    i = nv & 1 ? 1 : 0;
+    for (; i < nv; i += 2) {
+        if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+            return 0;
+        } else {
+            etmp[i]    = ea[i] - eb[i];
+            etmp[i+1]  = ea[i+1] - eb[i+1];
+        }
+    }
+    return insert_in_hash_table(etmp, ht);
 }
 
 /* it is assumed that b divides a, thus no tests for
  * divisibility at all */
 static inline hl_t monomial_division_no_check(
     const hl_t a,
-    const hl_t b
+    const hl_t b,
+    ht_t *ht
     )
 {
-  len_t i;
+    len_t i;
 
-  const exp_t * const ea  = ev[a];
-  const exp_t * const eb  = ev[b];
+    const exp_t * const ea  = ht->ev[a];
+    const exp_t * const eb  = ht->ev[b];
 
-  i = nvars & 1 ? 1 : 0;
-  for (; i < nvars; i += 2) {
-    etmp[i]    = ea[i]   - eb[i];
-    etmp[i+1]  = ea[i+1] - eb[i+1];
-  }
-  etmp[0]  = ea[0] - eb[0];
-  return insert_in_global_hash_table(etmp);
+    const len_t nv  = ht->nv;
+    i = nv & 1 ? 1 : 0;
+    for (; i < nv; i += 2) {
+        etmp[i]    = ea[i]   - eb[i];
+        etmp[i+1]  = ea[i+1] - eb[i+1];
+    }
+    etmp[0]  = ea[0] - eb[0];
+    return insert_in_hash_table(etmp, ht);
 }
 
 static inline dt_t *multiplied_polynomial_to_matrix_row(
     const val_t hm,
     const deg_t deg,
     const exp_t * const em,
-    const dt_t *poly
+    const dt_t *poly,
+    ht_t *ht
     )
 {
   len_t i;
@@ -725,35 +685,38 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  while (eld+poly[2]-3 >= esz) {
-    enlarge_global_hash_table();
+  while (ht->eld+poly[2]-3 >= ht->esz) {
+    enlarge_global_hash_table(ht);
   }
   /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
   for (i = 3; i < poly[1]; ++i) {
-    row[i]  = insert_in_global_hash_table_product_special(
-                hm, deg, em, poly[i]);
+    row[i]  = insert_in_hash_table_product_special(
+                hm, deg, em, poly[i], ht);
   }
   for (;i < poly[2]; i += 4) {
-    row[i]    = insert_in_global_hash_table_product_special(
-                  hm, deg, em, poly[i]);
-    row[i+1]  = insert_in_global_hash_table_product_special(
-                  hm, deg, em, poly[i+1]);
-    row[i+2]  = insert_in_global_hash_table_product_special(
-                  hm, deg, em, poly[i+2]);
-    row[i+3]  = insert_in_global_hash_table_product_special(
-                  hm, deg, em, poly[i+3]);
+    row[i]    = insert_in_hash_table_product_special(
+                  hm, deg, em, poly[i], ht);
+    row[i+1]  = insert_in_hash_table_product_special(
+                  hm, deg, em, poly[i+1], ht);
+    row[i+2]  = insert_in_hash_table_product_special(
+                  hm, deg, em, poly[i+2], ht);
+    row[i+3]  = insert_in_hash_table_product_special(
+                  hm, deg, em, poly[i+3], ht);
   }
 
   return row;
 }
 
 static inline hl_t *reset_idx_in_global_hash_table_and_free_hcm(
-        hl_t *hcm
+        hl_t *hcm,
+        ht_t *ht,
+        const len_t nc
         )
 {
     len_t i;
 
-    for (i = 0; i < ncols; ++i) {
+    hd_t *hd  = ht->hd;
+    for (i = 0; i < nc; ++i) {
         hd[hcm[i]].idx  = 0;
     }
     free(hcm);

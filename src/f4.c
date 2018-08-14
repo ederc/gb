@@ -109,11 +109,7 @@ int64_t f4_julia(
         rct0 = cputime();
         rrt0 = realtime();
 
-        st->max_ht_size = ght->hsz;
-        if (rd - lr == st->regen_ht) {
-            lr  = rd;
-            regenerate_hash_table(ght, ps, st);
-        }
+        lr  = check_regenerate_hash_table(ght, ps, st, rd, lr);
 
         /* preprocess data for next reduction round */
         mat = select_spairs_by_minimal_degree(mat, ps, ght, st);

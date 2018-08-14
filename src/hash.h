@@ -70,6 +70,25 @@ void regenerate_hash_table(
     stat_t *st
     );
 
+/* returns the last step when we regenerated the hash table */
+inline len_t check_regenerate_hash_table(
+    ht_t *ht,
+    ps_t *psl,
+    stat_t *st,
+    const len_t rd,
+    const len_t lr
+    )
+{
+    st->max_ht_size = ht->hsz;
+    if (rd - lr == st->regen_ht) {
+        lr  = rd;
+        regenerate_hash_table(ht, ps, st);
+        return rd;
+    }
+
+    return lr;
+}
+
 inline val_t pseudo_random_number_generator(
     ht_t *ht
     )

@@ -116,15 +116,16 @@ int64_t f4_julia(
         }
 
         /* preprocess data for next reduction round */
-        mat = select_spairs_by_minimal_degree(ps, mat, st);
+        mat = select_spairs_by_minimal_degree(mat, ps, ght, st);
         mat = symbolic_preprocessing(mat, ght, bs, st);
-        hcm = convert_hashes_to_columns(mat, st);
+        hcm = convert_hashes_to_columns(mat, ght, st);
         mat = sort_matrix_rows(mat);
         /* linear algebra, depending on choice, see set_function_pointers() */
         mat = linear_algebra(mat, st);
         /* columns indices are mapped back to exponent hashes */
-        if (npivs > 0) {
-            convert_sparse_matrix_rows_to_basis_elements(mat, hcm, st);
+        if (mat->np > 0) {
+            convert_sparse_matrix_rows_to_basis_elements(
+                    mat, bs, ght, hcm, st);
         }
         free(mat);
         mat = NULL;

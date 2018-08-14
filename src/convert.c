@@ -27,31 +27,34 @@
  * hashes in the polynomials resp. rows. moreover, we have sorted each row
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
-static hl_t *convert_hashes_to_columns(
-        dt_t **matdt,
+hl_t *convert_hashes_to_columns(
+        mat_t *mat,
+        ht_t *ht,
         stat_t *st
         )
 {
-    len_t i, j, k, l;
-    dt_t *row;
-    hl_t *hcm; /* hash-to-column map */
-    int64_t nterms = 0;
-
     /* timings */
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
 
-    len_t hi;
+    len_t i, j, k, l, hi;
+    hl_t *row;
+
+    hd_t *hd  = ht->hd;
+
+    int64_t nterms = 0;
+
+    const len_t nr  = mat->nr;
 
     /* need to allocate memory for all possible exponents we
      * have in the local hash table since we do not which of
      * them are corresponding to multipliers and which are
      * corresponding to the multiplied terms in reducers. */
-    hcm = (hl_t *)malloc((unsigned long)ncols * sizeof(hl_t));
+    hl_t *hcm = (hl_t *)malloc((unsigned long)mat->nc * sizeof(hl_t));
     /* j counts all columns, k counts known pivots */
-    for (j = 0, k = 0, i = 0; i < nrows; ++i) {
-        row     =   matdt[i];
+    for (j = 0, k = 0, i = 0; i < nr; ++i) {
+        row     =   mat->r[i];
         nterms  +=  (int64_t)row[2];
         for (l = 3; l < row[2]; ++l) {
             /* printf("row[%d][%d] = %d | ", i, l, row[l]);
@@ -66,7 +69,6 @@ static hl_t *convert_hashes_to_columns(
 #else
                 if (hi != 0) {
 #endif
-                    /* printf("j %d / %d ncols\n", j, ncols); */
                     hcm[j++]  = row[l];
                     if (hi == 2) {
                         k++;
@@ -82,30 +84,15 @@ static hl_t *convert_hashes_to_columns(
             }
         }
     }
-    /* for (i = 0; i < j; ++i) {
-     *   printf("hcm[%d] = %d | %d || ", i, hcm[i], (ev+hcm[i])[HASH_DEG]);
-     *   for (l = 0; l < nvars; ++l) {
-     *     printf("%d ", (ev+hcm[i])[l]);
-     *   }
-     *   printf("\n");
-     * } */
     /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
     qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
-    /* printf("ncl %d\n", k);
-     * for (i = 0; i < j; ++i) {
-     *   printf("hcm[%d] = ", i);
-     *   for (l = 0; l < nvars; ++l) {
-     *     printf("%d ", ev[hcm[i]][l]);
-     *   }
-     *   printf("\n");
-     * } */
 
     /* set number of rows and columns in ABCD splicing */
-    nru = ncl = k;
-    nrl = nrows - nru;
-    ncr = j - ncl;
+    mat->nru  = mat->ncl  = k;
+    mat->nrl  = mat->nr - mat->nru;
+    mat->ncr  = j - mat->ncl;
 
-    st->num_rowsred     +=  nrl;
+    st->num_rowsred     +=  mat->nrl;
 
     /* store the other direction (hash -> column) in HASH_IND */
     for (i = 0; i < j; ++i) {
@@ -116,8 +103,8 @@ static hl_t *convert_hashes_to_columns(
 
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
-    for (i = 0; i < nrows; ++i) {
-        row = matdt[i];
+    for (i = 0; i < nr; ++i) {
+        row = mat->r[i];
         for (j = 3; j < row[1]; ++j) {
             row[j]  = hd[row[j]].idx;
         }
@@ -144,7 +131,7 @@ static hl_t *convert_hashes_to_columns(
 
     /* compute density of matrix */
     nterms  *=  100; /* for percentage */
-    double density = (double)nterms / (double)nrows / (double)ncols;
+    double density = (double)nterms / (double)mat->nr/ (double)mat->nc;
 
     /* timings */
     ct1 = cputime();
@@ -152,48 +139,54 @@ static hl_t *convert_hashes_to_columns(
     st->convert_ctime +=  ct1 - ct0;
     st->convert_rtime +=  rt1 - rt0;
     if (il > 1) {
-        printf(" %7d x %-7d %8.3f%%", nrows, ncols, density);
+        printf(" %7d x %-7d %8.3f%%", mat->nr, mat->nc, density);
         fflush(stdout);
     }
 
     return hcm;
 }
 
-static void convert_sparse_matrix_rows_to_basis_elements(
-        dt_t **mat,
+void convert_sparse_matrix_rows_to_basis_elements(
+        mat_t *mat,
+        bs_t *bs,
+        ht_t *ht,
         const hl_t *hcm,
         stat_t *st
         )
 {
-    len_t i, j;
-
-    len_t bl  = bload;
-
     /* timings */
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
 
+    len_t i, j;
+
+    hl_t *row = NULL;
+    len_t bl  = bs->ld;
+
+    const np  = mat->np;
+
     /* fix size of basis for entering new elements directly */
-    check_enlarge_basis(npivs);
+    check_enlarge_basis(bs, mat->np);
 
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)
-    for (i = 0; i < npivs; ++i) {
-        for (j = 3; j < mat[i][1]; ++j) {
-            mat[i][j] = hcm[mat[i][j]];
+    for (i = 0; i < np; ++i) {
+        row = mat->r[i];
+        for (j = 3; j < row[1]; ++j) {
+            row[j] = hcm[row[j]];
         }
-        for (; j < mat[i][2]; j += 4) {
-            mat[i][j]   = hcm[mat[i][j]];
-            mat[i][j+1] = hcm[mat[i][j+1]];
-            mat[i][j+2] = hcm[mat[i][j+2]];
-            mat[i][j+3] = hcm[mat[i][j+3]];
+        for (; j < row[2]; j += 4) {
+            row[j]   = hcm[row[j]];
+            row[j+1] = hcm[row[j+1]];
+            row[j+2] = hcm[row[j+2]];
+            row[j+3] = hcm[row[j+3]];
         }
-        gbcf[bl+i]  = tmpcf[mat[i][0]];
-        mat[i][0]   = bl+i;
-        gbdt[bl+i]  = mat[i];
+        bs->cf[bl+i]  = bs->tcf[row[0]];
+        row[0]        = bl+i;
+        bs->hd[bl+i]  = row;
 
-        bs->lm[bl+i]  = ght->hd[gbdt[bl+i][3]].sdm;
+        bs->lm[bl+i]  = ht->hd[row[3]].sdm;
 
         /* printf("new element [%d]\n", bl);
          * for (int32_t p = 3; p < gbcf[bl][2]; ++p) {
@@ -207,8 +200,8 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     }
 
     /* printf("thread %d frees tmpcf %p\n", omp_get_thread_num(), tmpcf); */
-    free(tmpcf);
-    tmpcf = NULL;
+    free(bs->tcf);
+    bs->tcf = NULL;
 
     /* timings */
     ct1 = cputime();

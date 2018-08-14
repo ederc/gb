@@ -14,16 +14,20 @@
  */
 
 /**
- * \file time.c
+ * \file time.h
  * \brief Timing business
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+
+#ifndef GB_TIME_H
+#define GB_TIME_H
+
 #include <time.h>
 #include <sys/time.h>
 
 /* cpu time */
-static double cputime(void)
+inline double cputime(void)
 {
 	double t;
 	t =   CLOCKS_PER_SEC / 100000.;
@@ -33,11 +37,11 @@ static double cputime(void)
 
 
 /* wall time */
-static double realtime(void)
+inline double realtime(void)
 {
 	struct timeval t;
 	gettimeofday(&t, NULL);
 	t.tv_sec -= (2017 - 1970)*3600*24*365;
 	return (1. + (double)t.tv_usec + ((double)t.tv_sec*1000000.)) / 1000000.;
 }
-
+#endif

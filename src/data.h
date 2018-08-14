@@ -97,7 +97,7 @@ struct stat_t
     int32_t mon_order;    /* monomial order */
     int32_t field_char;   /* field characteristic */
     int32_t la_variant;   /* linear algebra variant */
-    int32_t reset_ht;     /* resetting the global hash table */
+    int32_t regen_ht;     /* regenerating the global hash table */
     int32_t nthrds;       /* number of threads */
     int32_t nr_vars;      /* number of variables */
     int32_t max_nr_pairs; /* maximal number of pairs per matrix */
@@ -170,6 +170,7 @@ struct ps_t
 };
 
 /* basis definition */
+typedef struct bs_t bs_t;
 struct bs_t
 {
     bl_t lo;    /* old load before last update */

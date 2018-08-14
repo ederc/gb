@@ -23,7 +23,7 @@
 #include "data.h"
 
 
-static stat_t *initialize_statistics(
+stat_t *initialize_statistics(
     void
     )
 {
@@ -33,7 +33,7 @@ static stat_t *initialize_statistics(
     st->mon_order     = 0;
     st->field_char    = 0;
     st->la_variant    = 0;
-    st->reset_ht      = 0;
+    st->regen_ht      = 0;
     st->nthrds        = 0;
     st->nr_vars       = 0;
     st->max_nr_pairs  = 0;
@@ -110,14 +110,14 @@ void print_initial_statistics(
     printf("linear algebra option  %11d\n", st->la_variant);
     printf("intial hash table size %11d (2^%d)\n",
             (int32_t)pow(2,st->init_ht_sz), st->init_ht_sz);
-    printf("reset hash table after %11d step(s)\n", st->reset_ht);
+    printf("regenerate hash table after %6d step(s)\n", st->regen_ht);
     printf("max pair selection     %11d\n", st->max_nr_pairs);
     printf("#threads               %11d\n", st->nthrds);
     printf("info level             %11d\n", st->info_level);
     printf("------------------------------------------\n");
 }
 
-static void print_final_statistics(
+void print_final_statistics(
         const stat_t *st
         )
 {
@@ -152,7 +152,7 @@ static void print_final_statistics(
     printf("\n---------- COMPUTATIONAL DATA -----------\n");
     printf("size of basis      %9d\n", st->size_basis);
     printf("#terms in basis    %9ld\n",
-            (st->len_output-st->size_basis-1)/(1+nvars));
+            (st->len_output-st->size_basis-1)/(1+st->nr_vars));
     printf("#pairs reduced     %9ld\n", st->num_pairsred);
     printf("#GM criterion      %9ld\n", st->num_gm_crit);
     printf("#redundant         %9ld\n", st->num_redundant);

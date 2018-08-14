@@ -108,7 +108,7 @@ static inline int32_t check_and_set_meta_data(
         const int32_t ht_size,
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
-        const int32_t reset_hash_table,
+        const int32_t regenerate_ht,
         const int32_t la_option,
         const int32_t info_level
         )
@@ -145,7 +145,7 @@ static inline int32_t check_and_set_meta_data(
     st->nthrds  = nr_threads <= 0 ? 1 : nr_threads;
 
     /* resetting the global hash table? */
-    st->reset_ht  = reset_hash_table <= 0 ? -1 : reset_hash_table;
+    st->regen_ht  = regenerate_ht <= 0 ? -1 : reset_hash_table;
 
     /* maximal number of pairs per matrix */
     st->max_nr_pairs  = max_nr_pairs <= 0 ? 2147483647 : max_nr_pairs;

@@ -80,3 +80,22 @@ static void free_basis(
     bs    = NULL;
     *bsp  = bs;
 }
+
+inline void check_old_elements_for_redundancy(
+        bs_t *bs,
+        stat_t *st,
+        const ht_t *const ht
+        )
+{
+    len_t i;
+    const len_t bl  = bs->ld;
+    const hl_t  nh  = bs->hd[bs->ld][3];
+
+    for (i = 0; i < bl; ++i) {
+        if (!bs->red[i]
+            && check_monomial_division(bs->hd[i][3], nh, ht)) {
+            bs->red[i]  = 1;
+            st->num_redundant++;
+        }
+    }
+}

@@ -20,7 +20,7 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "data.h"
+#include "f4.h"
 
 /* we get from julia the generators as three arrays:
  * 0.  a pointer to an int32_t array for returning the basis to julia
@@ -43,7 +43,7 @@ int64_t f4_julia(
         const int32_t ht_size,
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
-        const int32_t reset_hash_table,
+        const int32_t regenerate_ht,
         const int32_t la_option,
         const int32_t info_level
         )
@@ -54,7 +54,8 @@ int64_t f4_julia(
     ct0 = cputime();
     rt0 = realtime();
 
-    int32_t round, last_reset;
+    int32_t rd; /* number of F4 round */
+    int32_t lr; /* last regeneration of global hash table */
     hl_t *hcm; /* hash-column-map */
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
@@ -65,8 +66,8 @@ int64_t f4_julia(
     /* checks and set all meta data. if a nonzero value is returned then
      * some of the input data is corrupted. */
     if (check_and_set_meta_data(st, lens, cfs, exps, field_char, mon_order,
-                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
-                la_option, info_level)) {
+                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
+                regenerate_ht, la_option, info_level)) {
         return 0;
     }
 
@@ -95,22 +96,23 @@ int64_t f4_julia(
     normalize_matrix_rows(gbcf);
 
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, ght, lht, st);
+    check_enlarge_pairset(ps, bs->ld, st->nr_gens);
+    update_basis(ps, bs, ght, lht, st, st->nr_gens);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
-    last_reset  = 0;
+    lr  = 0;
     if (st->info_level > 1) {
         print_round_statistics_header();
     }
-    for (round = 0; ps->ld > 0; ++round) {
+    for (rd = 0; ps->ld > 0; ++rd) {
         rct0 = cputime();
         rrt0 = realtime();
 
-        st->max_ht_size = hsz;
-        if (round - last_reset == rght) {
-            last_reset  = round;
-            reset_global_hash_table(ps, st);
+        st->max_ht_size = ght->hsz;
+        if (rd - lr == st->regen_ht) {
+            lr  = rd;
+            regenerate_hash_table(ght, ps, st);
         }
 
         /* preprocess data for next reduction round */
@@ -128,7 +130,8 @@ int64_t f4_julia(
         mat = NULL;
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
 
-        update_basis(ps, ght, lht, st);
+        check_enlarge_pairset(ps, bs->ld, mat->np);
+        update_basis(ps, bs, ght, lht, st, mat->np);
 
         rct1 = cputime();
         rrt1 = realtime();

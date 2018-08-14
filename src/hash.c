@@ -175,7 +175,7 @@ void free_hash_table(
 }
 
 /* we just double the hash table size */
-void enlarge_global_hash_table(
+void enlarge_hash_table(
     ht_t *ht
     )
 {
@@ -312,13 +312,13 @@ inline hl_t check_monomial_division(
     const ht_t *ht
     )
 {
-    len_t i;
-    const len_t nv  = ht->nv;
-
     /* short divisor mask check */
     if (hd[b].sdm & ~hd[a].sdm) {
         return 0;
     }
+
+    len_t i;
+    const len_t nv  = ht->nv;
 
     const exp_t *const ea = ht->ev[a];
     const exp_t *const eb = ht->ev[b];
@@ -394,53 +394,10 @@ inline hl_t insert_in_hash_table(
 
     ht->eld++;
     if (ht->eld >= ht->esz) {
-        enlarge_global_hash_table(ht);
+        enlarge_hash_table(ht);
     }
 
     return pos;
-}
-
-inline void reset_local_hash_table(
-    const len_t size
-    )
-{
-  hl_t i, j;
-  /* is there still enough space in the local table? */
-  if (size >= (elsz-elld)) {
-    j = elsz; /* store ol size */
-    if (2*size >= hlsz) {
-      while (2*size >= hlsz) {
-        elsz  = 2 * elsz;
-        hlsz  = 2 * hlsz;
-      }
-      hdl   = realloc(hdl, (unsigned long)elsz * sizeof(hd_t));
-      evl  = realloc(evl, (unsigned long)elsz * sizeof(exp_t *));
-      if (evl == NULL) {
-        printf("Computation needs too much memory on this machine, \
-            segmentation fault will follow.\n");
-      }
-      /* note: memory is allocated as one big block, so reallocating
-      *       memory from evl[0] is enough    */
-      evl[0]  = realloc(evl[0],
-          (unsigned long)elsz * (unsigned long)nvars * sizeof(exp_t));
-      if (evl[0] == NULL) {
-        printf("Computation needs too much memory on this machine, \
-            segmentation fault will follow.\n");
-      }
-      /* due to realloc we have to reset ALL evl entries, memory might be moved */
-      for (i = 1; i < elsz; ++i) {
-        evl[i] = evl[0] + (unsigned long)(i*nvars);
-      }
-      /* for (i = j; i < elsz; ++i) {
-       *   evl[i]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-       * } */
-      hmapl = realloc(hmapl, (unsigned long)hlsz * sizeof(hl_t));
-    }
-    memset(hdl, 0, (unsigned long)elsz * sizeof(hd_t));
-    memset(hmapl, 0, (unsigned long)hlsz * sizeof(hl_t));
-
-    elld  = 1;
-  }
 }
 
 inline hl_t insert_in_hash_table_product_special(
@@ -492,7 +449,51 @@ inline hl_t insert_in_hash_table_product_special(
     return pos;
 }
 
-void reset_global_hash_table(
+inline void reset_hash_table(
+    ht_t *ht,
+    const len_t sz
+    )
+{
+    hl_t i, j;
+    /* is there still enough space in the local table? */
+    if (sz >= (ht->esz-ht->eld)) {
+        j = ht->esz; /* store ol size */
+        if (2*sz >= ht->hsz) {
+            while (2*sz >= ht->hsz) {
+                ht->esz  = 2 * ht->esz;
+                ht->hsz  = 2 * ht->hsz;
+            }
+            ht->hd  = realloc(ht->hd, (unsigned long)ht->esz * sizeof(hd_t));
+            ht->ev  = realloc(ht->ev,
+                    (unsigned long)ht->esz * sizeof(exp_t *));
+            if (ht->ev == NULL) {
+                printf("Computation needs too much memory on this machine, \
+                        segmentation fault will follow.\n");
+            }
+            /* note: memory is allocated as one big block, so reallocating
+             *       memory from evl[0] is enough    */
+            ht->ev[0]  = realloc(ht->ev[0],
+                    (unsigned long)ht->esz
+                    * (unsigned long)ht->nv * sizeof(exp_t));
+            if (ht->ev[0] == NULL) {
+                printf("Computation needs too much memory on this machine, \
+                        segmentation fault will follow.\n");
+            }
+            /* due to realloc we have to reset ALL evl entries,
+             * memory might be moved */
+            for (i = 1; i < ht->esz; ++i) {
+                ht->ev[i] = ht->ev[0] + (unsigned long)(i*ht->nv);
+            }
+            ht->map = realloc(ht->map, (unsigned long)ht->hsz * sizeof(hl_t));
+        }
+        memset(ht->hd, 0, (unsigned long)ht->esz * sizeof(hd_t));
+        memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hl_t));
+
+        ht->eld  = 1;
+    }
+}
+
+void regenerate_hash_table(
     ht_t *ht,
     ps_t *psl,
     stat_t *st
@@ -686,7 +687,7 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
   while (ht->eld+poly[2]-3 >= ht->esz) {
-    enlarge_global_hash_table(ht);
+    enlarge_hash_table(ht);
   }
   /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
   for (i = 3; i < poly[1]; ++i) {

@@ -20,53 +20,13 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "data.h" 
-#define INSERT_SMALL_FIRST 1
+#include "update.h"
 
-static ps_t *initialize_pairset(
-        const stat_t *st
-        )
-{
-    ps_t *ps  = (ps_t *)malloc(sizeof(ps_t));
-    ps->ld    = 0;
-    ps->sz    = 192;
-    ps->mnsel = st->max_nr_pairs;
-    ps->p     = (spair_t *)malloc((unsigned long)ps->sz * sizeof(spair_t));
-
-    return ps;
-}
-
-static inline void check_enlarge_pairset(
-        ps_t *ps,
-        len_t added
-        )
-{
-    if (ps->ld+added >= ps->sz) {
-        ps->sz  = ps->sz*2 > ps->ld+added ? ps->sz*2 : ps->ld+added;
-        ps->p   = realloc(ps->p, (unsigned long)ps->sz * sizeof(spair_t));
-        memset(ps->p+ps->ld, 0,
-                (unsigned long)(ps->sz-ps->ld) * sizeof(spair_t));
-    }
-}
-
-static void free_pairset(
-        ps_t **psp
-        )
-{
-    ps_t *ps  = *psp;
-    if (ps->p) {
-        free(ps->p);
-        ps->p   = NULL;
-        ps->ld  = 0;
-        ps->sz  = 0;
-    }
-    free(ps);
-    ps  = NULL;
-    *psp  = ps;
-}
-
-static void insert_and_update_spairs(
+void insert_and_update_spairs(
         ps_t *psl,
+        bs_t *bs,
+        ht_t *ght,
+        ht_t *lht,
         stat_t *st
         )
 {
@@ -75,72 +35,26 @@ static void insert_and_update_spairs(
     spair_t *ps = psl->p;
 
     const len_t pl  = psl->ld;
-    const len_t bl  = bload;
+    const len_t bl  = bs->ld;
+    const dt_t nh   = bs->hd[bl][3];
 
-    const dt_t nch = gbdt[bl][3];
+    reset_hash_table(lht, bl);
 
-    reset_local_hash_table(bl);
-
-    lms[bl] = hd[nch].sdm;
-    /* printf("element added to basis %d (%d terms) at %p: ", bload, (nelt[0]-2)/2, nelt);
-     * [> for (int32_t o = 2; o < 3; o += 2) { <]
-     * for (int32_t o = 2; o < nelt[0]; o += 2) {
-     *   printf("%d ", nelt[o+1]);
-     *   for (int32_t p = 0; p < nvars; ++p) {
-     *     printf("%d",(ev+nelt[o]*hl)[p]);
-     *   }
-     *   printf(" | ");
-     * }
-     * printf("\n"); */
-
-#if INSERT_SMALL_FIRST
-    for (i = blold; i < bl; ++i) {
-        if (gbcf[i][0]) {
-            continue;
-        }
-        if (check_monomial_division(nch, gbdt[i][3])) {
-            /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
-            ps[pl].gen1 = i;
-            ps[pl].gen2 = bl;
-            ps[pl].lcm  = get_lcm(gbdt[i][3], nch);
-            ps[pl].lcm  = insert_in_global_hash_table(evl[ps[pl].lcm]);
-            gbcf[bl][0] = 1;
-            st->num_redundant++;
-            bload++;
-            psl->ld++;
-            return;
-        }
-    }
-#endif
-
-    hl_t *plcm  = (hl_t *)malloc((unsigned long)(bl+1) * sizeof(hl_t));
-
-    /* create all possible new pairs */
-    for (i = 0, k = pl; i < bl; ++i, ++k) {
-        /* b = (hl_t *)((long)bs[i] & bmask); */
-        ps[k].gen1  = i;
-        ps[k].gen2  = bl;
-
-        plcm[i] = ps[k].lcm   = get_lcm(gbdt[i][3], nch);
-
-        if (gbcf[i][0]) {
-            ps[k].lcm = -1; /* redundant pair */
-        } else {
-            if (lcm_equals_multiplication(gbdt[i][3], nch, ps[k].lcm)) {
-                ps[k].lcm = -2; /* criterion */
-            }
-        }
+    if (is_new_generator_redundant(ps, bs, lht, ght, st)) {
+        return;
     }
 
-    len_t nl  = k;
+    hl_t *plcm  = generate_new_pairs(psl, bs);
+    len_t nl    = pl + bl;
+
     /* Gebauer-Moeller: check old pairs first */
     /* note: old pairs are sorted by the given spair order */
     for (i = 0; i < pl; ++i) {
         j = ps[i].gen1;
         l = ps[i].gen2;
-        if (check_monomial_division(ps[i].lcm, nch)
-                && hd[ps[i].lcm].val != hdl[plcm[j]].val
-                && hd[ps[i].lcm].val != hdl[plcm[l]].val
+        if (check_monomial_division(ps[i].lcm, nh)
+                && ght->hd[ps[i].lcm].val != lht->hd[plcm[j]].val
+                && ght->hd[ps[i].lcm].val != lht->hd[plcm[l]].val
            ) {
             ps[i].lcm = -1;
         }
@@ -176,7 +90,7 @@ static void insert_and_update_spairs(
         j = i-1;
         while (i < pc) {
             if (plcm[i] >= 0 &&
-                    check_monomial_division_local(plcm[i], plcmj) != 0) {
+                    check_monomial_division(plcm[i], plcmj, lht) != 0) {
                 plcm[i]  = -1;
             }
             ++i;
@@ -192,16 +106,16 @@ static void insert_and_update_spairs(
         }
         ps[j++] = ps[i];
     }
-    if (esz - eld <= nl-psl->ld) {
-        enlarge_global_hash_table();
+    if (ght->esz - ght->eld <= nl-psl->ld) {
+        enlarge_hash_table(ght);
     }
     /* new pairs, wee need to add the lcm to the global hash table */
     for (i = 0; i < pc; ++i) {
         if (plcm[i] < 0) {
             continue;
         }
-        pp[i].lcm = insert_in_global_hash_table_no_enlargement_check(
-                evl[plcm[i]]);
+        pp[i].lcm = insert_in_hash_table_no_enlargement_check(
+                lht->ev[plcm[i]], ght);
         ps[j++]   = pp[i];
     }
     free(plcm);
@@ -209,22 +123,17 @@ static void insert_and_update_spairs(
     st->num_gm_crit +=  nl - j;
 
     /* mark redundant elements in basis */
-    for (i = 0; i < bl; ++i) {
-        if (gbcf[i][0]) {
-            continue;
-        }
-        if (check_monomial_division(gbdt[i][3], nch)) {
-            /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
-            gbcf[i][0]  = 1;
-            st->num_redundant++;
-        }
-    }
-    bload++;
+    check_old_elements_for_redundancy(bs, st, ght);
+    bs->ld++;
 }
 
-static void update_basis(
+void update_basis(
         ps_t *ps,
-        stat_t *st
+        bs_t *bs,
+        ht_t *ght,
+        ht_t *lht,
+        stat_t *st,
+        const len_t ne
         )
 {
     len_t i;
@@ -234,20 +143,11 @@ static void update_basis(
     ct0 = cputime();
     rt0 = realtime();
 
-    check_enlarge_basis(npivs);
-
-    /* compute number of new pairs we need to handle at most */
-    len_t np  = bload * npivs;
-    for (i = 1; i < npivs; ++i) {
-        np  = np + i;
-    }
-    check_enlarge_pairset(ps, np);
-
-    for (i = 0; i < npivs; ++i) {
-        insert_and_update_spairs(ps, st);
+    for (i = 0; i < ne; ++i) {
+        insert_and_update_spairs(ps, bs, ght, lht, st);
     }
 
-    blold = bload;
+    bs->lo  = bs->ld;
 
     /* timings */
     ct1 = cputime();

@@ -26,6 +26,11 @@
 #include "data.h"
 #include "time.h"
 #include "stat.h"
+#include "basis.h"
+#include "hash.h"
+#include "convert.h"
+#include "symbol.h"
+#include "update.h"
 
 int64_t f4_julia(
         int32_t **jl_basis,

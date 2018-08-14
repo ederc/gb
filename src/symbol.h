@@ -34,6 +34,13 @@ mat_t *symbolic_preprocessing(
         stat_t *st
         );
 
+mat_t *select_spairs_by_minimal_degree(
+        mat_t *mat,
+        ps_t *psl,
+        ht_t *ht,
+        stat_t *st
+        );
+
 inline dt_t *find_multiplied_reducer(
         const dt_t m,
         ht_t *ht,

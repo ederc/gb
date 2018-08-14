@@ -22,9 +22,9 @@
 
 #include "symbol.h"
 
-static dt_t **select_spairs_by_minimal_degree(
-        ps_t *psl,
+mat_t *select_spairs_by_minimal_degree(
         mat_t *mat,
+        ps_t *psl,
         ht_t *ht,
         stat_t *st
         )

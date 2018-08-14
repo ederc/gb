@@ -20,11 +20,12 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "data.h"
+#include "symbol.h"
 
 static dt_t **select_spairs_by_minimal_degree(
         ps_t *psl,
-        dt_t **mat,
+        mat_t *mat,
+        ht_t *ht,
         stat_t *st
         )
 {
@@ -36,6 +37,8 @@ static dt_t **select_spairs_by_minimal_degree(
     len_t *gens;
     exp_t *elcm, *eb;
 
+    exp_t etmp[ht->nv];
+
     /* timings */
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
@@ -46,11 +49,11 @@ static dt_t **select_spairs_by_minimal_degree(
     /* sort pair set */
     qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp);
     /* get minimal degree */
-    md  = hd[ps[0].lcm].deg;
+    md  = ht->hd[ps[0].lcm].deg;
 
     /* select pairs of this degree respecting maximal selection size mnsel */
     for (i = 0; i < psl->ld; ++i) {
-        if (hd[ps[i].lcm].deg > md || i >= psl->mnsel) {
+        if (ht->hd[ps[i].lcm].deg > md || i >= psl->mnsel) {
             break;
         }
     }
@@ -75,15 +78,15 @@ static dt_t **select_spairs_by_minimal_degree(
     gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
 
     /* preset matrix meta data */
-    mat   = (dt_t **)malloc(2 * (unsigned long)npairs * sizeof(dt_t *));
-    nrall = 2 * npairs;
-    ncols = ncl = ncr = 0;
-    nrows = 0;
+    mat->r  = realloc(mat->r, 2 * (unsigned long)npairs * sizeof(hl_t *));
+    mat->na = 2 * npairs;
+    mat->nc = mat->ncl = mat->ncr = 0;
+    mat->nr = mat->nru = mat->nrl = 0;
 
     i = 0;
     while (i < npairs) {
         /* ncols initially counts number of different lcms */
-        ncols++;
+        mat->nc++;
         load_all  += load;
         load  = 0;
         lcm   = ps[i].lcm;
@@ -110,25 +113,24 @@ static dt_t **select_spairs_by_minimal_degree(
             j++;
         }
         for (k = 0; k < load; ++k) {
-            /* ev might change when enlarging the hash table during insertion of a new
-             * row in the matrix, thus we have to reset elcm inside the for loop */
-            elcm  = ev[lcm];
+            /* ev might change when enlarging the hash table during
+             * insertion of a new row in the matrix, thus we have to
+             * reset elcm inside the for loop */
+            elcm  = ht->ev[lcm];
             d = 0;
-            b = gbdt[gens[k]];
-            /* b = (hl_t *)((long)bs[gens[k]] & bmask); */
-            eb  = ev[b[3]];
-            /* m = monomial_division_no_check(lcm, b[2]); */
-            for (l = 0; l < nvars; ++l) {
-                etmp[l] = elcm[l] - eb[l];
-                d     +=  etmp[l];
+            b   = ht->hd[gens[k]];
+            eb  = ht->ev[b[3]];
+            for (l = 0; l < ht->nv; ++l) {
+                etmp[l] =   elcm[l] - eb[l];
+                d       +=  etmp[l];
             }
-            const hl_t h  = hd[lcm].val - hd[b[3]].val;
-            mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+            const hl_t h    = ht->hd[lcm].val - ht->hd[b[3]].val;
+            mat->r[mat->nr] = multiplied_polynomial_to_matrix_row(
+                    h, d, etmp, b, ht);
             /* mark lcm column as lead term column */
-            hd[mat[nrows][3]].idx = 2;
-            nrows++;
+            ht->hd[mat->r[mat->nr][3]].idx = 2;
+            mat->nr++;
         }
-
         i = j;
     }
 
@@ -136,7 +138,7 @@ static dt_t **select_spairs_by_minimal_degree(
      * each lcm we have one reducer, the other rows have to be reduced.
      * thus in the end we have to subtract ncols from the number of rows
      * considered. */
-    st->num_rowsred     +=  load_all - ncols;
+    st->num_rowsred     +=  load_all - mat->nc;
 
     free(gens);
 
@@ -150,97 +152,13 @@ static dt_t **select_spairs_by_minimal_degree(
     st->select_ctime  +=  ct1 - ct0;
     st->select_rtime  +=  rt1 - rt0;
 
-    /* for (i = 0; i < nrows; ++i) {
-     *     printf("%p | mat[%d][2] = %d\n", mat[i], i, mat[i][2]);
-     * } */
     return mat;
 }
 
-static inline dt_t *find_multiplied_reducer(
-        const dt_t m
-        )
-{
-    len_t i, k;
-    deg_t d = 0;
-    dt_t *b;
-    const exp_t * const e  = ev[m];
-    exp_t *f;
-
-    const len_t bl  = bload;
-    const len_t os  = nvars & 1 ? 1 : 0;
-    i = hd[m].div;
-
-    const sdm_t ns  = ~hd[m].sdm;
-start:
-    while (i < bl-3) {
-        if (lms[i] & ns &&
-                lms[i+1] & ns &&
-                lms[i+2] & ns &&
-                lms[i+3] & ns) {
-            i +=  4;
-            continue;
-        }
-        while (lms[i] & ns) {
-            i++;
-        }
-        b = gbdt[i];
-        f = ev[b[3]];
-        if ((e[0]-f[0]) < 0) {
-            i++;
-            goto start;
-        }
-        for (k = os; k < nvars; k += 2) {
-            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
-                i++;
-                goto start;
-            }
-        }
-        for (k = 0; k < nvars; ++k) {
-            etmp[k] = e[k] - f[k];
-        }
-        const hl_t h  = hd[m].val - hd[b[3]].val;
-        for (k = 0; k < nvars; ++k) {
-            d += etmp[k];
-        }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hd[m].div = i;
-        return b;
-    }
-start2:
-    while (i < bl) {
-        if (lms[i] & ns) {
-            i++;
-            continue;
-        }
-        b = gbdt[i];
-        f = ev[b[3]];
-        if ((e[0]-f[0]) < 0) {
-            i++;
-            goto start2;
-        }
-        for (k = os; k < nvars; k += 2) {
-            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
-                i++;
-                goto start2;
-            }
-        }
-        for (k = 0; k < nvars; ++k) {
-            etmp[k] = e[k] - f[k];
-        }
-        const hl_t h  = hd[m].val - hd[b[3]].val;
-        for (k = 0; k < nvars; ++k) {
-            d += etmp[k];
-        }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hd[m].div = i;
-        return b;
-    }
-    hd[m].div = i;
-    return NULL;
-}
-
-static dt_t **symbolic_preprocessing(
-        dt_t **mat,
+mat_t *symbolic_preprocessing(
+        mat_t *mat,
+        ht_t *ht,
+        const bs_t *const bs,
         stat_t *st
         )
 {
@@ -260,44 +178,34 @@ static dt_t **symbolic_preprocessing(
      * in the following. */
 
     /* get reducers from basis */
-    for (i = 0; i < nrows; ++i) {
+    for (i = 0; i < mat->nr; ++i) {
         /* printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows); */
-        const hl_t len = mat[i][2];
+        const hl_t len = mat->r[i][2];
         /* check row reallocation only once per polynomial */
-        if ((nrall - nrows) < (len-3)) {
-            /* printf("nrall %d | nrows %d | len %d\n", nrall, nrows, len); */
-            nrall += nrall > len ? nrall : (len_t)len;
-            /* printf("=> nrall %d\n", nrall); */
-
-            mat   = realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+        if ((mat->na - mat->nr) < (len-3)) {
+            mat->na +=  mat->na > len ? mat->na : (len_t)len;
+            mat-r   =   realloc(mat-r,
+                    (unsigned long)mat->na * sizeof(dt_t *));
         }
         for (j = 4; j < len; ++j) {
-            m = mat[i][j];
+            m = mat->r[i][j];
             /* printf("hd[%d].idx = %d\n", m, hd[m].idx); */
-            if (!hd[m].idx) {
-                hd[m].idx = 1;
-                ncols++;
-                red = find_multiplied_reducer(m);
+            if (!ht->hd[m].idx) {
+                ht->hd[m].idx = 1;
+                mat->nc++;
+                red = find_multiplied_reducer(m, ht, bs);
                 if (red) {
-                    /* printf("hd.idx = 2 for ");
-                     * for (int32_t k = 0; k < nvars; ++k) {
-                     *     printf("%d ", ev[m][k]);
-                     * }
-                     * printf("\n"); */
-                    hd[m].idx = 2;
+                    ht->hd[m].idx = 2;
                     /* add new reducer to matrix */
-                    mat[nrows++]  = red;
+                    mat->r[mat->nr++]  = red;
                 }
             }
         }
     }
 
-    /* for (i = 0; i < nrows; ++i) {
-     *     printf("row %d -- %d\n", i, mat[i][3]);
-     * } */
     /* realloc to real size */
-    mat   = realloc(mat, (unsigned long)nrows * sizeof(dt_t *));
-    nrall = nrows;
+    mat-r   = realloc(mat->r, (unsigned long)mat->nr * sizeof(dt_t *));
+    mat->na = mat->nr;;
 
     /* timings */
     ct1 = cputime();

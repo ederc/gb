@@ -199,7 +199,7 @@ struct mat_t
     len_t nrl;  /* number of lower rows (ABCD splicing) */
     len_t ncl;  /* number of left columns (ABCD splicing) */
     len_t ncr;  /* number of right columns (ABCD splicing) */
-    dt_t **r;   /* rows of matrix */
+    hl_t **r;   /* rows of matrix */
 };
 
 /* loop unrolling in sparse linear algebra:

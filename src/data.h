@@ -25,6 +25,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h> /* for memset et al. */
 #include <limits.h>
 #include <math.h>

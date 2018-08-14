@@ -20,9 +20,6 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "stat.c"     /* computational statistics */
 #include "time.c"     /* timing business */
 #include "tools.c"    /* tools like inversion mod p, etc. */

@@ -29,6 +29,7 @@ pkgincludesub_HEADERS = \
 	src/time.h		\
 	src/stat.h		\
 	src/f4.h			\
+	src/hash.h		\
 	src/update.h
 
 nodist_pkgincludesub_HEADERS = config.h

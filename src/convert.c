@@ -21,7 +21,7 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "data.h"
+#include "convert.h"
 
 /* after calling this procedure we have column indices instead of exponent
  * hashes in the polynomials resp. rows. moreover, we have sorted each row

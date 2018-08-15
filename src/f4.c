@@ -90,10 +90,10 @@ int64_t f4_julia(
     lht->dm = ght->dm;
 
     /* sort initial elements, smallest lead term first */
-    qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
-            matrix_row_initial_input_cmp);
+    qsort_r(bs->hd, (unsigned long)mat->nr, sizeof(hl_t *),
+            matrix_row_initial_input_cmp, ght);
     /* normalize input generators */
-    normalize_matrix_rows(gbcf);
+    normalize_matrix_rows(bs->cf);
 
     /* move input generators to basis and generate first spairs */
     check_enlarge_pairset(ps, bs->ld, st->nr_gens);

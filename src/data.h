@@ -218,11 +218,6 @@ int (*monomial_cmp)(
         const hl_t b
         );
 
-int (*monomial_local_cmp)(
-        const hl_t a,
-        const hl_t b
-        );
-
 int (*spair_cmp)(
         const void *a,
         const void *b

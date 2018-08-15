@@ -20,7 +20,7 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "data.h"
+#include "io.h"
 
 static inline void set_function_pointers(
         const stat_t *st
@@ -32,7 +32,6 @@ static inline void set_function_pointers(
             matrix_row_initial_input_cmp  =
                 matrix_row_initial_input_cmp_drl;
             monomial_cmp        = monomial_cmp_drl;
-            monomial_local_cmp  = monomial_local_cmp_drl;
             spair_cmp           = spair_cmp_drl;
             hcm_cmp             = hcm_cmp_pivots_drl;
             break;
@@ -40,7 +39,6 @@ static inline void set_function_pointers(
             matrix_row_initial_input_cmp  =
                 matrix_row_initial_input_cmp_lex;
             monomial_cmp        = monomial_cmp_lex;
-            monomial_local_cmp  = monomial_local_cmp_lex;
             spair_cmp           = spair_cmp_deglex;
             hcm_cmp             = hcm_cmp_pivots_lex;
             break;
@@ -48,7 +46,6 @@ static inline void set_function_pointers(
             matrix_row_initial_input_cmp  =
                 matrix_row_initial_input_cmp_drl;
             monomial_cmp        = monomial_cmp_drl;
-            monomial_local_cmp  = monomial_local_cmp_drl;
             spair_cmp           = spair_cmp_drl;
             hcm_cmp             = hcm_cmp_pivots_drl;
     }

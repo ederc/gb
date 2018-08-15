@@ -31,6 +31,7 @@ pkgincludesub_HEADERS = \
 	src/f4.h			\
 	src/hash.h		\
 	src/convert.h	\
+	src/order.h		\
 	src/symbol.h	\
 	src/update.h
 

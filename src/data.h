@@ -179,7 +179,7 @@ struct bs_t
     bl_t sz;    /* size of basis allocated */
     void **cf;  /* coefficient arrays of eleuments, type depends on */
                 /* underlying ring, e.g. finite field or rationals or ... */
-    dt_t **hd;  /* hash data arrays of elements */
+    hl_t **hd;  /* hash data arrays of elements */
     sdm_t *lm;  /* lead monomials of elements */
     red_t *red; /* is the element redundant? */
     void **tcf; /* temporary coefficient arrays for storing coefficents */
@@ -215,17 +215,30 @@ int (*matrix_row_initial_input_cmp)(
 
 int (*monomial_cmp)(
         const hl_t a,
-        const hl_t b
+        const hl_t b,
+        const ht_t *const ht
         );
 
 int (*spair_cmp)(
         const void *a,
-        const void *b
+        const void *b,
+        void *ht
         );
 
 int (*hcm_cmp)(
         const void *a,
-        const void *b
+        const void *b,
+        void *ht
+        );
+
+void import_julia_data(
+        bs_t *bs,
+        ht_t *ht,
+        mat_t *mat,
+        const int32_t *const lens,
+        void *cfs_julia,
+        const int32_t *const exps,
+        const int32_t nr_gens
         );
 
 /* linear algebra routines */

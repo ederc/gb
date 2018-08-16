@@ -36,7 +36,7 @@ inline bs_t *initialize_basis(
     bs->sz  = 2 * st->nr_gens;
 
     bs->cf  = (void **)malloc((unsigned long)bs->sz * sizeof(void *));
-    bs->hd  = (dt_t **)malloc((unsigned long)bs->sz * sizeof(dt_t *));
+    bs->hd  = (dt_t **)malloc((unsigned long)bs->sz * sizeof(hl_t *));
     bs->lm  = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->red = (red_t *)malloc((unsigned long)bs->sz * sizeof(red_t));
 
@@ -78,7 +78,7 @@ inline void check_enlarge_basis(
     if (bs->ld+added >= bs->sz) {
         bs->sz  = bs->sz*2 > bs->ld+added ? bs->sz*2 : bs->ld+added;
         bs->cf  = realloc(bs->cf, (unsigned long)bs->sz * sizeof(void *));
-        bs->hd  = realloc(bs->hd, (unsigned long)bs->sz * sizeof(dt_t *));
+        bs->hd  = realloc(bs->hd, (unsigned long)bs->sz * sizeof(hl_t *));
         bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->red = realloc(bs->red, (unsigned long)bs->sz * sizeof(red_t));
     }

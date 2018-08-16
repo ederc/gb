@@ -47,7 +47,7 @@ mat_t *select_spairs_by_minimal_degree(
     spair_t *ps = psl->p;
 
     /* sort pair set */
-    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp);
+    qsort_r(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp, ht);
     /* get minimal degree */
     md  = ht->hd[ps[0].lcm].deg;
 

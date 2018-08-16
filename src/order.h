@@ -62,13 +62,13 @@ int monomial_cmp_pivots_lex(
 int hcm_cmp_pivots_drl(
         const void *a,
         const void *b,
-        const ht_t *const ht
+        void *ht
         );
 
 int hcm_cmp_pivots_lex(
         const void *a,
         const void *b,
-        const ht_t *const ht
+        void *ht
         );
 
 int spair_cmp_deglex(

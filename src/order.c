@@ -218,7 +218,7 @@ int monomial_cmp_pivots_lex(
 int hcm_cmp_pivots_drl(
         const void *a,
         const void *b,
-        const ht_t *const ht
+        void *ht
         )
 {
     const hl_t ma  = ((hl_t *)a)[0];
@@ -230,7 +230,7 @@ int hcm_cmp_pivots_drl(
 int hcm_cmp_pivots_lex(
         const void *a,
         const void *b,
-        const ht_t *const ht
+        void *ht
         )
 {
     const hl_t ma  = ((hl_t *)a)[0];
@@ -243,7 +243,7 @@ int hcm_cmp_pivots_lex(
 int spair_cmp_deglex(
         const void *a,
         const void *b,
-        const ht_t *const ht
+        void *ht
         )
 {
     const hl_t la = ((spair_t *)a)->lcm;
@@ -259,24 +259,12 @@ int spair_cmp_deglex(
 int spair_cmp_drl(
         const void *a,
         const void *b,
-        const ht_t *const ht
+        void *htl
         )
 {
     const hl_t la = ((spair_t *)a)->lcm;
     const hl_t lb = ((spair_t *)b)->lcm;
-
-    return (int)monomial_cmp(la, lb, ht);
-}
-
-/* comparison for s-pairs while their lcms are in the local hash table */
-int spair_cmp(
-        const void *a,
-        const void *b,
-        const ht_t *const ht
-        )
-{
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
+    const ht_t *const ht  = (const ht_t *const)htl;
 
     return (int)monomial_cmp(la, lb, ht);
 }

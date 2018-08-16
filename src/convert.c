@@ -85,7 +85,7 @@ hl_t *convert_hashes_to_columns(
         }
     }
     /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
-    qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
+    qsort_r(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp, ht);
 
     /* set number of rows and columns in ABCD splicing */
     mat->nru  = mat->ncl  = k;

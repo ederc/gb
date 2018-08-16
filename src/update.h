@@ -114,7 +114,10 @@ inline int is_new_generator_redundant(
             p.gen1 = i;
             p.gen2 = bl;
             p.lcm  = get_lcm(bs->hd[i][3], nh, ght, lht);
-            p.lcm  = insert_in_global_hash_table(lht->ev[p.lcm]);
+            if (ght->eld >= ght->esz) {
+                enlarge_hash_table(ght);
+            }
+            p.lcm  = insert_in_hash_table(lht->ev[p.lcm], ght);
             bs->red[bl] = 1;
             st->num_redundant++;
             bs->ld++;

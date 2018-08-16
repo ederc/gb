@@ -235,17 +235,17 @@ void regenerate_hash_table(
         b = bs->hd[i];
         for (j = 3; j < b[1]; ++j) {
             e = oev[b[j]];
-            b[j]  = insert_in_hash_table_no_enlargement_check(e, ht);
+            b[j]  = insert_in_hash_table(e, ht);
         }
         for (; j < b[2]; j += 4) {
             e       = oev[b[j]];
-            b[j]    = insert_in_hash_table_no_enlargement_check(e, ht);
+            b[j]    = insert_in_hash_table(e, ht);
             e       = oev[b[j+1]];
-            b[j+1]  = insert_in_hash_table_no_enlargement_check(e, ht);
+            b[j+1]  = insert_in_hash_table(e, ht);
             e       = oev[b[j+2]];
-            b[j+2]  = insert_in_hash_table_no_enlargement_check(e, ht);
+            b[j+2]  = insert_in_hash_table(e, ht);
             e       = oev[b[j+3]];
-            b[j+3]  = insert_in_hash_table_no_enlargement_check(e, ht);
+            b[j+3]  = insert_in_hash_table(e, ht);
         }
     }
 
@@ -253,7 +253,7 @@ void regenerate_hash_table(
     spair_t *ps = psl->p;
     for (i = 0; i < pld; ++i) {
         e = oev[ps[i].lcm];
-        ps[i].lcm = insert_in_hash_table_no_enlargement_check(e, ht);
+        ps[i].lcm = insert_in_hash_table(e, ht);
     }
     /* note: all memory is allocated as a big block, so it is
      *       enough to free oev[0].       */

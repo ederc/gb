@@ -208,7 +208,7 @@ inline hl_t check_monomial_division(
     return 1;
 }
 
-inline hl_t insert_in_hash_table_no_enlargement_check(
+inline hl_t insert_in_hash_table(
     const exp_t *a,
     ht_t *ht
     )
@@ -254,21 +254,6 @@ inline hl_t insert_in_hash_table_no_enlargement_check(
     d->deg  = deg;
     d->sdm  = generate_short_divmask(e, ht);
     d->val  = h;
-
-    return pos;
-}
-
-inline hl_t insert_in_hash_table(
-    const exp_t *a,
-    ht_t *ht
-    )
-{
-    hl_t pos  = insert_in_hash_table_no_enlargement_check(a, ht);
-
-    ht->eld++;
-    if (ht->eld >= ht->esz) {
-        enlarge_hash_table(ht);
-    }
 
     return pos;
 }

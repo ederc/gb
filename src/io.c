@@ -22,7 +22,7 @@
 
 #include "io.h"
 
-static inline void set_function_pointers(
+void set_function_pointers(
         const stat_t *st
         )
 {
@@ -70,6 +70,15 @@ static inline void set_function_pointers(
             linear_algebra  = exact_sparse_dense_linear_algebra;
     }
 
+    /* todo: need to add support for rationals here */
+    if (st->field_char < pow(2, 16)) {
+        import_julia_data = import_julia_data_16;
+    } else {
+        if (st->field_char < pow(2, 31)) {
+            import_julia_data = import_julia_data_32;
+        }
+    }
+
     /* up to 17 bits we can use one modular operation for reducing a row. this works
      * for matrices with #rows <= 54 million */
     if (st->field_char < pow(2, 17)) {
@@ -93,7 +102,7 @@ static inline void set_function_pointers(
     }
 }
 
-static inline int32_t check_and_set_meta_data(
+int32_t check_and_set_meta_data(
         stat_t *st;
         const int32_t *lens,
         const int32_t *cfs,
@@ -158,45 +167,109 @@ static inline int32_t check_and_set_meta_data(
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
-static void import_julia_data(
-        const int32_t *lens,
-        const int32_t *cfs,
-        const int32_t *exps,
+void import_julia_data_16(
+        bs_t *bs,
+        ht_t *ht,
+        mat_t *mat,
+        const int32_t *const lens,
+        void *cfs_julia,
+        const int32_t *const exps,
         const int32_t nr_gens
         )
 {
     int32_t i, j;
     len_t k;
     int32_t off = 0; /* offset in arrays */
-    exp_t *e  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+    const cf16_t *const cfs = (cf16_t *)cfs_julia;
+    const len_t nv  = ht->nv;
+
+    exp_t *e  = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
 
     for (i = 0; i < nr_gens; ++i) {
         /* each matrix row has the following structure:
          * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
          * where piv? is a label for being a known or an unknown pivot */
-        gbdt[i]     = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
-        gbcf[i]     = (cf_t *)malloc((unsigned long)(lens[i]+3) * sizeof(cf_t));
-        gbdt[i][0]  = i; /* link to matcf entry */
-        gbcf[i][0]  = 0; /* not redundant */
-        gbdt[i][1]  = (lens[i] % UNROLL) + 3; /* offset */
-        gbcf[i][1]  = gbdt[i][1];
-        gbdt[i][2]  = lens[i]+3; /* length */
-        gbcf[i][2]  = gbdt[i][2];
+        bs->hd[i]   = (hl_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
+        bs.>cf[i]   = (cf16_t *)malloc(
+                (unsigned long)(lens[i]+3) * sizeof(cf16_t));
+        bs->hd[i][0]  = i; /* link to coefficient array */
+        bs->cf[i][0]  = 0; /* not redundant */
+        bs->hd[i][1]  = (lens[i] % UNROLL) + 3; /* offset */
+        bs->cf[i][1]  = bs->hd[i][1];
+        bs->hd[i][2]  = lens[i]+3; /* length */
+        bs->cf[i][2]  = bs->hd[i][2];
+        if (ht->eld+lens[i] >= ht->esz) {
+            enlarge_hash_table(ht);
+        }
         for (j = off; j < off+lens[i]; ++j) {
-            for (k = 0; k < nvars; ++k) {
+            for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nvars*j))[k];
             }
-            gbdt[i][j+3-off]  = insert_in_global_hash_table(e);
-            gbcf[i][j+3-off]  = (cf_t)cfs[j];
+            bs->hd[i][j+3-off]  = insert_in_hash_table(e);
+            bs->cf[i][j+3-off]  = cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
-    npivs = nrows = nrall = nr_gens;
+    /* needed for normalizing input elements and adding them to
+     * the basis as starting point for f4 */
+    mat->np = mat->nr = mat->nr = nr_gens;
+
     free(e);
 }
 
-static int64_t export_julia_data(
+void import_julia_data_32(
+        bs_t *bs,
+        ht_t *ht,
+        mat_t *mat,
+        const int32_t *const lens,
+        void *cfs_julia,
+        const int32_t *const exps,
+        const int32_t nr_gens
+        )
+{
+    int32_t i, j;
+    len_t k;
+    int32_t off = 0; /* offset in arrays */
+    const cf32_t *const cfs = (cf32_t *)cfs_julia;
+    const len_t nv  = ht->nv;
+
+    exp_t *e  = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
+
+    for (i = 0; i < nr_gens; ++i) {
+        /* each matrix row has the following structure:
+         * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
+         * where piv? is a label for being a known or an unknown pivot */
+        bs->hd[i]   = (hl_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
+        bs.>cf[i]   = (cf32_t *)malloc(
+                (unsigned long)(lens[i]+3) * sizeof(cf32_t));
+        bs->hd[i][0]  = i; /* link to coefficient array */
+        bs->cf[i][0]  = 0; /* not redundant */
+        bs->hd[i][1]  = (lens[i] % UNROLL) + 3; /* offset */
+        bs->cf[i][1]  = bs->hd[i][1];
+        bs->hd[i][2]  = lens[i]+3; /* length */
+        bs->cf[i][2]  = bs->hd[i][2];
+        if (ht->eld+lens[i] >= ht->esz) {
+            enlarge_hash_table(ht);
+        }
+        for (j = off; j < off+lens[i]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                e[k]  = (exp_t)(exps+(nvars*j))[k];
+            }
+            bs->hd[i][j+3-off]  = insert_in_hash_table(e);
+            bs->cf[i][j+3-off]  = cfs[j];
+        }
+        /* mark initial generators, they have to be added to the basis first */
+        off +=  lens[i];
+    }
+    /* needed for normalizing input elements and adding them to
+     * the basis as starting point for f4 */
+    mat->np = mat->nr = mat->nr = nr_gens;
+
+    free(e);
+}
+
+int64_t export_julia_data(
         int32_t **bp
         )
 {

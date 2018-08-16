@@ -81,7 +81,7 @@ int64_t f4_julia(
     ps_t *ps    = initialize_pairset(st);
     mat_t *mat  = initialize_matrix();
 
-    import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data(bs, ght, mat, lens, cfs, exps, nr_gens);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */

@@ -24,6 +24,7 @@
 #define GB_BASIS_H
 
 #include "data.h"
+#include "hash.h"
 
 inline bs_t *initialize_basis(
         const stat_t *st
@@ -36,7 +37,7 @@ inline bs_t *initialize_basis(
     bs->sz  = 2 * st->nr_gens;
 
     bs->cf  = (void **)malloc((unsigned long)bs->sz * sizeof(void *));
-    bs->hd  = (dt_t **)malloc((unsigned long)bs->sz * sizeof(hl_t *));
+    bs->m   = (mon_t *)malloc((unsigned long)bs->sz * sizeof(mon_t));
     bs->lm  = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->red = (red_t *)malloc((unsigned long)bs->sz * sizeof(red_t));
 
@@ -51,15 +52,15 @@ inline void free_basis(
 {
     bs_t *bs  = *bsp;
     len_t i;
-    if (bs->hd) {
+    if (bs->m) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf[i]);
-            free(bs->hd[i]);
+            free(bs->m[i].h);
         }
         free(bs->cf);
         bs->cf  = NULL;
-        free(bs->hd);
-        bs->hd  = NULL;
+        free(bs->m);
+        bs->m = NULL;
         free(bs->lm);
         bs->lm  = NULL;
         free(bs->red);
@@ -78,7 +79,7 @@ inline void check_enlarge_basis(
     if (bs->ld+added >= bs->sz) {
         bs->sz  = bs->sz*2 > bs->ld+added ? bs->sz*2 : bs->ld+added;
         bs->cf  = realloc(bs->cf, (unsigned long)bs->sz * sizeof(void *));
-        bs->hd  = realloc(bs->hd, (unsigned long)bs->sz * sizeof(hl_t *));
+        bs->m   = realloc(bs->m, (unsigned long)bs->sz * sizeof(mon_t *));
         bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->red = realloc(bs->red, (unsigned long)bs->sz * sizeof(red_t));
     }
@@ -96,7 +97,7 @@ inline void check_old_elements_for_redundancy(
 
     for (i = 0; i < bl; ++i) {
         if (!bs->red[i]
-            && check_monomial_division(bs->hd[i][3], nh, ht)) {
+            && check_monomial_division(bs->m[i].h[3], nh, ht)) {
             bs->red[i]  = 1;
             st->num_redundant++;
         }

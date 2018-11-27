@@ -14,7 +14,7 @@
  */
 
 /**
- * \file tools.c
+ * \file tools.h
  * \brief Implementation of smaller tools
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
@@ -22,7 +22,7 @@
 
 #include "data.h"
 
-static inline int32_t mod_p_inverse_32(
+inline int32_t mod_p_inverse_32(
         const int32_t val,
         const int32_t p
         )
@@ -51,7 +51,7 @@ static inline int32_t mod_p_inverse_32(
     return d;
 }
 
-static inline val_t compare_and_swap(
+inline val_t compare_and_swap(
         long *ptr,
         long old,
         long new

@@ -44,7 +44,7 @@ void insert_and_update_spairs(
         return;
     }
 
-    hl_t *plcm  = generate_new_pairs(psl, bs);
+    hl_t *plcm  = generate_new_pairs(psl, ght, lht, bs);
     len_t nl    = pl + bl;
 
     /* Gebauer-Moeller: check old pairs first */

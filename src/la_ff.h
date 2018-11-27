@@ -14,24 +14,36 @@
  */
 
 /**
- * \file stat.h
- * \brief Global data for covering computational statistics
+ * \file la_ff.h
+ * \brief Implementation of the linear algebra parts over finite fields.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
-
-#ifndef GB_STAT_H
-#define GB_STAT_H
+#ifndef GB_LA_FF_H
+#define GB_LA_FF_H
 
 #include "data.h"
+#include "hash.h"
+#include "time.h"
 
-stat_t *initialize_statistics(void);
+inline mat_t *initialize_matrix(
+        stat_t *st
+        )
+{
+    mat_t *mat  = (mat_t *)calloc(1, sizeof(mat_t));
 
-void print_round_statistics_header(void);
+    return mat;
+}
 
-void print_round_statistics_footer(void);
+inline void free_matrix(
+        mat_t **matp
+        )
+{
+    mat_t *mat  = *matp;
+    free(mat);
+    *matp = mat;
+}
 
-void print_initial_statistics(const stat_t *st);
-
-void print_final_statistics(const stat_t *st, const hl_t eld, const hl_t elld);
+void normalize_initial_basis_16(bs_t *bs);
+void normalize_initial_basis_32(bs_t *bs);
 #endif

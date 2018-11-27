@@ -21,6 +21,7 @@
  */
 
 #include "data.h"
+#include "stat.h"
 
 
 stat_t *initialize_statistics(
@@ -39,6 +40,7 @@ stat_t *initialize_statistics(
     st->max_nr_pairs  = 0;
     st->nr_gens       = 0;
     st->init_ht_sz    = 0; 
+    st->cf_sz         = 0;
 
     st->round_ctime   = 0;
     st->rght_ctime    = 0;
@@ -118,7 +120,9 @@ void print_initial_statistics(
 }
 
 void print_final_statistics(
-        const stat_t *st
+        const stat_t *st,
+        const hl_t eld,
+        const hl_t elld
         )
 {
     printf("\n---------------- TIMINGS ---------------\n");

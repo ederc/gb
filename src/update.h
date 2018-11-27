@@ -65,6 +65,7 @@ inline void check_enlarge_pairset(
         const len_t np
         )
 {
+    len_t i;
     /* compute number of new pairs we need to handle at most */
     len_t sum  = bsl * np;
     for (i = 1; i < np; ++i) {
@@ -108,7 +109,7 @@ inline int is_new_generator_redundant(
     
     for (i = bs->lo; i < bl; ++i) {
         if (!bs->red[i] 
-            && check_moomial_division(nh, bs->hd[i][3], ght)) {
+            && check_monomial_division(nh, bs->hd[i][3], ght)) {
             /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
             spair_t p = psl->p[psl->ld];
             p.gen1 = i;
@@ -130,10 +131,12 @@ inline int is_new_generator_redundant(
 
 inline hl_t *gemerate_new_pairs(
         ps_t *psl,
+        ht_t *ght,
+        ht_t *lht,
         const bs_t *const bs
         )
 {
-    len_t i;
+    len_t i, k;
 
     const len_t bl  = bs->ld;
     const hl_t nh   = bs->hd[bl][3];

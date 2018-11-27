@@ -31,10 +31,10 @@
  *     first all exponents of generator 1, then all of generator 2, ...
  *
  *  RETURNs the length of the jl_basis array */
-int64_t f4_julia(
+int64_t f4_julia_ff(
         int32_t **jl_basis,
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *cfs,
         const int32_t *exps,
         const int32_t field_char,
         const int32_t mon_order,
@@ -57,9 +57,6 @@ int64_t f4_julia(
     int32_t rd; /* number of F4 round */
     int32_t lr; /* last regeneration of global hash table */
     hl_t *hcm; /* hash-column-map */
-    /* matrix holding sparse information generated
-     * during symbolic preprocessing */
-    dt_t **mat;
 
     /* initialize stuff */
     stat_t *st  = initialize_statistics();
@@ -75,11 +72,13 @@ int64_t f4_julia(
         print_initial_statistics(st);
     }
 
+    /* hash tables are global for qsort reasons */
+    ght = initialize_global_hash_table(st);
+    lht = initialize_local_hash_table(st, ght);
+
     bs_t *bs    = initialize_basis(st);
-    ht_t *ght   = initialize_global_hash_table(st);
-    ht_t *lht   = initialize_local_hash_table(st, ght);
     ps_t *ps    = initialize_pairset(st);
-    mat_t *mat  = initialize_matrix();
+    mat_t *mat  = initialize_matrix(st);
 
     import_julia_data(bs, ght, mat, lens, cfs, exps, nr_gens);
 
@@ -90,10 +89,10 @@ int64_t f4_julia(
     lht->dm = ght->dm;
 
     /* sort initial elements, smallest lead term first */
-    qsort_r(bs->hd, (unsigned long)mat->nr, sizeof(hl_t *),
-            matrix_row_initial_input_cmp, ght);
+    qsort(bs->hd, (unsigned long)mat->nr, sizeof(hl_t *), initial_basis_cmp);
     /* normalize input generators */
-    normalize_matrix_rows(bs->cf);
+    normalize_initial_basis(bs);
+    /* normalize_matrix_rows(bs->cf, bs->ld, st->field_char); */
 
     /* move input generators to basis and generate first spairs */
     check_enlarge_pairset(ps, bs->ld, st->nr_gens);
@@ -109,7 +108,7 @@ int64_t f4_julia(
         rct0 = cputime();
         rrt0 = realtime();
 
-        lr  = check_regenerate_hash_table(ght, ps, st, rd, lr);
+        lr  = check_regenerate_hash_table(ght, ps, st, lr, rd);
 
         /* preprocess data for next reduction round */
         mat = select_spairs_by_minimal_degree(mat, ps, ght, st);
@@ -150,7 +149,7 @@ int64_t f4_julia(
     st->overall_rtime = rt1 - rt0;
 
     if (st->info_level > 0) {
-        print_final_statistics(st);
+        print_final_statistics(st, ght->eld, lht->eld);
     }
 
     /* free and clean up */

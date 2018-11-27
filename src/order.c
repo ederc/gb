@@ -22,23 +22,21 @@
 
 #include "order.h"
 
-int matrix_row_initial_input_cmp_lex(
+int initial_basis_cmp_lex(
         const void *a,
-        const void *b,
-        void *htl
+        const void *b
         )
 {
     len_t i;
 
     const dt_t va   = ((dt_t **)a)[0][3];
     const dt_t vb   = ((dt_t **)b)[0][3];
-    const ht_t *const ht  = (const ht_t *const)htl;
 
-    const exp_t * const ea  = ht->ev[va];
-    const exp_t * const eb  = ht->ev[vb];
+    const exp_t * const ea  = ght->ev[va];
+    const exp_t * const eb  = ght->ev[vb];
 
     /* lexicographical */
-    for (i = 1; i < ht->nv; ++i) {
+    for (i = 1; i < ght->nv; ++i) {
         if (ea[i] < eb[i]) {
             return -1;
         }
@@ -47,13 +45,11 @@ int matrix_row_initial_input_cmp_lex(
         }
     }
     return 0;
-    /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
-int matrix_row_initial_input_cmp_drl(
+int initial_basis_cmp_drl(
         const void *a,
-        const void *b,
-        void *htl
+        const void *b
         )
 {
     len_t i;
@@ -61,9 +57,8 @@ int matrix_row_initial_input_cmp_drl(
     const dt_t va  = ((dt_t **)a)[0][3];
     const dt_t vb  = ((dt_t **)b)[0][3];
 
-    const ht_t *const ht  = (const ht_t *const)htl;
-    const deg_t da = ht->hd[va].deg;
-    const deg_t db = ht->hd[vb].deg;
+    const deg_t da = ght->hd[va].deg;
+    const deg_t db = ght->hd[vb].deg;
 
     /* DRL */
     if (da < db) {
@@ -74,11 +69,11 @@ int matrix_row_initial_input_cmp_drl(
         }
     }
 
-    const exp_t * const ea  = ht->ev[va];
-    const exp_t * const eb  = ht->ev[vb];
+    const exp_t * const ea  = ght->ev[va];
+    const exp_t * const eb  = ght->ev[vb];
 
     /* note: reverse lexicographical */
-    for (i = ht->nv; i > 0; --i) {
+    for (i = ght->nv; i > 0; --i) {
         if (ea[i-1] < eb[i-1]) {
             return -1;
         } else {
@@ -239,11 +234,10 @@ int hcm_cmp_pivots_lex(
     return monomial_cmp_pivots_lex(ma, mb, ht);
 }
 
-/* comparison for s-pairs once their lcms are in the global hash table */
-int spair_cmp_deglex(
+/* comparison for s-pairs lcms in the local hash table */
+int spair_cmp_lht_deglex(
         const void *a,
-        const void *b,
-        void *ht
+        const void *b
         )
 {
     const hl_t la = ((spair_t *)a)->lcm;
@@ -252,11 +246,38 @@ int spair_cmp_deglex(
     if (hd[la].deg != hd[lb].deg) {
         return (hd[la].deg < hd[lb].deg) ? -1 : 1;
     } else {
-        return (int)monomial_cmp(la, lb, ht);
+        return (int)monomial_cmp(la, lb, lht);
     }
 }
 
-int spair_cmp_drl(
+int spair_cmp_lht_drl(
+        const void *a,
+        const void *b
+        )
+{
+    const hl_t la = ((spair_t *)a)->lcm;
+    const hl_t lb = ((spair_t *)b)->lcm;
+
+    return (int)monomial_cmp(la, lb, lht);
+}
+
+/* comparison for s-pairs once their lcms are in the global hash table */
+int spair_cmp_ght_deglex(
+        const void *a,
+        const void *b
+        )
+{
+    const hl_t la = ((spair_t *)a)->lcm;
+    const hl_t lb = ((spair_t *)b)->lcm;
+
+    if (hd[la].deg != hd[lb].deg) {
+        return (hd[la].deg < hd[lb].deg) ? -1 : 1;
+    } else {
+        return (int)monomial_cmp(la, lb, ght);
+    }
+}
+
+int spair_cmp_ght_drl(
         const void *a,
         const void *b,
         void *htl
@@ -264,7 +285,6 @@ int spair_cmp_drl(
 {
     const hl_t la = ((spair_t *)a)->lcm;
     const hl_t lb = ((spair_t *)b)->lcm;
-    const ht_t *const ht  = (const ht_t *const)htl;
 
-    return (int)monomial_cmp(la, lb, ht);
+    return (int)monomial_cmp(la, lb, ght);
 }

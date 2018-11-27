@@ -75,14 +75,14 @@ inline len_t check_regenerate_hash_table(
     ht_t *ht,
     ps_t *psl,
     stat_t *st,
-    const len_t rd,
-    const len_t lr
+    len_t lr,
+    const len_t rd
     )
 {
     st->max_ht_size = ht->hsz;
     if (rd - lr == st->regen_ht) {
         lr  = rd;
-        regenerate_hash_table(ht, ps, st);
+        regenerate_hash_table(ht, psl, st);
         return rd;
     }
 
@@ -186,7 +186,7 @@ inline hl_t check_monomial_division(
     )
 {
     /* short divisor mask check */
-    if (hd[b].sdm & ~hd[a].sdm) {
+    if (ht->hd[b].sdm & ~(ht->hd[a].sdm)) {
         return 0;
     }
 
@@ -208,7 +208,7 @@ inline hl_t check_monomial_division(
     return 1;
 }
 
-inline hl_t insert_in_hash_table(
+inline hd_t *insert_in_hash_table(
     const exp_t *a,
     ht_t *ht
     )
@@ -244,7 +244,7 @@ inline hl_t insert_in_hash_table(
 
     /* add element to hash table */
     ht->map[k]  = pos = ht->eld;
-    e   = ht->ev + pos;
+    e   = ht->ev[pos];
     d   = ht->hd + pos;
     deg = 0;
     for (j = 0; j < ht->nv; ++j) {
@@ -255,7 +255,7 @@ inline hl_t insert_in_hash_table(
     d->sdm  = generate_short_divmask(e, ht);
     d->val  = h;
 
-    return pos;
+    return d;
 }
 
 inline hl_t insert_in_hash_table_product_special(
@@ -388,8 +388,8 @@ inline hl_t get_lcm(
     len_t i;
 
     /* exponents of basis elements, thus from global hash table */
-    const exp_t * const ea = ght->ev + a;
-    const exp_t * const eb = ght->ev + b;
+    const exp_t * const ea = ght->ev[a];
+    const exp_t * const eb = ght->ev[b];
 
     for (i = 0; i < ght->nv; ++i) {
         etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];

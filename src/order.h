@@ -83,12 +83,6 @@ int spair_cmp_drl(
         const ht_t *const ht
         );
 
-int spair_cmp(
-        const void *a,
-        const void *b,
-        const ht_t *const ht
-        )
-
 inline mat_t *sort_matrix_rows(
         mat_t *mat
         )
@@ -97,12 +91,13 @@ inline mat_t *sort_matrix_rows(
     return mat;
 }
 
-inline cf_t **sort_dense_matrix_rows(
-        cf_t **dm,
+inline void **sort_dense_matrix_rows(
+        void **dm,
+        const size_t cfs,
         const len_t nr
         )
 {
-    qsort(dm, (unsigned long)nr, sizeof(cf_t *), &dense_matrix_row_cmp);
+    qsort(dm, (unsigned long)nr, cfs, &dense_matrix_row_cmp);
     return dm;
 }
 

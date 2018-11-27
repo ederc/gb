@@ -26,16 +26,18 @@
 #include "data.h"
 #include "time.h"
 #include "stat.h"
+#include "io.h"
 #include "basis.h"
 #include "hash.h"
 #include "convert.h"
 #include "symbol.h"
 #include "update.h"
+#include "la_ff.h"
 
-int64_t f4_julia(
+int64_t f4_julia_ff(
         int32_t **jl_basis,
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *cfs,
         const int32_t *exps,
         const int32_t field_char,
         const int32_t mon_order,

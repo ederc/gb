@@ -29,25 +29,25 @@ void set_function_pointers(
     /* todo: this needs to be generalized for different monomial orders */
     switch (st->mon_order) {
         case 0:
-            matrix_row_initial_input_cmp  =
-                matrix_row_initial_input_cmp_drl;
-            monomial_cmp        = monomial_cmp_drl;
-            spair_cmp           = spair_cmp_drl;
-            hcm_cmp             = hcm_cmp_pivots_drl;
+            initial_basis_cmp = initial_basis_cmp_drl;
+            monomial_cmp      = monomial_cmp_drl;
+            spair_cmp_ght     = spair_cmp_ght_drl;
+            spair_cmp_lht     = spair_cmp_lht_drl;
+            hcm_cmp           = hcm_cmp_pivots_drl;
             break;
         case 1:
-            matrix_row_initial_input_cmp  =
-                matrix_row_initial_input_cmp_lex;
-            monomial_cmp        = monomial_cmp_lex;
-            spair_cmp           = spair_cmp_deglex;
-            hcm_cmp             = hcm_cmp_pivots_lex;
+            initial_basis_cmp = initial_basis_cmp_lex;
+            monomial_cmp      = monomial_cmp_lex;
+            spair_cmp_ght     = spair_cmp_ght_deglex;
+            spair_cmp_lht     = spair_cmp_lht_deglex;
+            hcm_cmp           = hcm_cmp_pivots_lex;
             break;
         default:
-            matrix_row_initial_input_cmp  =
-                matrix_row_initial_input_cmp_drl;
-            monomial_cmp        = monomial_cmp_drl;
-            spair_cmp           = spair_cmp_drl;
-            hcm_cmp             = hcm_cmp_pivots_drl;
+            initial_basis_cmp = initial_basis_cmp_drl;
+            monomial_cmp      = monomial_cmp_drl;
+            spair_cmp_ght     = spair_cmp_ght_drl;
+            spair_cmp_lht     = spair_cmp_lht_drl;
+            hcm_cmp           = hcm_cmp_pivots_drl;
     }
 
     switch (st->la_variant) {
@@ -71,12 +71,16 @@ void set_function_pointers(
     }
 
     /* todo: need to add support for rationals here */
-    if (st->field_char < pow(2, 16)) {
-        import_julia_data = import_julia_data_16;
-    } else {
-        if (st->field_char < pow(2, 31)) {
-            import_julia_data = import_julia_data_32;
+    if (st->field_char > 0) {
+        if (st->field_char < pow(2, 16)) {
+            import_julia_data       = import_julia_data_16;
+            normalize_initial_basis = normalize_initial_basis_16;
+        } else {
+            import_julia_data       = import_julia_data_32;
+            normalize_initial_basis = normalize_initial_basis_32;
         }
+    } else {
+        // TODO
     }
 
     /* up to 17 bits we can use one modular operation for reducing a row. this works
@@ -127,10 +131,21 @@ int32_t check_and_set_meta_data(
             || exps == NULL) {
         return 1;
     }
+    if (st->field_char > 0) {
+        if (st->field_char < pow(2, 16)) {
+            st->cf_sz = sizeof(cf16_t);
+        } else {
+            st->cf_sz = sizeof(cf32_t);
+        }
+    } else {
+        // TODO
+    }
 
-    st->nr_vars = nr_vars;
+
+    st->nr_vars = nv  =  nr_vars;
     /* note: prime check should be done in julia */
-    st->field_char  = field_char;
+    st->field_char  = fc  = field_char;
+
     /* monomial order */
     if (mon_order != 0 && mon_order != 1) {
         st->mon_order = 0;
@@ -180,33 +195,35 @@ void import_julia_data_16(
     int32_t i, j;
     len_t k;
     int32_t off = 0; /* offset in arrays */
-    const cf16_t *const cfs = (cf16_t *)cfs_julia;
-    const len_t nv  = ht->nv;
+    const cf32_t *const cfs = (cf32_t *)cfs_julia;
+    const len_t nv  = gb_nv;
+
+    cf16_t *bscf;
+    mon_t bsm;
 
     exp_t *e  = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
 
     for (i = 0; i < nr_gens; ++i) {
-        /* each matrix row has the following structure:
-         * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
-         * where piv? is a label for being a known or an unknown pivot */
-        bs->hd[i]   = (hl_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
-        bs.>cf[i]   = (cf16_t *)malloc(
-                (unsigned long)(lens[i]+3) * sizeof(cf16_t));
-        bs->hd[i][0]  = i; /* link to coefficient array */
-        bs->cf[i][0]  = 0; /* not redundant */
-        bs->hd[i][1]  = (lens[i] % UNROLL) + 3; /* offset */
-        bs->cf[i][1]  = bs->hd[i][1];
-        bs->hd[i][2]  = lens[i]+3; /* length */
-        bs->cf[i][2]  = bs->hd[i][2];
+        bs->cf[i]   = (cf16_t *)malloc((unsigned long)lens[i] * sizeof(cf16_t));
+        bs->m[i].h  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
+
+        bs->red[i]  = 0; /* not redundant */
+        bs->m[i].cl = bs->cf[i]; /* link to coefficient array */
+        bs->m[i].sz = lens[i];
+        bs->m[i].of = lens[i] % UNROLL;
+        
+        bscf  = (cf16_t *)bs->cf[i];
+        bsm   = bs->m[i];
+
         if (ht->eld+lens[i] >= ht->esz) {
             enlarge_hash_table(ht);
         }
         for (j = off; j < off+lens[i]; ++j) {
             for (k = 0; k < nv; ++k) {
-                e[k]  = (exp_t)(exps+(nvars*j))[k];
+                e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            bs->hd[i][j+3-off]  = insert_in_hash_table(e);
-            bs->cf[i][j+3-off]  = cfs[j];
+            bsm.h[j-off]  = insert_in_hash_table(e, ht);
+            bscf[j-off]   = (cf16_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
@@ -232,32 +249,62 @@ void import_julia_data_32(
     len_t k;
     int32_t off = 0; /* offset in arrays */
     const cf32_t *const cfs = (cf32_t *)cfs_julia;
-    const len_t nv  = ht->nv;
+    const len_t nv  = gb_nv;
+
+    cf32_t *bscf;
+    mon_t bsm;
 
     exp_t *e  = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
 
     for (i = 0; i < nr_gens; ++i) {
-        /* each matrix row has the following structure:
-         * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
-         * where piv? is a label for being a known or an unknown pivot */
-        bs->hd[i]   = (hl_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
-        bs.>cf[i]   = (cf32_t *)malloc(
-                (unsigned long)(lens[i]+3) * sizeof(cf32_t));
-        bs->hd[i][0]  = i; /* link to coefficient array */
-        bs->cf[i][0]  = 0; /* not redundant */
-        bs->hd[i][1]  = (lens[i] % UNROLL) + 3; /* offset */
-        bs->cf[i][1]  = bs->hd[i][1];
-        bs->hd[i][2]  = lens[i]+3; /* length */
-        bs->cf[i][2]  = bs->hd[i][2];
+        bs->cf[i]   = (cf32_t *)malloc((unsigned long)lens[i] * sizeof(cf32_t));
+        bs->m[i].h  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
+
+        bs->red[i]  = 0; /* not redundant */
+        bs->m[i].cl = bs->cf[i]; /* link to coefficient array */
+        bs->m[i].sz = lens[i];
+        bs->m[i].of = lens[i] % UNROLL;
+        
+        bscf  = (cf32_t *)bs->cf[i];
+        bsm   = bs->m[i];
+
         if (ht->eld+lens[i] >= ht->esz) {
             enlarge_hash_table(ht);
         }
         for (j = off; j < off+lens[i]; ++j) {
             for (k = 0; k < nv; ++k) {
-                e[k]  = (exp_t)(exps+(nvars*j))[k];
+                e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            bs->hd[i][j+3-off]  = insert_in_hash_table(e);
-            bs->cf[i][j+3-off]  = cfs[j];
+            bsm.h[j-off]  = insert_in_hash_table(e, ht);
+            bscf[j-off]   = (cf32_t)cfs[j];
+        }
+        /* mark initial generators, they have to be added to the basis first */
+        off +=  lens[i];
+    }
+    /* needed for normalizing input elements and adding them to
+     * the basis as starting point for f4 */
+    mat->np = mat->nr = mat->nr = nr_gens;
+
+    free(e);
+
+    for (i = 0; i < nr_gens; ++i) {
+        bs->m[i]    = (mon_t *)malloc((unsigned long)lens[i] * sizeof(mon_t));
+        bs->cf[i]   = (cf16_t *)malloc((unsigned long)lens[i] * sizeof(cf16_t));
+        bs->m[i].h  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
+
+        bs->red[i]  = 0; /* not redundant */
+        bs->m[i].cl = i; /* link to coefficient array */
+        bs->m[i].sz = lens[i];
+        bs->m[i].of = lens[i] % UNROLL;
+        if (ht->eld+lens[i] >= ht->esz) {
+            enlarge_hash_table(ht);
+        }
+        for (j = off; j < off+lens[i]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                e[k]  = (exp_t)(exps+(nv*j))[k];
+            }
+            bs->hd[i][j+3-off]  = insert_in_hash_table(e, ht);
+            bs->cf[i][j+3-off]  = (cf32_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];

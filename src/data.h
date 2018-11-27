@@ -45,6 +45,7 @@
 typedef int16_t cf16_t;   /* coefficient type */
 typedef int32_t cf32_t;   /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
+typedef int32_t ci_t;    /* column index type */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t dt_t;        /* data type for other polynomial informatio */
 typedef int8_t red_t;     /* redundancy type */
@@ -57,6 +58,7 @@ typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef len_t bi_t;     /* basis index of element */
 typedef len_t bl_t;     /* basis load */
 typedef len_t pl_t;     /* pair set load */
+typedef uint32_t row_t; /* size of rows of matrices */
 
 /* hash table data */
 
@@ -69,6 +71,7 @@ struct hd_t
     len_t div;
     ind_t idx;
     val_t val;
+    exp_t *exp;
 };
 
 typedef struct ht_t ht_t;
@@ -77,7 +80,6 @@ struct ht_t
     hl_t hsz;         /* size of hash data array */
     hl_t eld;         /* load of exponent vector */
     hl_t esz;         /* allocated exponent vector size */
-    len_t nv;         /* number of variables */
     len_t ndv;        /* number of variables used for divmask */
     len_t bpv;        /* bits per variable for divmask */
     uint32_t rseed;   /* random seed */
@@ -86,6 +88,16 @@ struct ht_t
     val_t *rv;        /* randomizing array for hashing */
     sdm_t *dm;        /* short divisor mask */
     exp_t **ev;       /* exponent vector array */
+};
+
+/* polynomial monomials data structure */
+typedef struct mon_t mon_t;
+struct mon_t
+{
+    len_t sz; /* length of column indices/coeffs arrays */
+    len_t of; /* offset of column indices/coeffs arrays */
+    void *cl; /* link to corresponding coeffs array */
+    hd_t **h; /* hash data of the monomials */
 };
 
 /* statistic stuff */
@@ -104,6 +116,7 @@ struct stat_t
     int32_t max_nr_pairs; /* maximal number of pairs per matrix */
     int32_t nr_gens;      /* number of generators of input */
     int32_t init_ht_sz;   /* initial hash table size */
+    size_t cf_sz;         /* size of coefficients for qsort calls */
 
     /* CPU timings for different parts */
     double round_ctime;
@@ -179,7 +192,7 @@ struct bs_t
     bl_t sz;    /* size of basis allocated */
     void **cf;  /* coefficient arrays of eleuments, type depends on */
                 /* underlying ring, e.g. finite field or rationals or ... */
-    hl_t **hd;  /* hash data arrays of elements */
+    mon_t *m;   /* monomial data arrays of elements */
     sdm_t *lm;  /* lead monomials of elements */
     red_t *red; /* is the element redundant? */
     void **tcf; /* temporary coefficient arrays for storing coefficents */
@@ -199,7 +212,7 @@ struct mat_t
     len_t nrl;  /* number of lower rows (ABCD splicing) */
     len_t ncl;  /* number of left columns (ABCD splicing) */
     len_t ncr;  /* number of right columns (ABCD splicing) */
-    hl_t **r;   /* rows of matrix */
+    row_t **r;  /* rows of column indices of matrix */
 };
 
 /* loop unrolling in sparse linear algebra:
@@ -208,7 +221,7 @@ struct mat_t
 #define UNROLL  4
 
 /* function pointers */
-int (*matrix_row_initial_input_cmp)(
+int (*initial_basis_cmp)(
         const void *a,
         const void *b
         );
@@ -219,10 +232,14 @@ int (*monomial_cmp)(
         const ht_t *const ht
         );
 
-int (*spair_cmp)(
+int (*spair_cmp_ght)(
         const void *a,
-        const void *b,
-        void *ht
+        const void *b
+        );
+
+int (*spair_cmp_lht)(
+        const void *a,
+        const void *b
         );
 
 int (*hcm_cmp)(
@@ -231,65 +248,53 @@ int (*hcm_cmp)(
         void *ht
         );
 
-void import_julia_data(
+void (*import_julia_data)(
         bs_t *bs,
         ht_t *ht,
         mat_t *mat,
         const int32_t *const lens,
-        void *cfs_julia,
+        const void *cfs_julia,
         const int32_t *const exps,
         const int32_t nr_gens
         );
 
 /* linear algebra routines */
-dt_t **(*linear_algebra)(
-        dt_t **mat,
+mat_t **(*linear_algebra)(
+        mat_t *mat,
         stat_t *st
         );
 
-cf_t *(*reduce_dense_row_by_known_pivots)(
+void (*normalize_initial_basis)(
+        bs_t *bs
+        );
+
+void *(*reduce_dense_row_by_known_pivots)(
         int64_t *dr,
         dt_t *const *pivs,
         const hl_t dpiv
         );
 
-cf_t *(*reduce_dense_row_by_known_pivots_sparse)(
+void *(*reduce_dense_row_by_known_pivots_sparse)(
         int64_t *dr,
         dt_t *const *pivs,
         const hl_t dpiv,
         const dt_t tmp_pos
         );
 
-cf_t *(*reduce_dense_row_by_all_pivots)(
+void *(*reduce_dense_row_by_all_pivots)(
         int64_t *dr,
         len_t *pc,
         dt_t *const *pivs,
-        cf_t *const *dpivs
+        void *const *dpivs
         );
 
-cf_t *(*reduce_dense_row_by_dense_new_pivots)(
+void *(*reduce_dense_row_by_dense_new_pivots)(
         int64_t *dr,
         len_t *pc,
-        cf_t *const *pivs
+        void *const *pivs
         );
 
-/* -----------------------------------
- * non-static functions and procedures
- * ----------------------------------- */
-int64_t f4_julia(
-        int32_t **jl_basis,
-        const int32_t *lens,
-        const int32_t *cfs,
-        const int32_t *exps,
-        const int32_t field_char,
-        const int32_t mon_order,
-        const int32_t nr_vars,
-        const int32_t nr_gens,
-        const int32_t ht_size,
-        const int32_t nr_threads,
-        const int32_t max_nr_pairs,
-        const int32_t reset_hash_table,
-        const int32_t la_option,
-        const int32_t info_level
-        );
+/* global variables */
+static len_t gb_nv   = 0;  /* number of variables */
+static int32_t gb_fc = 0;  /* field characteristic */
 #endif

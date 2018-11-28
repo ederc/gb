@@ -44,6 +44,4 @@ inline void free_matrix(
     *matp = mat;
 }
 
-void normalize_initial_basis_16(bs_t *bs);
-void normalize_initial_basis_32(bs_t *bs);
 #endif

@@ -36,7 +36,7 @@ int initial_basis_cmp_lex(
     const exp_t * const eb  = hb->exp;
 
     /* lexicographical */
-    for (i = 1; i < nv; ++i) {
+    for (i = 1; i < gbnv; ++i) {
         if (ea[i] < eb[i]) {
             return -1;
         }
@@ -73,7 +73,7 @@ int initial_basis_cmp_drl(
     const exp_t * const eb  = hb->exp;
 
     /* note: reverse lexicographical */
-    for (i = nv; i > 0; --i) {
+    for (i = gbnv; i > 0; --i) {
         if (ea[i-1] < eb[i-1]) {
             return -1;
         } else {

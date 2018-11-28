@@ -95,4 +95,3 @@ void normalize_initial_basis_32(
         }
     }
 }
-

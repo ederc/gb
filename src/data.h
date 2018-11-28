@@ -290,6 +290,6 @@ void *(*reduce_dense_row_by_dense_new_pivots)(
         );
 
 /* global variables */
-static len_t gb_nv   = 0;  /* number of variables */
-static int32_t gb_fc = 0;  /* field characteristic */
+static len_t gbnv   = 0;  /* number of variables */
+static int32_t gbfc = 0;  /* field characteristic */
 #endif

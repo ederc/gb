@@ -142,9 +142,9 @@ int32_t check_and_set_meta_data(
     }
 
 
-    st->nr_vars = nv  =  nr_vars;
+    st->nr_vars = gbnv  =  nr_vars;
     /* note: prime check should be done in julia */
-    st->field_char  = fc  = field_char;
+    st->field_char  = gbfc  = field_char;
 
     /* monomial order */
     if (mon_order != 0 && mon_order != 1) {
@@ -196,7 +196,7 @@ void import_julia_data_16(
     len_t k;
     int32_t off = 0; /* offset in arrays */
     const cf32_t *const cfs = (cf32_t *)cfs_julia;
-    const len_t nv  = gb_nv;
+    const len_t nv  = gbnv;
 
     cf16_t *bscf;
     mon_t bsm;
@@ -250,7 +250,7 @@ void import_julia_data_32(
     len_t k;
     int32_t off = 0; /* offset in arrays */
     const cf32_t *const cfs = (cf32_t *)cfs_julia;
-    const len_t nv  = gb_nv;
+    const len_t nv  = gbnv;
 
     cf32_t *bscf;
     mon_t bsm;

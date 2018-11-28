@@ -29,14 +29,14 @@ int initial_basis_cmp_lex(
 {
     len_t i;
 
-    const dt_t va   = ((dt_t **)a)[0][3];
-    const dt_t vb   = ((dt_t **)b)[0][3];
+    const hd_t * const ha = ((mon_t *)a)->h[0];
+    const hd_t * const hb = ((mon_t *)b)->h[0];
 
-    const exp_t * const ea  = ght->ev[va];
-    const exp_t * const eb  = ght->ev[vb];
+    const exp_t * const ea  = ha->exp;
+    const exp_t * const eb  = hb->exp;
 
     /* lexicographical */
-    for (i = 1; i < ght->nv; ++i) {
+    for (i = 1; i < nv; ++i) {
         if (ea[i] < eb[i]) {
             return -1;
         }
@@ -54,11 +54,11 @@ int initial_basis_cmp_drl(
 {
     len_t i;
 
-    const dt_t va  = ((dt_t **)a)[0][3];
-    const dt_t vb  = ((dt_t **)b)[0][3];
+    const hd_t * const ha = ((mon_t *)a)->h[0];
+    const hd_t * const hb = ((mon_t *)b)->h[0];
 
-    const deg_t da = ght->hd[va].deg;
-    const deg_t db = ght->hd[vb].deg;
+    const deg_t da = ha->deg;
+    const deg_t db = hb->deg;
 
     /* DRL */
     if (da < db) {
@@ -69,11 +69,11 @@ int initial_basis_cmp_drl(
         }
     }
 
-    const exp_t * const ea  = ght->ev[va];
-    const exp_t * const eb  = ght->ev[vb];
+    const exp_t * const ea  = ha->exp;
+    const exp_t * const eb  = hb->exp;
 
     /* note: reverse lexicographical */
-    for (i = ght->nv; i > 0; --i) {
+    for (i = nv; i > 0; --i) {
         if (ea[i-1] < eb[i-1]) {
             return -1;
         } else {

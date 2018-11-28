@@ -89,7 +89,7 @@ int64_t f4_julia_ff(
     lht->dm = ght->dm;
 
     /* sort initial elements, smallest lead term first */
-    qsort(bs->hd, (unsigned long)mat->nr, sizeof(hl_t *), initial_basis_cmp);
+    qsort(bs->m, (unsigned long)bs->ld, sizeof(hl_t *), initial_basis_cmp);
     /* normalize input generators */
     normalize_initial_basis(bs);
     /* normalize_matrix_rows(bs->cf, bs->ld, st->field_char); */

@@ -107,9 +107,9 @@ void set_function_pointers(
 }
 
 int32_t check_and_set_meta_data(
-        stat_t *st;
+        stat_t *st,
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *cfs,
         const int32_t *exps,
         const int32_t field_char,
         const int32_t mon_order,
@@ -187,12 +187,12 @@ void import_julia_data_16(
         ht_t *ht,
         mat_t *mat,
         const int32_t *const lens,
-        void *cfs_julia,
+        const void *cfs_julia,
         const int32_t *const exps,
         const int32_t nr_gens
         )
 {
-    int32_t i, j;
+    int32_t i, j, ctr;
     len_t k;
     int32_t off = 0; /* offset in arrays */
     const cf32_t *const cfs = (cf32_t *)cfs_julia;
@@ -218,19 +218,20 @@ void import_julia_data_16(
         if (ht->eld+lens[i] >= ht->esz) {
             enlarge_hash_table(ht);
         }
+        ctr = 0;
         for (j = off; j < off+lens[i]; ++j) {
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            bsm.h[j-off]  = insert_in_hash_table(e, ht);
-            bscf[j-off]   = (cf16_t)cfs[j];
+            bsm.h[ctr]  = insert_in_hash_table(e, ht);
+            bscf[ctr++] = (cf16_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
     /* needed for normalizing input elements and adding them to
      * the basis as starting point for f4 */
-    mat->np = mat->nr = mat->nr = nr_gens;
+    bs->ld  = nr_gens;
 
     free(e);
 }
@@ -240,12 +241,12 @@ void import_julia_data_32(
         ht_t *ht,
         mat_t *mat,
         const int32_t *const lens,
-        void *cfs_julia,
+        const void *cfs_julia,
         const int32_t *const exps,
         const int32_t nr_gens
         )
 {
-    int32_t i, j;
+    int32_t i, j, ctr;
     len_t k;
     int32_t off = 0; /* offset in arrays */
     const cf32_t *const cfs = (cf32_t *)cfs_julia;
@@ -271,47 +272,20 @@ void import_julia_data_32(
         if (ht->eld+lens[i] >= ht->esz) {
             enlarge_hash_table(ht);
         }
+        ctr = 0;
         for (j = off; j < off+lens[i]; ++j) {
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            bsm.h[j-off]  = insert_in_hash_table(e, ht);
-            bscf[j-off]   = (cf32_t)cfs[j];
+            bsm.h[ctr]  = insert_in_hash_table(e, ht);
+            bscf[ctr++] = (cf32_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
     /* needed for normalizing input elements and adding them to
      * the basis as starting point for f4 */
-    mat->np = mat->nr = mat->nr = nr_gens;
-
-    free(e);
-
-    for (i = 0; i < nr_gens; ++i) {
-        bs->m[i]    = (mon_t *)malloc((unsigned long)lens[i] * sizeof(mon_t));
-        bs->cf[i]   = (cf16_t *)malloc((unsigned long)lens[i] * sizeof(cf16_t));
-        bs->m[i].h  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
-
-        bs->red[i]  = 0; /* not redundant */
-        bs->m[i].cl = i; /* link to coefficient array */
-        bs->m[i].sz = lens[i];
-        bs->m[i].of = lens[i] % UNROLL;
-        if (ht->eld+lens[i] >= ht->esz) {
-            enlarge_hash_table(ht);
-        }
-        for (j = off; j < off+lens[i]; ++j) {
-            for (k = 0; k < nv; ++k) {
-                e[k]  = (exp_t)(exps+(nv*j))[k];
-            }
-            bs->hd[i][j+3-off]  = insert_in_hash_table(e, ht);
-            bs->cf[i][j+3-off]  = (cf32_t)cfs[j];
-        }
-        /* mark initial generators, they have to be added to the basis first */
-        off +=  lens[i];
-    }
-    /* needed for normalizing input elements and adding them to
-     * the basis as starting point for f4 */
-    mat->np = mat->nr = mat->nr = nr_gens;
+    bs->ld  = nr_gens;
 
     free(e);
 }

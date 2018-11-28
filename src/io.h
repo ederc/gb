@@ -34,7 +34,7 @@ void set_function_pointers(
 int32_t check_and_set_meta_data(
         stat_t *st,
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *cfs,
         const int32_t *exps,
         const int32_t field_char,
         const int32_t mon_order,

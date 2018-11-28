@@ -123,6 +123,7 @@ struct stat_t
     double rght_ctime;
     double select_ctime;  
     double symbol_ctime;
+
     double la_ctime;
     double update_ctime;
     double convert_ctime;
@@ -149,12 +150,6 @@ struct stat_t
     int64_t len_output;
     int32_t size_basis;
 };
-
-/* random values for generating hash values */
-static val_t *rv  = NULL;
-
-/* divisor map for short divisibility tests */
-static sdm_t *dm  = NULL;
 
 /* pseudo random number generator for hash value
  * generation */

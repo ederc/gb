@@ -180,21 +180,20 @@ inline void calculate_divmask(
 
 /* returns zero if a is not divisible by b, else 1 is returned */
 inline hl_t check_monomial_division(
-    const hl_t a,
-    const hl_t b,
-    const ht_t *ht
+    const hd_t *a,
+    const hd_t *b
     )
 {
     /* short divisor mask check */
-    if (ht->hd[b].sdm & ~(ht->hd[a].sdm)) {
+    if (b->sdm & ~(a->sdm)) {
         return 0;
     }
 
     len_t i;
-    const len_t nv  = ht->nv;
+    const len_t nv  = gbnv;
 
-    const exp_t *const ea = ht->ev[a];
-    const exp_t *const eb = ht->ev[b];
+    const exp_t *const ea = a->exp;
+    const exp_t *const eb = b->exp;
     /* exponent check */
     if (ea[0] < eb[0]) {
         return 0;
@@ -254,6 +253,7 @@ inline hd_t *insert_in_hash_table(
     d->deg  = deg;
     d->sdm  = generate_short_divmask(e, ht);
     d->val  = h;
+    d->exp  = e;
 
     return d;
 }
@@ -302,6 +302,7 @@ inline hl_t insert_in_hash_table_product_special(
     d->deg      = deg + ht->hd[b].deg;
     d->sdm      = generate_short_divmask(n, ht);
     d->val      = h;
+    d->exp      = n;
 
     ht->eld++;
     return pos;

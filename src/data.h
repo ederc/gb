@@ -149,6 +149,7 @@ struct stat_t
     int64_t max_ht_size;
     int64_t len_output;
     int32_t size_basis;
+    int32_t num_matrices;
 };
 
 /* pseudo random number generator for hash value

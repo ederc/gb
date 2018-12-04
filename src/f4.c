@@ -88,6 +88,7 @@ int64_t f4_julia_ff(
     /* set short divisor mask also for local hash table */
     lht->dm = ght->dm;
 
+    st->num_matrices++;
     /* sort initial elements, smallest lead term first */
     qsort(bs->m, (unsigned long)st->nr_gens,
             sizeof(hl_t *), initial_basis_cmp);
@@ -107,6 +108,7 @@ int64_t f4_julia_ff(
         print_round_statistics_header();
     }
     for (rd = 0; ps->ld > 0; ++rd) {
+        st->num_matrices++;
         rct0 = cputime();
         rrt0 = realtime();
 

@@ -229,10 +229,6 @@ void import_julia_data_16(
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
-    /* needed for normalizing input elements and adding them to
-     * the basis as starting point for f4 */
-    bs->ld  = nr_gens;
-
     free(e);
 }
 
@@ -283,10 +279,6 @@ void import_julia_data_32(
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
-    /* needed for normalizing input elements and adding them to
-     * the basis as starting point for f4 */
-    bs->ld  = nr_gens;
-
     free(e);
 }
 

@@ -26,8 +26,8 @@
 #include "data.h"
 #include "hash.h"
 
-void normalize_initial_basis_16(bs_t *bs);
-void normalize_initial_basis_32(bs_t *bs);
+void normalize_initial_basis_16(bs_t *bs, const len_t ne);
+void normalize_initial_basis_32(bs_t *bs, const len_t ne);
 
 inline bs_t *initialize_basis(
         const stat_t *st

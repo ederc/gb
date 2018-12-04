@@ -23,7 +23,8 @@
 #include "basis.h"
 
 void normalize_initial_basis_16(
-        bs_t *bs
+        bs_t *bs,
+        const len_t ne
         )
 {
     len_t i, j;
@@ -32,7 +33,7 @@ void normalize_initial_basis_16(
     cf16_t **polys    = (cf16_t **)bs->cf;
     const int32_t fc  = gbfc;
 
-    for (i = 0; i < bs->ld; ++i) {
+    for (i = 0; i < ne; ++i) {
         cf16_t *p = polys[i];
 
         const int32_t inv = mod_p_inverse_32((int32_t)p[3], fc);
@@ -60,7 +61,8 @@ void normalize_initial_basis_16(
 }
 
 void normalize_initial_basis_32(
-        bs_t *bs
+        bs_t *bs,
+        const len_t ne
         )
 {
     len_t i, j;
@@ -69,7 +71,7 @@ void normalize_initial_basis_32(
     cf32_t **polys    = (cf32_t **)bs->cf;
     const int32_t fc  = gbfc;
 
-    for (i = 0; i < bs->ld; ++i) {
+    for (i = 0; i < ne; ++i) {
         cf16_t *p = polys[i];
 
         const int32_t inv = mod_p_inverse_32((int32_t)p[3], fc);

@@ -120,7 +120,7 @@ static void insert_and_update_spairs(
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
 
-        plcm[i] = ps[k].lcm   = get_lcm(gbdt[i][3], nch);
+        ps[k].lcm   = get_lcm(gbdt[i][3], nch);
 
         if (gbcf[i][0]) {
             ps[k].lcm = -1; /* redundant pair */
@@ -129,6 +129,8 @@ static void insert_and_update_spairs(
                 ps[k].lcm = -2; /* criterion */
             }
         }
+        /* set plcm after checking the pair for redundancy */
+        plcm[i] = ps[k].lcm;
     }
 
     len_t nl  = k;

@@ -133,6 +133,37 @@ static void initialize_local_hash_table(
   }
 }
 
+static void initialize_symbolic_hash_table(
+    void
+    )
+{
+  hl_t j;
+
+  /* generate map */
+  hssz  = (hl_t)pow(2, htes-5);
+  hmaps = calloc((unsigned long)hssz, sizeof(hl_t));
+
+  /* generate exponent vector */
+  essz  = hssz/2;
+  /* keep first entry empty for faster divisibility checks */
+  esld  = 1;
+  hds   = (hd_t *)calloc((unsigned long)essz, sizeof(hd_t));
+  evs   = (exp_t **)malloc((unsigned long)essz * sizeof(exp_t *));
+  if (evl == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
+  exp_t *tmp  = (exp_t *)malloc(
+      (unsigned long)nvars * (unsigned long)essz * sizeof(exp_t));
+  if (tmp == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
+  for (j = 0; j < essz; ++j) {
+    evs[j]  = tmp + (unsigned long)(j*nvars);
+  }
+}
+
 static void free_global_hash_table(
     void
     )
@@ -195,6 +226,30 @@ static void free_local_hash_table(
   hlsz  = 0;
 }
 
+static void free_symbolic_hash_table(
+    void
+    )
+{
+  if (hmaps) {
+    free(hmaps);
+    hmaps  = NULL;
+  }
+  if (hds) {
+    free(hds);
+    hds = NULL;
+  }
+  if (evs) {
+    /* note: memory is allocated as one big block,
+     *       so freeing evl[0] is enough */
+    free(evs[0]);
+    free(evs);
+    evs = NULL;
+  }
+  essz  = 0;
+  esld  = 0;
+  hssz  = 0;
+}
+
 /* we just double the hash table size */
 static void enlarge_global_hash_table(
     void
@@ -242,6 +297,57 @@ static void enlarge_global_hash_table(
         continue;
       }
       hmap[k] = i;
+      break;
+    }
+  }
+}
+
+static void enlarge_symbolic_hash_table(
+    void
+    )
+{
+  hl_t i, j;
+  val_t h, k;
+
+  j   = essz; /* store old size */
+  essz = 2 * essz;
+  hds  = realloc(hds, (unsigned long)essz * sizeof(hd_t));
+  memset(hds+esld, 0, (unsigned long)(essz-esld) * sizeof(hd_t));
+  evs  = realloc(evs, (unsigned long)essz * sizeof(exp_t *));
+  if (evs == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
+  /* note: memory is allocated as one big block, so reallocating
+   *       memory from ev[0] is enough    */
+  evs[0] = realloc(evs[0],
+      (unsigned long)essz * (unsigned long)nvars * sizeof(exp_t));
+  if (evs[0] == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
+  /* due to realloc we have to reset ALL ev entries,
+   * memory might have been moved */
+  for (i = 1; i < essz; ++i) {
+    evs[i] = evs[0] + (unsigned long)(i*nvars);
+  }
+
+  hssz   = 2 * hssz;
+  hmaps  = realloc(hmaps, (unsigned long)hssz * sizeof(hl_t));
+  memset(hmaps, 0, (unsigned long)hssz * sizeof(hl_t));
+
+  /* reinsert known elements */
+  for (i = 1; i < esld; ++i) {
+    h = hds[i].val;
+
+    /* probing */
+    k = h;
+    for (j = 0; j < hssz; ++j) {
+      k = (k+j) & (hssz-1);
+      if (hmaps[k]) {
+        continue;
+      }
+      hmaps[k] = i;
       break;
     }
   }
@@ -572,6 +678,52 @@ static inline void reset_local_hash_table(
   }
 }
 
+static inline hl_t insert_in_symbolic_hash_table_product_special(
+    const val_t h1,
+    const deg_t deg,
+    const exp_t * const ea,
+    const hl_t b
+    )
+{
+  hl_t i, k, pos;
+  len_t j;
+  exp_t *n;
+  hd_t *d;
+
+  /* printf("b %d | bload %d\n", b, bload); */
+  const val_t h   = h1 + hds[b].val;
+  const exp_t * const eb = evs[b];
+
+  n = evs[esld];
+  for (j = 0; j < nvars; ++j) {
+    n[j]  = ea[j] + eb[j];
+  }
+  /* probing */
+  k = h;
+  for (i = 0; i < hssz; ++i) {
+    k = (k+i) & (hssz-1);
+    if (!hmaps[k]) {
+      break;
+    }
+    if (hd[hmaps[k]].val != h) {
+      continue;
+    }
+    if (memcmp(n, ev[hmaps[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
+      return hmaps[k];
+    }
+  }
+
+  /* add element to hash table */
+  hmaps[k] = pos = esld;
+  d = hd + esld;
+  d->deg  = deg + hds[b].deg;
+  d->sdm  = generate_short_divmask(n);
+  d->val  = h;
+
+  esld++;
+  return pos;
+}
+
 static inline hl_t insert_in_global_hash_table_product_special(
     const val_t h1,
     const deg_t deg,
@@ -854,22 +1006,22 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  while (eld+poly[2]-3 >= esz) {
-    enlarge_global_hash_table();
+  while (esld+poly[2]-3 >= essz) {
+    enlarge_symbolic_hash_table();
   }
   /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
   for (i = 3; i < poly[1]; ++i) {
-    row[i]  = insert_in_global_hash_table_product_special(
+    row[i]  = insert_in_symbolic_hash_table_product_special(
                 hm, deg, em, poly[i]);
   }
   for (;i < poly[2]; i += 4) {
-    row[i]    = insert_in_global_hash_table_product_special(
+    row[i]    = insert_in_symbolic_hash_table_product_special(
                   hm, deg, em, poly[i]);
-    row[i+1]  = insert_in_global_hash_table_product_special(
+    row[i+1]  = insert_in_symbolic_hash_table_product_special(
                   hm, deg, em, poly[i+1]);
-    row[i+2]  = insert_in_global_hash_table_product_special(
+    row[i+2]  = insert_in_symbolic_hash_table_product_special(
                   hm, deg, em, poly[i+2]);
-    row[i+3]  = insert_in_global_hash_table_product_special(
+    row[i+3]  = insert_in_symbolic_hash_table_product_special(
                   hm, deg, em, poly[i+3]);
   }
 

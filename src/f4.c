@@ -98,6 +98,7 @@ int64_t f4_julia(
     initialize_basis(nr_gens);
     initialize_global_hash_table();
     initialize_local_hash_table();
+    initialize_symbolic_hash_table();
 
     import_julia_data(lens, cfs, exps, nr_gens);
 
@@ -175,6 +176,7 @@ int64_t f4_julia(
     }
 
     /* free and clean up */
+    free_symbolic_hash_table();
     free_local_hash_table();
     free_global_hash_table();
     free_pairset(&ps);

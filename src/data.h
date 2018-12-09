@@ -81,6 +81,14 @@ static hd_t *hdl    = NULL;
 static hl_t elld    = 0;
 static hl_t elsz    = 0;
 
+/* symbolic hash table data */
+static hl_t *hmaps  = NULL; /* local hash map */
+static hl_t hssz    = 0;
+static exp_t **evs  = NULL; /* exponents from local hash table */
+static hd_t *hds    = NULL;
+static hl_t esld    = 0;
+static hl_t essz    = 0;
+
 static len_t htes   = 0;  /* hash table exponent at start */
 static len_t nvars  = 0; /* number of variables */
 static len_t bpv    = 0; /* bits per variable in divmask */

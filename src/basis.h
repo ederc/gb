@@ -96,11 +96,11 @@ inline void check_old_elements_for_redundancy(
 {
     len_t i;
     const len_t bl  = bs->ld;
-    const hl_t  nh  = bs->hd[bs->ld][3];
+    const hl_t  nh  = bs->m[bs->ld].h[0];
 
     for (i = 0; i < bl; ++i) {
         if (!bs->red[i]
-            && check_monomial_division(bs->m[i].h[3], nh, ht)) {
+            && check_monomial_division(bs->m[i].h[0], nh, ht)) {
             bs->red[i]  = 1;
             st->num_redundant++;
         }

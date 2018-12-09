@@ -34,9 +34,9 @@ void insert_and_update_spairs(
 
     spair_t *ps = psl->p;
 
-    const len_t pl  = psl->ld;
-    const len_t bl  = bs->ld;
-    const dt_t nh   = bs->hd[bl][3];
+    const len_t pl        = psl->ld;
+    const len_t bl        = bs->ld;
+    const hd_t * const nh = bs->m[bl].h[0];
 
     reset_hash_table(lht, bl);
 
@@ -44,7 +44,7 @@ void insert_and_update_spairs(
         return;
     }
 
-    hl_t *plcm  = generate_new_pairs(psl, ght, lht, bs);
+    hd_t **plcm = generate_new_pairs(psl, ght, lht, bs);
     len_t nl    = pl + bl;
 
     /* Gebauer-Moeller: check old pairs first */
@@ -53,8 +53,8 @@ void insert_and_update_spairs(
         j = ps[i].gen1;
         l = ps[i].gen2;
         if (check_monomial_division(ps[i].lcm, nh)
-                && ght->hd[ps[i].lcm].val != lht->hd[plcm[j]].val
-                && ght->hd[ps[i].lcm].val != lht->hd[plcm[l]].val
+                && ps[i].lcm->val != plcm[j]->val
+                && ps[i].lcm->val != plcm[l]->val
            ) {
             ps[i].lcm = -1;
         }
@@ -90,7 +90,7 @@ void insert_and_update_spairs(
         j = i-1;
         while (i < pc) {
             if (plcm[i] >= 0 &&
-                    check_monomial_division(plcm[i], plcmj, lht) != 0) {
+                    check_monomial_division(plcm[i], plcmj) != 0) {
                 plcm[i]  = -1;
             }
             ++i;

@@ -105,16 +105,16 @@ inline int is_new_generator_redundant(
 {
     len_t i;
     const len_t bl  = bs->ld;
-    const hl_t  nh  = bs->hd[bl][3];
+    const hd_t *nh  = bs->m[bl].h[0];
     
     for (i = bs->lo; i < bl; ++i) {
         if (!bs->red[i] 
-            && check_monomial_division(nh, bs->hd[i][3], ght)) {
+            && check_monomial_division(nh, bs->m[i].h[0])) {
             /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
             spair_t p = psl->p[psl->ld];
             p.gen1 = i;
             p.gen2 = bl;
-            p.lcm  = get_lcm(bs->hd[i][3], nh, ght, lht);
+            p.lcm  = get_lcm(bs->m[i].h[0], nhv, lht);
             if (ght->eld >= ght->esz) {
                 enlarge_hash_table(ght);
             }
@@ -129,7 +129,7 @@ inline int is_new_generator_redundant(
     return 0;
 }
 
-inline hl_t *gemerate_new_pairs(
+inline hd_t **generate_new_pairs(
         ps_t *psl,
         ht_t *ght,
         ht_t *lht,
@@ -142,7 +142,7 @@ inline hl_t *gemerate_new_pairs(
     const hl_t nh   = bs->hd[bl][3];
 
     spair_t *ps = psl->p;
-    hl_t *plcm  = (hl_t *)malloc((unsigned long)(bl+1) * sizeof(hl_t));
+    hd_t **plcm = (hd_t **)malloc((unsigned long)(bl+1) * sizeof(hd_t *));
 
     /* create all possible new pairs */
     for (i = 0, k = psl->ld; i < bl; ++i, ++k) {
@@ -150,16 +150,17 @@ inline hl_t *gemerate_new_pairs(
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
 
-        plcm[i] = ps[k].lcm = get_lcm(bs->hd[i][3], nh, ght, lht);
+        ps[k].lcm = get_lcm(bs->m[i].h[0], nh, lht);
 
         if (bs->red[i]) {
-            ps[k].lcm = -1; /* redundant pair */
+            ps[k].lcm = NULL; /* redundant pair */
         } else {
             if (lcm_equals_multiplication(
                         bs->hd[i][3], nh, ght, ps[k].lcm, lht)) {
-                ps[k].lcm = -2; /* criterion */
+                ps[k].lcm = NULL; /* criterion */
             }
         }
+        plcm[i] = ps[k].lcm;
     }
 
     return plcm;

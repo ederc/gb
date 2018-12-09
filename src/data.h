@@ -47,7 +47,7 @@ typedef int32_t cf32_t;   /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
 typedef int32_t ci_t;    /* column index type */
 typedef val_t hl_t;       /* length of hash table */
-typedef hl_t dt_t;        /* data type for other polynomial informatio */
+typedef hl_t dt_t;        /* data type for other polynomial information */
 typedef int8_t red_t;     /* redundancy type */
 /* like exponent hashes, etc. */
 typedef int32_t ind_t;    /* index in hash table structure */
@@ -164,7 +164,7 @@ typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
 typedef struct spair_t spair_t;
 struct spair_t
 {
-    hl_t lcm;
+    hd_t *lcm;
     bi_t gen1;
     bi_t gen2;
     spt_t type;
@@ -261,7 +261,8 @@ mat_t **(*linear_algebra)(
         );
 
 void (*normalize_initial_basis)(
-        bs_t *bs
+        bs_t *bs,
+        const len_t ne
         );
 
 void *(*reduce_dense_row_by_known_pivots)(

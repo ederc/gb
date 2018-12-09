@@ -179,9 +179,9 @@ inline void calculate_divmask(
 }
 
 /* returns zero if a is not divisible by b, else 1 is returned */
-inline hl_t check_monomial_division(
-    const hd_t *a,
-    const hd_t *b
+static inline int check_monomial_division(
+    const hd_t * const a,
+    const hd_t * const b
     )
 {
     /* short divisor mask check */
@@ -207,7 +207,7 @@ inline hl_t check_monomial_division(
     return 1;
 }
 
-inline hd_t *insert_in_hash_table(
+static inline hd_t *insert_in_hash_table(
     const exp_t *a,
     ht_t *ht
     )
@@ -218,13 +218,14 @@ inline hd_t *insert_in_hash_table(
     exp_t *e;
     hd_t *d;
     val_t h = 0;
+    const len_t nv  = gbnv;
+    const hl_t hsz  = ht->hsz;
 
     /* generate hash value */
-    for (j = 0; j < ht->nv; ++j) {
+    for (j = 0; j < nv; ++j) {
         h +=  ht->rv[j] * a[j];
     }
 
-    const hl_t hsz  = ht->hsz;
     /* probing */
     k = h;
     for (i = 0; i < hsz; ++i) {
@@ -236,8 +237,8 @@ inline hd_t *insert_in_hash_table(
             continue;
         }
         if (memcmp(ht->ev + ht->map[k], a,
-                    (unsigned long)ht->nv * sizeof(exp_t)) == 0) {
-            return ht->map[k];
+                    (unsigned long)nv * sizeof(exp_t)) == 0) {
+            return ht->hd + ht->map[k];
         }
     }
 
@@ -246,7 +247,7 @@ inline hd_t *insert_in_hash_table(
     e   = ht->ev[pos];
     d   = ht->hd + pos;
     deg = 0;
-    for (j = 0; j < ht->nv; ++j) {
+    for (j = 0; j < nv; ++j) {
         e[j]  =   a[j];
         deg   +=  a[j];
     }
@@ -258,7 +259,7 @@ inline hd_t *insert_in_hash_table(
     return d;
 }
 
-inline hl_t insert_in_hash_table_product_special(
+static inline hd_t *insert_in_hash_table_product_polynomial(
     const val_t h1,
     const deg_t deg,
     const exp_t * const ea,
@@ -272,12 +273,13 @@ inline hl_t insert_in_hash_table_product_special(
     hd_t *d;
 
     /* printf("b %d | bload %d\n", b, bload); */
+    const len_t nv  = gbnv;
+    const hl_t hsz  = ht->hsz;
     const val_t h   = h1 + ht->hd[b].val;
     const exp_t * const eb = ht->ev[b];
 
     n = ht->ev[ht->eld];
-    const hl_t hsz  = ht->hsz;
-    for (j = 0; j < ht->nv; ++j) {
+    for (j = 0; j < nv; ++j) {
         n[j]  = ea[j] + eb[j];
     }
     /* probing */
@@ -291,8 +293,8 @@ inline hl_t insert_in_hash_table_product_special(
             continue;
         }
         if (memcmp(n, ht->ev[ht->map[k]],
-                    (unsigned long)ht->nv * sizeof(exp_t)) == 0) {
-            return ht->map[k];
+                    (unsigned long)nv * sizeof(exp_t)) == 0) {
+            return ht->hd + ht->map[k];
         }
     }
 
@@ -305,15 +307,67 @@ inline hl_t insert_in_hash_table_product_special(
     d->exp      = n;
 
     ht->eld++;
-    return pos;
+    return d;
 }
 
-inline void reset_hash_table(
+static inline hd_t *insert_in_hash_table_product_special(
+    const val_t h1,
+    const deg_t deg,
+    const exp_t * const ea,
+    const hl_t b,
+    ht_t *ht
+    )
+{
+    hl_t i, k, pos;
+    len_t j;
+    exp_t *n;
+    hd_t *d;
+
+    /* printf("b %d | bload %d\n", b, bload); */
+    const len_t nv  = gbnv;
+    const hl_t hsz  = ht->hsz;
+    const val_t h   = h1 + ht->hd[b].val;
+    const exp_t * const eb = ht->ev[b];
+
+    n = ht->ev[ht->eld];
+    for (j = 0; j < nv; ++j) {
+        n[j]  = ea[j] + eb[j];
+    }
+    /* probing */
+    k = h;
+    for (i = 0; i < hsz; ++i) {
+        k = (k+i) & (hsz-1);
+        if (!ht->map[k]) {
+            break;
+        }
+        if (ht->hd[ht->map[k]].val != h) {
+            continue;
+        }
+        if (memcmp(n, ht->ev[ht->map[k]],
+                    (unsigned long)nv * sizeof(exp_t)) == 0) {
+            return ht->hd + ht->map[k];
+        }
+    }
+
+    /* add element to hash table */
+    ht->map[k]  = pos = ht->eld;
+    d           = ht->hd + ht->eld;
+    d->deg      = deg + ht->hd[b].deg;
+    d->sdm      = generate_short_divmask(n, ht);
+    d->val      = h;
+    d->exp      = n;
+
+    ht->eld++;
+    return d;
+}
+
+static inline void reset_hash_table(
     ht_t *ht,
     const len_t sz
     )
 {
     hl_t i, j;
+    const len_t nv  = gbnv;
     /* is there still enough space in the local table? */
     if (sz >= (ht->esz-ht->eld)) {
         j = ht->esz; /* store ol size */
@@ -333,7 +387,7 @@ inline void reset_hash_table(
              *       memory from evl[0] is enough    */
             ht->ev[0]  = realloc(ht->ev[0],
                     (unsigned long)ht->esz
-                    * (unsigned long)ht->nv * sizeof(exp_t));
+                    * (unsigned long)nv * sizeof(exp_t));
             if (ht->ev[0] == NULL) {
                 printf("Computation needs too much memory on this machine, \
                         segmentation fault will follow.\n");
@@ -341,7 +395,7 @@ inline void reset_hash_table(
             /* due to realloc we have to reset ALL evl entries,
              * memory might be moved */
             for (i = 1; i < ht->esz; ++i) {
-                ht->ev[i] = ht->ev[0] + (unsigned long)(i*ht->nv);
+                ht->ev[i] = ht->ev[0] + (unsigned long)(i*nv);
             }
             ht->map = realloc(ht->map, (unsigned long)ht->hsz * sizeof(hl_t));
         }
@@ -379,20 +433,20 @@ inline int lcm_equals_multiplication(
     }
 }
 
-inline hl_t get_lcm(
-    const hl_t a,
-    const hl_t b,
-    const ht_t * const ght,
+static inline hd_t *get_lcm(
+    const hd_t * const a,
+    const hd_t * const b,
     ht_t *lht
     )
 {
     len_t i;
 
     /* exponents of basis elements, thus from global hash table */
-    const exp_t * const ea = ght->ev[a];
-    const exp_t * const eb = ght->ev[b];
+    const exp_t * const ea = a->exp;
+    const exp_t * const eb = b->exp;
+    const len_t nv  = gbnv;
 
-    for (i = 0; i < ght->nv; ++i) {
+    for (i = 0; i < nv; ++i) {
         etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
     }
     /* goes into local hash table for spairs */
@@ -401,7 +455,7 @@ inline hl_t get_lcm(
 
 /* we try monomial division including check if divisibility is
  * fulfilled. */
-inline hl_t monomial_division_with_check(
+static inline hd_t *monomial_division_with_check(
     const hl_t a,
     const hl_t b,
     ht_t * ht
@@ -416,7 +470,7 @@ inline hl_t monomial_division_with_check(
         return 0;
     }
 
-    const len_t nv  = ht->nv;
+    const len_t nv  = gbnv;
     const exp_t * const ea  = ht->ev[a];
     const exp_t * const eb  = ht->ev[b];
     etmp[0]  = ea[0] - eb[0];
@@ -424,7 +478,7 @@ inline hl_t monomial_division_with_check(
     i = nv & 1 ? 1 : 0;
     for (; i < nv; i += 2) {
         if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-            return 0;
+            return NULL;
         } else {
             etmp[i]    = ea[i] - eb[i];
             etmp[i+1]  = ea[i+1] - eb[i+1];
@@ -435,7 +489,7 @@ inline hl_t monomial_division_with_check(
 
 /* it is assumed that b divides a, thus no tests for
  * divisibility at all */
-inline hl_t monomial_division_no_check(
+static inline hd_t *monomial_division_no_check(
     const hl_t a,
     const hl_t b,
     ht_t *ht
@@ -446,7 +500,7 @@ inline hl_t monomial_division_no_check(
     const exp_t * const ea  = ht->ev[a];
     const exp_t * const eb  = ht->ev[b];
 
-    const len_t nv  = ht->nv;
+    const len_t nv  = gbnv;
     i = nv & 1 ? 1 : 0;
     for (; i < nv; i += 2) {
         etmp[i]    = ea[i]   - eb[i];
@@ -456,7 +510,7 @@ inline hl_t monomial_division_no_check(
     return insert_in_hash_table(etmp, ht);
 }
 
-inline dt_t *multiplied_polynomial_to_matrix_row(
+static inline dt_t *multiplied_polynomial_to_matrix_row(
     const val_t hm,
     const deg_t deg,
     const exp_t * const em,

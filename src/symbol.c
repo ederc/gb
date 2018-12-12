@@ -125,7 +125,16 @@ static dt_t **select_spairs_by_minimal_degree(
             const hl_t h  = hd[lcm].val - hd[b[3]].val;
             mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
             /* mark lcm column as lead term column */
-            hd[mat[nrows][3]].idx = 2;
+            /* for (int ii=3; ii < mat[nrows][2]; ++ii) {
+             *     printf("%d | ", mat[nrows][ii]);
+             *     for (int jj=0; jj < nvars; ++jj) {
+             *         printf("%d ", evs[mat[nrows][ii]][jj]);
+             *     }
+             *     printf("\n");
+             * }
+             * printf("\n");
+             * printf("%d || idx %d\n", nrows, hds[mat[nrows][3]].idx); */
+            hds[mat[nrows][3]].idx = 2;
             nrows++;
         }
 
@@ -163,14 +172,15 @@ static inline dt_t *find_multiplied_reducer(
     len_t i, k;
     deg_t d = 0;
     dt_t *b;
-    const exp_t * const e  = ev[m];
+    const exp_t * const e  = evs[m];
     exp_t *f;
 
     const len_t bl  = bload;
     const len_t os  = nvars & 1 ? 1 : 0;
-    i = hd[m].div;
+    /* i = hds[m].div; */
+    i = 0;
 
-    const sdm_t ns  = ~hd[m].sdm;
+    const sdm_t ns  = ~hds[m].sdm;
 start:
     while (i < bl-3) {
         if (lms[i] & ns &&
@@ -198,12 +208,12 @@ start:
         for (k = 0; k < nvars; ++k) {
             etmp[k] = e[k] - f[k];
         }
-        const hl_t h  = hd[m].val - hd[b[3]].val;
+        const hl_t h  = hds[m].val - hd[b[3]].val;
         for (k = 0; k < nvars; ++k) {
             d += etmp[k];
         }
         b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hd[m].div = i;
+        hds[m].div = i;
         return b;
     }
 start2:
@@ -227,15 +237,15 @@ start2:
         for (k = 0; k < nvars; ++k) {
             etmp[k] = e[k] - f[k];
         }
-        const hl_t h  = hd[m].val - hd[b[3]].val;
+        const hl_t h  = hds[m].val - hd[b[3]].val;
         for (k = 0; k < nvars; ++k) {
             d += etmp[k];
         }
         b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hd[m].div = i;
+        hds[m].div = i;
         return b;
     }
-    hd[m].div = i;
+    hds[m].div = i;
     return NULL;
 }
 
@@ -259,6 +269,33 @@ static dt_t **symbolic_preprocessing(
      * we only have to do the bookkeeping for newly added reducers
      * in the following. */
 
+    for (i = 1; i < esld; ++i) {
+        if (esld >= essz) {
+            enlarge_symbolic_hash_table();
+        }
+        if (nrall == nrows) {
+            nrall *=  2;
+            mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+        }
+        /* printf("i %d | idx %d\n", i, hds[i].idx); */
+        if (!hds[i].idx) {
+            hds[i].idx = 1;
+            ncols++;
+            red = find_multiplied_reducer(i);
+            if (red) {
+                /* printf("hd.idx = 2 for ");
+                    * for (int32_t k = 0; k < nvars; ++k) {
+                    *     printf("%d ", ev[m][k]);
+                    * }
+                    * printf("\n"); */
+                hds[i].idx = 2;
+                /* add new reducer to matrix */
+                mat[nrows++]  = red;
+                /* printf("new reducer %d\n", nrows); */
+            }
+        }
+    }
+#if 0    
     /* get reducers from basis */
     for (i = 0; i < nrows; ++i) {
         /* printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows); */
@@ -291,7 +328,7 @@ static dt_t **symbolic_preprocessing(
             }
         }
     }
-
+#endif
     /* for (i = 0; i < nrows; ++i) {
      *     printf("row %d -- %d\n", i, mat[i][3]);
      * } */

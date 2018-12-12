@@ -145,9 +145,12 @@ int64_t f4_julia(
         if (npivs > 0) {
             convert_sparse_matrix_rows_to_basis_elements(mat, hcm, st);
         }
+        reset_symbolic_hash_table();
         free(mat);
         mat = NULL;
-        hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
+        free(hcm);
+        hcm = NULL;
+        /* hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm); */
 
         update_basis(ps, st);
 

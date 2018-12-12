@@ -48,7 +48,42 @@ static hl_t *convert_hashes_to_columns(
      * have in the local hash table since we do not which of
      * them are corresponding to multipliers and which are
      * corresponding to the multiplied terms in reducers. */
-    hcm = (hl_t *)malloc((unsigned long)ncols * sizeof(hl_t));
+    hcm = (hl_t *)malloc((unsigned long)(esld-1) * sizeof(hl_t));
+    for (k = 0, j = 0, i = 1; i < esld; ++i) {
+        hi  = hds[i].idx;
+
+        hcm[j++]  = i;
+        if (hi == 2) {
+            k++;
+        }
+    }
+    /* for (int ii=0; ii < j; ++ii) {
+     *     printf("hcm[%d] = %d | %d | ", ii, hcm[ii], hds[hcm[ii]].idx);
+     *     for (int jj=0; jj < nvars; ++jj) {
+     *         printf("%d ", evs[hcm[ii]][jj]);
+     *     }
+     *     printf("\n");
+     * } */
+    qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
+    /* for (int ii=0; ii < j; ++ii) {
+     *     printf("sorted hcm[%d] = %d | ", ii, hcm[ii]);
+     *     for (int jj=0; jj < nvars; ++jj) {
+     *         printf("%d ", evs[hcm[ii]][jj]);
+     *     }
+     *     printf("\n");
+     * } */
+
+    nru = ncl = k;
+    nrl = nrows - nru;
+    ncr = j - ncl;
+
+    st->num_rowsred     +=  nrl;
+
+    /* store the other direction (hash -> column) in HASH_IND */
+    for (k = 0; k < j; ++k) {
+        hds[hcm[k]].idx  = k;
+    }
+#if 0
     /* j counts all columns, k counts known pivots */
     for (j = 0, k = 0, i = 0; i < nrows; ++i) {
         row     =   matdt[i];
@@ -111,22 +146,27 @@ static hl_t *convert_hashes_to_columns(
     for (i = 0; i < j; ++i) {
         hd[hcm[i]].idx  = i;
     }
-
+#endif
 
 
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < nrows; ++i) {
         row = matdt[i];
+        nterms  +=  row[2];
         for (j = 3; j < row[1]; ++j) {
-            row[j]  = hd[row[j]].idx;
+            row[j]  = hds[row[j]].idx;
         }
         for (; j < row[2]; j += 4) {
-            row[j]    = hd[row[j]].idx;
-            row[j+1]  = hd[row[j+1]].idx;
-            row[j+2]  = hd[row[j+2]].idx;
-            row[j+3]  = hd[row[j+3]].idx;
+            row[j]    = hds[row[j]].idx;
+            row[j+1]  = hds[row[j+1]].idx;
+            row[j+2]  = hds[row[j+2]].idx;
+            row[j+3]  = hds[row[j+3]].idx;
         }
+        /* for (j = 3; j < row[2]; ++j) {
+         *     printf("%d ", row[j]);
+         * }
+         * printf("\n"); */
     }
 
     /* next we sort each row by the new colum order due
@@ -177,17 +217,16 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     /* fix size of basis for entering new elements directly */
     check_enlarge_basis(npivs);
 
-
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < npivs; ++i) {
         for (j = 3; j < mat[i][1]; ++j) {
-            mat[i][j] = hcm[mat[i][j]];
+            mat[i][j] = insert_in_global_hash_table(evs[hcm[mat[i][j]]]);
         }
         for (; j < mat[i][2]; j += 4) {
-            mat[i][j]   = hcm[mat[i][j]];
-            mat[i][j+1] = hcm[mat[i][j+1]];
-            mat[i][j+2] = hcm[mat[i][j+2]];
-            mat[i][j+3] = hcm[mat[i][j+3]];
+            mat[i][j]   = insert_in_global_hash_table(evs[hcm[mat[i][j]]]);
+            mat[i][j+1] = insert_in_global_hash_table(evs[hcm[mat[i][j+1]]]);
+            mat[i][j+2] = insert_in_global_hash_table(evs[hcm[mat[i][j+2]]]);
+            mat[i][j+3] = insert_in_global_hash_table(evs[hcm[mat[i][j+3]]]);
         }
         gbcf[bl+i]  = tmpcf[mat[i][0]];
         mat[i][0]   = bl+i;

@@ -162,8 +162,8 @@ static int monomial_cmp_pivots_drl(
 {
     len_t i;
 
-    const hd_t ha = hd[a];
-    const hd_t hb = hd[b];
+    const hd_t ha = hds[a];
+    const hd_t hb = hds[b];
 #if ORDER_COLUMNS
     /* first known pivots vs. tail terms */
     if (ha.idx != hb.idx) {
@@ -184,8 +184,19 @@ static int monomial_cmp_pivots_drl(
         }
     }
 
-    const exp_t * const ea  = ev[a];
-    const exp_t * const eb  = ev[b];
+    const exp_t * const ea  = evs[a];
+    const exp_t * const eb  = evs[b];
+
+    /* printf("ea ");
+     * for (int ii=0; ii < nvars; ++ii) {
+     *     printf("%d ", ea[ii]);
+     * }
+     * printf("\n");
+     * printf("eb ");
+     * for (int ii=0; ii < nvars; ++ii) {
+     *     printf("%d ", eb[ii]);
+     * }
+     * printf("\n"); */
 
     /* note: reverse lexicographical */
     for (i = nvars; i > 0; --i) {
@@ -208,8 +219,8 @@ static int monomial_cmp_pivots_lex(
 {
     len_t i;
 
-    const hd_t ha = hd[a];
-    const hd_t hb = hd[b];
+    const hd_t ha = hds[a];
+    const hd_t hb = hds[b];
 #if ORDER_COLUMNS
     /* first known pivots vs. tail terms */
     if (ha.idx != hb.idx) {
@@ -221,8 +232,8 @@ static int monomial_cmp_pivots_lex(
     }
 #endif
 
-    const exp_t * const ea  = ev[a];
-    const exp_t * const eb  = ev[b];
+    const exp_t * const ea  = evs[a];
+    const exp_t * const eb  = evs[b];
 
     /* lexicographical */
     for (i = 0; i < nvars; ++i) {

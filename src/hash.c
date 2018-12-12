@@ -140,7 +140,7 @@ static void initialize_symbolic_hash_table(
   hl_t j;
 
   /* generate map */
-  hssz  = (hl_t)pow(2, htes-5);
+  hssz  = (hl_t)pow(2, htes-2);
   hmaps = calloc((unsigned long)hssz, sizeof(hl_t));
 
   /* generate exponent vector */
@@ -678,6 +678,17 @@ static inline void reset_local_hash_table(
   }
 }
 
+static inline void reset_symbolic_hash_table(
+        void
+    )
+{
+    /* is there still enough space in the local table? */
+    memset(hds, 0, (unsigned long)essz * sizeof(hd_t));
+    memset(hmaps, 0, (unsigned long)hssz * sizeof(hl_t));
+
+    esld  = 1;
+}
+
 static inline hl_t insert_in_symbolic_hash_table_product_special(
     const val_t h1,
     const deg_t deg,
@@ -691,32 +702,51 @@ static inline hl_t insert_in_symbolic_hash_table_product_special(
   hd_t *d;
 
   /* printf("b %d | bload %d\n", b, bload); */
-  const val_t h   = h1 + hds[b].val;
-  const exp_t * const eb = evs[b];
+  const val_t h   = h1 + hd[b].val;
+  const exp_t * const eb = ev[b];
 
+  /* printf("esld %d / %d essz\n", esld, essz); */
   n = evs[esld];
   for (j = 0; j < nvars; ++j) {
     n[j]  = ea[j] + eb[j];
   }
+  /* printf("ea ");
+   * for (j = 0; j < nvars; ++j) {
+   *   printf("%d ",ea[j]);
+   * }
+   * printf("\n");
+   * printf("eb ");
+   * for (j = 0; j < nvars; ++j) {
+   *   printf("%d ",eb[j]);
+   * }
+   * printf("\n");
+   * printf("n ");
+   * for (j = 0; j < nvars; ++j) {
+   *   printf("%d ",n[j]);
+   * }
+   * printf("\n"); */
   /* probing */
   k = h;
   for (i = 0; i < hssz; ++i) {
     k = (k+i) & (hssz-1);
+    /* printf("k %d | i %d\n", k, i);
+     * printf("hmaps[k] %d\n", hmaps[k]);
+     * printf("val %d\n", hds[hmaps[k]].val); */
     if (!hmaps[k]) {
       break;
     }
-    if (hd[hmaps[k]].val != h) {
+    if (hds[hmaps[k]].val != h) {
       continue;
     }
-    if (memcmp(n, ev[hmaps[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
+    if (memcmp(n, evs[hmaps[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
       return hmaps[k];
     }
   }
 
   /* add element to hash table */
   hmaps[k] = pos = esld;
-  d = hd + esld;
-  d->deg  = deg + hds[b].deg;
+  d = hds + esld;
+  d->deg  = deg + hd[b].deg;
   d->sdm  = generate_short_divmask(n);
   d->val  = h;
 

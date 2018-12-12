@@ -88,19 +88,17 @@ inline void check_enlarge_basis(
     }
 }
 
-inline void check_old_elements_for_redundancy(
+static inline void check_old_elements_for_redundancy(
         bs_t *bs,
-        stat_t *st,
-        const ht_t *const ht
+        stat_t *st
         )
 {
     len_t i;
     const len_t bl  = bs->ld;
-    const hl_t  nh  = bs->m[bs->ld].h[0];
+    const hd_t *nh  = bs->m[bs->ld].h[0];
 
     for (i = 0; i < bl; ++i) {
-        if (!bs->red[i]
-            && check_monomial_division(bs->m[i].h[0], nh, ht)) {
+        if (!bs->red[i] && check_monomial_division(bs->m[i].h[0], nh)) {
             bs->red[i]  = 1;
             st->num_redundant++;
         }

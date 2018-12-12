@@ -409,22 +409,16 @@ static inline void reset_hash_table(
 /* we can check equality of lcm and multiplication of two monomials
  * by their hash values. If both hash values are NOT the same, then
  * the corresponding exponent vectors CANNOT be the same. */
-inline int lcm_equals_multiplication(
-    const hl_t a,
-    const hl_t b,
-    const ht_t * const ght,
-    const hl_t lcm,
-    const ht_t *const lht
+static inline int lcm_equals_multiplication(
+    const hd_t *a,
+    const hd_t *b,
+    const hd_t *lcm
     )
 {
-    const hd_t ha = ght->hd[a];
-    const hd_t hb = ght->hd[b];
-    const hd_t hl = lht->hd[lcm];
-
-    if (hl.deg != ha.deg + hb.deg) {
+    if (lcm->deg != a->deg + b->deg) {
         return 0;
     }
-    if (hl.val != ha.val + hb.val) {
+    if (lcm->val != a->val + b->val) {
         return 0;
     } else {
         /* both have the same degree and the same hash value, either they

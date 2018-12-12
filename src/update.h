@@ -95,7 +95,7 @@ inline void free_pairset(
     *psp  = ps;
 }
 
-inline int is_new_generator_redundant(
+static inline int is_new_generator_redundant(
         ps_t *psl,
         bs_t *bs,
         ht_t *lht,
@@ -114,11 +114,11 @@ inline int is_new_generator_redundant(
             spair_t p = psl->p[psl->ld];
             p.gen1 = i;
             p.gen2 = bl;
-            p.lcm  = get_lcm(bs->m[i].h[0], nhv, lht);
+            p.lcm  = get_lcm(bs->m[i].h[0], nh, lht);
             if (ght->eld >= ght->esz) {
                 enlarge_hash_table(ght);
             }
-            p.lcm  = insert_in_hash_table(lht->ev[p.lcm], ght);
+            p.lcm  = insert_in_hash_table(p.lcm->exp, ght);
             bs->red[bl] = 1;
             st->num_redundant++;
             bs->ld++;
@@ -129,9 +129,8 @@ inline int is_new_generator_redundant(
     return 0;
 }
 
-inline hd_t **generate_new_pairs(
+static inline hd_t **generate_new_pairs(
         ps_t *psl,
-        ht_t *ght,
         ht_t *lht,
         const bs_t *const bs
         )
@@ -139,7 +138,7 @@ inline hd_t **generate_new_pairs(
     len_t i, k;
 
     const len_t bl  = bs->ld;
-    const hl_t nh   = bs->hd[bl][3];
+    const hd_t *nh  = bs->m[bl].h[0];
 
     spair_t *ps = psl->p;
     hd_t **plcm = (hd_t **)malloc((unsigned long)(bl+1) * sizeof(hd_t *));
@@ -155,8 +154,7 @@ inline hd_t **generate_new_pairs(
         if (bs->red[i]) {
             ps[k].lcm = NULL; /* redundant pair */
         } else {
-            if (lcm_equals_multiplication(
-                        bs->hd[i][3], nh, ght, ps[k].lcm, lht)) {
+            if (lcm_equals_multiplication(bs->m[i].h[0], nh, ps[k].lcm)) {
                 ps[k].lcm = NULL; /* criterion */
             }
         }

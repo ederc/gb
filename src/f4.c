@@ -72,9 +72,12 @@ int64_t f4_julia_ff(
         print_initial_statistics(st);
     }
 
-    /* hash tables are global for qsort reasons */
-    ght = initialize_global_hash_table(st);
-    lht = initialize_local_hash_table(st, ght);
+    /* global hash table */
+    ht_t *ght = initialize_global_hash_table(st);
+    /* upate hash table for spairs */
+    ht_t *uht = initialize_local_hash_table(st, ght);
+    /* hash table for symbolic preprocessing */
+    ht_t *sht = initialize_local_hash_table(st, ght);
 
     bs_t *bs    = initialize_basis(st);
     ps_t *ps    = initialize_pairset(st);
@@ -91,7 +94,7 @@ int64_t f4_julia_ff(
     st->num_matrices++;
     /* sort initial elements, smallest lead term first */
     qsort(bs->m, (unsigned long)st->nr_gens,
-            sizeof(hl_t *), initial_basis_cmp);
+            sizeof(mon_t *), initial_basis_cmp);
     /* normalize input generators */
     normalize_initial_basis(bs, st->nr_gens);
     /* normalize_matrix_rows(bs->cf, bs->ld, st->field_char); */
@@ -99,7 +102,7 @@ int64_t f4_julia_ff(
     /* move input generators to basis and generate first spairs */
     check_enlarge_pairset(ps, bs->ld, st->nr_gens);
     /* generate initial spairs */
-    update_basis(ps, bs, ght, lht, st, st->nr_gens);
+    update_basis(ps, bs, ght, uht, st, st->nr_gens);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
@@ -162,7 +165,8 @@ int64_t f4_julia_ff(
      * to set them to NULL in order to prevent a second free'ing. */
     lht->rv = NULL;
     lht->dm = NULL;
-    free_hash_table(&lht);
+    free_hash_table(&uht);
+    free_hash_table(&sht);
     free_pairset(&ps);
     free_matrix(&mat);
     free_basis(&bs);

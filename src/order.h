@@ -101,7 +101,7 @@ inline void **sort_dense_matrix_rows(
     return dm;
 }
 
-inline int monomial_cmp_drl(
+static inline int monomial_cmp_drl(
         const hl_t a,
         const hl_t b,
         const ht_t *const ht
@@ -124,7 +124,7 @@ inline int monomial_cmp_drl(
     const exp_t * const ea  = ht->ev[a];
     const exp_t * const eb  = ht->ev[b];
 
-    for (i = ht->nv; i > 0; --i) {
+    for (i = gbnv; i > 0; --i) {
         if (ea[i-1] < eb[i-1]) {
             return 1;
         } else {
@@ -136,7 +136,7 @@ inline int monomial_cmp_drl(
     return 0;
 }
 
-inline int monomial_cmp_lex(
+static inline int monomial_cmp_lex(
         const hl_t a,
         const hl_t b,
         const ht_t *const ht
@@ -147,7 +147,8 @@ inline int monomial_cmp_lex(
     const exp_t * const ea  = ht->ev[a];
     const exp_t * const eb  = ht->ev[b];
 
-    for (i = 0; i < ht->nv; ++i) {
+    const len_t nv  = gbnv;
+    for (i = 0; i < nv; ++i) {
         if (ea[i] < eb[i]) {
             return -1;
         }

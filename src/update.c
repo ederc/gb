@@ -44,7 +44,7 @@ void insert_and_update_spairs(
         return;
     }
 
-    hd_t **plcm = generate_new_pairs(psl, ght, lht, bs);
+    hd_t **plcm = generate_new_pairs(psl, lht, bs);
     len_t nl    = pl + bl;
 
     /* Gebauer-Moeller: check old pairs first */
@@ -123,7 +123,7 @@ void insert_and_update_spairs(
     st->num_gm_crit +=  nl - j;
 
     /* mark redundant elements in basis */
-    check_old_elements_for_redundancy(bs, st, ght);
+    check_old_elements_for_redundancy(bs, st);
     bs->ld++;
 }
 

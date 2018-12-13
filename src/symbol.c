@@ -157,7 +157,7 @@ mat_t *select_spairs_by_minimal_degree(
 
 mat_t *symbolic_preprocessing(
         mat_t *mat,
-        ht_t *ht,
+        ht_t *sht,
         const bs_t *const bs,
         stat_t *st
         )
@@ -177,6 +177,21 @@ mat_t *symbolic_preprocessing(
      * we only have to do the bookkeeping for newly added reducers
      * in the following. */
 
+    for (i = 1; i < sht->eld; ++i) {
+        if (sht->hd[i].idx == 0) {
+            if (sht->eld >= sht->esz) {
+                enlarge_hash_table(sht);
+            }
+            if (mat->nr >= mat->na) {
+                mat->na *=  2;
+                mat->mp = realloc(mat->np,
+                        (unsigned long)mat->na * sizeof(mon_t));
+            }
+            sht->hd[i].idx  = 1;
+            mat->nc++;
+            find_multiplied_reducer(mat, sht, &(sht->hd[i]), bs);
+        }
+    }
     /* get reducers from basis */
     for (i = 0; i < mat->nr; ++i) {
         /* printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows); */
@@ -214,4 +229,93 @@ mat_t *symbolic_preprocessing(
     st->symbol_rtime  +=  rt1 - rt0;
 
     return mat;
+}
+
+dt_t *find_multiplied_reducer(
+        mat_t *mat,
+        ht_t *ht,
+        hd_t *m,
+        const bs_t *const bs
+        )
+{
+    len_t i, k;
+    deg_t d = 0;
+    mon_t b;
+    exp_t *f;
+
+    const exp_t * const e   = m->exp;
+    const sdm_t *const lms  = bs->lm;
+
+    const len_t nv  = gbnv;
+    const len_t bl  = bs->ld;
+    const len_t os  = nv & 1 ? 1 : 0;
+    const sdm_t ns  = ~ht->hd[m].sdm;
+
+    exp_t *etmp = sht->hd[0].exp;
+
+    i = 0;
+start1:
+    while (i < bl-3) {
+        if (lms[i] & ns &&
+                lms[i+1] & ns &&
+                lms[i+2] & ns &&
+                lms[i+3] & ns) {
+            i +=  4;
+            continue;
+        }
+        while (lms[i] & ns) {
+            i++;
+        }
+        b = bs->m[i];
+        f = b.h[0]->exp;
+        if ((e[0]-f[0]) < 0) {
+            i++;
+            goto start1;
+        }
+        for (k = os; k < nv; k += 2) {
+            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
+                i++;
+                goto start1;
+            }
+        }
+        for (k = 0; k < nv; ++k) {
+            etmp[k] = e[k] - f[k];
+        }
+        const val_t h = m->val - b.h[0]->val;
+        for (k = 0; k < nv; ++k) {
+            d += etmp[k];
+        }
+        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
+        return b;
+    }
+start2:
+    while (i < bl) {
+        if (lms[i] & ns) {
+            i++;
+            continue;
+        }
+        b = bs->m[i];
+        f = b.h[0]->exp;
+        if ((e[0]-f[0]) < 0) {
+            i++;
+            goto start2;
+        }
+        for (k = os; k < nv; k += 2) {
+            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
+                i++;
+                goto start2;
+            }
+        }
+        for (k = 0; k < nv; ++k) {
+            etmp[k] = e[k] - f[k];
+        }
+        const hl_t h  = ht->hd[m].val - ht->hd[b[3]].val;
+        for (k = 0; k < nv; ++k) {
+            d += etmp[k];
+        }
+        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
+        return b;
+    }
+
+    return NULL;
 }

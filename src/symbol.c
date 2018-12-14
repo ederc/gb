@@ -157,14 +157,13 @@ mat_t *select_spairs_by_minimal_degree(
 
 mat_t *symbolic_preprocessing(
         mat_t *mat,
-        ht_t *sht,
+        ht_t *ht,
         const bs_t *const bs,
         stat_t *st
         )
 {
     len_t i, j;
-    dt_t *red;
-    dt_t m;
+    int red;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -177,50 +176,20 @@ mat_t *symbolic_preprocessing(
      * we only have to do the bookkeeping for newly added reducers
      * in the following. */
 
-    for (i = 1; i < sht->eld; ++i) {
-        if (sht->hd[i].idx == 0) {
-            if (sht->eld >= sht->esz) {
-                enlarge_hash_table(sht);
-            }
-            if (mat->nr >= mat->na) {
-                mat->na *=  2;
-                mat->mp = realloc(mat->np,
-                        (unsigned long)mat->na * sizeof(mon_t));
-            }
-            sht->hd[i].idx  = 1;
+    for (i = 1; i < ht->eld; ++i) {
+        if (ht->hd[i].idx == 0) {
+            ht->hd[i].idx  = 1;
             mat->nc++;
-            find_multiplied_reducer(mat, sht, &(sht->hd[i]), bs);
-        }
-    }
-    /* get reducers from basis */
-    for (i = 0; i < mat->nr; ++i) {
-        /* printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows); */
-        const hl_t len = mat->r[i][2];
-        /* check row reallocation only once per polynomial */
-        if ((mat->na - mat->nr) < (len-3)) {
-            mat->na +=  mat->na > len ? mat->na : (len_t)len;
-            mat-r   =   realloc(mat-r,
-                    (unsigned long)mat->na * sizeof(dt_t *));
-        }
-        for (j = 4; j < len; ++j) {
-            m = mat->r[i][j];
-            /* printf("hd[%d].idx = %d\n", m, hd[m].idx); */
-            if (!ht->hd[m].idx) {
-                ht->hd[m].idx = 1;
-                mat->nc++;
-                red = find_multiplied_reducer(m, ht, bs);
-                if (red) {
-                    ht->hd[m].idx = 2;
-                    /* add new reducer to matrix */
-                    mat->r[mat->nr++]  = red;
-                }
+            red = find_multiplied_reducer(mat, ht, &(ht->hd[i]), bs);
+            if (red == 1) {
+                ht->hd[i].idx  = 2;
             }
         }
     }
 
     /* realloc to real size */
-    mat-r   = realloc(mat->r, (unsigned long)mat->nr * sizeof(dt_t *));
-    mat->na = mat->nr;;
+    mat->mp = realloc(mat->mp, (unsigned long)mat->nr * sizeof(mon_t));
+    mat->na = mat->nr;
 
     /* timings */
     ct1 = cputime();
@@ -231,7 +200,7 @@ mat_t *symbolic_preprocessing(
     return mat;
 }
 
-dt_t *find_multiplied_reducer(
+int find_multiplied_reducer(
         mat_t *mat,
         ht_t *ht,
         hd_t *m,
@@ -249,9 +218,9 @@ dt_t *find_multiplied_reducer(
     const len_t nv  = gbnv;
     const len_t bl  = bs->ld;
     const len_t os  = nv & 1 ? 1 : 0;
-    const sdm_t ns  = ~ht->hd[m].sdm;
+    const sdm_t ns  = ~(m->sdm);
 
-    exp_t *etmp = sht->hd[0].exp;
+    exp_t *etmp = ht->hd[0].exp;
 
     i = 0;
 start1:
@@ -285,8 +254,8 @@ start1:
         for (k = 0; k < nv; ++k) {
             d += etmp[k];
         }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
-        return b;
+        multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
+        return 1;
     }
 start2:
     while (i < bl) {
@@ -309,13 +278,12 @@ start2:
         for (k = 0; k < nv; ++k) {
             etmp[k] = e[k] - f[k];
         }
-        const hl_t h  = ht->hd[m].val - ht->hd[b[3]].val;
+        const hl_t h  = m->val - b.h[0]->val;
         for (k = 0; k < nv; ++k) {
             d += etmp[k];
         }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
-        return b;
+        multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
+        return 1;
     }
-
-    return NULL;
+    return 0;
 }

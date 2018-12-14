@@ -504,12 +504,13 @@ static inline hd_t *monomial_division_no_check(
     return insert_in_hash_table(etmp, ht);
 }
 
-static inline dt_t *multiplied_polynomial_to_matrix_row(
+static inline void multiplied_polynomial_to_matrix_row(
+    mat_t *mat,
+    ht_t *ht,
     const val_t hm,
     const deg_t deg,
     const exp_t * const em,
-    const dt_t *poly,
-    ht_t *ht
+    const mon_t * const poly,
     )
 {
     len_t i;
@@ -521,9 +522,22 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
     /* hash table product insertions appear only here:
      * we check for hash table enlargements first and then do the insertions
      * without further elargment checks there */
-    while (ht->eld+poly[2]-3 >= ht->esz) {
+    while (ht->eld+poly.sz >= ht->esz) {
         enlarge_hash_table(ht);
     }
+    /* check possible increasement of matrix rows */
+    if (mat->nr >= mat->na) {
+        mat->na *=  2;
+        mat->mp = realloc(mat->np,
+                (unsigned long)mat->na * sizeof(mon_t));
+    }
+    mat->mp[mat->nr].sz = poly.sz;
+    mat->mp[mat->nr].of = poly.of;
+    mat->mp[mat->nr].cl = poly.cl;
+
+    hd_t **row  = mat->mp[mat->nr].h;
+    row         = (hd_t **)malloc((unsigned long)poly.sz * sizeof(hd_t *));
+    
     /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
     for (i = 3; i < poly[1]; ++i) {
         row[i]  = insert_in_hash_table_product_special(
@@ -539,8 +553,6 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
         row[i+3]  = insert_in_hash_table_product_special(
                 hm, deg, em, poly[i+3], ht);
     }
-
-    return row;
 }
 
 inline hl_t *reset_idx_in_global_hash_table_and_free_hcm(

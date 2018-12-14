@@ -41,7 +41,7 @@ mat_t *select_spairs_by_minimal_degree(
         stat_t *st
         );
 
-dt_t *find_multiplied_reducer(
+int find_multiplied_reducer(
         mat_t *mat,
         ht_t *ht,
         hd_t *m,

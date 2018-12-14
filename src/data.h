@@ -208,6 +208,7 @@ struct mat_t
     len_t nrl;  /* number of lower rows (ABCD splicing) */
     len_t ncl;  /* number of left columns (ABCD splicing) */
     len_t ncr;  /* number of right columns (ABCD splicing) */
+    mon_t *mp;  /* multiplied polynomial, i.e. pre-row */
     row_t **r;  /* rows of column indices of matrix */
 };
 

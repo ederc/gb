@@ -156,15 +156,17 @@ int64_t f4_julia_ff(
     st->overall_rtime = rt1 - rt0;
 
     if (st->info_level > 0) {
-        print_final_statistics(st, ght->eld, lht->eld);
+        print_final_statistics(st, ght->eld, uht->eld);
     }
 
     /* free and clean up */
     free_hash_table(&ght);
     /* rv and dm is shared with ght, thus already removed. we have
      * to set them to NULL in order to prevent a second free'ing. */
-    lht->rv = NULL;
-    lht->dm = NULL;
+    uht->rv = NULL;
+    uht->dm = NULL;
+    sht->rv = NULL;
+    sht->dm = NULL;
     free_hash_table(&uht);
     free_hash_table(&sht);
     free_pairset(&ps);

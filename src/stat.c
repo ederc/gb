@@ -161,7 +161,7 @@ void print_final_statistics(
     printf("#pairs reduced     %9ld\n", st->num_pairsred);
     printf("#GM criterion      %9ld\n", st->num_gm_crit);
     printf("#redundant         %9ld\n", st->num_redundant);
-    printf("#matrices reduced  %9ld\n", st->num_matrices);
+    printf("#matrices reduced  %9d\n", st->num_matrices);
     printf("#rows reduced      %9ld\n", st->num_rowsred);
     printf("#zero reductions   %9ld\n", st->num_zerored);
     printf("#global hash table %9d <= 2^%d\n",

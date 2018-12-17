@@ -33,13 +33,13 @@
 /* check if OpenMP is available */
 /* #if defined(_OPENMP) */
 #include <omp.h>
-/* #else
- * typedef int omp_int_t;
- * inline omp_int_t omp_get_thread_num(void) { return 0;}
- * inline omp_int_t omp_get_max_threads(void) { return 1;}
- * #endif */
 
 #define ORDER_COLUMNS 1
+
+/* loop unrolling in sparse linear algebra:
+ * we store the offset of the first elements not unrolled
+ * in the second entry of the sparse row resp. sparse polynomial. */
+#define UNROLL  4
 
 /* computational data */
 typedef int16_t cf16_t;   /* coefficient type */
@@ -59,8 +59,6 @@ typedef len_t bi_t;     /* basis index of element */
 typedef len_t bl_t;     /* basis load */
 typedef len_t pl_t;     /* pair set load */
 typedef uint32_t row_t; /* size of rows of matrices */
-
-/* hash table data */
 
 /* hash data structure */
 typedef struct hd_t hd_t;
@@ -90,6 +88,10 @@ struct ht_t
     exp_t **ev;       /* exponent vector array */
 };
 
+/* pseudo random number generator for hash value
+ * generation */
+uint32_t rseed  = 2463534242;
+
 /* polynomial monomials data structure */
 typedef struct mon_t mon_t;
 struct mon_t
@@ -98,6 +100,62 @@ struct mon_t
     len_t of; /* offset of column indices/coeffs arrays */
     void *cl; /* link to corresponding coeffs array */
     hd_t **h; /* hash data of the monomials */
+};
+
+/* temporary exponent vector for diffrerent situations */
+exp_t *etmp     = NULL;
+
+/* spair data */
+typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
+typedef struct spair_t spair_t;
+struct spair_t
+{
+    hd_t *lcm;
+    bi_t gen1;
+    bi_t gen2;
+    spt_t type;
+};
+
+typedef struct ps_t ps_t;
+struct ps_t
+{
+    len_t ld;
+    len_t sz;
+    len_t mnsel;  /* maximal number of pairs selected */
+    spair_t *p;
+};
+
+/* basis definition */
+typedef struct bs_t bs_t;
+struct bs_t
+{
+    bl_t lo;    /* old load before last update */
+    bl_t ld;    /* current load of basis */
+    bl_t sz;    /* size of basis allocated */
+    void **cf;  /* coefficient arrays of eleuments, type depends on */
+                /* underlying ring, e.g. finite field or rationals or ... */
+    mon_t *m;   /* monomial data arrays of elements */
+    sdm_t *lm;  /* lead monomials of elements */
+    red_t *red; /* is the element redundant? */
+    void **tcf; /* temporary coefficient arrays for storing coefficents */
+                /* during linear algebra computation, type depends on */
+                /* underlying ring, see above */
+};
+
+/* matrix data */
+typedef struct mat_t mat_t;
+struct mat_t
+{
+    len_t na;   /* number of rows allocated */
+    len_t nr;   /* number of rows */
+    len_t nc;   /* number of columns */
+    len_t np;   /* number of pivots */
+    len_t nru;  /* number of upper rows (ABCD splicing) */
+    len_t nrl;  /* number of lower rows (ABCD splicing) */
+    len_t ncl;  /* number of left columns (ABCD splicing) */
+    len_t ncr;  /* number of right columns (ABCD splicing) */
+    mon_t *mp;  /* multiplied polynomial, i.e. pre-row */
+    row_t **r;  /* rows of column indices of matrix */
 };
 
 /* statistic stuff */
@@ -151,71 +209,6 @@ struct stat_t
     int32_t size_basis;
     int32_t num_matrices;
 };
-
-/* pseudo random number generator for hash value
- * generation */
-uint32_t rseed  = 2463534242;
-
-/* temporary exponent vector for diffrerent situations */
-exp_t *etmp     = NULL;
-
-/* S-pair types */
-typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
-typedef struct spair_t spair_t;
-struct spair_t
-{
-    hd_t *lcm;
-    bi_t gen1;
-    bi_t gen2;
-    spt_t type;
-};
-
-typedef struct ps_t ps_t;
-struct ps_t
-{
-    len_t ld;
-    len_t sz;
-    len_t mnsel;  /* maximal number of pairs selected */
-    spair_t *p;
-};
-
-/* basis definition */
-typedef struct bs_t bs_t;
-struct bs_t
-{
-    bl_t lo;    /* old load before last update */
-    bl_t ld;    /* current load of basis */
-    bl_t sz;    /* size of basis allocated */
-    void **cf;  /* coefficient arrays of eleuments, type depends on */
-                /* underlying ring, e.g. finite field or rationals or ... */
-    mon_t *m;   /* monomial data arrays of elements */
-    sdm_t *lm;  /* lead monomials of elements */
-    red_t *red; /* is the element redundant? */
-    void **tcf; /* temporary coefficient arrays for storing coefficents */
-                /* during linear algebra computation, type depends on */
-                /* underlying ring, see above */
-};
-
-/* matrix data */
-typedef struct mat_t mat_t;
-struct mat_t
-{
-    len_t na;   /* number of rows allocated */
-    len_t nr;   /* number of rows */
-    len_t nc;   /* number of columns */
-    len_t np;   /* number of pivots */
-    len_t nru;  /* number of upper rows (ABCD splicing) */
-    len_t nrl;  /* number of lower rows (ABCD splicing) */
-    len_t ncl;  /* number of left columns (ABCD splicing) */
-    len_t ncr;  /* number of right columns (ABCD splicing) */
-    mon_t *mp;  /* multiplied polynomial, i.e. pre-row */
-    row_t **r;  /* rows of column indices of matrix */
-};
-
-/* loop unrolling in sparse linear algebra:
- * we store the offset of the first elements not unrolled
- * in the second entry of the sparse row resp. sparse polynomial. */
-#define UNROLL  4
 
 /* function pointers */
 int (*initial_basis_cmp)(

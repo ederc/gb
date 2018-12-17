@@ -314,7 +314,7 @@ static inline hd_t *insert_in_hash_table_product_special(
     const val_t h1,
     const deg_t deg,
     const exp_t * const ea,
-    const hl_t b,
+    const hd_t * const b,
     ht_t *ht
     )
 {
@@ -326,8 +326,8 @@ static inline hd_t *insert_in_hash_table_product_special(
     /* printf("b %d | bload %d\n", b, bload); */
     const len_t nv  = gbnv;
     const hl_t hsz  = ht->hsz;
-    const val_t h   = h1 + ht->hd[b].val;
-    const exp_t * const eb = ht->ev[b];
+    const val_t h   = h1 + b->val;
+    const exp_t * const eb =  b->exp;
 
     n = ht->ev[ht->eld];
     for (j = 0; j < nv; ++j) {
@@ -352,7 +352,7 @@ static inline hd_t *insert_in_hash_table_product_special(
     /* add element to hash table */
     ht->map[k]  = pos = ht->eld;
     d           = ht->hd + ht->eld;
-    d->deg      = deg + ht->hd[b].deg;
+    d->deg      = deg + b->deg;
     d->sdm      = generate_short_divmask(n, ht);
     d->val      = h;
     d->exp      = n;
@@ -510,15 +510,13 @@ static inline void multiplied_polynomial_to_matrix_row(
     const val_t hm,
     const deg_t deg,
     const exp_t * const em,
-    const mon_t * const poly,
+    const mon_t poly
     )
 {
     len_t i;
+    hd_t ** const h = poly.h;
+    const len_t sz  = poly.sz;
 
-    dt_t *row = (dt_t *)malloc((unsigned long)poly[2] * sizeof(dt_t));
-    row[0]    = poly[0];
-    row[1]    = poly[1];
-    row[2]    = poly[2];
     /* hash table product insertions appear only here:
      * we check for hash table enlargements first and then do the insertions
      * without further elargment checks there */
@@ -528,7 +526,7 @@ static inline void multiplied_polynomial_to_matrix_row(
     /* check possible increasement of matrix rows */
     if (mat->nr >= mat->na) {
         mat->na *=  2;
-        mat->mp = realloc(mat->np,
+        mat->mp = realloc(mat->mp,
                 (unsigned long)mat->na * sizeof(mon_t));
     }
     mat->mp[mat->nr].sz = poly.sz;
@@ -539,19 +537,19 @@ static inline void multiplied_polynomial_to_matrix_row(
     row         = (hd_t **)malloc((unsigned long)poly.sz * sizeof(hd_t *));
     
     /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
-    for (i = 3; i < poly[1]; ++i) {
+    for (i = 3; i < poly.of; ++i) {
         row[i]  = insert_in_hash_table_product_special(
-                hm, deg, em, poly[i], ht);
+                hm, deg, em, h[i], ht);
     }
-    for (;i < poly[2]; i += 4) {
+    for (;i < sz; i += 4) {
         row[i]    = insert_in_hash_table_product_special(
-                hm, deg, em, poly[i], ht);
+                hm, deg, em, h[i], ht);
         row[i+1]  = insert_in_hash_table_product_special(
-                hm, deg, em, poly[i+1], ht);
+                hm, deg, em, h[i+1], ht);
         row[i+2]  = insert_in_hash_table_product_special(
-                hm, deg, em, poly[i+2], ht);
+                hm, deg, em, h[i+2], ht);
         row[i+3]  = insert_in_hash_table_product_special(
-                hm, deg, em, poly[i+3], ht);
+                hm, deg, em, h[i+3], ht);
     }
 }
 

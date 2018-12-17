@@ -89,7 +89,7 @@ int64_t f4_julia_ff(
      * read some input data for applying heuristics */
     calculate_divmask(ght);
     /* set short divisor mask also for local hash table */
-    lht->dm = ght->dm;
+    sht->dm = uht->dm = ght->dm;
 
     st->num_matrices++;
     /* sort initial elements, smallest lead term first */
@@ -118,9 +118,9 @@ int64_t f4_julia_ff(
         lr  = check_regenerate_hash_table(ght, ps, st, lr, rd);
 
         /* preprocess data for next reduction round */
-        mat = select_spairs_by_minimal_degree(mat, ps, ght, st);
-        mat = symbolic_preprocessing(mat, ght, bs, st);
-        hcm = convert_hashes_to_columns(mat, ght, st);
+        mat = select_spairs_by_minimal_degree(mat, ps, sht, bs, st);
+        mat = symbolic_preprocessing(mat, sht, bs, st);
+        hcm = convert_hashes_to_columns(mat, sht, st);
         mat = sort_matrix_rows(mat);
         /* linear algebra, depending on choice, see set_function_pointers() */
         mat = linear_algebra(mat, st);
@@ -134,7 +134,7 @@ int64_t f4_julia_ff(
         hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
 
         check_enlarge_pairset(ps, bs->ld, mat->np);
-        update_basis(ps, bs, ght, lht, st, mat->np);
+        update_basis(ps, bs, ght, uht, st, mat->np);
 
         rct1 = cputime();
         rrt1 = realtime();

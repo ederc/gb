@@ -38,6 +38,7 @@ mat_t *select_spairs_by_minimal_degree(
         mat_t *mat,
         ps_t *psl,
         ht_t *ht,
+        const bs_t *const bs,
         stat_t *st
         );
 

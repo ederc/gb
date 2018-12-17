@@ -26,34 +26,35 @@ mat_t *select_spairs_by_minimal_degree(
         mat_t *mat,
         ps_t *psl,
         ht_t *ht,
+        const bs_t * const bs,
         stat_t *st
         )
 {
-    len_t i, j, k, l, md, npairs;
-    dt_t *b;
-    deg_t d = 0;
-    len_t load = 0, load_all = 0;
-    hl_t lcm;
-    len_t *gens;
-    exp_t *elcm, *eb;
-
-    exp_t etmp[ht->nv];
-
     /* timings */
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
 
+    len_t i, j, k, l, md, npairs;
+    mon_t b;
+    deg_t d = 0;
+    len_t load = 0, load_all = 0;
+    hd_t *lcm;
+    len_t *gens;
+    exp_t *elcm, *eb;
+    exp_t *etmp = ht->hd[0].exp;
     spair_t *ps = psl->p;
+
+    const len_t nv  = gbnv;
 
     /* sort pair set */
     qsort_r(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp, ht);
     /* get minimal degree */
-    md  = ht->hd[ps[0].lcm].deg;
+    md  = ps[0].lcm->deg;
 
     /* select pairs of this degree respecting maximal selection size mnsel */
     for (i = 0; i < psl->ld; ++i) {
-        if (ht->hd[ps[i].lcm].deg > md || i >= psl->mnsel) {
+        if (ps[i].lcm->deg > md || i >= psl->mnsel) {
             break;
         }
     }
@@ -62,7 +63,7 @@ mat_t *select_spairs_by_minimal_degree(
      * pairs of the same lcm in this matrix */
     if (i > psl->mnsel) {
         j = i+1;
-        while (ps[j].lcm == ps[i].lcm) {
+        while (ps[j].lcm->val== ps[i].lcm->val) {
             ++j;
         }
         npairs = j;
@@ -75,10 +76,10 @@ mat_t *select_spairs_by_minimal_degree(
     st->num_pairsred  +=  npairs;
     /* printf("npairs %d\n", npairs); */
 
-    gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
+    gens  = (bi_t *)malloc(2 * (unsigned long)npairs * sizeof(bi_t));
 
     /* preset matrix meta data */
-    mat->r  = realloc(mat->r, 2 * (unsigned long)npairs * sizeof(hl_t *));
+    mat->mp = realloc(mat->mp, 2 * (unsigned long)npairs * sizeof(mon_t));
     mat->na = 2 * npairs;
     mat->nc = mat->ncl = mat->ncr = 0;
     mat->nr = mat->nru = mat->nrl = 0;
@@ -108,7 +109,7 @@ mat_t *select_spairs_by_minimal_degree(
                 }
             }
             if (k == load) {
-                gens[load++]  = ps[j].gen2;
+            k    gens[load++]  = ps[j].gen2;
             }
             j++;
         }
@@ -116,19 +117,18 @@ mat_t *select_spairs_by_minimal_degree(
             /* ev might change when enlarging the hash table during
              * insertion of a new row in the matrix, thus we have to
              * reset elcm inside the for loop */
-            elcm  = ht->ev[lcm];
+            elcm  = lcm->exp;
             d = 0;
-            b   = ht->hd[gens[k]];
-            eb  = ht->ev[b[3]];
-            for (l = 0; l < ht->nv; ++l) {
+            b   = bs->m[gens[k]];
+            eb  = b.h[0]->exp;
+            for (l = 0; l < nv; ++l) {
                 etmp[l] =   elcm[l] - eb[l];
                 d       +=  etmp[l];
             }
-            const hl_t h    = ht->hd[lcm].val - ht->hd[b[3]].val;
-            mat->r[mat->nr] = multiplied_polynomial_to_matrix_row(
-                    h, d, etmp, b, ht);
+            const hl_t h    = lcm->val - b.h[0]->val;
+            multiplied_polynomial_to_matrix_row(mat, ht, h, d, etmp, b);
             /* mark lcm column as lead term column */
-            ht->hd[mat->r[mat->nr][3]].idx = 2;
+            x = 2;
             mat->nr++;
         }
         i = j;

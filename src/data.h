@@ -222,12 +222,12 @@ int (*monomial_cmp)(
         const ht_t *const ht
         );
 
-int (*spair_cmp_ght)(
+int (*spair_cmp)(
         const void *a,
         const void *b
         );
 
-int (*spair_cmp_lht)(
+int (*spair_cmp)(
         const void *a,
         const void *b
         );

@@ -31,22 +31,19 @@ void set_function_pointers(
         case 0:
             initial_basis_cmp = initial_basis_cmp_drl;
             monomial_cmp      = monomial_cmp_drl;
-            spair_cmp_ght     = spair_cmp_ght_drl;
-            spair_cmp_lht     = spair_cmp_lht_drl;
+            spair_cmp         = spair_cmp_drl;
             hcm_cmp           = hcm_cmp_pivots_drl;
             break;
         case 1:
             initial_basis_cmp = initial_basis_cmp_lex;
             monomial_cmp      = monomial_cmp_lex;
-            spair_cmp_ght     = spair_cmp_ght_deglex;
-            spair_cmp_lht     = spair_cmp_lht_deglex;
+            spair_cmp         = spair_cmp_deglex;
             hcm_cmp           = hcm_cmp_pivots_lex;
             break;
         default:
             initial_basis_cmp = initial_basis_cmp_drl;
             monomial_cmp      = monomial_cmp_drl;
-            spair_cmp_ght     = spair_cmp_ght_drl;
-            spair_cmp_lht     = spair_cmp_lht_drl;
+            spair_cmp         = spair_cmp_drl;
             hcm_cmp           = hcm_cmp_pivots_drl;
     }
 

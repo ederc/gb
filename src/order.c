@@ -234,19 +234,19 @@ int hcm_cmp_pivots_lex(
     return monomial_cmp_pivots_lex(ma, mb, ht);
 }
 
-/* comparison for s-pairs lcms in the local hash table */
-int spair_cmp_lht_deglex(
+/* comparison for s-pairs lcms in the update hash table */
+int spair_cmp_deglex(
         const void *a,
         const void *b
         )
 {
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
+    const hd_t * const la = ((spair_t *)a)->lcm;
+    const hd_t * const lb = ((spair_t *)b)->lcm;
 
-    if (hd[la].deg != hd[lb].deg) {
-        return (hd[la].deg < hd[lb].deg) ? -1 : 1;
+    if (la->deg != lb->deg) {
+        return (la->deg < lb->deg) ? -1 : 1;
     } else {
-        return (int)monomial_cmp(la, lb, lht);
+        return (int)monomial_cmp(la, lb);
     }
 }
 

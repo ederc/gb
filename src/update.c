@@ -68,7 +68,7 @@ void insert_and_update_spairs(
             pp[j++] = pp[i];
         }
     }
-    qsort_r(pp, (unsigned long)j, sizeof(spair_t), &spair_cmp, lht);
+    qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_cmp);
     for (i = 0; i < j; ++i) {
         plcm[i] = pp[i].lcm;
     }

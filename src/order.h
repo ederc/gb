@@ -73,14 +73,12 @@ int hcm_cmp_pivots_lex(
 
 int spair_cmp_deglex(
         const void *a,
-        const void *b,
-        const ht_t *const ht
+        const void *b
         );
 
 int spair_cmp_drl(
         const void *a,
-        const void *b,
-        const ht_t *const ht
+        const void *b
         );
 
 inline mat_t *sort_matrix_rows(
@@ -102,15 +100,14 @@ inline void **sort_dense_matrix_rows(
 }
 
 static inline int monomial_cmp_drl(
-        const hl_t a,
-        const hl_t b,
-        const ht_t *const ht
+        const hd_t *a,
+        const hd_t *b
         )
 {
     len_t i;
 
-    const deg_t da = ht->hd[a].deg;
-    const deg_t db = ht->hd[b].deg;
+    const deg_t da = a->deg;
+    const deg_t db = b->deg;
 
     /* DRL */
     if (da > db) {
@@ -121,8 +118,8 @@ static inline int monomial_cmp_drl(
         }
     }
 
-    const exp_t * const ea  = ht->ev[a];
-    const exp_t * const eb  = ht->ev[b];
+    const exp_t * const ea  = a->exp;
+    const exp_t * const eb  = b->exp;
 
     for (i = gbnv; i > 0; --i) {
         if (ea[i-1] < eb[i-1]) {
@@ -137,17 +134,17 @@ static inline int monomial_cmp_drl(
 }
 
 static inline int monomial_cmp_lex(
-        const hl_t a,
-        const hl_t b,
-        const ht_t *const ht
+        const hd_t *a,
+        const hd_t *b
         )
 {
     len_t i;
 
-    const exp_t * const ea  = ht->ev[a];
-    const exp_t * const eb  = ht->ev[b];
+    const exp_t * const ea  = a->exp;
+    const exp_t * const eb  = b->exp;
 
     const len_t nv  = gbnv;
+
     for (i = 0; i < nv; ++i) {
         if (ea[i] < eb[i]) {
             return -1;

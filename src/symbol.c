@@ -37,18 +37,18 @@ mat_t *select_spairs_by_minimal_degree(
 
     len_t i, j, k, l, md, npairs;
     mon_t b;
-    deg_t d = 0;
-    len_t load = 0, load_all = 0;
     hd_t *lcm;
     len_t *gens;
     exp_t *elcm, *eb;
+    deg_t d = 0;
+    len_t load = 0, load_all = 0;
     exp_t *etmp = ht->hd[0].exp;
     spair_t *ps = psl->p;
 
     const len_t nv  = gbnv;
 
     /* sort pair set */
-    qsort_r(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp, ht);
+    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), &spair_cmp);
     /* get minimal degree */
     md  = ps[0].lcm->deg;
 

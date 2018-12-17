@@ -125,15 +125,14 @@ int dense_matrix_row_cmp(
 
 /* comparison for monomials (in local hash table) */
 int monomial_cmp_pivots_drl(
-        const hl_t a,
-        const hl_t b,
-        const ht_t *const ht
+        const hd_t *a,
+        const hd_t *b
         )
 {
     len_t i;
 
-    const hd_t ha = ht->hd[a];
-    const hd_t hb = ht->hd[b];
+    const hd_t ha = *a;
+    const hd_t hb = *b;
 #if ORDER_COLUMNS
     /* first known pivots vs. tail terms */
     if (ha.idx != hb.idx) {
@@ -154,11 +153,12 @@ int monomial_cmp_pivots_drl(
         }
     }
 
-    const exp_t * const ea  = ht->ev[a];
-    const exp_t * const eb  = ht->ev[b];
+    const exp_t * const ea  = ha.exp;
+    const exp_t * const eb  = hb.exp;
 
+    const len_t nv  = gbnv;
     /* note: reverse lexicographical */
-    for (i = ht->nv; i > 0; --i) {
+    for (i = nv; i > 0; --i) {
         if (ea[i-1] > eb[i-1]) {
             return 1;
         } else {
@@ -172,15 +172,15 @@ int monomial_cmp_pivots_drl(
 }
 
 int monomial_cmp_pivots_lex(
-        const hl_t a,
-        const hl_t b,
+        const hd_t *a,
+        const hd_t *b,
         const ht_t *const ht
         )
 {
     len_t i;
 
-    const hd_t ha = ht->hd[a];
-    const hd_t hb = ht->hd[b];
+    const hd_t ha = *a;
+    const hd_t hb = *b;
 #if ORDER_COLUMNS
     /* first known pivots vs. tail terms */
     if (ha.idx != hb.idx) {
@@ -192,11 +192,12 @@ int monomial_cmp_pivots_lex(
     }
 #endif
 
-    const exp_t * const ea  = ht->ev[a];
-    const exp_t * const eb  = ht->ev[b];
+    const exp_t * const ea  = ha.exp;
+    const exp_t * const eb  = hb.exp;
 
+    const len_t nv  = gbnv;
     /* lexicographical */
-    for (i = 0; i < ht->nv; ++i) {
+    for (i = 0; i < nv; ++i) {
         if (eb[i] < ea[i]) {
             return -1;
         }
@@ -212,14 +213,13 @@ int monomial_cmp_pivots_lex(
 /* comparison for hash-column-maps */
 int hcm_cmp_pivots_drl(
         const void *a,
-        const void *b,
-        void *ht
+        const void *b
         )
 {
-    const hl_t ma  = ((hl_t *)a)[0];
-    const hl_t mb  = ((hl_t *)b)[0];
+    const hd_t *ma  = (hd_t *)a;
+    const hd_t *mb  = (hd_t *)b;
 
-    return monomial_cmp_pivots_drl(ma, mb, ht);
+    return monomial_cmp_pivots_drl(ma, mb);
 }
 
 int hcm_cmp_pivots_lex(
@@ -228,10 +228,10 @@ int hcm_cmp_pivots_lex(
         void *ht
         )
 {
-    const hl_t ma  = ((hl_t *)a)[0];
-    const hl_t mb  = ((hl_t *)b)[0];
+    const hd_t *ma  = (hd_t *)a;
+    const hd_t *mb  = (hd_t *)b;
 
-    return monomial_cmp_pivots_lex(ma, mb, ht);
+    return monomial_cmp_pivots_lex(ma, mb);
 }
 
 /* comparison for s-pairs lcms in the update hash table */

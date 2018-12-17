@@ -51,41 +51,16 @@ hl_t *convert_hashes_to_columns(
      * have in the local hash table since we do not which of
      * them are corresponding to multipliers and which are
      * corresponding to the multiplied terms in reducers. */
-    hl_t *hcm = (hl_t *)malloc((unsigned long)mat->nc * sizeof(hl_t));
+    hd_t **hcm = (hd_t **)malloc((unsigned long)(ht->eld-1) * sizeof(hd_t *));
     /* j counts all columns, k counts known pivots */
-    for (j = 0, k = 0, i = 0; i < nr; ++i) {
-        row     =   mat->r[i];
-        nterms  +=  (int64_t)row[2];
-        for (l = 3; l < row[2]; ++l) {
-            /* printf("row[%d][%d] = %d | ", i, l, row[l]);
-             * for (int32_t p = 0; p < nvars; ++p) {
-             *     printf("%d ", ev[row[l]][p]);
-             * }
-             * printf("\n"); */
-            hi  = hd[row[l]].idx;
-            /* printf("hi %d\n", hi); */
-#if ORDER_COLUMNS
-            if (hi > 0) {
-#else
-                if (hi != 0) {
-#endif
-                    hcm[j++]  = row[l];
-                    if (hi == 2) {
-                        k++;
-#if ORDER_COLUMNS
-                        hd[row[l]].idx  = -1;
-                    } else {
-                        hd[row[l]].idx  = -2;
-                    }
-#else
-                }
-                hd[row[l]].idx  = 0;
-#endif
-            }
+    for (j = 0, k = 0, i = 1; i < ht->eld; ++i) {
+        hcm[j++]  = hd[i];
+        if (hd[i].idx == 2) {
+            k++;
         }
     }
     /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
-    qsort_r(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp, ht);
+    qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
 
     /* set number of rows and columns in ABCD splicing */
     mat->nru  = mat->ncl  = k;

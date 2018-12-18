@@ -56,7 +56,7 @@ int64_t f4_julia_ff(
 
     int32_t rd; /* number of F4 round */
     int32_t lr; /* last regeneration of global hash table */
-    hl_t *hcm; /* hash-column-map */
+    hd_t **hcm; /* hash-column-map */
 
     /* initialize stuff */
     stat_t *st  = initialize_statistics();

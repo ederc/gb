@@ -27,7 +27,7 @@
  * hashes in the polynomials resp. rows. moreover, we have sorted each row
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
-hl_t *convert_hashes_to_columns(
+hd_t **convert_hashes_to_columns(
         mat_t *mat,
         ht_t *ht,
         stat_t *st
@@ -39,7 +39,6 @@ hl_t *convert_hashes_to_columns(
     rt0 = realtime();
 
     len_t i, j, k, l, hi;
-    hl_t *row;
 
     hd_t *hd  = ht->hd;
 
@@ -47,6 +46,11 @@ hl_t *convert_hashes_to_columns(
 
     const len_t nr  = mat->nr;
 
+    mon_t p;
+    ci_t *c;
+
+    mat->r    = realloc(mat->r, (unsigned long)nr * sizeof(row_t));
+    row_t *r  = mat->r;
     /* need to allocate memory for all possible exponents we
      * have in the local hash table since we do not which of
      * them are corresponding to multipliers and which are
@@ -64,32 +68,39 @@ hl_t *convert_hashes_to_columns(
 
     /* set number of rows and columns in ABCD splicing */
     mat->nru  = mat->ncl  = k;
-    mat->nrl  = mat->nr - mat->nru;
+    mat->nrl  = nr - mat->nru;
     mat->ncr  = j - mat->ncl;
 
-    st->num_rowsred     +=  mat->nrl;
+    st->num_rowsred +=  mat->nrl;
 
     /* store the other direction (hash -> column) in HASH_IND */
     for (i = 0; i < j; ++i) {
-        hd[hcm[i]].idx  = i;
+        hcm[i]->idx  = i;
     }
-
-
 
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < nr; ++i) {
-        row = mat->r[i];
-        for (j = 3; j < row[1]; ++j) {
-            row[j]  = hd[row[j]].idx;
+        p       = mat->mp[i];
+        r[i].sz = p.sz;
+        r[i].of = p.of;
+        r[i].cl = p.cl;
+        c = r[i].ci;
+        c = (ci_t *)malloc((unsigned long)(p.sz) * sizeof(ci_t));
+        for (j = 0; j < p.of; ++j) {
+            c[j]  = p.h[j]->idx;
         }
-        for (; j < row[2]; j += 4) {
-            row[j]    = hd[row[j]].idx;
-            row[j+1]  = hd[row[j+1]].idx;
-            row[j+2]  = hd[row[j+2]].idx;
-            row[j+3]  = hd[row[j+3]].idx;
+        for (; j < p.sz; j += 4) {
+            c[j]    = p.h[j]->idx;
+            c[j+1]  = p.h[j+1]->idx;
+            c[j+2]  = p.h[j+2]->idx;
+            c[j+3]  = p.h[j+3]->idx;
         }
+        free(mat->mp[i].h);
+        mat->mp[i].h  = NULL;
     }
+    free(mat->mp);
+    mat->mp = NULL;
 
     /* next we sort each row by the new colum order due
      * to known / unkown pivots */
@@ -113,7 +124,7 @@ hl_t *convert_hashes_to_columns(
     rt1 = realtime();
     st->convert_ctime +=  ct1 - ct0;
     st->convert_rtime +=  rt1 - rt0;
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf(" %7d x %-7d %8.3f%%", mat->nr, mat->nc, density);
         fflush(stdout);
     }

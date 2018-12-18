@@ -27,7 +27,7 @@
 #include "data.h"
 #include "basis.h"
 
-hl_t *convert_hashes_to_columns(
+hd_t **convert_hashes_to_columns(
         mat_t *mat,
         ht_t *ht,
         stat_t *st
@@ -37,7 +37,7 @@ void convert_sparse_matrix_rows_to_basis_elements(
         mat_t *mat,
         bs_t *bs,
         ht_t *ht,
-        const hl_t *hcm,
+        const hd_t ** const hcm,
         stat_t *st
         );
 #endif

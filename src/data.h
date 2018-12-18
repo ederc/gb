@@ -45,12 +45,10 @@
 typedef int16_t cf16_t;   /* coefficient type */
 typedef int32_t cf32_t;   /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
-typedef int32_t ci_t;    /* column index type */
+typedef int32_t ci_t;     /* column index type */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t dt_t;        /* data type for other polynomial information */
 typedef int8_t red_t;     /* redundancy type */
-/* like exponent hashes, etc. */
-typedef int32_t ind_t;    /* index in hash table structure */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
 typedef int32_t len_t;    /* length type for different structures */
 typedef int16_t exp_t;    /* exponent type */
@@ -58,7 +56,6 @@ typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef len_t bi_t;     /* basis index of element */
 typedef len_t bl_t;     /* basis load */
 typedef len_t pl_t;     /* pair set load */
-typedef uint32_t row_t; /* size of rows of matrices */
 
 /* hash data structure */
 typedef struct hd_t hd_t;
@@ -67,7 +64,7 @@ struct hd_t
     sdm_t sdm;
     deg_t deg;
     len_t div;
-    ind_t idx;
+    ci_t idx;
     val_t val;
     exp_t *exp;
 };
@@ -143,6 +140,16 @@ struct bs_t
 };
 
 /* matrix data */
+/* polynomial monomials data structure */
+typedef struct row_t row_t;
+struct row_t
+{
+    len_t sz; /* length of column indices/coeffs arrays */
+    len_t of; /* offset of column indices/coeffs arrays */
+    void *cl; /* link to corresponding coeffs array */
+    ci_t *ci;  /* column indices of the row */
+};
+
 typedef struct mat_t mat_t;
 struct mat_t
 {
@@ -155,7 +162,7 @@ struct mat_t
     len_t ncl;  /* number of left columns (ABCD splicing) */
     len_t ncr;  /* number of right columns (ABCD splicing) */
     mon_t *mp;  /* multiplied polynomial, i.e. pre-row */
-    row_t **r;  /* rows of column indices of matrix */
+    row_t *r;   /* rows of column indices of matrix */
 };
 
 /* statistic stuff */

@@ -37,10 +37,12 @@ inline bs_t *initialize_basis(
 
     bs->lo  = 0;
     bs->ld  = 0;
-    bs->sz  = 2 * st->nr_gens;
+    bs->sz  = 5 * st->nr_gens;
 
+    bs->nt  = (len_t *)malloc((unsigned long)bs->sz * sizeof(len_t));
+    bs->of  = (len_t *)malloc((unsigned long)bs->sz * sizeof(len_t));
     bs->cf  = (void **)malloc((unsigned long)bs->sz * sizeof(void *));
-    bs->m   = (mon_t *)malloc((unsigned long)bs->sz * sizeof(mon_t));
+    bs->m   = (hd_t ***)malloc((unsigned long)bs->sz * sizeof(hd_t **));
     bs->lm  = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->red = (red_t *)malloc((unsigned long)bs->sz * sizeof(red_t));
 
@@ -58,8 +60,12 @@ inline void free_basis(
     if (bs->m) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf[i]);
-            free(bs->m[i].h);
+            free(bs->m[i]);
         }
+        free(bs->nt);
+        bs->nt  = NULL;
+        free(bs->of);
+        bs->of  = NULL;
         free(bs->cf);
         bs->cf  = NULL;
         free(bs->m);
@@ -81,8 +87,10 @@ inline void check_enlarge_basis(
 {
     if (bs->ld+added >= bs->sz) {
         bs->sz  = bs->sz*2 > bs->ld+added ? bs->sz*2 : bs->ld+added;
+        bs->nt  = realloc(bs->nt, (unsigned long)bs->sz * sizeof(len_t));
+        bs->of  = realloc(bs->of, (unsigned long)bs->sz * sizeof(len_t));
         bs->cf  = realloc(bs->cf, (unsigned long)bs->sz * sizeof(void *));
-        bs->m   = realloc(bs->m, (unsigned long)bs->sz * sizeof(mon_t *));
+        bs->m   = realloc(bs->m, (unsigned long)bs->sz * sizeof(hd_t **));
         bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->red = realloc(bs->red, (unsigned long)bs->sz * sizeof(red_t));
     }
@@ -95,10 +103,10 @@ static inline void check_old_elements_for_redundancy(
 {
     len_t i;
     const len_t bl  = bs->ld;
-    const hd_t *nh  = bs->m[bs->ld].h[0];
+    const hd_t *nh  = bs->m[bs->ld][0];
 
     for (i = 0; i < bl; ++i) {
-        if (!bs->red[i] && check_monomial_division(bs->m[i].h[0], nh)) {
+        if (!bs->red[i] && check_monomial_division(bs->m[i][0], nh)) {
             bs->red[i]  = 1;
             st->num_redundant++;
         }

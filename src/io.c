@@ -195,22 +195,21 @@ void import_julia_data_16(
     const cf32_t *const cfs = (cf32_t *)cfs_julia;
     const len_t nv  = gbnv;
 
-    cf16_t *bscf;
-    mon_t bsm;
+    hd_t **mon  = NULL;
+    cf16_t *cf  = NULL;
 
     exp_t *e  = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
 
     for (i = 0; i < nr_gens; ++i) {
-        bs->cf[i]   = (cf16_t *)malloc((unsigned long)lens[i] * sizeof(cf16_t));
-        bs->m[i].h  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
+        bs->cf[i] = (cf16_t *)malloc((unsigned long)lens[i] * sizeof(cf16_t));
+        bs->m[i]  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
 
         bs->red[i]  = 0; /* not redundant */
-        bs->m[i].cl = bs->cf[i]; /* link to coefficient array */
-        bs->m[i].sz = lens[i];
-        bs->m[i].of = lens[i] % UNROLL;
+        bs->nt[i]   = lens[i];
+        bs->of[i]   = lens[i] % UNROLL;
         
-        bscf  = (cf16_t *)bs->cf[i];
-        bsm   = bs->m[i];
+        cf  = (cf16_t *)bs->cf[i];
+        mon = bs->m[i];
 
         if (ht->eld+lens[i] >= ht->esz) {
             enlarge_hash_table(ht);
@@ -220,8 +219,8 @@ void import_julia_data_16(
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            bsm.h[ctr]  = insert_in_hash_table(e, ht);
-            bscf[ctr++] = (cf16_t)cfs[j];
+            mon[ctr]  = insert_in_hash_table(e, ht);
+            cf[ctr++] = (cf16_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
@@ -245,22 +244,22 @@ void import_julia_data_32(
     const cf32_t *const cfs = (cf32_t *)cfs_julia;
     const len_t nv  = gbnv;
 
-    cf32_t *bscf;
-    mon_t bsm;
+
+    hd_t **mon  = NULL;
+    cf32_t *cf  = NULL;
 
     exp_t *e  = (exp_t *)malloc((unsigned long)nv* sizeof(exp_t));
 
     for (i = 0; i < nr_gens; ++i) {
-        bs->cf[i]   = (cf32_t *)malloc((unsigned long)lens[i] * sizeof(cf32_t));
-        bs->m[i].h  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
+        bs->cf[i] = (cf32_t *)malloc((unsigned long)lens[i] * sizeof(cf32_t));
+        bs->m[i]  = (hd_t **)malloc((unsigned long)lens[i] * sizeof(hd_t *));
 
         bs->red[i]  = 0; /* not redundant */
-        bs->m[i].cl = bs->cf[i]; /* link to coefficient array */
-        bs->m[i].sz = lens[i];
-        bs->m[i].of = lens[i] % UNROLL;
+        bs->nt[i]   = lens[i];
+        bs->of[i]   = lens[i] % UNROLL;
         
-        bscf  = (cf32_t *)bs->cf[i];
-        bsm   = bs->m[i];
+        cf  = (cf32_t *)bs->cf[i];
+        mon = bs->m[i];
 
         if (ht->eld+lens[i] >= ht->esz) {
             enlarge_hash_table(ht);
@@ -270,8 +269,8 @@ void import_julia_data_32(
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            bsm.h[ctr]  = insert_in_hash_table(e, ht);
-            bscf[ctr++] = (cf32_t)cfs[j];
+            mon[ctr]  = insert_in_hash_table(e, ht);
+            cf[ctr++] = (cf32_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];

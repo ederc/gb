@@ -90,14 +90,14 @@ struct ht_t
 uint32_t rseed  = 2463534242;
 
 /* polynomial monomials data structure */
-/* typedef struct mon_t mon_t;
- * struct mon_t
- * {
- *     len_t sz; [> length of column indices/coeffs arrays <]
- *     len_t of; [> offset of column indices/coeffs arrays <]
- *     void *cl; [> link to corresponding coeffs array <]
- *     hd_t **h; [> hash data of the monomials <]
- * }; */
+typedef struct mon_t mon_t;
+struct mon_t
+{
+    len_t sz; /* length of column indices/coeffs arrays */
+    len_t of; /* offset of column indices/coeffs arrays */
+    void *cl; /* link to corresponding coeffs array */
+    hd_t **h; /* hash data of the monomials */
+};
 
 /* temporary exponent vector for diffrerent situations */
 exp_t *etmp     = NULL;
@@ -129,11 +129,9 @@ struct bs_t
     bl_t lo;    /* old load before last update */
     bl_t ld;    /* current load of basis */
     bl_t sz;    /* size of basis allocated */
-    len_t *nt;  /* number of terms per polynomial */
-    len_t *of;  /* offset of number of terms for loop unrolling */
     void **cf;  /* coefficient arrays of eleuments, type depends on */
                 /* underlying ring, e.g. finite field or rationals or ... */
-    hd_t ***m;  /* monomial data arrays of elements */
+    mon_t *m;   /* monomial data arrays of elements */
     sdm_t *lm;  /* lead monomials of elements */
     red_t *red; /* is the element redundant? */
     void **tcf; /* temporary coefficient arrays for storing coefficents */
@@ -149,23 +147,22 @@ struct row_t
     len_t sz; /* length of column indices/coeffs arrays */
     len_t of; /* offset of column indices/coeffs arrays */
     void *cl; /* link to corresponding coeffs array */
-    hd_t **h; /* hashes of multiplied monomials */
-    ci_t *c;  /* column indices of the row */
+    ci_t *ci;  /* column indices of the row */
 };
 
 typedef struct mat_t mat_t;
 struct mat_t
 {
-    len_t na;     /* number of rows allocated */
-    len_t nr;     /* number of rows */
-    len_t nc;     /* number of columns */
-    len_t np;     /* number of pivots */
-    len_t nru;    /* number of upper rows (ABCD splicing) */
-    len_t nrl;    /* number of lower rows (ABCD splicing) */
-    len_t ncl;    /* number of left columns (ABCD splicing) */
-    len_t ncr;    /* number of right columns (ABCD splicing) */
-    row_t *pivs;  /* pivots of the matrix */
-    row_t *npivs; /* non-pivots of the matrix */
+    len_t na;   /* number of rows allocated */
+    len_t nr;   /* number of rows */
+    len_t nc;   /* number of columns */
+    len_t np;   /* number of pivots */
+    len_t nru;  /* number of upper rows (ABCD splicing) */
+    len_t nrl;  /* number of lower rows (ABCD splicing) */
+    len_t ncl;  /* number of left columns (ABCD splicing) */
+    len_t ncr;  /* number of right columns (ABCD splicing) */
+    mon_t *mp;  /* multiplied polynomial, i.e. pre-row */
+    row_t *r;   /* rows of column indices of matrix */
 };
 
 /* statistic stuff */

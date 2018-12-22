@@ -41,16 +41,20 @@ hd_t **convert_hashes_to_columns(
     len_t i, j, k, l, hi;
 
     hd_t *hd  = ht->hd;
+    hd_t **h  = NULL;
 
     int64_t nterms = 0;
 
-    const len_t nr  = mat->nr;
+    const len_t nru = mat->nru;
+    const len_t nrl = mat->nrl;
 
     mon_t p;
     ci_t *c;
 
-    mat->r    = realloc(mat->r, (unsigned long)nr * sizeof(row_t));
-    row_t *r  = mat->r;
+    mat->pv     = realloc(mat->pv, (unsigned long)nru * sizeof(row_t));
+    row_t *pv   = mat->pv;
+    mat->npv    = realloc(mat->npv, (unsigned long)nrl * sizeof(row_t));
+    row_t *npv  = mat->npv;
     /* need to allocate memory for all possible exponents we
      * have in the local hash table since we do not which of
      * them are corresponding to multipliers and which are
@@ -74,33 +78,59 @@ hd_t **convert_hashes_to_columns(
     st->num_rowsred +=  mat->nrl;
 
     /* store the other direction (hash -> column) in HASH_IND */
+#pragma omp parallel for num_threads(nthrds) private(i)
     for (i = 0; i < j; ++i) {
         hcm[i]->idx  = i;
     }
 
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
-    for (i = 0; i < nr; ++i) {
-        p       = mat->mp[i];
-        r[i].sz = p.sz;
-        r[i].of = p.of;
-        r[i].cl = p.cl;
-        c = r[i].ci;
+    for (i = 0; i < nru; ++i) {
+        p       = mat->pmp[i];
+        pv[i].sz  = p.sz;
+        pv[i].of  = p.of;
+        pv[i].cl  = p.cl;
+        c = pv[i].ci;
         c = (ci_t *)malloc((unsigned long)(p.sz) * sizeof(ci_t));
+        h = p.h;
         for (j = 0; j < p.of; ++j) {
-            c[j]  = p.h[j]->idx;
+            c[j]  = h[j]->idx;
         }
         for (; j < p.sz; j += 4) {
-            c[j]    = p.h[j]->idx;
-            c[j+1]  = p.h[j+1]->idx;
-            c[j+2]  = p.h[j+2]->idx;
-            c[j+3]  = p.h[j+3]->idx;
+            c[j]    = h[j]->idx;
+            c[j+1]  = h[j+1]->idx;
+            c[j+2]  = h[j+2]->idx;
+            c[j+3]  = h[j+3]->idx;
         }
-        free(mat->mp[i].h);
-        mat->mp[i].h  = NULL;
+        free(mat->pmp[i].h);
+        mat->pmp[i].h  = NULL;
     }
-    free(mat->mp);
-    mat->mp = NULL;
+    free(mat->pmp);
+    mat->pmp = NULL;
+
+#pragma omp parallel for num_threads(nthrds) private(i, j)
+    for (i = 0; i < nrl; ++i) {
+        p       = mat->npmp[i];
+        npv[i].sz = p.sz;
+        npv[i].of = p.of;
+        npv[i].cl = p.cl;
+        c = npv[i].ci;
+        c = (ci_t *)malloc((unsigned long)(p.sz) * sizeof(ci_t));
+        h = p.h;
+        for (j = 0; j < p.of; ++j) {
+            c[j]  = h[j]->idx;
+        }
+        for (; j < p.sz; j += 4) {
+            c[j]    = h[j]->idx;
+            c[j+1]  = h[j+1]->idx;
+            c[j+2]  = h[j+2]->idx;
+            c[j+3]  = h[j+3]->idx;
+        }
+        free(mat->npmp[i].h);
+        mat->npmp[i].h  = NULL;
+    }
+    free(mat->npmp);
+    mat->npmp = NULL;
 
     /* next we sort each row by the new colum order due
      * to known / unkown pivots */

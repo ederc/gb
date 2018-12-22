@@ -134,9 +134,6 @@ struct bs_t
     mon_t *m;   /* monomial data arrays of elements */
     sdm_t *lm;  /* lead monomials of elements */
     red_t *red; /* is the element redundant? */
-    void **tcf; /* temporary coefficient arrays for storing coefficents */
-                /* during linear algebra computation, type depends on */
-                /* underlying ring, see above */
 };
 
 /* matrix data */
@@ -153,16 +150,22 @@ struct row_t
 typedef struct mat_t mat_t;
 struct mat_t
 {
-    len_t na;   /* number of rows allocated */
-    len_t nr;   /* number of rows */
-    len_t nc;   /* number of columns */
-    len_t np;   /* number of pivots */
-    len_t nru;  /* number of upper rows (ABCD splicing) */
-    len_t nrl;  /* number of lower rows (ABCD splicing) */
-    len_t ncl;  /* number of left columns (ABCD splicing) */
-    len_t ncr;  /* number of right columns (ABCD splicing) */
-    mon_t *mp;  /* multiplied polynomial, i.e. pre-row */
-    row_t *r;   /* rows of column indices of matrix */
+    len_t nap;    /* number of pivot rows allocated */
+    len_t nanp;   /* number of non-pivot rows allocated */
+    len_t nr;     /* number of rows */
+    len_t nc;     /* number of columns */
+    len_t np;     /* number of pivots */
+    len_t nru;    /* number of upper rows (ABCD splicing) */
+    len_t nrl;    /* number of lower rows (ABCD splicing) */
+    len_t ncl;    /* number of left columns (ABCD splicing) */
+    len_t ncr;    /* number of right columns (ABCD splicing) */
+    mon_t *pmp;   /* pivot multiplied polynomial, i.e. pre-row */
+    mon_t *npmp;  /* non-pivot multiplied polynomial, i.e. pre-row */
+    row_t *pv;    /* pivot rows of column indices of matrix */
+    row_t *npv;   /* non-pivot rows of column indices of matrix */
+    void **tcf;   /* temporary coefficient arrays for storing coefficents */
+                  /* during linear algebra computation, type depends on */
+                  /* underlying ring, see above */
 };
 
 /* statistic stuff */

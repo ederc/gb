@@ -506,6 +506,7 @@ static inline hd_t *monomial_division_no_check(
 
 static inline void multiplied_polynomial_to_matrix_row(
     mat_t *mat,
+    mon_t *mp,
     ht_t *ht,
     const val_t hm,
     const deg_t deg,
@@ -523,17 +524,11 @@ static inline void multiplied_polynomial_to_matrix_row(
     while (ht->eld+poly.sz >= ht->esz) {
         enlarge_hash_table(ht);
     }
-    /* check possible increasement of matrix rows */
-    if (mat->nr >= mat->na) {
-        mat->na *=  2;
-        mat->mp = realloc(mat->mp,
-                (unsigned long)mat->na * sizeof(mon_t));
-    }
-    mat->mp[mat->nr].sz = poly.sz;
-    mat->mp[mat->nr].of = poly.of;
-    mat->mp[mat->nr].cl = poly.cl;
+    mp[mat->nr].sz = poly.sz;
+    mp[mat->nr].of = poly.of;
+    mp[mat->nr].cl = poly.cl;
 
-    hd_t **row  = mat->mp[mat->nr].h;
+    hd_t **row  = mp[mat->nr].h;
     row         = (hd_t **)malloc((unsigned long)poly.sz * sizeof(hd_t *));
     
     /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */

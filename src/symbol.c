@@ -79,10 +79,12 @@ mat_t *select_spairs_by_minimal_degree(
     gens  = (bi_t *)malloc(2 * (unsigned long)npairs * sizeof(bi_t));
 
     /* preset matrix meta data */
-    mat->mp = realloc(mat->mp, 2 * (unsigned long)npairs * sizeof(mon_t));
-    mat->na = 2 * npairs;
-    mat->nc = mat->ncl = mat->ncr = 0;
-    mat->nr = mat->nru = mat->nrl = 0;
+    mat->npmp = realloc(mat->npmp, 2 * (unsigned long)npairs * sizeof(mon_t));
+    mat->pmp  = realloc(mat->pmp, 2 * (unsigned long)npairs * sizeof(mon_t));
+    mat->nap  = npairs;
+    mat->nanp = 2 * npairs;
+    mat->nc   = mat->ncl = mat->ncr = 0;
+    mat->nr   = mat->nru = mat->nrl = 0;
 
     i = 0;
     while (i < npairs) {
@@ -109,11 +111,24 @@ mat_t *select_spairs_by_minimal_degree(
                 }
             }
             if (k == load) {
-            k    gens[load++]  = ps[j].gen2;
+                gens[load++]  = ps[j].gen2;
             }
             j++;
         }
-        for (k = 0; k < load; ++k) {
+        elcm  = lcm->exp;
+        d = 0;
+        b   = bs->m[gens[0]];
+        eb  = b.h[0]->exp;
+        for (l = 0; l < nv; ++l) {
+            etmp[l] =   elcm[l] - eb[l];
+            d       +=  etmp[l];
+        }
+        const hl_t h    = lcm->val - b.h[0]->val;
+        multiplied_polynomial_to_matrix_row(mat, mat->npmp, ht, h, d, etmp, b);
+        /* mark lcm column as lead term column */
+        lcm->idx = 2;
+        mat->nrl++;
+        for (k = 1; k < load; ++k) {
             /* ev might change when enlarging the hash table during
              * insertion of a new row in the matrix, thus we have to
              * reset elcm inside the for loop */
@@ -126,13 +141,20 @@ mat_t *select_spairs_by_minimal_degree(
                 d       +=  etmp[l];
             }
             const hl_t h    = lcm->val - b.h[0]->val;
-            multiplied_polynomial_to_matrix_row(mat, ht, h, d, etmp, b);
-            /* mark lcm column as lead term column */
-            x = 2;
-            mat->nr++;
+            /* check possible increasement of matrix rows */
+            if (mat->nru >= mat->nap) {
+                mat->nap *=  2;
+                mat->pmp  = realloc(mat->pmp,
+                        (unsigned long)mat->nap * sizeof(mon_t));
+            }
+            multiplied_polynomial_to_matrix_row(
+                    mat, mat->pmp, ht, h, d, etmp, b);
+            mat->nru++;
         }
         i = j;
     }
+    mat->npmp = realloc(mat->npmp, (unsigned long)mat->nrl * sizeof(mon_t));
+    mat->nanp = mat->nrl;
 
     /* load_all are all rows from the chosen spairs. for each column, i.e.
      * each lcm we have one reducer, the other rows have to be reduced.
@@ -188,8 +210,10 @@ mat_t *symbolic_preprocessing(
     }
 
     /* realloc to real size */
-    mat->mp = realloc(mat->mp, (unsigned long)mat->nr * sizeof(mon_t));
-    mat->na = mat->nr;
+    mat->pmp = realloc(mat->pmp, (unsigned long)mat->nru * sizeof(mon_t));
+    mat->nap = mat->nru;
+
+    mat->nr  =  mat->nru + mat->nrl;
 
     /* timings */
     ct1 = cputime();
@@ -254,7 +278,9 @@ start1:
         for (k = 0; k < nv; ++k) {
             d += etmp[k];
         }
-        multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
+        multiplied_polynomial_to_matrix_row(
+                mat, mat->pmp, ht, h, d, etmp, b);
+        mat->nru++;
         return 1;
     }
 start2:
@@ -282,7 +308,9 @@ start2:
         for (k = 0; k < nv; ++k) {
             d += etmp[k];
         }
-        multiplied_polynomial_to_matrix_row(h, d, etmp, b, ht);
+        multiplied_polynomial_to_matrix_row(
+                mat, mat->pmp, ht, h, d, etmp, b);
+        mat->nru++;
         return 1;
     }
     return 0;

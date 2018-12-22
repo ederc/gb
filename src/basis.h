@@ -44,8 +44,6 @@ inline bs_t *initialize_basis(
     bs->lm  = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->red = (red_t *)malloc((unsigned long)bs->sz * sizeof(red_t));
 
-    bs->tcf = NULL;
-
     return bs;
 }
 

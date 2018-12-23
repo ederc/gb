@@ -215,6 +215,9 @@ mat_t *symbolic_preprocessing(
 
     mat->nr  =  mat->nru + mat->nrl;
 
+    /* allocate space for coefficient arrays of possible new pivots */
+    mat->tcf  = realloc(mat->tcf, (unsigned long)mat->nrl * sizeof(void *));
+
     /* timings */
     ct1 = cputime();
     rt1 = realtime();

@@ -217,7 +217,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     /* fix size of basis for entering new elements directly */
     check_enlarge_basis(npivs);
 
-#pragma omp parallel for num_threads(nthrds) private(i, j)
+/* #pragma omp parallel for num_threads(nthrds) private(i, j) */
     for (i = 0; i < npivs; ++i) {
         for (j = 3; j < mat[i][1]; ++j) {
             mat[i][j] = insert_in_global_hash_table(evs[hcm[mat[i][j]]]);

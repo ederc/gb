@@ -163,6 +163,9 @@ int32_t check_and_set_meta_data(
         st->info_level  = 2;
     }
 
+    /* set number of generators */
+    st->nr_gens  = nr_gens;
+
     /* set number of threads */
     st->nthrds  = nr_threads <= 0 ? 1 : nr_threads;
 

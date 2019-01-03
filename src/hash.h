@@ -73,7 +73,7 @@ void regenerate_hash_table(
     );
 
 /* returns the last step when we regenerated the hash table */
-inline len_t check_regenerate_hash_table(
+static inline len_t check_regenerate_hash_table(
     ht_t *ht,
     ps_t *psl,
     bs_t *bs,
@@ -92,7 +92,7 @@ inline len_t check_regenerate_hash_table(
     return lr;
 }
 
-inline val_t pseudo_random_number_generator(
+static inline val_t pseudo_random_number_generator(
     ht_t *ht
     )
 {

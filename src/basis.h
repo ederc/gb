@@ -25,11 +25,12 @@
 
 #include "data.h"
 #include "hash.h"
+#include "tools.h"
 
 void normalize_initial_basis_16(bs_t *bs, const len_t ne);
 void normalize_initial_basis_32(bs_t *bs, const len_t ne);
 
-inline bs_t *initialize_basis(
+static inline bs_t *initialize_basis(
         const stat_t *st
         )
 {
@@ -47,7 +48,7 @@ inline bs_t *initialize_basis(
     return bs;
 }
 
-inline void free_basis(
+static inline void free_basis(
         bs_t **bsp
         )
 {
@@ -72,7 +73,7 @@ inline void free_basis(
     *bsp  = bs;
 }
 
-inline void check_enlarge_basis(
+static inline void check_enlarge_basis(
         bs_t *bs,
         len_t added
         )

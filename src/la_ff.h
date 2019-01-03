@@ -27,7 +27,7 @@
 #include "time.h"
 #include "tools.h"
 
-inline mat_t *initialize_matrix(
+static inline mat_t *initialize_matrix(
         )
 {
     mat_t *mat  = (mat_t *)calloc(1, sizeof(mat_t));
@@ -35,7 +35,7 @@ inline mat_t *initialize_matrix(
     return mat;
 }
 
-inline void free_matrix(
+static inline void free_matrix(
         mat_t **matp
         )
 {

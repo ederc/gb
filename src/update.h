@@ -46,7 +46,7 @@ void insert_and_update_spairs(
         stat_t *st
         );
 
-inline ps_t *initialize_pairset(
+static inline ps_t *initialize_pairset(
         const stat_t *st
         )
 {
@@ -59,7 +59,7 @@ inline ps_t *initialize_pairset(
     return ps;
 }
 
-inline void check_enlarge_pairset(
+static inline void check_enlarge_pairset(
         ps_t *ps,
         const len_t bsl,
         const len_t np
@@ -79,7 +79,7 @@ inline void check_enlarge_pairset(
     }
 }
 
-inline void free_pairset(
+static inline void free_pairset(
         ps_t **psp
         )
 {

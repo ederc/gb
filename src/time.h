@@ -27,7 +27,7 @@
 #include <sys/time.h>
 
 /* cpu time */
-inline double cputime(void)
+static inline double cputime(void)
 {
 	double t;
 	t =   CLOCKS_PER_SEC / 100000.;
@@ -37,7 +37,7 @@ inline double cputime(void)
 
 
 /* wall time */
-inline double realtime(void)
+static inline double realtime(void)
 {
 	struct timeval t;
 	gettimeofday(&t, NULL);

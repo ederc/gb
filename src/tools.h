@@ -24,7 +24,7 @@
 
 #include "data.h"
 
-inline int32_t mod_p_inverse_32(
+static inline int32_t mod_p_inverse_32(
         const int32_t val,
         const int32_t p
         )
@@ -53,7 +53,7 @@ inline int32_t mod_p_inverse_32(
     return d;
 }
 
-inline val_t compare_and_swap(
+static inline val_t compare_and_swap(
         long *ptr,
         long old,
         long new

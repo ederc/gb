@@ -75,7 +75,7 @@ int spair_cmp_drl(
         const void *b
         );
 
-inline mat_t *sort_matrix_rows(
+static inline mat_t *sort_matrix_rows(
         mat_t *mat
         )
 {

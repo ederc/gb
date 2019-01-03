@@ -47,60 +47,64 @@ void set_function_pointers(
             hcm_cmp           = hcm_cmp_pivots_drl;
     }
 
-    switch (st->la_variant) {
-        case 1:
-            linear_algebra  = exact_sparse_dense_linear_algebra;
-            break;
-        case 2:
-            linear_algebra  = exact_sparse_linear_algebra;
-            break;
-        case 42:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra;
-            break;
-        case 43:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra_2;
-            break;
-        case 44:
-            linear_algebra  = probabilistic_sparse_linear_algebra;
-            break;
-        default:
-            linear_algebra  = exact_sparse_dense_linear_algebra;
-    }
+            linear_algebra  = exact_sparse_linear_algebra_16;
+
+    /* switch (st->la_variant) {
+     *     case 1:
+     *         linear_algebra  = exact_sparse_dense_linear_algebra;
+     *         break;
+     *     case 2:
+     *         linear_algebra  = exact_sparse_linear_algebra;
+     *         break;
+     *     case 42:
+     *         linear_algebra  = probabilistic_sparse_dense_linear_algebra;
+     *         break;
+     *     case 43:
+     *         linear_algebra  = probabilistic_sparse_dense_linear_algebra_2;
+     *         break;
+     *     case 44:
+     *         linear_algebra  = probabilistic_sparse_linear_algebra;
+     *         break;
+     *     default:
+     *         linear_algebra  = exact_sparse_dense_linear_algebra;
+     * } */
 
     /* todo: need to add support for rationals here */
     if (st->field_char > 0) {
         if (st->field_char < pow(2, 16)) {
             import_julia_data       = import_julia_data_16;
+            export_julia_data       = export_julia_data_16;
             normalize_initial_basis = normalize_initial_basis_16;
         } else {
             import_julia_data       = import_julia_data_32;
+            export_julia_data       = export_julia_data_32;
             normalize_initial_basis = normalize_initial_basis_32;
         }
     } else {
         // TODO
     }
 
-    /* up to 17 bits we can use one modular operation for reducing a row. this works
-     * for matrices with #rows <= 54 million */
-    if (st->field_char < pow(2, 17)) {
-        reduce_dense_row_by_all_pivots =
-            reduce_dense_row_by_all_pivots_17_bit;
-        reduce_dense_row_by_known_pivots =
-            reduce_dense_row_by_known_pivots_17_bit;
-        reduce_dense_row_by_known_pivots_sparse =
-            reduce_dense_row_by_known_pivots_sparse_17_bit;
-        reduce_dense_row_by_dense_new_pivots  =
-            reduce_dense_row_by_dense_new_pivots_17_bit;
-    } else {
-        reduce_dense_row_by_all_pivots =
-            reduce_dense_row_by_all_pivots_31_bit;
-        reduce_dense_row_by_known_pivots =
-            reduce_dense_row_by_known_pivots_31_bit;
-        reduce_dense_row_by_known_pivots_sparse =
-            reduce_dense_row_by_known_pivots_sparse_31_bit;
-        reduce_dense_row_by_dense_new_pivots  =
-            reduce_dense_row_by_dense_new_pivots_31_bit;
-    }
+    reduce_dense_row_by_sparse_pivots =
+        reduce_dense_row_by_sparse_pivots_16;
+    /* if (st->field_char < pow(2, 16)) {
+     *     reduce_dense_row_by_sparse_pivots =
+     *         reduce_dense_row_by_sparse_pivots_16;
+     *     reduce_dense_row_by_known_pivots =
+     *         reduce_dense_row_by_known_pivots_17_bit;
+     *     reduce_dense_row_by_known_pivots_sparse =
+     *         reduce_dense_row_by_known_pivots_sparse_16;
+     *     reduce_dense_row_by_dense_new_pivots  =
+     *         reduce_dense_row_by_dense_new_pivots_17_bit;
+     * } else {
+     *     reduce_dense_row_by_all_pivots =
+     *         reduce_dense_row_by_all_pivots_31_bit;
+     *     reduce_dense_row_by_known_pivots =
+     *         reduce_dense_row_by_known_pivots_31_bit;
+     *     reduce_dense_row_by_known_pivots_sparse =
+     *         reduce_dense_row_by_known_pivots_sparse_31_bit;
+     *     reduce_dense_row_by_dense_new_pivots  =
+     *         reduce_dense_row_by_dense_new_pivots_31_bit;
+     * } */
 }
 
 int32_t check_and_set_meta_data(
@@ -150,7 +154,7 @@ int32_t check_and_set_meta_data(
         st->mon_order = mon_order;
     }
     /* set hash table size */
-    st->init_ht_sz  = htes <= 0 ? 12 : htes;
+    st->init_ht_sz  = ht_size <= 0 ? 12 : ht_size;
     st->info_level  = info_level;
     if (st->info_level < 0) {
         st->info_level  = 0;
@@ -163,7 +167,7 @@ int32_t check_and_set_meta_data(
     st->nthrds  = nr_threads <= 0 ? 1 : nr_threads;
 
     /* resetting the global hash table? */
-    st->regen_ht  = regenerate_ht <= 0 ? -1 : reset_hash_table;
+    st->regen_ht  = regenerate_ht <= 0 ? -1 : regenerate_ht;
 
     /* maximal number of pairs per matrix */
     st->max_nr_pairs  = max_nr_pairs <= 0 ? 2147483647 : max_nr_pairs;
@@ -182,7 +186,6 @@ int32_t check_and_set_meta_data(
 void import_julia_data_16(
         bs_t *bs,
         ht_t *ht,
-        mat_t *mat,
         const int32_t *const lens,
         const void *cfs_julia,
         const int32_t *const exps,
@@ -232,7 +235,6 @@ void import_julia_data_16(
 void import_julia_data_32(
         bs_t *bs,
         ht_t *ht,
-        mat_t *mat,
         const int32_t *const lens,
         const void *cfs_julia,
         const int32_t *const exps,
@@ -279,25 +281,27 @@ void import_julia_data_32(
     free(e);
 }
 
-int64_t export_julia_data(
+int64_t export_julia_data_16(
+        const bs_t * const bs,
         int32_t **bp
         )
 {
     len_t i, j, k;
+    cf16_t *cf;
     int64_t ctr_lengths, ctr_elements;
     int32_t *basis  = *bp;
 
     int64_t len = 0; /* complete length of exported array */
     int64_t nb  = 0; /* # elemnts in basis */
 
-    const len_t lterm = 1 + nvars; /* length of a term */
+    const len_t lterm = 1 + gbnv; /* length of a term */
 
     /* compute number of terms */
-    for (i = 0; i < bload; ++i) {
-        if (gbcf[i][0]) {
+    for (i = 0; i < bs->ld; ++i) {
+        if (bs->red[i]) {
             continue;
         } else {
-            len +=  (int64_t)gbcf[i][2]-3;
+            len +=  (int64_t)bs->m[i].sz;
             nb++;
         }
     }
@@ -321,16 +325,81 @@ int64_t export_julia_data(
 
     basis[0]  = (int32_t)nb;
     /* basis[1]  = (int32_t)nb; */
-    for (i = 0; i < bload; ++i) {
-        if (gbcf[gbdt[i][0]][0]) {
+    for (i = 0; i < bs->ld; ++i) {
+        if (bs->red[i]) {
             continue;
         } else {
             /* length of polynomial including this length entry itself */
-            basis[ctr_lengths++]  = (int32_t)((gbdt[i][2]-3) * lterm);
-            for (j = 3; j < gbdt[i][2]; ++j) {
-                basis[ctr_elements++] = (int32_t)gbcf[gbdt[i][0]][j]; /* coefficient */
-                for (k = 0; k < nvars; ++k) {
-                    basis[ctr_elements++] = (int32_t)ev[gbdt[i][j]][k];
+            basis[ctr_lengths++]  = (int32_t)((bs->m[i].sz) * lterm);
+            cf  = (cf16_t *)bs->m[i].cl;
+            for (j = 0; j < bs->m[i].sz; ++j) {
+                basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
+                for (k = 0; k < gbnv; ++k) {
+                    basis[ctr_elements++] = (int32_t)bs->m[i].h[j]->exp[k];
+                }
+            }
+        }
+    }
+    *bp = basis;
+
+    return len;
+}
+
+int64_t export_julia_data_32(
+        const bs_t * const bs,
+        int32_t **bp
+        )
+{
+    len_t i, j, k;
+    cf32_t *cf;
+    int64_t ctr_lengths, ctr_elements;
+    int32_t *basis  = *bp;
+
+    int64_t len = 0; /* complete length of exported array */
+    int64_t nb  = 0; /* # elemnts in basis */
+
+    const len_t lterm = 1 + gbnv; /* length of a term */
+
+    /* compute number of terms */
+    for (i = 0; i < bs->ld; ++i) {
+        if (bs->red[i]) {
+            continue;
+        } else {
+            len +=  (int64_t)bs->m[i].sz;
+            nb++;
+        }
+    }
+
+    /* compute the length considering the number of variables per exponent */
+    len = len * (int64_t)lterm;
+    /* add storage for length of each element */
+    len = len + nb;
+    /* add storage for number of generators in basis */
+    len++;
+
+    basis  = (int32_t *)malloc((unsigned long)len * sizeof(int32_t));
+
+    if (nb > (int64_t)(pow(2, 31))) {
+        printf("basis too big\n");
+        return 0;
+    }
+
+    ctr_lengths   = 1;
+    ctr_elements  = (int64_t)nb + 1;
+
+    basis[0]  = (int32_t)nb;
+    /* basis[1]  = (int32_t)nb; */
+    for (i = 0; i < bs->ld; ++i) {
+        if (bs->red[i]) {
+            continue;
+        } else {
+            /* length of polynomial including this length entry itself */
+            basis[ctr_lengths++]  = (int32_t)((bs->m[i].sz) * lterm);
+            cf  = (cf32_t *)bs->m[i].cl;
+            for (j = 0; j < bs->m[i].sz; ++j) {
+                basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
+                for (k = 0; k < gbnv; ++k) {
+                    basis[ctr_elements++] = (int32_t)bs->m[i].h[j]->exp[k];
                 }
             }
         }

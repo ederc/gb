@@ -78,12 +78,13 @@ int64_t f4_julia_ff(
     ht_t *uht = initialize_local_hash_table(st, ght);
     /* hash table for symbolic preprocessing */
     ht_t *sht = initialize_local_hash_table(st, ght);
+    etmp  = (exp_t *)malloc((unsigned long)gbnv * sizeof(exp_t));
 
     bs_t *bs    = initialize_basis(st);
     ps_t *ps    = initialize_pairset(st);
-    mat_t *mat  = initialize_matrix(st);
+    mat_t *mat  = initialize_matrix();
 
-    import_julia_data(bs, ght, mat, lens, cfs, exps, nr_gens);
+    import_julia_data(bs, ght, lens, cfs, exps, nr_gens);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
@@ -115,7 +116,7 @@ int64_t f4_julia_ff(
         rct0 = cputime();
         rrt0 = realtime();
 
-        lr  = check_regenerate_hash_table(ght, ps, st, lr, rd);
+        lr  = check_regenerate_hash_table(ght, ps, bs, st, lr, rd);
 
         /* preprocess data for next reduction round */
         mat = select_spairs_by_minimal_degree(mat, ps, sht, bs, st);
@@ -129,9 +130,10 @@ int64_t f4_julia_ff(
             convert_sparse_matrix_rows_to_basis_elements(
                     mat, bs, ght, hcm, st);
         }
-        free(mat);
-        mat = NULL;
-        hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm);
+        free(hcm);
+        hcm = NULL;
+        reset_symbolic_hash_table(sht);
+
 
         check_enlarge_pairset(ps, bs->ld, mat->np);
         update_basis(ps, bs, ght, uht, st, mat->np);
@@ -146,7 +148,7 @@ int64_t f4_julia_ff(
         print_round_statistics_footer();
     }
 
-    st->len_output  = export_julia_data(jl_basis);
+    st->len_output  = export_julia_data(bs, jl_basis);
     st->size_basis  = (*jl_basis)[0];
 
     /* timings */
@@ -172,6 +174,7 @@ int64_t f4_julia_ff(
     free_pairset(&ps);
     free_matrix(&mat);
     free_basis(&bs);
+    free(etmp);
 
     int64_t output  = st->len_output;
     free(st);

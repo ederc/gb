@@ -98,8 +98,7 @@ inline void free_pairset(
 static inline int is_new_generator_redundant(
         ps_t *psl,
         bs_t *bs,
-        ht_t *lht,
-        ht_t *ght,
+        ht_t *ht,
         stat_t *st
         )
 {
@@ -114,11 +113,10 @@ static inline int is_new_generator_redundant(
             spair_t p = psl->p[psl->ld];
             p.gen1 = i;
             p.gen2 = bl;
-            p.lcm  = get_lcm(bs->m[i].h[0], nh, lht);
-            if (ght->eld >= ght->esz) {
-                enlarge_hash_table(ght);
+            if (ht->eld >= ht->esz) {
+                enlarge_hash_table(ht);
             }
-            p.lcm  = insert_in_hash_table(p.lcm->exp, ght);
+            p.lcm  = get_lcm(bs->m[i].h[0], nh, ht);
             bs->red[bl] = 1;
             st->num_redundant++;
             bs->ld++;

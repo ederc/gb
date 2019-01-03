@@ -29,17 +29,17 @@ ht_t *initialize_global_hash_table(
     len_t i;
     hl_t j;
 
-    ht_t *ht  = (ht_t *)calloc(1, sizeof(ht_t));
-    ht->nv    = st->nr_vars;
+    ht_t *ht        = (ht_t *)calloc(1, sizeof(ht_t));
+    const len_t nv  = st->nr_vars;
     ht->rseed = 2463534242;
 
     /* generate map */
-    ht->bpv = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
+    ht->bpv = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nv);
     if (ht->bpv == 0) {
         ht->bpv++;
     }
-    ht->ndv = (unsigned long)ht->nv < (CHAR_BIT * sizeof(sdm_t)) ?
-        ht->nv : (len_t)((CHAR_BIT * sizeof(sdm_t)));
+    ht->ndv = (unsigned long)nv < (CHAR_BIT * sizeof(sdm_t)) ?
+        nv : (len_t)((CHAR_BIT * sizeof(sdm_t)));
     ht->hsz = (hl_t)pow(2, st->init_ht_sz);
     ht->map = calloc((unsigned long)ht->hsz, sizeof(hl_t));
 
@@ -47,10 +47,10 @@ ht_t *initialize_global_hash_table(
     ht->dm  = calloc((unsigned long)(ht->ndv * ht->bpv), sizeof(sdm_t));
 
     /* generate random values */
-    ht->rv  = calloc((unsigned long)ht->nv, sizeof(val_t));
-    for (i = 0 ; i < ht->nv; ++i) {
+    ht->rv  = calloc((unsigned long)nv, sizeof(val_t));
+    for (i = 0 ; i < nv; ++i) {
         /* random values should not be zero */
-        rv[i] = pseudo_random_number_generator() | 1;
+        ht->rv[i] = pseudo_random_number_generator(ht) | 1;
     }
     /* generate exponent vector */
     ht->esz = ht->hsz / 2;
@@ -63,13 +63,13 @@ ht_t *initialize_global_hash_table(
                 segmentation fault will follow.\n");
     }
     exp_t *tmp  = (exp_t *)malloc(
-            (unsigned long)ht->nv * (unsigned long)ht->esz * sizeof(exp_t));
+            (unsigned long)nv * (unsigned long)ht->esz * sizeof(exp_t));
     if (tmp == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");
     }
     for (j = 0; j < ht->esz; ++j) {
-        ht->ev[j]  = tmp + (unsigned long)(j * ht->nv);
+        ht->ev[j]  = tmp + (unsigned long)(j * nv);
     }
 
     return ht;
@@ -82,17 +82,17 @@ ht_t *initialize_local_hash_table(
 {
     hl_t j;
 
-    ht_t *ht  = (ht_t *)calloc(1, sizeof(ht_t));
-    ht->nv    = st->nr_vars;
+    ht_t *ht        = (ht_t *)calloc(1, sizeof(ht_t));
+    const len_t nv  = st->nr_vars;
 
     ht->rv  = ght->rv;
 
     /* generate map */
-    ht->sz  = (hl_t)pow(2, st->init_ht_sz - 5);
-    ht->map = calloc((unsigned long)ht->sz, sizeof(hl_t));
+    ht->hsz  = (hl_t)pow(2, st->init_ht_sz - 5);
+    ht->map = calloc((unsigned long)ht->hsz, sizeof(hl_t));
 
     /* generate exponent vector */
-    ht->esz = ht->sz / 2;
+    ht->esz = ht->hsz / 2;
     /* keep first entry empty for faster divisibility checks */
     ht->eld = 1;
     ht->hd  = (hd_t *)calloc((unsigned long)ht->esz, sizeof(hd_t));
@@ -102,13 +102,13 @@ ht_t *initialize_local_hash_table(
                 segmentation fault will follow.\n");
     }
     exp_t *tmp  = (exp_t *)malloc(
-            (unsigned long)ht->nv * (unsigned long)elsz * sizeof(exp_t));
+            (unsigned long)nv * (unsigned long)ht->esz * sizeof(exp_t));
     if (tmp == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");
     }
     for (j = 0; j < ht->esz; ++j) {
-        ht->ev[j]  = tmp + (unsigned long)(j*ht->nv);
+        ht->ev[j]  = tmp + (unsigned long)(j*nv);
     }
 
     return ht;
@@ -150,6 +150,7 @@ void enlarge_hash_table(
     hl_t i, j;
     val_t h, k;
 
+    const len_t nv  = gbnv;
     ht->esz = 2 * ht->esz;
     ht->hd  = realloc(ht->hd, (unsigned long)ht->esz * sizeof(hd_t));
     memset(ht->hd+ht->eld, 0, (unsigned long)(ht->esz-ht->eld) * sizeof(hd_t));
@@ -161,7 +162,7 @@ void enlarge_hash_table(
     /* note: memory is allocated as one big block, so reallocating
      *       memory from ev[0] is enough    */
     ht->ev[0] = realloc(ht->ev[0],
-            (unsigned long)ht->esz * (unsigned long)ht->nv * sizeof(exp_t));
+            (unsigned long)ht->esz * (unsigned long)nv * sizeof(exp_t));
     if (ht->ev[0] == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");
@@ -169,7 +170,7 @@ void enlarge_hash_table(
     /* due to realloc we have to reset ALL ev entries,
      * memory might have been moved */
     for (i = 1; i < ht->esz; ++i) {
-        ht->ev[i] = ht->ev[0] + (unsigned long)(i*nvars);
+        ht->ev[i] = ht->ev[0] + (unsigned long)(i*nv);
     }
 
     ht->hsz = 2 * ht->hsz;
@@ -177,7 +178,7 @@ void enlarge_hash_table(
     memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hl_t));
 
     const hl_t hsz  = ht->hsz;
-    const hk_t eld  = ht->eld;
+    const hl_t eld  = ht->eld;
     /* reinsert known elements */
     for (i = 1; i < eld; ++i) {
         h = ht->hd[i].val;
@@ -198,6 +199,7 @@ void enlarge_hash_table(
 void regenerate_hash_table(
     ht_t *ht,
     ps_t *psl,
+    bs_t *bs,
     stat_t *st
     )
 {
@@ -209,7 +211,9 @@ void regenerate_hash_table(
     len_t i, j;
     hl_t k;
     exp_t *e;
-    dt_t *b;
+    mon_t b;
+    hd_t **h;
+    const len_t nv  = gbnv;
 
     exp_t **oev  = ht->ev;
     ht->ev  = calloc((unsigned long)ht->esz, sizeof(exp_t *));
@@ -218,13 +222,13 @@ void regenerate_hash_table(
                 segmentation fault will follow.\n");
     }
     exp_t *tmp  = (exp_t *)malloc(
-            (unsigned long)ht->nv * (unsigned long)ht->esz * sizeof(exp_t));
+            (unsigned long)nv * (unsigned long)ht->esz * sizeof(exp_t));
     if (tmp == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");
     }
     for (k = 0; k < ht->esz; ++k) {
-        ht->ev[k]  = tmp + k*ht-<nv;
+        ht->ev[k]  = tmp + k*nv;
     }
     ht->eld = 1;
     memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hl_t));
@@ -232,27 +236,28 @@ void regenerate_hash_table(
 
     /* reinsert known elements */
     for (i = 0; i < bs->ld; ++i) {
-        b = bs->hd[i];
-        for (j = 3; j < b[1]; ++j) {
-            e = oev[b[j]];
-            b[j]  = insert_in_hash_table(e, ht);
+        b = bs->m[i];
+        h = b.h;
+        for (j = 0; j < b.of; ++j) {
+            e     = h[j]->exp;
+            h[j]  = insert_in_hash_table(e, ht);
         }
-        for (; j < b[2]; j += 4) {
-            e       = oev[b[j]];
-            b[j]    = insert_in_hash_table(e, ht);
-            e       = oev[b[j+1]];
-            b[j+1]  = insert_in_hash_table(e, ht);
-            e       = oev[b[j+2]];
-            b[j+2]  = insert_in_hash_table(e, ht);
-            e       = oev[b[j+3]];
-            b[j+3]  = insert_in_hash_table(e, ht);
+        for (; j < b.sz; j += 4) {
+            e       = h[j]->exp;
+            h[j]    = insert_in_hash_table(e, ht);
+            e       = h[j+1]->exp;
+            h[j+1]  = insert_in_hash_table(e, ht);
+            e       = h[j+2]->exp;
+            h[j+2]  = insert_in_hash_table(e, ht);
+            e       = h[j+3]->exp;
+            h[j+3]  = insert_in_hash_table(e, ht);
         }
     }
 
     const len_t pld = psl->ld;
     spair_t *ps = psl->p;
     for (i = 0; i < pld; ++i) {
-        e = oev[ps[i].lcm];
+        e = ps[i].lcm->exp;
         ps[i].lcm = insert_in_hash_table(e, ht);
     }
     /* note: all memory is allocated as a big block, so it is

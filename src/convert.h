@@ -37,7 +37,7 @@ void convert_sparse_matrix_rows_to_basis_elements(
         mat_t *mat,
         bs_t *bs,
         ht_t *ht,
-        const hd_t ** const hcm,
+        hd_t **hcm,
         stat_t *st
         );
 #endif

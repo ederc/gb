@@ -46,6 +46,7 @@
 #define GB_HASH_H
 
 #include "data.h"
+#include "time.h"
 
 ht_t *initialize_global_hash_table(
     const stat_t *st
@@ -67,6 +68,7 @@ void enlarge_hash_table(
 void regenerate_hash_table(
     ht_t *ht,
     ps_t *psl,
+    bs_t *bs,
     stat_t *st
     );
 
@@ -74,6 +76,7 @@ void regenerate_hash_table(
 inline len_t check_regenerate_hash_table(
     ht_t *ht,
     ps_t *psl,
+    bs_t *bs,
     stat_t *st,
     len_t lr,
     const len_t rd
@@ -82,7 +85,7 @@ inline len_t check_regenerate_hash_table(
     st->max_ht_size = ht->hsz;
     if (rd - lr == st->regen_ht) {
         lr  = rd;
-        regenerate_hash_table(ht, psl, st);
+        regenerate_hash_table(ht, psl, bs, st);
         return rd;
     }
 
@@ -361,6 +364,15 @@ static inline hd_t *insert_in_hash_table_product_special(
     return d;
 }
 
+static inline void reset_symbolic_hash_table(
+    ht_t *ht
+    )
+{
+    memset(ht->hd, 0, (unsigned long)ht->esz * sizeof(hd_t));
+    memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hd_t));
+    ht->eld = 1;
+}
+
 static inline void reset_hash_table(
     ht_t *ht,
     const len_t sz
@@ -430,7 +442,7 @@ static inline int lcm_equals_multiplication(
 static inline hd_t *get_lcm(
     const hd_t * const a,
     const hd_t * const b,
-    ht_t *lht
+    ht_t *ht
     )
 {
     len_t i;
@@ -444,7 +456,7 @@ static inline hd_t *get_lcm(
         etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
     }
     /* goes into local hash table for spairs */
-    return insert_in_hash_table(etmp, lht);
+    return insert_in_hash_table(etmp, ht);
 }
 
 /* we try monomial division including check if divisibility is

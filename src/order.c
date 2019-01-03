@@ -90,37 +90,24 @@ int matrix_row_cmp(
         const void *b
         )
 {
-    dt_t va, vb;
+    row_t ra, rb;
+    ra  = *(row_t *)a;
+    rb  = *(row_t *)b;
     /* compare pivot resp. column index */
-    va  = ((dt_t **)a)[0][3];
-    vb  = ((dt_t **)b)[0][3];
-    if (va > vb) {
+    if (ra.ci[0] > rb.ci[0]) {
         return 1;
     }
-    if (va < vb) {
+    if (ra.ci[0] < rb.ci[0]) {
         return -1;
     }
     /* same column index => compare density of row */
-    va  = ((dt_t **)a)[0][2];
-    vb  = ((dt_t **)b)[0][2];
-    if (va > vb) {
+    if (ra.sz > rb.sz) {
         return 1;
     }
-    if (va < vb) {
+    if (ra.sz < rb.sz) {
         return -1;
     }
     return 0;
-}
-
-int dense_matrix_row_cmp(
-        const void *a,
-        const void *b
-        )
-{
-    const cf_t pa = ((cf_t **)a)[0][0];
-    const cf_t pb = ((cf_t **)b)[0][0];
-
-    return pa-pb;
 }
 
 /* comparison for monomials (in local hash table) */
@@ -173,8 +160,7 @@ int monomial_cmp_pivots_drl(
 
 int monomial_cmp_pivots_lex(
         const hd_t *a,
-        const hd_t *b,
-        const ht_t *const ht
+        const hd_t *b
         )
 {
     len_t i;
@@ -224,8 +210,7 @@ int hcm_cmp_pivots_drl(
 
 int hcm_cmp_pivots_lex(
         const void *a,
-        const void *b,
-        void *ht
+        const void *b
         )
 {
     const hd_t *ma  = (hd_t *)a;
@@ -250,41 +235,13 @@ int spair_cmp_deglex(
     }
 }
 
-int spair_cmp_lht_drl(
+int spair_cmp_drl(
         const void *a,
         const void *b
         )
 {
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
+    const hd_t * const la = ((spair_t *)a)->lcm;
+    const hd_t * const lb = ((spair_t *)b)->lcm;
 
-    return (int)monomial_cmp(la, lb, lht);
-}
-
-/* comparison for s-pairs once their lcms are in the global hash table */
-int spair_cmp_ght_deglex(
-        const void *a,
-        const void *b
-        )
-{
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
-
-    if (hd[la].deg != hd[lb].deg) {
-        return (hd[la].deg < hd[lb].deg) ? -1 : 1;
-    } else {
-        return (int)monomial_cmp(la, lb, ght);
-    }
-}
-
-int spair_cmp_ght_drl(
-        const void *a,
-        const void *b,
-        void *htl
-        )
-{
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
-
-    return (int)monomial_cmp(la, lb, ght);
+    return (int)monomial_cmp(la, lb);
 }

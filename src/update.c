@@ -30,7 +30,7 @@ void insert_and_update_spairs(
         stat_t *st
         )
 {
-    len_t i, j, k, l;
+    len_t i, j, l;
 
     spair_t *ps = psl->p;
 
@@ -40,7 +40,7 @@ void insert_and_update_spairs(
 
     reset_hash_table(lht, bl);
 
-    if (is_new_generator_redundant(ps, bs, lht, ght, st)) {
+    if (is_new_generator_redundant(psl, bs, ght, st)) {
         return;
     }
 
@@ -56,7 +56,7 @@ void insert_and_update_spairs(
                 && ps[i].lcm->val != plcm[j]->val
                 && ps[i].lcm->val != plcm[l]->val
            ) {
-            ps[i].lcm = -1;
+            ps[i].lcm = NULL;
         }
     }
 
@@ -64,11 +64,11 @@ void insert_and_update_spairs(
     spair_t *pp = ps+pl;
     j = 0;
     for (i = 0; i < bl; ++i) {
-        if (pp[i].lcm >= 0) {
+        if (pp[i].lcm != NULL) {
             pp[j++] = pp[i];
         }
     }
-    qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_cmp);
+    qsort(pp, (unsigned long)j, sizeof(spair_t), spair_cmp);
     for (i = 0; i < j; ++i) {
         plcm[i] = pp[i].lcm;
     }
@@ -78,20 +78,20 @@ void insert_and_update_spairs(
     j = 0;
 
     for (; j < pc; ++j) {
-        if (plcm[j] < 0) {
+        if (plcm[j] == NULL) {
             continue;
         }
-        const hl_t plcmj = plcm[j];
+        const hd_t * const plcmj = plcm[j];
         i = j+1;
         while (plcm[i] == plcmj) {
-            plcm[i] = -1;
+            plcm[i] = NULL;
             ++i;
         }
         j = i-1;
         while (i < pc) {
-            if (plcm[i] >= 0 &&
+            if (plcm[i] != NULL &&
                     check_monomial_division(plcm[i], plcmj) != 0) {
-                plcm[i]  = -1;
+                plcm[i]  = NULL;
             }
             ++i;
         }
@@ -101,7 +101,7 @@ void insert_and_update_spairs(
     j = 0;
     /* old pairs */
     for (i = 0; i < psl->ld; ++i) {
-        if (ps[i].lcm < 0) {
+        if (ps[i].lcm == NULL) {
             continue;
         }
         ps[j++] = ps[i];
@@ -111,11 +111,11 @@ void insert_and_update_spairs(
     }
     /* new pairs, wee need to add the lcm to the global hash table */
     for (i = 0; i < pc; ++i) {
-        if (plcm[i] < 0) {
+        if (plcm[i] == NULL) {
             continue;
         }
-        pp[i].lcm = insert_in_hash_table_no_enlargement_check(
-                lht->ev[plcm[i]], ght);
+        pp[i].lcm = insert_in_hash_table(
+                plcm[i]->exp, ght);
         ps[j++]   = pp[i];
     }
     free(plcm);

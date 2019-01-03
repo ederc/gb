@@ -25,16 +25,14 @@
 
 #include "data.h"
 
-int matrix_row_initial_input_cmp_lex(
+int initial_basis_cmp_lex(
         const void *a,
-        const void *b,
-        void *htl
+        const void *b
         );
 
-int matrix_row_initial_input_cmp_drl(
+int initial_basis_cmp_drl(
         const void *a,
-        const void *b,
-        void *htl
+        const void *b
         );
 
 int matrix_row_cmp(
@@ -48,27 +46,23 @@ int dense_matrix_row_cmp(
         );
 
 int monomial_cmp_pivots_drl(
-        const hl_t a,
-        const hl_t b,
-        const ht_t *const ht
+        const hd_t *a,
+        const hd_t *b
         );
 
 int monomial_cmp_pivots_lex(
-        const hl_t a,
-        const hl_t b,
-        const ht_t *const ht
+        const hd_t *a,
+        const hd_t *b
         );
 
 int hcm_cmp_pivots_drl(
         const void *a,
-        const void *b,
-        void *ht
+        const void *b
         );
 
 int hcm_cmp_pivots_lex(
         const void *a,
-        const void *b,
-        void *ht
+        const void *b
         );
 
 int spair_cmp_deglex(
@@ -85,18 +79,8 @@ inline mat_t *sort_matrix_rows(
         mat_t *mat
         )
 {
-    qsort(mat->r, (unsigned long)mat->nr, sizeof(hl_t *), &matrix_row_cmp);
+    qsort(mat->pv, (unsigned long)mat->ncl, sizeof(row_t *), &matrix_row_cmp);
     return mat;
-}
-
-inline void **sort_dense_matrix_rows(
-        void **dm,
-        const size_t cfs,
-        const len_t nr
-        )
-{
-    qsort(dm, (unsigned long)nr, cfs, &dense_matrix_row_cmp);
-    return dm;
 }
 
 static inline int monomial_cmp_drl(

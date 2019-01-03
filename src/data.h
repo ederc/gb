@@ -56,6 +56,7 @@ typedef int32_t deg_t;    /* (total) degree of polynomial */
 typedef len_t bi_t;     /* basis index of element */
 typedef len_t bl_t;     /* basis load */
 typedef len_t pl_t;     /* pair set load */
+/* typedef ci_t * row_t;   [> a row is an array of column indices <] */
 
 /* hash data structure */
 typedef struct hd_t hd_t;
@@ -85,10 +86,6 @@ struct ht_t
     exp_t **ev;       /* exponent vector array */
 };
 
-/* pseudo random number generator for hash value
- * generation */
-uint32_t rseed  = 2463534242;
-
 /* polynomial monomials data structure */
 typedef struct mon_t mon_t;
 struct mon_t
@@ -98,9 +95,6 @@ struct mon_t
     void *cl; /* link to corresponding coeffs array */
     hd_t **h; /* hash data of the monomials */
 };
-
-/* temporary exponent vector for diffrerent situations */
-exp_t *etmp     = NULL;
 
 /* spair data */
 typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
@@ -154,7 +148,7 @@ struct mat_t
     len_t nanp;   /* number of non-pivot rows allocated */
     len_t nr;     /* number of rows */
     len_t nc;     /* number of columns */
-    len_t np;     /* number of pivots */
+    len_t np;     /* number of new pivots */
     len_t nru;    /* number of upper rows (ABCD splicing) */
     len_t nrl;    /* number of lower rows (ABCD splicing) */
     len_t ncl;    /* number of left columns (ABCD splicing) */
@@ -162,10 +156,8 @@ struct mat_t
     mon_t *pmp;   /* pivot multiplied polynomial, i.e. pre-row */
     mon_t *npmp;  /* non-pivot multiplied polynomial, i.e. pre-row */
     row_t *pv;    /* pivot rows of column indices of matrix */
-    row_t *npv;   /* non-pivot rows of column indices of matrix */
-    void **tcf;   /* temporary coefficient arrays for storing coefficents */
-                  /* during linear algebra computation, type depends on */
-                  /* underlying ring, see above */
+    row_t *tbr;   /* rows to be reduced */
+    row_t *npv;   /* new pivot rows of column indices of matrix */
 };
 
 /* statistic stuff */
@@ -227,14 +219,8 @@ int (*initial_basis_cmp)(
         );
 
 int (*monomial_cmp)(
-        const hl_t a,
-        const hl_t b,
-        const ht_t *const ht
-        );
-
-int (*spair_cmp)(
-        const void *a,
-        const void *b
+        const hd_t *a,
+        const hd_t *b
         );
 
 int (*spair_cmp)(
@@ -244,22 +230,25 @@ int (*spair_cmp)(
 
 int (*hcm_cmp)(
         const void *a,
-        const void *b,
-        void *ht
+        const void *b
         );
 
 void (*import_julia_data)(
         bs_t *bs,
         ht_t *ht,
-        mat_t *mat,
         const int32_t *const lens,
         const void *cfs_julia,
         const int32_t *const exps,
         const int32_t nr_gens
         );
 
+int64_t (*export_julia_data)(
+        const bs_t * const bs,
+        int32_t **bp
+        );
+
 /* linear algebra routines */
-mat_t **(*linear_algebra)(
+mat_t *(*linear_algebra)(
         mat_t *mat,
         stat_t *st
         );
@@ -275,11 +264,10 @@ void *(*reduce_dense_row_by_known_pivots)(
         const hl_t dpiv
         );
 
-void *(*reduce_dense_row_by_known_pivots_sparse)(
+row_t (*reduce_dense_row_by_sparse_pivots)(
         int64_t *dr,
-        dt_t *const *pivs,
-        const hl_t dpiv,
-        const dt_t tmp_pos
+        mat_t *mat,
+        const ci_t sc
         );
 
 void *(*reduce_dense_row_by_all_pivots)(
@@ -296,6 +284,9 @@ void *(*reduce_dense_row_by_dense_new_pivots)(
         );
 
 /* global variables */
-static len_t gbnv   = 0;  /* number of variables */
-static int32_t gbfc = 0;  /* field characteristic */
+static len_t gbnv       = 0;  /* number of variables */
+static int32_t gbfc     = 0;  /* field characteristic */
+static uint32_t rseed   = 2463534242; /* seed for pseudo number generator */
+static exp_t *etmp      = NULL; /* exponent vector for local computation */
+
 #endif

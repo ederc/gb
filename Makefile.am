@@ -22,6 +22,7 @@ libgb_la_SOURCES = \
 	src/gb.c			\
 	src/stat.c		\
 	src/f4.c			\
+	src/io.c			\
 	src/hash.c		\
 	src/convert.c	\
 	src/order.c		\
@@ -38,6 +39,7 @@ pkgincludesub_HEADERS = \
 	src/tools.h		\
 	src/stat.h		\
 	src/f4.h			\
+	src/io.h			\
 	src/hash.h		\
 	src/convert.h	\
 	src/order.h		\

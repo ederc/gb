@@ -25,6 +25,7 @@
 
 #include "data.h"
 #include "order.h"
+#include "basis.h"
 #include "la_ff.h"
 
 void set_function_pointers(
@@ -51,7 +52,6 @@ int32_t check_and_set_meta_data(
 void import_julia_data_16(
         bs_t *bs,
         ht_t *ht,
-        mat_t *mat,
         const int32_t *const lens,
         const void *cfs_julia,
         const int32_t *const exps,
@@ -61,10 +61,19 @@ void import_julia_data_16(
 void import_julia_data_32(
         bs_t *bs,
         ht_t *ht,
-        mat_t *mat,
         const int32_t *const lens,
         const void *cfs_julia,
         const int32_t *const exps,
         const int32_t nr_gens
+        );
+
+int64_t export_julia_data_16(
+        const bs_t * const bs,
+        int32_t **bp
+        );
+
+int64_t export_julia_data_32(
+        const bs_t * const bs,
+        int32_t **bp
         );
 #endif

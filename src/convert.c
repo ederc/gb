@@ -38,7 +38,7 @@ hd_t **convert_hashes_to_columns(
     ct0 = cputime();
     rt0 = realtime();
 
-    len_t i, j, k, l, hi;
+    len_t i, j, k;
 
     hd_t *hd  = ht->hd;
     hd_t **h  = NULL;
@@ -47,14 +47,15 @@ hd_t **convert_hashes_to_columns(
 
     const len_t nru = mat->nru;
     const len_t nrl = mat->nrl;
+    const int32_t nthrds  = st->nthrds;
 
     mon_t p;
     ci_t *c;
 
     mat->pv     = realloc(mat->pv, (unsigned long)nru * sizeof(row_t));
     row_t *pv   = mat->pv;
-    mat->npv    = realloc(mat->npv, (unsigned long)nrl * sizeof(row_t));
-    row_t *npv  = mat->npv;
+    mat->tbr    = realloc(mat->tbr, (unsigned long)nrl * sizeof(row_t));
+    row_t *tbr  = mat->tbr;
     /* need to allocate memory for all possible exponents we
      * have in the local hash table since we do not which of
      * them are corresponding to multipliers and which are
@@ -62,7 +63,7 @@ hd_t **convert_hashes_to_columns(
     hd_t **hcm = (hd_t **)malloc((unsigned long)(ht->eld-1) * sizeof(hd_t *));
     /* j counts all columns, k counts known pivots */
     for (j = 0, k = 0, i = 1; i < ht->eld; ++i) {
-        hcm[j++]  = hd[i];
+        hcm[j++]  = hd+i;
         if (hd[i].idx == 2) {
             k++;
         }
@@ -71,8 +72,7 @@ hd_t **convert_hashes_to_columns(
     qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
 
     /* set number of rows and columns in ABCD splicing */
-    mat->nru  = mat->ncl  = k;
-    mat->nrl  = nr - mat->nru;
+    mat->ncl  = k;
     mat->ncr  = j - mat->ncl;
 
     st->num_rowsred +=  mat->nrl;
@@ -86,7 +86,7 @@ hd_t **convert_hashes_to_columns(
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < nru; ++i) {
-        p       = mat->pmp[i];
+        p = mat->pmp[i];
         pv[i].sz  = p.sz;
         pv[i].of  = p.of;
         pv[i].cl  = p.cl;
@@ -110,11 +110,11 @@ hd_t **convert_hashes_to_columns(
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < nrl; ++i) {
-        p       = mat->npmp[i];
-        npv[i].sz = p.sz;
-        npv[i].of = p.of;
-        npv[i].cl = p.cl;
-        c = npv[i].ci;
+        p = mat->npmp[i];
+        tbr[i].sz = p.sz;
+        tbr[i].of = p.of;
+        tbr[i].cl = p.cl;
+        c = tbr[i].ci;
         c = (ci_t *)malloc((unsigned long)(p.sz) * sizeof(ci_t));
         h = p.h;
         for (j = 0; j < p.of; ++j) {
@@ -131,6 +131,9 @@ hd_t **convert_hashes_to_columns(
     }
     free(mat->npmp);
     mat->npmp = NULL;
+
+    /* allocate space for coefficient arrays of possible new pivots */
+    mat->npv  = realloc(mat->npv, (unsigned long)mat->ncr * sizeof(row_t));
 
     /* next we sort each row by the new colum order due
      * to known / unkown pivots */
@@ -166,7 +169,7 @@ void convert_sparse_matrix_rows_to_basis_elements(
         mat_t *mat,
         bs_t *bs,
         ht_t *ht,
-        const hl_t *hcm,
+        hd_t **hcm,
         stat_t *st
         )
 {
@@ -177,33 +180,41 @@ void convert_sparse_matrix_rows_to_basis_elements(
 
     len_t i, j;
 
-    hl_t *row = NULL;
+    row_t row;
     len_t bl  = bs->ld;
 
-    const np  = mat->np;
+    const len_t np  = mat->np;
+    const len_t ncr = mat->ncr;
+    const int32_t nthrds  = st->nthrds;
 
     /* fix size of basis for entering new elements directly */
-    check_enlarge_basis(bs, mat->np);
+    check_enlarge_basis(bs, np);
 
 
 #pragma omp parallel for num_threads(nthrds) private(i, j)
-    for (i = 0; i < np; ++i) {
-        row = mat->r[i];
-        for (j = 3; j < row[1]; ++j) {
-            row[j] = hcm[row[j]];
-        }
-        for (; j < row[2]; j += 4) {
-            row[j]   = hcm[row[j]];
-            row[j+1] = hcm[row[j+1]];
-            row[j+2] = hcm[row[j+2]];
-            row[j+3] = hcm[row[j+3]];
-        }
-        bs->cf[bl+i]  = bs->tcf[row[0]];
-        row[0]        = bl+i;
-        bs->hd[bl+i]  = row;
+    for (i = 0; i < ncr; ++i) {
+        row = mat->npv[i];
+        if (row.sz > 0) {
+            hd_t **h  =
+                (hd_t **)malloc((unsigned long)row.sz * sizeof(hd_t *));
+            for (j = 0; j < row.of; ++j) {
+                h[j] = insert_in_hash_table(hcm[row.ci[j]]->exp, ht);
+            }
+            for (; j < row.sz; j += 4) {
+                h[j]    = insert_in_hash_table(hcm[row.ci[j]]->exp, ht);
+                h[j+1]  = insert_in_hash_table(hcm[row.ci[j+1]]->exp, ht);
+                h[j+2]  = insert_in_hash_table(hcm[row.ci[j+2]]->exp, ht);
+                h[j+3]  = insert_in_hash_table(hcm[row.ci[j+3]]->exp, ht);
+            }
 
-        bs->lm[bl+i]  = ht->hd[row[3]].sdm;
+            bs->cf[bl+i]    = row.cl;
+            bs->m[bl+i].h   = h;
+            bs->m[bl+i].of  = row.of;
+            bs->m[bl+i].sz  = row.sz;
+            bs->m[bl+i].cl  = row.cl;
 
+            bs->lm[bl+i]  = h[0]->sdm;
+        }
         /* printf("new element [%d]\n", bl);
          * for (int32_t p = 3; p < gbcf[bl][2]; ++p) {
          *     printf("%d | ", gbcf[bl][p]);
@@ -216,8 +227,6 @@ void convert_sparse_matrix_rows_to_basis_elements(
     }
 
     /* printf("thread %d frees tmpcf %p\n", omp_get_thread_num(), tmpcf); */
-    free(bs->tcf);
-    bs->tcf = NULL;
 
     /* timings */
     ct1 = cputime();

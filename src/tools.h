@@ -19,6 +19,8 @@
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+#ifndef GB_TOOLS_H
+#define GB_TOOLS_H
 
 #include "data.h"
 
@@ -71,3 +73,4 @@ inline val_t compare_and_swap(
 #endif
     return prev;
 }
+#endif

@@ -48,7 +48,7 @@ mat_t *select_spairs_by_minimal_degree(
     const len_t nv  = gbnv;
 
     /* sort pair set */
-    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), &spair_cmp);
+    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp);
     /* get minimal degree */
     md  = ps[0].lcm->deg;
 
@@ -184,7 +184,7 @@ mat_t *symbolic_preprocessing(
         stat_t *st
         )
 {
-    len_t i, j;
+    len_t i;
     int red;
 
     /* timings */
@@ -214,9 +214,6 @@ mat_t *symbolic_preprocessing(
     mat->nap = mat->nru;
 
     mat->nr  =  mat->nru + mat->nrl;
-
-    /* allocate space for coefficient arrays of possible new pivots */
-    mat->tcf  = realloc(mat->tcf, (unsigned long)mat->nrl * sizeof(void *));
 
     /* timings */
     ct1 = cputime();

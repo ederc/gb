@@ -103,7 +103,7 @@ inline val_t pseudo_random_number_generator(
     return (val_t)ht->rseed;
 }
 
-inline sdm_t generate_short_divmask(
+static inline sdm_t generate_short_divmask(
     const exp_t * const a,
     const ht_t *ht
     )
@@ -130,7 +130,7 @@ inline sdm_t generate_short_divmask(
 /* note: we calculate the divmask after reading in the input generators. those
  * are first stored in the local hash table. thus we use the local exponents to
  * generate the divmask */
-inline void calculate_divmask(
+static inline void calculate_divmask(
     ht_t *ht
     )
 {

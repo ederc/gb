@@ -72,7 +72,7 @@ void normalize_initial_basis_32(
     const int32_t fc  = gbfc;
 
     for (i = 0; i < ne; ++i) {
-        cf16_t *p = polys[i];
+        cf32_t *p = polys[i];
 
         const int32_t inv = mod_p_inverse_32((int32_t)p[3], fc);
 

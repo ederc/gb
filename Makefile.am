@@ -19,7 +19,6 @@ LDADD = ${GMP_LIBS} ${CL_LIBS}
 lib_LTLIBRARIES = libgb.la
 
 libgb_la_SOURCES = \
-	src/gb.c			\
 	src/stat.c		\
 	src/f4.c			\
 	src/io.c			\
@@ -35,19 +34,7 @@ BUILT_SOURCES = config.h
 
 pkgincludesubdir = $(includedir)/src
 pkgincludesub_HEADERS = \
-	src/data.h		\
-	src/time.h		\
-	src/tools.h		\
-	src/stat.h		\
-	src/f4.h			\
-	src/io.h			\
-	src/basis.h		\
-	src/hash.h		\
-	src/convert.h	\
-	src/order.h		\
-	src/symbol.h	\
-	src/la_ff.h		\
-	src/update.h
+	src/data.h
 
 nodist_pkgincludesub_HEADERS = config.h
 

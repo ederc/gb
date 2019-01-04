@@ -95,7 +95,7 @@ int64_t f4_julia_ff(
     st->num_matrices++;
     /* sort initial elements, smallest lead term first */
     qsort(bs->m, (unsigned long)st->nr_gens,
-            sizeof(mon_t *), initial_basis_cmp);
+            sizeof(mon_t), initial_basis_cmp);
     /* normalize input generators */
     normalize_initial_basis(bs, st->nr_gens);
     /* normalize_matrix_rows(bs->cf, bs->ld, st->field_char); */

@@ -86,6 +86,8 @@ ht_t *initialize_local_hash_table(
     const len_t nv  = st->nr_vars;
 
     ht->rv  = ght->rv;
+    ht->ndv = ght->ndv;
+    ht->bpv = ght->bpv;
 
     /* generate map */
     ht->hsz  = (hl_t)pow(2, st->init_ht_sz - 5);

@@ -547,7 +547,7 @@ static inline void multiplied_polynomial_to_matrix_row(
     row         = (hd_t **)malloc((unsigned long)poly.sz * sizeof(hd_t *));
     
     /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
-    for (i = 3; i < poly.of; ++i) {
+    for (i = 0; i < poly.of; ++i) {
         row[i]  = insert_in_hash_table_product_special(
                 hm, deg, em, h[i], ht);
     }

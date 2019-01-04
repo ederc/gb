@@ -38,6 +38,8 @@ void insert_and_update_spairs(
     const len_t bl        = bs->ld;
     const hd_t * const nh = bs->m[bl].h[0];
 
+    bs->lm[bs->ld]  = nh->sdm;
+
     reset_hash_table(lht, bl);
 
     if (is_new_generator_redundant(psl, bs, ght, st)) {

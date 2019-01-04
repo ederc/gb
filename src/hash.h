@@ -248,6 +248,7 @@ static inline hd_t *insert_in_hash_table(
     /* add element to hash table */
     ht->map[k]  = pos = ht->eld;
     e   = ht->ev[pos];
+    memcpy(e, a, (unsigned long)nv*sizeof(exp_t));
     d   = ht->hd + pos;
     deg = 0;
     for (j = 0; j < nv; ++j) {
@@ -258,6 +259,8 @@ static inline hd_t *insert_in_hash_table(
     d->sdm  = generate_short_divmask(e, ht);
     d->val  = h;
     d->exp  = e;
+    
+    ht->eld++;
 
     return d;
 }

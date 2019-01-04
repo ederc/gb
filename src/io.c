@@ -180,6 +180,7 @@ int32_t check_and_set_meta_data(
 
     set_function_pointers(st);
 
+    printf("nr_vars %d | gbnv %d | gbfc %d\n", nr_vars, gbnv, gbfc);
     return 0;
 }
 

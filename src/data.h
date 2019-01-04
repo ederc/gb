@@ -287,6 +287,5 @@ void *(*reduce_dense_row_by_dense_new_pivots)(
 static len_t gbnv       = 0;  /* number of variables */
 static int32_t gbfc     = 0;  /* field characteristic */
 static uint32_t rseed   = 2463534242; /* seed for pseudo number generator */
-static exp_t *etmp      = NULL; /* exponent vector for local computation */
-
+static exp_t *etmp      = NULL; /* temporary array for exponent computation */
 #endif

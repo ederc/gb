@@ -42,7 +42,6 @@ mat_t *select_spairs_by_minimal_degree(
     exp_t *elcm, *eb;
     deg_t d = 0;
     len_t load = 0, load_all = 0;
-    exp_t *etmp = ht->hd[0].exp;
     spair_t *ps = psl->p;
 
     const len_t nv  = gbnv;

@@ -20,7 +20,6 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "data.h"
 #include "stat.h"
 
 

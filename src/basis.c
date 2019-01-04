@@ -30,20 +30,19 @@ void normalize_initial_basis_16(
     len_t i, j;
     int64_t tmp1, tmp2, tmp3, tmp4;
 
-    cf16_t **polys    = (cf16_t **)bs->cf;
     const int32_t fc  = gbfc;
 
     for (i = 0; i < ne; ++i) {
-        cf16_t *p = polys[i];
+        cf16_t *p = (cf16_t *)bs->m[i].cl;
 
-        const int32_t inv = mod_p_inverse_32((int32_t)p[3], fc);
+        const int32_t inv = mod_p_inverse_32((int32_t)p[0], fc);
 
-        for (j = 3; j < p[1]; ++j) {
+        for (j = 0; j < bs->m[i].of; ++j) {
             tmp1  =   ((int64_t)p[j] * inv) % fc;
             tmp1  +=  (tmp1 >> 63) & fc;
             p[j]  =   (cf16_t)tmp1;
         }
-        for (j = p[1]; j < p[2]; j += 4) {
+        for (; j < bs->m[i].sz; j += 4) {
             tmp1    =   ((int64_t)p[j] * inv) % fc;
             tmp2    =   ((int64_t)p[j+1] * inv) % fc;
             tmp3    =   ((int64_t)p[j+2] * inv) % fc;
@@ -68,20 +67,19 @@ void normalize_initial_basis_32(
     len_t i, j;
     int64_t tmp1, tmp2, tmp3, tmp4;
 
-    cf32_t **polys    = (cf32_t **)bs->cf;
     const int32_t fc  = gbfc;
 
     for (i = 0; i < ne; ++i) {
-        cf32_t *p = polys[i];
+        cf32_t *p = (cf32_t *)bs->m[i].cl;
 
-        const int32_t inv = mod_p_inverse_32((int32_t)p[3], fc);
+        const int32_t inv = mod_p_inverse_32((int32_t)p[0], fc);
 
-        for (j = 3; j < p[1]; ++j) {
+        for (j = 0; j < bs->m[i].of; ++j) {
             tmp1  =   ((int64_t)p[j] * inv) % fc;
             tmp1  +=  (tmp1 >> 63) & fc;
             p[j]  =   (cf32_t)tmp1;
         }
-        for (j = p[1]; j < p[2]; j += 4) {
+        for (; j < bs->m[i].sz; j += 4) {
             tmp1    =   ((int64_t)p[j] * inv) % fc;
             tmp2    =   ((int64_t)p[j+1] * inv) % fc;
             tmp3    =   ((int64_t)p[j+2] * inv) % fc;

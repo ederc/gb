@@ -54,7 +54,7 @@ static inline ps_t *initialize_pairset(
     ps->ld    = 0;
     ps->sz    = 10 * st->nr_gens;
     ps->mnsel = st->max_nr_pairs;
-    ps->p     = (spair_t *)malloc((unsigned long)ps->sz * sizeof(spair_t));
+    ps->p     = (spair_t *)calloc((unsigned long)ps->sz,sizeof(spair_t));
 
     return ps;
 }
@@ -109,14 +109,13 @@ static inline int is_new_generator_redundant(
     for (i = bs->lo; i < bl; ++i) {
         if (!bs->red[i] 
             && check_monomial_division(nh, bs->m[i].h[0])) {
-            /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
-            spair_t p = psl->p[psl->ld];
-            p.gen1 = i;
-            p.gen2 = bl;
+            spair_t *p = psl->p + psl->ld;
+            p->gen1 = i;
+            p->gen2 = bl;
             if (ht->eld >= ht->esz) {
                 enlarge_hash_table(ht);
             }
-            p.lcm  = get_lcm(bs->m[i].h[0], nh, ht);
+            p->lcm  = get_lcm(bs->m[i].h[0], nh, ht);
             bs->red[bl] = 1;
             st->num_redundant++;
             bs->ld++;

@@ -114,8 +114,7 @@ void insert_and_update_spairs(
         if (plcm[i] == NULL) {
             continue;
         }
-        pp[i].lcm = insert_in_hash_table(
-                plcm[i]->exp, ght);
+        pp[i].lcm = insert_in_hash_table(plcm[i]->exp, ght);
         ps[j++]   = pp[i];
     }
     free(plcm);

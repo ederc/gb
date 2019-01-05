@@ -52,10 +52,8 @@ hd_t **convert_hashes_to_columns(
     mon_t p;
     ci_t *c;
 
-    mat->pv     = realloc(mat->pv, (unsigned long)nru * sizeof(row_t));
-    row_t *pv   = mat->pv;
-    mat->tbr    = realloc(mat->tbr, (unsigned long)nrl * sizeof(row_t));
-    row_t *tbr  = mat->tbr;
+    mat->pv   = realloc(mat->pv, (unsigned long)nru * sizeof(row_t));
+    mat->tbr  = realloc(mat->tbr, (unsigned long)nrl * sizeof(row_t));
     /* need to allocate memory for all possible exponents we
      * have in the local hash table since we do not which of
      * them are corresponding to multipliers and which are
@@ -69,7 +67,7 @@ hd_t **convert_hashes_to_columns(
         }
     }
     /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
-    qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
+    qsort(hcm, (unsigned long)j, sizeof(hd_t *), hcm_cmp);
 
     /* set number of rows and columns in ABCD splicing */
     mat->ncl  = k;
@@ -87,10 +85,9 @@ hd_t **convert_hashes_to_columns(
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < nru; ++i) {
         p = mat->pmp[i];
-        pv[i].sz  = p.sz;
-        pv[i].of  = p.of;
-        pv[i].cl  = p.cl;
-        c = pv[i].ci;
+        mat->pv[i].sz  = p.sz;
+        mat->pv[i].of  = p.of;
+        mat->pv[i].cl  = p.cl;
         c = (ci_t *)malloc((unsigned long)(p.sz) * sizeof(ci_t));
         h = p.h;
         for (j = 0; j < p.of; ++j) {
@@ -102,6 +99,7 @@ hd_t **convert_hashes_to_columns(
             c[j+2]  = h[j+2]->idx;
             c[j+3]  = h[j+3]->idx;
         }
+        mat->pv[i].ci  = c;
         free(mat->pmp[i].h);
         mat->pmp[i].h  = NULL;
     }
@@ -111,10 +109,9 @@ hd_t **convert_hashes_to_columns(
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < nrl; ++i) {
         p = mat->npmp[i];
-        tbr[i].sz = p.sz;
-        tbr[i].of = p.of;
-        tbr[i].cl = p.cl;
-        c = tbr[i].ci;
+        mat->tbr[i].sz = p.sz;
+        mat->tbr[i].of = p.of;
+        mat->tbr[i].cl = p.cl;
         c = (ci_t *)malloc((unsigned long)(p.sz) * sizeof(ci_t));
         h = p.h;
         for (j = 0; j < p.of; ++j) {
@@ -126,6 +123,7 @@ hd_t **convert_hashes_to_columns(
             c[j+2]  = h[j+2]->idx;
             c[j+3]  = h[j+3]->idx;
         }
+        mat->tbr[i].ci = c;
         free(mat->npmp[i].h);
         mat->npmp[i].h  = NULL;
     }

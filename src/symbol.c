@@ -123,9 +123,10 @@ mat_t *select_spairs_by_minimal_degree(
             d       +=  etmp[l];
         }
         const hl_t h    = lcm->val - b.h[0]->val;
-        multiplied_polynomial_to_matrix_row(mat, mat->npmp, ht, h, d, etmp, b);
+        multiplied_polynomial_to_matrix_row(
+                mat, mat->npmp, mat->nrl, ht, h, d, etmp, b);
         /* mark lcm column as lead term column */
-        lcm->idx = 2;
+        mat->npmp[mat->nrl].h[0]->idx = 2;
         mat->nrl++;
         for (k = 1; k < load; ++k) {
             /* ev might change when enlarging the hash table during
@@ -147,7 +148,7 @@ mat_t *select_spairs_by_minimal_degree(
                         (unsigned long)mat->nap * sizeof(mon_t));
             }
             multiplied_polynomial_to_matrix_row(
-                    mat, mat->pmp, ht, h, d, etmp, b);
+                    mat, mat->pmp, mat->nru, ht, h, d, etmp, b);
             mat->nru++;
         }
         i = j;
@@ -243,46 +244,8 @@ int find_multiplied_reducer(
     const len_t os  = nv & 1 ? 1 : 0;
     const sdm_t ns  = ~(m->sdm);
 
-    exp_t *etmp = ht->hd[0].exp;
-
     i = 0;
-start1:
-    while (i < bl-3) {
-        if (lms[i] & ns &&
-                lms[i+1] & ns &&
-                lms[i+2] & ns &&
-                lms[i+3] & ns) {
-            i +=  4;
-            continue;
-        }
-        while (lms[i] & ns) {
-            i++;
-        }
-        b = bs->m[i];
-        f = b.h[0]->exp;
-        if ((e[0]-f[0]) < 0) {
-            i++;
-            goto start1;
-        }
-        for (k = os; k < nv; k += 2) {
-            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
-                i++;
-                goto start1;
-            }
-        }
-        for (k = 0; k < nv; ++k) {
-            etmp[k] = e[k] - f[k];
-        }
-        const val_t h = m->val - b.h[0]->val;
-        for (k = 0; k < nv; ++k) {
-            d += etmp[k];
-        }
-        multiplied_polynomial_to_matrix_row(
-                mat, mat->pmp, ht, h, d, etmp, b);
-        mat->nru++;
-        return 1;
-    }
-start2:
+start:
     while (i < bl) {
         if (lms[i] & ns) {
             i++;
@@ -292,12 +255,12 @@ start2:
         f = b.h[0]->exp;
         if ((e[0]-f[0]) < 0) {
             i++;
-            goto start2;
+            goto start;
         }
         for (k = os; k < nv; k += 2) {
             if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
                 i++;
-                goto start2;
+                goto start;
             }
         }
         for (k = 0; k < nv; ++k) {
@@ -307,8 +270,14 @@ start2:
         for (k = 0; k < nv; ++k) {
             d += etmp[k];
         }
+        /* check possible increasement of matrix rows */
+        if (mat->nru >= mat->nap) {
+            mat->nap *=  2;
+            mat->pmp  = realloc(mat->pmp,
+                    (unsigned long)mat->nap * sizeof(mon_t));
+        }
         multiplied_polynomial_to_matrix_row(
-                mat, mat->pmp, ht, h, d, etmp, b);
+                mat, mat->pmp, mat->nru, ht, h, d, etmp, b);
         mat->nru++;
         return 1;
     }

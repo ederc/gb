@@ -522,6 +522,7 @@ static inline hd_t *monomial_division_no_check(
 static inline void multiplied_polynomial_to_matrix_row(
     mat_t *mat,
     mon_t *mp,
+    const len_t nr,
     ht_t *ht,
     const val_t hm,
     const deg_t deg,
@@ -539,12 +540,11 @@ static inline void multiplied_polynomial_to_matrix_row(
     while (ht->eld+poly.sz >= ht->esz) {
         enlarge_hash_table(ht);
     }
-    mp[mat->nr].sz = poly.sz;
-    mp[mat->nr].of = poly.of;
-    mp[mat->nr].cl = poly.cl;
+    mp[nr].sz = poly.sz;
+    mp[nr].of = poly.of;
+    mp[nr].cl = poly.cl;
 
-    hd_t **row  = mp[mat->nr].h;
-    row         = (hd_t **)malloc((unsigned long)poly.sz * sizeof(hd_t *));
+    hd_t **row  = (hd_t **)malloc((unsigned long)poly.sz * sizeof(hd_t *));
     
     /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
     for (i = 0; i < poly.of; ++i) {
@@ -561,6 +561,7 @@ static inline void multiplied_polynomial_to_matrix_row(
         row[i+3]  = insert_in_hash_table_product_special(
                 hm, deg, em, h[i+3], ht);
     }
+    mp[nr].h  = row;
 }
 
 inline hl_t *reset_idx_in_global_hash_table_and_free_hcm(

@@ -202,8 +202,8 @@ int hcm_cmp_pivots_drl(
         const void *b
         )
 {
-    const hd_t *ma  = (hd_t *)a;
-    const hd_t *mb  = (hd_t *)b;
+    const hd_t *ma  = *((hd_t **)a);
+    const hd_t *mb  = *((hd_t **)b);
 
     return monomial_cmp_pivots_drl(ma, mb);
 }
@@ -213,8 +213,8 @@ int hcm_cmp_pivots_lex(
         const void *b
         )
 {
-    const hd_t *ma  = (hd_t *)a;
-    const hd_t *mb  = (hd_t *)b;
+    const hd_t *ma  = *((hd_t **)a);
+    const hd_t *mb  = *((hd_t **)b);
 
     return monomial_cmp_pivots_lex(ma, mb);
 }

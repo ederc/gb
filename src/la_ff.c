@@ -122,7 +122,7 @@ mat_t *exact_sparse_reduced_echelon_form_16(
     /* interreduce new pivots */
     cf16_t *cf;
     ci_t *ci;
-    for (i = mat->ncr; i >= 0; --i) {
+    for (i = mat->ncr-1; i >= 0; --i) {
         row_t r = mat->npv[i];
         if (r.sz > 0) {
             memset(dr, 0, (unsigned long)mat->nc * sizeof(int64_t));
@@ -139,6 +139,7 @@ mat_t *exact_sparse_reduced_echelon_form_16(
                 dr[ci[j+3]] = (int64_t)cf[j+3];
             }
             free(ci);
+            mat->npv[i].ci  = NULL;
             free(cf);
             mat->npv[i] =
                 reduce_dense_row_by_sparse_pivots_16(dr, mat, sc);
@@ -195,29 +196,37 @@ row_t reduce_dense_row_by_sparse_pivots_16(
         }
         dr[i] = 0;
     }
+        printf("drl inside: ");
+        for (int ii=0; ii<mat->nc; ++ii) {
+            printf("%\ld ", dr[ii]);
+        }
+        printf("\n");
     /* reduce with newly found pivots */
-    row_t *npv  = mat->npv - ncl; /* shift for easier access */
+    row_t *npv  = mat->npv; /* shift for easier access */
+    /* row_t *npv  = mat->npv - ncl; [> shift for easier access <] */
     k = 0;
+    printf("ncl %d | nc %d\n", ncl, nc);
     for (; i < nc; ++i) {
+        printf("i %d\n", i);
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;
         }
         if (dr[i] == 0) {
             continue;
         }
-        if (npv[i].ci == NULL) {
+        if (npv[i-ncl].ci == NULL) {
             if (np == 0) {
                 np  = i;
             }
             k++;
             continue;
         }
-        const ci_t * const ci   = npv[i].ci;
-        const cf16_t * const cf = (cf16_t *)npv[i].cl;
+        const ci_t * const ci   = npv[i-ncl].ci;
+        const cf16_t * const cf = (cf16_t *)npv[i-ncl].cl;
 
         const int64_t mul = mod - dr[i];
-        const ci_t of     = pv[i].of;
-        const ci_t sz     = pv[i].sz;
+        const ci_t of     = npv[i-ncl].of;
+        const ci_t sz     = npv[i-ncl].sz;
 
         for (j = 0; j < of; ++j) {
             dr[ci[j]] +=  mul * cf[j];
@@ -237,6 +246,7 @@ row_t reduce_dense_row_by_sparse_pivots_16(
 
     ci_t *ci    = (ci_t *)malloc((unsigned long)(nc-np) * sizeof(ci_t));
     cf16_t *cf  = (cf16_t *)malloc((unsigned long)(nc-np) * sizeof(cf16_t));
+    j = 0;
     for (i = np; i < nc; ++i) {
         if (dr[i] != 0) {
             dr[i] = dr[i] % mod;

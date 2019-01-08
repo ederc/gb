@@ -79,7 +79,7 @@ static inline mat_t *sort_matrix_rows(
         mat_t *mat
         )
 {
-    qsort(mat->pv, (unsigned long)mat->ncl, sizeof(row_t *), &matrix_row_cmp);
+    qsort(mat->pv, (unsigned long)mat->ncl, sizeof(row_t), &matrix_row_cmp);
     return mat;
 }
 

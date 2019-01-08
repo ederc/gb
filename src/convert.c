@@ -132,6 +132,7 @@ hd_t **convert_hashes_to_columns(
 
     /* allocate space for coefficient arrays of possible new pivots */
     mat->npv  = realloc(mat->npv, (unsigned long)mat->ncr * sizeof(row_t));
+    memset(mat->npv, 0, (unsigned long)mat->ncr * sizeof(row_t));
 
     /* next we sort each row by the new colum order due
      * to known / unkown pivots */
@@ -176,7 +177,7 @@ void convert_sparse_matrix_rows_to_basis_elements(
     ct0 = cputime();
     rt0 = realtime();
 
-    len_t i, j;
+    len_t i, j, k;
 
     row_t row;
     len_t bl  = bs->ld;
@@ -188,9 +189,7 @@ void convert_sparse_matrix_rows_to_basis_elements(
     /* fix size of basis for entering new elements directly */
     check_enlarge_basis(bs, np);
 
-
-#pragma omp parallel for num_threads(nthrds) private(i, j)
-    for (i = 0; i < ncr; ++i) {
+    for (k = 0, i = 0; i < ncr; ++i) {
         row = mat->npv[i];
         if (row.sz > 0) {
             hd_t **h  =
@@ -205,26 +204,26 @@ void convert_sparse_matrix_rows_to_basis_elements(
                 h[j+3]  = insert_in_hash_table(hcm[row.ci[j+3]]->exp, ht);
             }
 
-            bs->cf[bl+i]    = row.cl;
-            bs->m[bl+i].h   = h;
-            bs->m[bl+i].of  = row.of;
-            bs->m[bl+i].sz  = row.sz;
-            bs->m[bl+i].cl  = row.cl;
+            bs->cf[bl+k]    = row.cl;
+            bs->m[bl+k].h   = h;
+            bs->m[bl+k].of  = row.of;
+            bs->m[bl+k].sz  = row.sz;
+            bs->m[bl+k].cl  = row.cl;
 
-            bs->lm[bl+i]  = h[0]->sdm;
+            bs->lm[bl+k]  = h[0]->sdm;
+            free(mat->npv[i].ci);
+        printf("new element [%d]\n", bl+k);
+        for (int32_t p = 0; p < bs->m[bl+i].sz; ++p) {
+            cf16_t *cf  = (cf16_t *)bs->m[bl+k].cl;
+            printf("%d | ", cf[p]);
+            for (int32_t q = 0; q < gbnv; ++q) {
+                printf("%d", bs->m[bl+k].h[p]->exp[q]);
+            }
+            printf(" || ");
         }
-        /* printf("new element [%d]\n", bl);
-         * for (int32_t p = 3; p < gbcf[bl][2]; ++p) {
-         *     printf("%d | ", gbcf[bl][p]);
-         *     for (int32_t q = 0; q < nvars; ++q) {
-         *         printf("%d", ev[gbdt[bl][p]][q]);
-         *     }
-         *     printf(" || ");
-         * }
-         * printf("\n"); */
+        printf("\n");
+        }
     }
-
-    /* printf("thread %d frees tmpcf %p\n", omp_get_thread_num(), tmpcf); */
 
     /* timings */
     ct1 = cputime();

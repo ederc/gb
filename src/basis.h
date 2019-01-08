@@ -81,7 +81,7 @@ static inline void check_enlarge_basis(
     if (bs->ld+added >= bs->sz) {
         bs->sz  = bs->sz*2 > bs->ld+added ? bs->sz*2 : bs->ld+added;
         bs->cf  = realloc(bs->cf, (unsigned long)bs->sz * sizeof(void *));
-        bs->m   = realloc(bs->m, (unsigned long)bs->sz * sizeof(mon_t *));
+        bs->m   = realloc(bs->m, (unsigned long)bs->sz * sizeof(mon_t));
         bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->red = realloc(bs->red, (unsigned long)bs->sz * sizeof(red_t));
     }

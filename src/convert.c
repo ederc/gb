@@ -209,11 +209,11 @@ void convert_sparse_matrix_rows_to_basis_elements(
             bs->m[bl+k].of  = row.of;
             bs->m[bl+k].sz  = row.sz;
             bs->m[bl+k].cl  = row.cl;
-
-            bs->lm[bl+k]  = h[0]->sdm;
+            bs->red[bl+k]   = 0;
+            bs->lm[bl+k]    = h[0]->sdm;
             free(mat->npv[i].ci);
         printf("new element [%d]\n", bl+k);
-        for (int32_t p = 0; p < bs->m[bl+i].sz; ++p) {
+        for (int32_t p = 0; p < bs->m[bl+k].sz; ++p) {
             cf16_t *cf  = (cf16_t *)bs->m[bl+k].cl;
             printf("%d | ", cf[p]);
             for (int32_t q = 0; q < gbnv; ++q) {
@@ -222,6 +222,7 @@ void convert_sparse_matrix_rows_to_basis_elements(
             printf(" || ");
         }
         printf("\n");
+        k++;
         }
     }
 

@@ -372,7 +372,7 @@ static inline void reset_symbolic_hash_table(
     )
 {
     memset(ht->hd, 0, (unsigned long)ht->esz * sizeof(hd_t));
-    memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hd_t));
+    memset(ht->map, 0, (unsigned long)ht->hsz * sizeof(hl_t));
     ht->eld = 1;
 }
 

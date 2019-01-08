@@ -104,6 +104,7 @@ mat_t *exact_sparse_reduced_echelon_form_16(
 
     }
     free(mat->tbr);
+    mat->tbr  = NULL;
     /* free(upivs); */
     /* upivs = NULL; */
 
@@ -113,6 +114,7 @@ mat_t *exact_sparse_reduced_echelon_form_16(
         /* pivs[i] = NULL; */
     }
     free(mat->pv);
+    mat->pv = NULL;
 
     mat->np = 0; /* number of new pivots */
 

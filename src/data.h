@@ -185,6 +185,7 @@ static cf_t fc = 0;
 static cf_t **gbcf  = NULL;
 static cf_t **tmpcf = NULL;
 static dt_t **gbdt  = NULL;
+static int8_t *red  = NULL;
 static bl_t blold   = 0;
 static bl_t bload   = 0;
 static bl_t bsize   = 0;

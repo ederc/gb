@@ -191,13 +191,14 @@ static void import_julia_data(
     exp_t *e  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
     for (i = 0; i < nr_gens; ++i) {
-        /* each matrix row has the following structure:
-         * [length | offset | eh1 | cf1 | eh2 | cf2 | .. | ehl | cfl]
-         * where piv? is a label for being a known or an unknown pivot */
+        /* gbdt rows store three more elemets at the beginning:
+         * gbdt[0] is the index j of the corresponding coefficient array gbcf[j]
+         * gbdt[1] is the offset of the length of the array for loop unrolling
+         * gbdt[2] is the real length of the array for looping */
         gbdt[i]     = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
         gbcf[i]     = (cf_t *)malloc((unsigned long)(lens[i]+3) * sizeof(cf_t));
         gbdt[i][0]  = i; /* link to matcf entry */
-        gbcf[i][0]  = 0; /* not redundant */
+        red[i]      = 0;
         gbdt[i][1]  = (lens[i] % UNROLL) + 3; /* offset */
         gbcf[i][1]  = gbdt[i][1];
         gbdt[i][2]  = lens[i]+3; /* length */
@@ -231,10 +232,10 @@ static int64_t export_julia_data(
 
     /* compute number of terms */
     for (i = 0; i < bload; ++i) {
-        if (gbcf[i][0]) {
+        if (red[i]) {
             continue;
         } else {
-            len +=  (int64_t)gbcf[i][2]-3;
+            len +=  (int64_t)gbcf[gbdt[i][0]][2]-3;
             nb++;
         }
     }
@@ -259,7 +260,7 @@ static int64_t export_julia_data(
     basis[0]  = (int32_t)nb;
     /* basis[1]  = (int32_t)nb; */
     for (i = 0; i < bload; ++i) {
-        if (gbcf[gbdt[i][0]][0]) {
+        if (red[i]) {
             continue;
         } else {
             /* length of polynomial including this length entry itself */

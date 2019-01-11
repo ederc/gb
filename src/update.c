@@ -94,7 +94,7 @@ static void insert_and_update_spairs(
 
 #if INSERT_SMALL_FIRST
     for (i = blold; i < bl; ++i) {
-        if (gbcf[i][0]) {
+        if (red[i]) {
             continue;
         }
         if (check_monomial_division(nch, gbdt[i][3])) {
@@ -103,7 +103,7 @@ static void insert_and_update_spairs(
             ps[pl].gen2 = bl;
             ps[pl].lcm  = get_lcm(gbdt[i][3], nch);
             ps[pl].lcm  = insert_in_global_hash_table(evl[ps[pl].lcm]);
-            gbcf[bl][0] = 1;
+            red[bl]     = 1;
             st->num_redundant++;
             bload++;
             psl->ld++;
@@ -116,13 +116,12 @@ static void insert_and_update_spairs(
 
     /* create all possible new pairs */
     for (i = 0, k = pl; i < bl; ++i, ++k) {
-        /* b = (hl_t *)((long)bs[i] & bmask); */
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
 
         ps[k].lcm   = get_lcm(gbdt[i][3], nch);
 
-        if (gbcf[i][0]) {
+        if (red[i]) {
             ps[k].lcm = -1; /* redundant pair */
         } else {
             if (lcm_equals_multiplication(gbdt[i][3], nch, ps[k].lcm)) {
@@ -211,12 +210,11 @@ static void insert_and_update_spairs(
 
     /* mark redundant elements in basis */
     for (i = 0; i < bl; ++i) {
-        if (gbcf[i][0]) {
+        if (red[i]) {
             continue;
         }
         if (check_monomial_division(gbdt[i][3], nch)) {
-            /* printf("Mark polynomial %d unnecessary for new pairs\n", i); */
-            gbcf[i][0]  = 1;
+            red[i]  = 1;
             st->num_redundant++;
         }
     }

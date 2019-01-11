@@ -152,12 +152,14 @@ static hl_t *convert_hashes_to_columns(
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < nrows; ++i) {
-        row = matdt[i];
-        nterms  +=  row[2];
-        for (j = 3; j < row[1]; ++j) {
+        const len_t os  = matdt[i][1];
+        const len_t len = matdt[i][2];
+        row = matdt[i] + 3;
+        nterms  +=  len;
+        for (j = 0; j < os; ++j) {
             row[j]  = hds[row[j]].idx;
         }
-        for (; j < row[2]; j += 4) {
+        for (; j < len; j += 4) {
             row[j]    = hds[row[j]].idx;
             row[j+1]  = hds[row[j+1]].idx;
             row[j+2]  = hds[row[j+2]].idx;
@@ -219,30 +221,32 @@ static void convert_sparse_matrix_rows_to_basis_elements(
 
 /* #pragma omp parallel for num_threads(nthrds) private(i, j) */
     for (i = 0; i < npivs; ++i) {
-        for (j = 3; j < mat[i][1]; ++j) {
-            mat[i][j] = insert_in_global_hash_table(evs[hcm[mat[i][j]]]);
+        const len_t os  = mat[i][1];
+        const len_t len = mat[i][2];
+        dt_t *m = mat[i] + 3;
+        for (j = 0; j < os; ++j) {
+            m[j]  = insert_in_global_hash_table(evs[hcm[m[j]]]);
         }
-        for (; j < mat[i][2]; j += 4) {
-            mat[i][j]   = insert_in_global_hash_table(evs[hcm[mat[i][j]]]);
-            mat[i][j+1] = insert_in_global_hash_table(evs[hcm[mat[i][j+1]]]);
-            mat[i][j+2] = insert_in_global_hash_table(evs[hcm[mat[i][j+2]]]);
-            mat[i][j+3] = insert_in_global_hash_table(evs[hcm[mat[i][j+3]]]);
+        for (; j < len; j += 4) {
+            m[j]    = insert_in_global_hash_table(evs[hcm[m[j]]]);
+            m[j+1]  = insert_in_global_hash_table(evs[hcm[m[j+1]]]);
+            m[j+2]  = insert_in_global_hash_table(evs[hcm[m[j+2]]]);
+            m[j+3]  = insert_in_global_hash_table(evs[hcm[m[j+3]]]);
         }
         gbcf[bl+i]  = tmpcf[mat[i][0]];
         mat[i][0]   = bl+i;
         gbdt[bl+i]  = mat[i];
         /* printf("new element [%d]\n", bl);
-         * for (int32_t p = 3; p < gbcf[bl][2]; ++p) {
+         * for (int32_t p = 0; p < gbdt[bl][2]; ++p) {
          *     printf("%d | ", gbcf[bl][p]);
          *     for (int32_t q = 0; q < nvars; ++q) {
-         *         printf("%d", ev[gbdt[bl][p]][q]);
+         *         printf("%d", ev[gbdt[bl][p+3]][q]);
          *     }
          *     printf(" || ");
          * }
          * printf("\n"); */
     }
 
-    /* printf("thread %d frees tmpcf %p\n", omp_get_thread_num(), tmpcf); */
     free(tmpcf);
     tmpcf = NULL;
 

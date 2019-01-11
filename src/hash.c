@@ -1029,30 +1029,34 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
 {
   len_t i;
 
-  dt_t *row = (dt_t *)malloc((unsigned long)poly[2] * sizeof(dt_t));
+  dt_t *row = (dt_t *)malloc((unsigned long)(poly[2]+3) * sizeof(dt_t));
   row[0]    = poly[0];
   row[1]    = poly[1];
   row[2]    = poly[2];
   /* hash table product insertions appear only here:
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
-  while (esld+poly[2]-3 >= essz) {
+  while (esld+poly[2] >= essz) {
     enlarge_symbolic_hash_table();
   }
+  const len_t os  = row[1];
+  const len_t len = row[2];
+  dt_t *rs  = row + 3;
+  const dt_t * const ps  = poly + 3;
   /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
-  for (i = 3; i < poly[1]; ++i) {
-    row[i]  = insert_in_symbolic_hash_table_product_special(
-                hm, deg, em, poly[i]);
+  for (i = 0; i < os; ++i) {
+    rs[i] = insert_in_symbolic_hash_table_product_special(
+                hm, deg, em, ps[i]);
   }
-  for (;i < poly[2]; i += 4) {
-    row[i]    = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, poly[i]);
-    row[i+1]  = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, poly[i+1]);
-    row[i+2]  = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, poly[i+2]);
-    row[i+3]  = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, poly[i+3]);
+  for (;i < len; i += 4) {
+    rs[i]   = insert_in_symbolic_hash_table_product_special(
+                  hm, deg, em, ps[i]);
+    rs[i+1] = insert_in_symbolic_hash_table_product_special(
+                  hm, deg, em, ps[i+1]);
+    rs[i+2] = insert_in_symbolic_hash_table_product_special(
+                  hm, deg, em, ps[i+2]);
+    rs[i+3] = insert_in_symbolic_hash_table_product_special(
+                  hm, deg, em, ps[i+3]);
   }
 
   return row;

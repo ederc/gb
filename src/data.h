@@ -257,7 +257,7 @@ cf_t *(*reduce_dense_row_by_known_pivots)(
         const hl_t dpiv
         );
 
-cf_t *(*reduce_dense_row_by_known_pivots_sparse)(
+dt_t *(*reduce_dense_row_by_known_pivots_sparse)(
         int64_t *dr,
         dt_t *const *pivs,
         const hl_t dpiv,

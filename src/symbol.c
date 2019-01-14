@@ -181,41 +181,41 @@ static inline dt_t *find_multiplied_reducer(
     i = 0;
 
     const sdm_t ns  = ~hds[m].sdm;
-start:
-    while (i < bl-3) {
-        if (lms[i] & ns &&
-                lms[i+1] & ns &&
-                lms[i+2] & ns &&
-                lms[i+3] & ns) {
-            i +=  4;
-            continue;
-        }
-        while (lms[i] & ns) {
-            i++;
-        }
-        b = gbdt[i];
-        f = ev[b[3]];
-        if ((e[0]-f[0]) < 0) {
-            i++;
-            goto start;
-        }
-        for (k = os; k < nvars; k += 2) {
-            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
-                i++;
-                goto start;
-            }
-        }
-        for (k = 0; k < nvars; ++k) {
-            etmp[k] = e[k] - f[k];
-        }
-        const hl_t h  = hds[m].val - hd[b[3]].val;
-        for (k = 0; k < nvars; ++k) {
-            d += etmp[k];
-        }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hds[m].div = i;
-        return b;
-    }
+/* start:
+ *     while (i < bl-3) {
+ *         if (lms[i] & ns &&
+ *                 lms[i+1] & ns &&
+ *                 lms[i+2] & ns &&
+ *                 lms[i+3] & ns) {
+ *             i +=  4;
+ *             continue;
+ *         }
+ *         while (lms[i] & ns) {
+ *             i++;
+ *         }
+ *         b = gbdt[i];
+ *         f = ev[b[3]];
+ *         if ((e[0]-f[0]) < 0) {
+ *             i++;
+ *             goto start;
+ *         }
+ *         for (k = os; k < nvars; k += 2) {
+ *             if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
+ *                 i++;
+ *                 goto start;
+ *             }
+ *         }
+ *         for (k = 0; k < nvars; ++k) {
+ *             etmp[k] = e[k] - f[k];
+ *         }
+ *         const hl_t h  = hds[m].val - hd[b[3]].val;
+ *         for (k = 0; k < nvars; ++k) {
+ *             d += etmp[k];
+ *         }
+ *         b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+ *         hds[m].div = i;
+ *         return b;
+ *     } */
 start2:
     while (i < bl) {
         if (lms[i] & ns) {
@@ -277,61 +277,17 @@ static dt_t **symbolic_preprocessing(
             nrall *=  2;
             mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
         }
-        /* printf("i %d | idx %d\n", i, hds[i].idx); */
         if (!hds[i].idx) {
             hds[i].idx = 1;
             ncols++;
             red = find_multiplied_reducer(i);
             if (red) {
-                /* printf("hd.idx = 2 for ");
-                    * for (int32_t k = 0; k < nvars; ++k) {
-                    *     printf("%d ", ev[m][k]);
-                    * }
-                    * printf("\n"); */
                 hds[i].idx = 2;
                 /* add new reducer to matrix */
                 mat[nrows++]  = red;
-                /* printf("new reducer %d\n", nrows); */
             }
         }
     }
-#if 0    
-    /* get reducers from basis */
-    for (i = 0; i < nrows; ++i) {
-        /* printf("%p | %d / %d (i / nrows)\n",mat[i], i, nrows); */
-        const hl_t len = mat[i][2];
-        /* check row reallocation only once per polynomial */
-        if ((nrall - nrows) < (len-3)) {
-            /* printf("nrall %d | nrows %d | len %d\n", nrall, nrows, len); */
-            nrall += nrall > len ? nrall : (len_t)len;
-            /* printf("=> nrall %d\n", nrall); */
-
-            mat   = realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
-        }
-        for (j = 4; j < len; ++j) {
-            m = mat[i][j];
-            /* printf("hd[%d].idx = %d\n", m, hd[m].idx); */
-            if (!hd[m].idx) {
-                hd[m].idx = 1;
-                ncols++;
-                red = find_multiplied_reducer(m);
-                if (red) {
-                    /* printf("hd.idx = 2 for ");
-                     * for (int32_t k = 0; k < nvars; ++k) {
-                     *     printf("%d ", ev[m][k]);
-                     * }
-                     * printf("\n"); */
-                    hd[m].idx = 2;
-                    /* add new reducer to matrix */
-                    mat[nrows++]  = red;
-                }
-            }
-        }
-    }
-#endif
-    /* for (i = 0; i < nrows; ++i) {
-     *     printf("row %d -- %d\n", i, mat[i][3]);
-     * } */
     /* realloc to real size */
     mat   = realloc(mat, (unsigned long)nrows * sizeof(dt_t *));
     nrall = nrows;

@@ -187,6 +187,9 @@ static void import_julia_data(
 {
     int32_t i, j;
     len_t k;
+    cf_t * cf;
+    dt_t *dt;
+
     int32_t off = 0; /* offset in arrays */
     exp_t *e  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
 
@@ -199,16 +202,17 @@ static void import_julia_data(
         gbcf[i]     = (cf_t *)malloc((unsigned long)(lens[i]+3) * sizeof(cf_t));
         gbdt[i][0]  = i; /* link to matcf entry */
         red[i]      = 0;
-        gbdt[i][1]  = (lens[i] % UNROLL) + 3; /* offset */
-        gbcf[i][1]  = gbdt[i][1];
-        gbdt[i][2]  = lens[i]+3; /* length */
-        gbcf[i][2]  = gbdt[i][2];
+        gbdt[i][1]  = (lens[i] % UNROLL); /* offset */
+        gbdt[i][2]  = lens[i]; /* length */
+
+        cf  = gbcf[i];
+        dt  = gbdt[i] + 3;
         for (j = off; j < off+lens[i]; ++j) {
             for (k = 0; k < nvars; ++k) {
                 e[k]  = (exp_t)(exps+(nvars*j))[k];
             }
-            gbdt[i][j+3-off]  = insert_in_global_hash_table(e);
-            gbcf[i][j+3-off]  = (cf_t)cfs[j];
+            dt[j-off]  = insert_in_global_hash_table(e);
+            cf[j-off]  = (cf_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
@@ -225,6 +229,9 @@ static int64_t export_julia_data(
     int64_t ctr_lengths, ctr_elements;
     int32_t *basis  = *bp;
 
+    cf_t *cf;
+    dt_t *dt;
+
     int64_t len = 0; /* complete length of exported array */
     int64_t nb  = 0; /* # elemnts in basis */
 
@@ -235,7 +242,7 @@ static int64_t export_julia_data(
         if (red[i]) {
             continue;
         } else {
-            len +=  (int64_t)gbcf[gbdt[i][0]][2]-3;
+            len +=  (int64_t)gbdt[i][2];
             nb++;
         }
     }
@@ -258,17 +265,18 @@ static int64_t export_julia_data(
     ctr_elements  = (int64_t)nb + 1;
 
     basis[0]  = (int32_t)nb;
-    /* basis[1]  = (int32_t)nb; */
     for (i = 0; i < bload; ++i) {
         if (red[i]) {
             continue;
         } else {
             /* length of polynomial including this length entry itself */
-            basis[ctr_lengths++]  = (int32_t)((gbdt[i][2]-3) * lterm);
-            for (j = 3; j < gbdt[i][2]; ++j) {
-                basis[ctr_elements++] = (int32_t)gbcf[gbdt[i][0]][j]; /* coefficient */
+            basis[ctr_lengths++]  = (int32_t)((gbdt[i][2]) * lterm);
+            cf  = gbcf[gbdt[i][0]];
+            dt  = gbdt[i] + 3;
+            for (j = 0; j < gbdt[i][2]; ++j) {
+                basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
                 for (k = 0; k < nvars; ++k) {
-                    basis[ctr_elements++] = (int32_t)ev[gbdt[i][j]][k];
+                    basis[ctr_elements++] = (int32_t)ev[dt[j]][k];
                 }
             }
         }

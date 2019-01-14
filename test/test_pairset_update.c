@@ -42,7 +42,7 @@ int main(
     qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
             matrix_row_initial_input_cmp);
     /* normalize input generators */
-    normalize_matrix_rows(gbcf);
+    normalize_matrix_rows(gbcf, gbdt);
 
     stat_t *st  = initialize_statistics();
     /* move input generators to basis and generate first spairs */

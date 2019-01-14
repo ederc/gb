@@ -22,24 +22,11 @@
 
 #include "data.h"
 
-/* One general note:
- * Hashing is not that easy when it comes to "real", i.e. bigger
- * examples. One global hash table is not enough since we would
- * store too many information in the hash table due to intermediate
- * symbolic preprocessing computation, i.e. multiplying polynomials
- * with some other monomials. Freeing the complete hash table after
- * we finished a matrix and reconstruct the hash table with entries
- * only for the elements in the basis is too time consuming. Thus we
- * decided to use two hash tables: One global hash table keeping
- * hashes of exponents of polynomials in the basis. For each new
- * symbolic preprocessing step we construct a new local hash table
- * which stores the intermediate multiplied polynomial exponents.
- * This table is used for the linear algebra. Afterwards only the
- * exponent hashes of the new basis polynomials are added to the
- * global hash table, the local one is freed. Clearly, we might have
- * the same exponents living in both, the global and the local hash
- * table at the same time during some parts of the computation, still
- * it is an OK-ish trade-off between memory and speed. */
+/* we have three different hash tables:
+ * 1. one hash table for elements in the basis
+ * 2. one hash table for the spairs during the update process
+ * 3. one hash table for the multiplied elements during symbolic
+ *    preprocessing */
 
 /* The idea of the structure of the hash table is taken from an
  * implementation by Roman Pearce and Michael Monagan in Maple. */
@@ -53,7 +40,7 @@ static val_t pseudo_random_number_generator(
 	return (val_t)rseed;
 }
 
-static void initialize_global_hash_table(
+static void initialize_basis_hash_table(
     void
     )
 {
@@ -102,34 +89,34 @@ static void initialize_global_hash_table(
   etmp  = (exp_t *)malloc((unsigned long)esz * sizeof(exp_t));
 }
 
-static void initialize_local_hash_table(
+static void initialize_update_hash_table(
     void
     )
 {
   hl_t j;
 
   /* generate map */
-  hlsz  = (hl_t)pow(2, htes-5);
-  hmapl = calloc((unsigned long)hlsz, sizeof(hl_t));
+  husz  = (hl_t)pow(2, htes-5);
+  humap = calloc((unsigned long)husz, sizeof(hl_t));
 
   /* generate exponent vector */
-  elsz  = hlsz/2;
+  eusz  = husz/2;
   /* keep first entry empty for faster divisibility checks */
-  elld  = 1;
-  hdl   = (hd_t *)calloc((unsigned long)elsz, sizeof(hd_t));
-  evl   = (exp_t **)malloc((unsigned long)elsz * sizeof(exp_t *));
-  if (evl == NULL) {
+  euld  = 1;
+  hdu   = (hd_t *)calloc((unsigned long)eusz, sizeof(hd_t));
+  evu   = (exp_t **)malloc((unsigned long)eusz * sizeof(exp_t *));
+  if (evu == NULL) {
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
   exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)elsz * sizeof(exp_t));
+      (unsigned long)nvars * (unsigned long)eusz * sizeof(exp_t));
   if (tmp == NULL) {
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
-  for (j = 0; j < elsz; ++j) {
-    evl[j]  = tmp + (unsigned long)(j*nvars);
+  for (j = 0; j < eusz; ++j) {
+    evu[j]  = tmp + (unsigned long)(j*nvars);
   }
 }
 
@@ -149,7 +136,7 @@ static void initialize_symbolic_hash_table(
   esld  = 1;
   hds   = (hd_t *)calloc((unsigned long)essz, sizeof(hd_t));
   evs   = (exp_t **)malloc((unsigned long)essz * sizeof(exp_t *));
-  if (evl == NULL) {
+  if (evs == NULL) {
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
@@ -164,7 +151,7 @@ static void initialize_symbolic_hash_table(
   }
 }
 
-static void free_global_hash_table(
+static void free_basis_hash_table(
     void
     )
 {
@@ -202,28 +189,28 @@ static void free_global_hash_table(
   hsz   = 0;
 }
 
-static void free_local_hash_table(
+static void free_update_hash_table(
     void
     )
 {
-  if (hmapl) {
-    free(hmapl);
-    hmapl  = NULL;
+  if (humap) {
+    free(humap);
+    humap  = NULL;
   }
-  if (hdl) {
-    free(hdl);
-    hdl = NULL;
+  if (hdu) {
+    free(hdu);
+    hdu = NULL;
   }
-  if (evl) {
+  if (evu) {
     /* note: memory is allocated as one big block,
-     *       so freeing evl[0] is enough */
-    free(evl[0]);
-    free(evl);
-    evl = NULL;
+     *       so freeing evu[0] is enough */
+    free(evu[0]);
+    free(evu);
+    evu = NULL;
   }
-  elsz  = 0;
-  elld  = 0;
-  hlsz  = 0;
+  eusz  = 0;
+  euld  = 0;
+  husz  = 0;
 }
 
 static void free_symbolic_hash_table(
@@ -251,7 +238,7 @@ static void free_symbolic_hash_table(
 }
 
 /* we just double the hash table size */
-static void enlarge_global_hash_table(
+static void enlarge_basis_hash_table(
     void
     )
 {
@@ -456,7 +443,7 @@ static inline hl_t check_monomial_division(
   return 1;
 }
 
-static inline hl_t check_monomial_division_local(
+static inline hl_t check_monomial_division_update(
     const hl_t a,
     const hl_t b
     )
@@ -465,12 +452,12 @@ static inline hl_t check_monomial_division_local(
   const len_t nv  = nvars;
 
   /* short divisor mask check */
-  if (hdl[b].sdm & ~hdl[a].sdm) {
+  if (hdu[b].sdm & ~hdu[a].sdm) {
     return 0;
   }
 
-  const exp_t *const ea = evl[a];
-  const exp_t *const eb = evl[b];
+  const exp_t *const ea = evu[a];
+  const exp_t *const eb = evu[b];
   /* exponent check */
   if (ea[0] < eb[0]) {
     return 0;
@@ -484,7 +471,7 @@ static inline hl_t check_monomial_division_local(
   return 1;
 }
 
-static inline hl_t insert_in_global_hash_table(
+static inline hl_t insert_in_basis_hash_table(
     const exp_t *a
     )
 {
@@ -530,13 +517,13 @@ static inline hl_t insert_in_global_hash_table(
 
   eld++;
   if (eld >= esz) {
-    enlarge_global_hash_table();
+    enlarge_basis_hash_table();
   }
 
   return pos;
 }
 
-static inline hl_t insert_in_global_hash_table_no_enlargement_check(
+static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
     const exp_t *a
     )
 {
@@ -604,23 +591,23 @@ static inline hl_t insert_in_local_hash_table(
 
   /* probing */
   k = h;
-  for (i = 0; i < hlsz; ++i) {
-    k = (k+i) & (hlsz-1);
-    if (!hmapl[k]) {
+  for (i = 0; i < husz; ++i) {
+    k = (k+i) & (husz-1);
+    if (!humap[k]) {
       break;
     }
-    if (hd[hmapl[k]].val != h) {
+    if (hd[humap[k]].val != h) {
       continue;
     }
-    if (memcmp(evl[hmapl[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmapl[k];
+    if (memcmp(evu[humap[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
+      return humap[k];
     }
   }
 
   /* add element to hash table */
-  hmapl[k]  = pos = elld;
-  e   = evl[pos];
-  d   = hdl + pos;
+  humap[k]  = pos = euld;
+  e   = evu[pos];
+  d   = hdu + pos;
   deg = 0;
   for (j = 0; j < nvars; ++j) {
     e[j]  =   a[j];
@@ -630,51 +617,51 @@ static inline hl_t insert_in_local_hash_table(
   d->sdm  = generate_short_divmask(e);
   d->val  = h;
 
-  elld++;
+  euld++;
 
   return pos;
 }
 
-static inline void reset_local_hash_table(
+static inline void reset_update_hash_table(
     const len_t size
     )
 {
   hl_t i, j;
   /* is there still enough space in the local table? */
-  if (size >= (elsz-elld)) {
-    j = elsz; /* store ol size */
-    if (2*size >= hlsz) {
-      while (2*size >= hlsz) {
-        elsz  = 2 * elsz;
-        hlsz  = 2 * hlsz;
+  if (size >= (eusz-euld)) {
+    j = eusz; /* store ol size */
+    if (2*size >= husz) {
+      while (2*size >= husz) {
+        eusz  = 2 * eusz;
+        husz  = 2 * husz;
       }
-      hdl   = realloc(hdl, (unsigned long)elsz * sizeof(hd_t));
-      evl  = realloc(evl, (unsigned long)elsz * sizeof(exp_t *));
-      if (evl == NULL) {
+      hdu   = realloc(hdu, (unsigned long)eusz * sizeof(hd_t));
+      evu  = realloc(evu, (unsigned long)eusz * sizeof(exp_t *));
+      if (evu == NULL) {
         printf("Computation needs too much memory on this machine, \
             segmentation fault will follow.\n");
       }
       /* note: memory is allocated as one big block, so reallocating
       *       memory from evl[0] is enough    */
-      evl[0]  = realloc(evl[0],
-          (unsigned long)elsz * (unsigned long)nvars * sizeof(exp_t));
-      if (evl[0] == NULL) {
+      evu[0]  = realloc(evu[0],
+          (unsigned long)eusz * (unsigned long)nvars * sizeof(exp_t));
+      if (evu[0] == NULL) {
         printf("Computation needs too much memory on this machine, \
             segmentation fault will follow.\n");
       }
       /* due to realloc we have to reset ALL evl entries, memory might be moved */
-      for (i = 1; i < elsz; ++i) {
-        evl[i] = evl[0] + (unsigned long)(i*nvars);
+      for (i = 1; i < eusz; ++i) {
+        evu[i] = evu[0] + (unsigned long)(i*nvars);
       }
       /* for (i = j; i < elsz; ++i) {
        *   evl[i]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
        * } */
-      hmapl = realloc(hmapl, (unsigned long)hlsz * sizeof(hl_t));
+      humap = realloc(humap, (unsigned long)husz * sizeof(hl_t));
     }
-    memset(hdl, 0, (unsigned long)elsz * sizeof(hd_t));
-    memset(hmapl, 0, (unsigned long)hlsz * sizeof(hl_t));
+    memset(hdu, 0, (unsigned long)eusz * sizeof(hd_t));
+    memset(humap, 0, (unsigned long)husz * sizeof(hl_t));
 
-    elld  = 1;
+    euld  = 1;
   }
 }
 
@@ -754,7 +741,7 @@ static inline hl_t insert_in_symbolic_hash_table_product_special(
   return pos;
 }
 
-static inline hl_t insert_in_global_hash_table_product_special(
+static inline hl_t insert_in_basis_hash_table_product_special(
     const val_t h1,
     const deg_t deg,
     const exp_t * const ea,
@@ -801,9 +788,9 @@ static inline hl_t insert_in_global_hash_table_product_special(
 }
 
 /* note that the product insertion, i.e. monomial x polynomial
- * is only needed for the local hash table. in the global one we
+ * is only needed for the update hash table. in the basis one we
  * only add the basis elements, i.e. no multiplication is applied. */
-static inline hl_t insert_in_global_hash_table_product(
+static inline hl_t insert_in_basis_hash_table_product(
     const hl_t a,
     const hl_t b
     )
@@ -846,9 +833,9 @@ static inline hl_t insert_in_global_hash_table_product(
 }
 
 /* this function is deprecated, we no longer need to
- * reset the global or basis hash table */
+ * reset the basis hash table */
 #if 0
-static void reset_global_hash_table(
+static void reset_basis_hash_table(
     ps_t *psl,
     stat_t *st
     )
@@ -891,23 +878,23 @@ static void reset_global_hash_table(
     b = gbdt[i] + 3;
     for (j = 0; j < os; ++j) {
       e = oev[b[j]];
-      b[j]  = insert_in_global_hash_table_no_enlargement_check(e);
+      b[j]  = insert_in_basis_hash_table_no_enlargement_check(e);
     }
     for (; j < len; j += 4) {
       e       = oev[b[j]];
-      b[j]    = insert_in_global_hash_table_no_enlargement_check(e);
+      b[j]    = insert_in_basis_hash_table_no_enlargement_check(e);
       e       = oev[b[j+1]];
-      b[j+1]  = insert_in_global_hash_table_no_enlargement_check(e);
+      b[j+1]  = insert_in_basis_hash_table_no_enlargement_check(e);
       e       = oev[b[j+2]];
-      b[j+2]  = insert_in_global_hash_table_no_enlargement_check(e);
+      b[j+2]  = insert_in_basis_hash_table_no_enlargement_check(e);
       e       = oev[b[j+3]];
-      b[j+3]  = insert_in_global_hash_table_no_enlargement_check(e);
+      b[j+3]  = insert_in_basis_hash_table_no_enlargement_check(e);
     }
   }
   const len_t pld = psl->ld;
   for (i = 0; i < pld; ++i) {
     e = oev[ps[i].lcm];
-    ps[i].lcm = insert_in_global_hash_table_no_enlargement_check(e);
+    ps[i].lcm = insert_in_basis_hash_table_no_enlargement_check(e);
   }
   /* note: all memory is allocated as a big block, so it is
    *       enough to free oev[0].       */
@@ -931,7 +918,7 @@ static inline int lcm_equals_multiplication(
 {
   const hd_t ha = hd[a];
   const hd_t hb = hd[b];
-  const hd_t hl = hdl[lcm];
+  const hd_t hl = hdu[lcm];
 
   if (hl.deg != ha.deg + hb.deg) {
     return 0;
@@ -952,7 +939,7 @@ static inline hl_t get_lcm(
 {
   len_t i;
 
-  /* exponents of basis elements, thus from global hash table */
+  /* exponents of basis elements, thus from basis hash table */
   const exp_t * const ea = ev[a];
   const exp_t * const eb = ev[b];
 
@@ -968,7 +955,7 @@ static inline hl_t monomial_multiplication(
     const hl_t b
     )
 {
-  return insert_in_global_hash_table_product(a, b);
+  return insert_in_basis_hash_table_product(a, b);
 }
 
 /* we try monomial division including check if divisibility is
@@ -1000,7 +987,7 @@ static inline hl_t monomial_division_with_check(
       etmp[i+1]  = ea[i+1] - eb[i+1];
     }
   }
-  return insert_in_global_hash_table(etmp);
+  return insert_in_basis_hash_table(etmp);
 }
 
 /* it is assumed that b divides a, thus no tests for
@@ -1021,7 +1008,7 @@ static inline hl_t monomial_division_no_check(
     etmp[i+1]  = ea[i+1] - eb[i+1];
   }
   etmp[0]  = ea[0] - eb[0];
-  return insert_in_global_hash_table(etmp);
+  return insert_in_basis_hash_table(etmp);
 }
 
 static inline dt_t *multiplied_polynomial_to_matrix_row(
@@ -1066,7 +1053,9 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
   return row;
 }
 
-static inline hl_t *reset_idx_in_global_hash_table_and_free_hcm(
+/* deprecated once we use an own hash table for symbolic preprocessing data */
+#if 0
+static inline hl_t *reset_idx_in_basis_hash_table_and_free_hcm(
         hl_t *hcm
         )
 {
@@ -1079,3 +1068,4 @@ static inline hl_t *reset_idx_in_global_hash_table_and_free_hcm(
 
     return NULL;
 }
+#endif

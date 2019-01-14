@@ -95,8 +95,8 @@ int64_t f4_julia(
     }
 
     initialize_basis(nr_gens);
-    initialize_global_hash_table();
-    initialize_local_hash_table();
+    initialize_basis_hash_table();
+    initialize_update_hash_table();
     initialize_symbolic_hash_table();
 
     import_julia_data(lens, cfs, exps, nr_gens);
@@ -144,7 +144,6 @@ int64_t f4_julia(
         mat = NULL;
         free(hcm);
         hcm = NULL;
-        /* hcm = reset_idx_in_global_hash_table_and_free_hcm(hcm); */
 
         update_basis(ps, st);
 
@@ -174,8 +173,8 @@ int64_t f4_julia(
 
     /* free and clean up */
     free_symbolic_hash_table();
-    free_local_hash_table();
-    free_global_hash_table();
+    free_update_hash_table();
+    free_basis_hash_table();
     free_pairset(&ps);
     /* note that all rows kept from mat during the overall computation are
      * basis elements and thus we do not need to free the rows itself, but

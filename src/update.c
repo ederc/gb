@@ -78,7 +78,7 @@ static void insert_and_update_spairs(
 
     const dt_t nch = gbdt[bl][3];
 
-    reset_local_hash_table(bl);
+    reset_update_hash_table(bl);
 
     lms[bl] = hd[nch].sdm;
     /* printf("element added to basis %d (%d terms) at %p: ", bload, (nelt[0]-2)/2, nelt);
@@ -102,7 +102,7 @@ static void insert_and_update_spairs(
             ps[pl].gen1 = i;
             ps[pl].gen2 = bl;
             ps[pl].lcm  = get_lcm(gbdt[i][3], nch);
-            ps[pl].lcm  = insert_in_global_hash_table(evl[ps[pl].lcm]);
+            ps[pl].lcm  = insert_in_basis_hash_table(evu[ps[pl].lcm]);
             red[bl]     = 1;
             st->num_redundant++;
             bload++;
@@ -139,8 +139,8 @@ static void insert_and_update_spairs(
         j = ps[i].gen1;
         l = ps[i].gen2;
         if (check_monomial_division(ps[i].lcm, nch)
-                && hd[ps[i].lcm].val != hdl[plcm[j]].val
-                && hd[ps[i].lcm].val != hdl[plcm[l]].val
+                && hd[ps[i].lcm].val != hdu[plcm[j]].val
+                && hd[ps[i].lcm].val != hdu[plcm[l]].val
            ) {
             ps[i].lcm = -1;
         }
@@ -154,7 +154,7 @@ static void insert_and_update_spairs(
             pp[j++] = pp[i];
         }
     }
-    qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_local_cmp);
+    qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_update_cmp);
     for (i = 0; i < j; ++i) {
         plcm[i] = pp[i].lcm;
     }
@@ -176,7 +176,7 @@ static void insert_and_update_spairs(
         j = i-1;
         while (i < pc) {
             if (plcm[i] >= 0 &&
-                    check_monomial_division_local(plcm[i], plcmj) != 0) {
+                    check_monomial_division_update(plcm[i], plcmj) != 0) {
                 plcm[i]  = -1;
             }
             ++i;
@@ -193,15 +193,15 @@ static void insert_and_update_spairs(
         ps[j++] = ps[i];
     }
     if (esz - eld <= nl-psl->ld) {
-        enlarge_global_hash_table();
+        enlarge_basis_hash_table();
     }
-    /* new pairs, wee need to add the lcm to the global hash table */
+    /* new pairs, wee need to add the lcm to the basis hash table */
     for (i = 0; i < pc; ++i) {
         if (plcm[i] < 0) {
             continue;
         }
-        pp[i].lcm = insert_in_global_hash_table_no_enlargement_check(
-                evl[plcm[i]]);
+        pp[i].lcm = insert_in_basis_hash_table_no_enlargement_check(
+                evu[plcm[i]]);
         ps[j++]   = pp[i];
     }
     free(plcm);

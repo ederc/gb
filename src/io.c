@@ -32,7 +32,7 @@ static inline void set_function_pointers(
             matrix_row_initial_input_cmp  =
                 matrix_row_initial_input_cmp_drl;
             monomial_cmp        = monomial_cmp_drl;
-            monomial_local_cmp  = monomial_local_cmp_drl;
+            monomial_update_cmp = monomial_update_cmp_drl;
             spair_cmp           = spair_cmp_drl;
             hcm_cmp             = hcm_cmp_pivots_drl;
             break;
@@ -40,7 +40,7 @@ static inline void set_function_pointers(
             matrix_row_initial_input_cmp  =
                 matrix_row_initial_input_cmp_lex;
             monomial_cmp        = monomial_cmp_lex;
-            monomial_local_cmp  = monomial_local_cmp_lex;
+            monomial_update_cmp = monomial_update_cmp_lex;
             spair_cmp           = spair_cmp_deglex;
             hcm_cmp             = hcm_cmp_pivots_lex;
             break;
@@ -48,7 +48,7 @@ static inline void set_function_pointers(
             matrix_row_initial_input_cmp  =
                 matrix_row_initial_input_cmp_drl;
             monomial_cmp        = monomial_cmp_drl;
-            monomial_local_cmp  = monomial_local_cmp_drl;
+            monomial_update_cmp = monomial_update_cmp_drl;
             spair_cmp           = spair_cmp_drl;
             hcm_cmp             = hcm_cmp_pivots_drl;
     }
@@ -204,7 +204,7 @@ static void import_julia_data(
             for (k = 0; k < nvars; ++k) {
                 e[k]  = (exp_t)(exps+(nvars*j))[k];
             }
-            dt[j-off]  = insert_in_global_hash_table(e);
+            dt[j-off]  = insert_in_basis_hash_table(e);
             cf[j-off]  = (cf_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */

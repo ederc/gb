@@ -225,13 +225,13 @@ static void convert_sparse_matrix_rows_to_basis_elements(
         const len_t len = mat[i][2];
         dt_t *m = mat[i] + 3;
         for (j = 0; j < os; ++j) {
-            m[j]  = insert_in_global_hash_table(evs[hcm[m[j]]]);
+            m[j]  = insert_in_basis_hash_table(evs[hcm[m[j]]]);
         }
         for (; j < len; j += 4) {
-            m[j]    = insert_in_global_hash_table(evs[hcm[m[j]]]);
-            m[j+1]  = insert_in_global_hash_table(evs[hcm[m[j+1]]]);
-            m[j+2]  = insert_in_global_hash_table(evs[hcm[m[j+2]]]);
-            m[j+3]  = insert_in_global_hash_table(evs[hcm[m[j+3]]]);
+            m[j]    = insert_in_basis_hash_table(evs[hcm[m[j]]]);
+            m[j+1]  = insert_in_basis_hash_table(evs[hcm[m[j+1]]]);
+            m[j+2]  = insert_in_basis_hash_table(evs[hcm[m[j+2]]]);
+            m[j+3]  = insert_in_basis_hash_table(evs[hcm[m[j+3]]]);
         }
         gbcf[bl+i]  = tmpcf[mat[i][0]];
         mat[i][0]   = bl+i;

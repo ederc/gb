@@ -73,13 +73,13 @@ static hd_t *hd     = NULL;
 static hl_t eld     = 0;
 static hl_t esz     = 0;
 
-/* local hash table data */
-static hl_t *hmapl  = NULL; /* local hash map */
-static hl_t hlsz    = 0;
-static exp_t **evl  = NULL; /* exponents from local hash table */
-static hd_t *hdl    = NULL;
-static hl_t elld    = 0;
-static hl_t elsz    = 0;
+/* update hash table data */
+static hl_t *humap  = NULL; /* local hash map */
+static hl_t husz    = 0;
+static exp_t **evu  = NULL; /* exponents from local hash table */
+static hd_t *hdu    = NULL;
+static hl_t euld    = 0;
+static hl_t eusz    = 0;
 
 /* symbolic hash table data */
 static hl_t *hmaps  = NULL; /* local hash map */
@@ -226,7 +226,7 @@ int (*monomial_cmp)(
         const hl_t b
         );
 
-int (*monomial_local_cmp)(
+int (*monomial_update_cmp)(
         const hl_t a,
         const hl_t b
         );

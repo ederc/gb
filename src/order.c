@@ -153,8 +153,6 @@ static inline cf_t **sort_dense_matrix_rows(
     return dm;
 }
 
-
-/* comparison for monomials (in local hash table) */
 static int monomial_cmp_pivots_drl(
         const hl_t a,
         const hl_t b
@@ -249,15 +247,15 @@ static int monomial_cmp_pivots_lex(
     /* return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
-static inline int monomial_local_cmp_drl(
+static inline int monomial_update_cmp_drl(
         const hl_t a,
         const hl_t b
         )
 {
     len_t i;
 
-    const deg_t da = hdl[a].deg;
-    const deg_t db = hdl[b].deg;
+    const deg_t da = hdu[a].deg;
+    const deg_t db = hdu[b].deg;
 
     /* DRL */
     if (da > db) {
@@ -268,8 +266,8 @@ static inline int monomial_local_cmp_drl(
         }
     }
 
-    const exp_t * const ea  = evl[a];
-    const exp_t * const eb  = evl[b];
+    const exp_t * const ea  = evu[a];
+    const exp_t * const eb  = evu[b];
 
     for (i = nvars; i > 0; --i) {
         if (ea[i-1] < eb[i-1]) {
@@ -317,15 +315,15 @@ static inline int monomial_cmp_drl(
     return 0;
 }
 
-static inline int monomial_local_cmp_lex(
+static inline int monomial_update_cmp_lex(
         const hl_t a,
         const hl_t b
         )
 {
     len_t i;
 
-    const exp_t * const ea  = evl[a];
-    const exp_t * const eb  = evl[b];
+    const exp_t * const ea  = evu[a];
+    const exp_t * const eb  = evu[b];
 
     for (i = 0; i < nvars; ++i) {
         if (ea[i] < eb[i]) {
@@ -336,7 +334,6 @@ static inline int monomial_local_cmp_lex(
         }
     }
     return 0;
-    /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
 static inline int monomial_cmp_lex(
@@ -411,8 +408,8 @@ static int spair_cmp_drl(
     return (int)monomial_cmp(la, lb);
 }
 
-/* comparison for s-pairs while their lcms are in the local hash table */
-static int spair_local_cmp(
+/* comparison for s-pairs while their lcms are in the update hash table */
+static int spair_update_cmp(
         const void *a,
         const void *b
         )
@@ -420,5 +417,5 @@ static int spair_local_cmp(
     const hl_t la = ((spair_t *)a)->lcm;
     const hl_t lb = ((spair_t *)b)->lcm;
 
-    return (int)monomial_local_cmp(la, lb);
+    return (int)monomial_update_cmp(la, lb);
 }

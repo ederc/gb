@@ -26,15 +26,15 @@ int main(
 
     ps_t *ps  = initialize_pairset();
     if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
-                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
+                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
                 la_option, info_level)) {
         return 1;
     }
 
     /* initialize stuff */
     initialize_basis(nr_gens);
-    initialize_global_hash_table();
-    initialize_local_hash_table();
+    initialize_basis_hash_table();
+    initialize_update_hash_table();
 
     import_julia_data(lens, cfs, exps, nr_gens);
     calculate_divmask();
@@ -80,8 +80,8 @@ int main(
     }
 
     /* free and clean up */
-    free_local_hash_table();
-    free_global_hash_table();
+    free_update_hash_table();
+    free_basis_hash_table();
     free_pairset(&ps);
     free_basis();
     return 0;

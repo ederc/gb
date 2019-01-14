@@ -20,7 +20,7 @@ int main(
     fc    = 101;
 
     initialize_basis(nr_gens);
-    initialize_global_hash_table();
+    initialize_basis_hash_table();
 
     if (ndvars != nvars) {
         return 1;
@@ -29,7 +29,7 @@ int main(
         return 1;
     }
 
-    initialize_local_hash_table();
+    initialize_update_hash_table();
 
     import_julia_data(lens, cfs, exps, nr_gens);
 

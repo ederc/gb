@@ -26,30 +26,30 @@ int main(
 
     ps_t *ps  = initialize_pairset();
     if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
-                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
+                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
                 la_option, info_level)) {
         return 1;
     }
 
     /* initialize stuff */
     initialize_basis(nr_gens);
-    initialize_global_hash_table();
+    initialize_basis_hash_table();
     if (fc != field_char) {
         return 1;
     }
     if (nvars != nr_vars) {
         return 1;
     }
-    initialize_local_hash_table();
-    if (hsz/hlsz != 32) {
+    initialize_update_hash_table();
+    if (hsz/husz != 32) {
         return 1;
     }
 
     import_julia_data(lens, cfs, exps, nr_gens);
 
     /* free and clean up */
-    free_local_hash_table();
-    free_global_hash_table();
+    free_update_hash_table();
+    free_basis_hash_table();
     free_basis();
     free_pairset(&ps);
     return 0;

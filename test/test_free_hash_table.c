@@ -12,25 +12,25 @@ int main(
     fc    = 101;
     htes  = 4;
 
-    initialize_global_hash_table();
-    initialize_local_hash_table();
-    free_local_hash_table();
-    if (hlsz != 0) {
+    initialize_basis_hash_table();
+    initialize_update_hash_table();
+    free_update_hash_table();
+    if (husz != 0) {
         return 1;
     }
-    if (elld != 0) {
+    if (euld != 0) {
         return 1;
     }
-    if (elsz != 0) {
+    if (eusz != 0) {
         return 1;
     }
-    if (hmapl != NULL) {
+    if (humap != NULL) {
         return 1;
     }
-    if (evl != NULL) {
+    if (evu != NULL) {
         return 1;
     }
-    free_global_hash_table();
+    free_basis_hash_table();
     if (fc != 0) {
         return 1;
     }

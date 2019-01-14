@@ -883,12 +883,14 @@ static void reset_global_hash_table(
 
   /* reinsert known elements */
   for (i = 0; i < bload; ++i) {
-    b = gbdt[i];
-    for (j = 3; j < b[1]; ++j) {
+    const len_t os  = gbdt[i][1];
+    const len_t len = gbdt[i][2];
+    b = gbdt[i] + 3;
+    for (j = 0; j < os; ++j) {
       e = oev[b[j]];
       b[j]  = insert_in_global_hash_table_no_enlargement_check(e);
     }
-    for (; j < b[2]; j += 4) {
+    for (; j < len; j += 4) {
       e       = oev[b[j]];
       b[j]    = insert_in_global_hash_table_no_enlargement_check(e);
       e       = oev[b[j+1]];

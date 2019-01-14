@@ -152,10 +152,12 @@ void enlarge_hash_table(
     hl_t i, j;
     val_t h, k;
 
+    printf("initial esz %d\n", ht->esz);
     const len_t nv  = gbnv;
     ht->esz = 2 * ht->esz;
     ht->hd  = realloc(ht->hd, (unsigned long)ht->esz * sizeof(hd_t));
     memset(ht->hd+ht->eld, 0, (unsigned long)(ht->esz-ht->eld) * sizeof(hd_t));
+    printf("new esz %d\n", ht->esz);
     ht->ev  = realloc(ht->ev, (unsigned long)ht->esz * sizeof(exp_t *));
     if (ht->ev == NULL) {
         printf("Computation needs too much memory on this machine, \
@@ -164,7 +166,7 @@ void enlarge_hash_table(
     /* note: memory is allocated as one big block, so reallocating
      *       memory from ev[0] is enough    */
     ht->ev[0] = realloc(ht->ev[0],
-            (unsigned long)ht->esz * (unsigned long)nv * sizeof(exp_t));
+            (unsigned long)(ht->esz*nv) * sizeof(exp_t));
     if (ht->ev[0] == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");

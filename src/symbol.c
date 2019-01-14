@@ -117,6 +117,7 @@ mat_t *select_spairs_by_minimal_degree(
         elcm  = lcm->exp;
         d = 0;
         b   = bs->m[gens[0]];
+        printf("ll gens[%d] %d\n", 0, gens[0]);
         eb  = b.h[0]->exp;
         for (l = 0; l < nv; ++l) {
             etmp[l] =   elcm[l] - eb[l];
@@ -134,6 +135,7 @@ mat_t *select_spairs_by_minimal_degree(
              * reset elcm inside the for loop */
             elcm  = lcm->exp;
             d = 0;
+            printf("uu gens[%d] %d\n", k, gens[k]);
             b   = bs->m[gens[k]];
             eb  = b.h[0]->exp;
             for (l = 0; l < nv; ++l) {
@@ -150,6 +152,8 @@ mat_t *select_spairs_by_minimal_degree(
             multiplied_polynomial_to_matrix_row(
                     mat, mat->pmp, mat->nru, ht, h, d, etmp, b);
             mat->nru++;
+
+            printf("nru updated %d\n", mat->nru);
         }
         i = j;
     }
@@ -199,6 +203,11 @@ mat_t *symbolic_preprocessing(
      * in the following. */
 
     for (i = 1; i < ht->eld; ++i) {
+        printf("ht[%d] idx %d | exp ", i, ht->hd[i].idx);
+        for (int ii=0; ii<gbnv; ++ii) {
+            printf("%d",ht->hd[i].exp[ii]);
+        }
+        printf("\n");
         if (ht->hd[i].idx == 0) {
             ht->hd[i].idx  = 1;
             mat->nc++;
@@ -279,6 +288,7 @@ start:
         multiplied_polynomial_to_matrix_row(
                 mat, mat->pmp, mat->nru, ht, h, d, etmp, b);
         mat->nru++;
+        printf("mat->nru %d\n", mat->nru);
         return 1;
     }
     return 0;

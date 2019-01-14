@@ -19,7 +19,9 @@ STAGEDIR := $(realpath -s $(TOPBUILDDIR)/.libs)
 AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb ${GMP_LIBS} ${CL_LIBS}
 LDFLAGS = -no-install
 
-TESTS =															\
-	test_cyclic_4_drl_16_bit					
+TESTS =									\
+	cyclic_4_drl_15_bit		\
+	cyclic_5_drl_15_bit		\
+	cyclic_4_drl_32_bit					
 
 check_PROGRAMS = $(TESTS) $(XFAIL_TESTS)

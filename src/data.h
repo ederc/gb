@@ -44,8 +44,8 @@
 /* computational data */
 typedef int16_t cf16_t;   /* coefficient type */
 typedef int32_t cf32_t;   /* coefficient type */
-typedef int32_t val_t;    /* core values like hashes */
-typedef int32_t ci_t;     /* column index type */
+typedef uint32_t val_t;   /* core values like hashes */
+typedef uint32_t ci_t;    /* column index type */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t dt_t;        /* data type for other polynomial information */
 typedef int8_t red_t;     /* redundancy type */
@@ -284,6 +284,9 @@ void *(*reduce_dense_row_by_dense_new_pivots)(
         );
 
 /* global variables */
+static ht_t *bht        = NULL; /* basis elements hash table */
+static ht_t *sht        = NULL; /* symbolic preprocessing hash table */
+static ht_t *uht        = NULL; /* update pairs hash table */
 static len_t gbnv       = 0;  /* number of variables */
 static int32_t gbfc     = 0;  /* field characteristic */
 static uint32_t rseed   = 2463534242; /* seed for pseudo number generator */

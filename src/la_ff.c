@@ -83,6 +83,11 @@ mat_t *exact_sparse_reduced_echelon_form_16(
         }
         k   = 0;
         /* do { */
+        printf("drl before: ");
+        for (int ii=0; ii<mat->nc; ++ii) {
+            printf("%\ld ", drl[ii]);
+        }
+        printf("\n");
             sc  = ci[0];
             free(ci);
             r = reduce_dense_row_by_sparse_pivots_16(drl, mat, sc);
@@ -92,6 +97,7 @@ mat_t *exact_sparse_reduced_echelon_form_16(
                  * lead to wrong results in a parallel computation since other
                  * threads might directly use the new pivot once it is synced. */
                 cf = (cf16_t *)r.cl;
+                printf("cf[0] %d\n", cf[0]);
                 if (cf[0] != 1) {
                     r = normalize_sparse_matrix_row_16(r);
                 }
@@ -143,6 +149,11 @@ mat_t *exact_sparse_reduced_echelon_form_16(
             free(ci);
             mat->npv[i].ci  = NULL;
             free(cf);
+            printf("dr befor interreduce: ");
+            for (int ii=0; ii<mat->nc; ++ii) {
+                printf("%\ld ", dr[ii]);
+            }
+            printf("\n");
             mat->npv[i] =
                 reduce_dense_row_by_sparse_pivots_16(dr, mat, sc);
             mat->np++;
@@ -245,16 +256,25 @@ row_t reduce_dense_row_by_sparse_pivots_16(
         return r;
     }
     /* printf("reduction step done\n"); */
+    printf("dr done: ");
+    for (int ii=0; ii<nc; ++ii){
+        printf("%ld ", dr[ii]);
+    }
+    printf("\n");
 
+    printf("nc %d || np %d\n", nc, np);
     ci_t *ci    = (ci_t *)malloc((unsigned long)(nc-np) * sizeof(ci_t));
     cf16_t *cf  = (cf16_t *)malloc((unsigned long)(nc-np) * sizeof(cf16_t));
     j = 0;
     for (i = np; i < nc; ++i) {
         if (dr[i] != 0) {
+            printf("dr[i] %ld | mod %ld\n", dr[i], mod);
             dr[i] = dr[i] % mod;
             if (dr[i] != 0) {
+                printf("i %d || j %d || dr[i] %ld\n", i, j, dr[i]);
                 ci[j] = (ci_t)i;
                 cf[j] = (cf16_t)dr[i];
+                printf("cf[%d] = %d\n", j, cf[j]);
                 j++;
             }
         }

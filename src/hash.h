@@ -458,6 +458,21 @@ static inline hd_t *get_lcm(
     for (i = 0; i < nv; ++i) {
         etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
     }
+    printf("ea ");
+    for (int ii=0; ii<nv; ++ii) {
+        printf("%d",ea[ii]);
+    }
+    printf("\n");
+    printf("eb ");
+    for (int ii=0; ii<nv; ++ii) {
+        printf("%d",eb[ii]);
+    }
+    printf("\n");
+    printf("etmp ");
+    for (int ii=0; ii<nv; ++ii) {
+        printf("%d",etmp[ii]);
+    }
+    printf("\n");
     /* goes into local hash table for spairs */
     return insert_in_hash_table(etmp, ht);
 }
@@ -550,16 +565,41 @@ static inline void multiplied_polynomial_to_matrix_row(
     for (i = 0; i < poly.of; ++i) {
         row[i]  = insert_in_hash_table_product_special(
                 hm, deg, em, h[i], ht);
+        printf("row[%d] deg %d | sdm %d | %p\n", i, row[i]->deg, row[i]->sdm, row[i]);
+        for (int ii=0; ii<gbnv; ++ii) {
+            printf("%d", row[i]->exp[ii]);
+        }
+        printf("\n");
     }
     for (;i < sz; i += 4) {
         row[i]    = insert_in_hash_table_product_special(
                 hm, deg, em, h[i], ht);
+        printf("row[%d] deg %d | sdm %d | %p\n", i, row[i]->deg, row[i]->sdm, row[i]);
+        for (int ii=0; ii<gbnv; ++ii) {
+            printf("%d", row[i]->exp[ii]);
+        }
+        printf("\n");
         row[i+1]  = insert_in_hash_table_product_special(
                 hm, deg, em, h[i+1], ht);
+        printf("row[%d] deg %d | sdm %d | %p\n", i+1, row[i+1]->deg, row[i+1]->sdm, row[i+1]);
+        for (int ii=0; ii<gbnv; ++ii) {
+            printf("%d", row[i+1]->exp[ii]);
+        }
+        printf("\n");
         row[i+2]  = insert_in_hash_table_product_special(
                 hm, deg, em, h[i+2], ht);
+        printf("row[%d] deg %d | sdm %d | %p\n", i+2, row[i+2]->deg, row[i+2]->sdm, row[i+2]);
+        for (int ii=0; ii<gbnv; ++ii) {
+            printf("%d", row[i+2]->exp[ii]);
+        }
+        printf("\n");
         row[i+3]  = insert_in_hash_table_product_special(
                 hm, deg, em, h[i+3], ht);
+        printf("row[%d] deg %d | sdm %d | %p\n", i+3, row[i+3]->deg, row[i+3]->sdm, row[i+3]);
+        for (int ii=0; ii<gbnv; ++ii) {
+            printf("%d", row[i+3]->exp[ii]);
+        }
+        printf("\n");
     }
     mp[nr].h  = row;
 }

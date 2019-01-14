@@ -78,6 +78,7 @@ static inline void check_enlarge_basis(
         len_t added
         )
 {
+    printf("bs->ld %d | bs->sz %d | added %d\n", bs->ld, bs->sz, added);
     if (bs->ld+added >= bs->sz) {
         bs->sz  = bs->sz*2 > bs->ld+added ? bs->sz*2 : bs->ld+added;
         bs->cf  = realloc(bs->cf, (unsigned long)bs->sz * sizeof(void *));
@@ -85,6 +86,7 @@ static inline void check_enlarge_basis(
         bs->lm  = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->red = realloc(bs->red, (unsigned long)bs->sz * sizeof(red_t));
     }
+    printf("bs->sz new %d\n", bs->sz);
 }
 
 static inline void check_old_elements_for_redundancy(

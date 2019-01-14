@@ -52,6 +52,7 @@ hd_t **convert_hashes_to_columns(
     mon_t p;
     ci_t *c;
 
+    printf("nru %d || nrl %d\n", nru, nrl);
     mat->pv   = realloc(mat->pv, (unsigned long)nru * sizeof(row_t));
     mat->tbr  = realloc(mat->tbr, (unsigned long)nrl * sizeof(row_t));
     /* need to allocate memory for all possible exponents we
@@ -62,10 +63,12 @@ hd_t **convert_hashes_to_columns(
     /* j counts all columns, k counts known pivots */
     for (j = 0, k = 0, i = 1; i < ht->eld; ++i) {
         hcm[j++]  = hd+i;
+        printf("hcm[%d] = %p | [%d]idx %d\n", j-1, hcm[j-1], i, hd[i].idx);
         if (hd[i].idx == 2) {
             k++;
         }
     }
+    printf("j %d | ht->eld %d\n", j, ht->eld);
     /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
     qsort(hcm, (unsigned long)j, sizeof(hd_t *), hcm_cmp);
 
@@ -130,7 +133,9 @@ hd_t **convert_hashes_to_columns(
     free(mat->npmp);
     mat->npmp = NULL;
 
+    printf("mat->ncr %d\n", mat->ncr);
     /* allocate space for coefficient arrays of possible new pivots */
+    printf("mat->npv before %p\n", mat->npv);
     mat->npv  = realloc(mat->npv, (unsigned long)mat->ncr * sizeof(row_t));
     memset(mat->npv, 0, (unsigned long)mat->ncr * sizeof(row_t));
 
@@ -187,6 +192,7 @@ void convert_sparse_matrix_rows_to_basis_elements(
     const int32_t nthrds  = st->nthrds;
 
     /* fix size of basis for entering new elements directly */
+    printf("np %d\n", np);
     check_enlarge_basis(bs, np);
 
     for (k = 0, i = 0; i < ncr; ++i) {

@@ -20,15 +20,15 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-#include "stat.h"     /* computational statistics */
+#include "stat.c"     /* computational statistics */
 #include "time.h"     /* timing business */
 #include "tools.h"    /* tools like inversion mod p, etc. */
-#include "hash.h"     /* hash table stuff */
-#include "order.h"    /* order and comparison procedures */
-#include "basis.h"    /* basis and polynomial handling */
-#include "la_ff.h"    /* finite field linear algebra */
-#include "update.h"   /* update process and pairset handling */
-#include "convert.h"  /* conversion between hashes and column indices*/
-#include "symbol.h"   /* symbolic preprocessing */
-#include "io.h"       /* input and output data handling */
-#include "f4.h"       /* implemenation of f4 algorithm */
+#include "hash.c"     /* hash table stuff */
+#include "order.c"    /* order and comparison procedures */
+#include "basis.c"    /* basis and polynomial handling */
+#include "la_ff.c"    /* finite field linear algebra */
+#include "update.c"   /* update process and pairset handling */
+#include "convert.c"  /* conversion between hashes and column indices*/
+#include "symbol.c"   /* symbolic preprocessing */
+#include "io.c"       /* input and output data handling */
+#include "f4.c"       /* implemenation of f4 algorithm */

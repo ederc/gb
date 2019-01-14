@@ -62,12 +62,17 @@ int64_t f4_julia_ff(
     stat_t *st  = initialize_statistics();
     /* checks and set all meta data. if a nonzero value is returned then
      * some of the input data is corrupted. */
+    gbnv  = 2;
+    printf("gbnv global %d\n", gbnv);
+    printf("gbfc global %d\n", gbfc);
     if (check_and_set_meta_data(st, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
                 regenerate_ht, la_option, info_level)) {
         return 0;
     }
 
+    printf("gbnv global %d\n", gbnv);
+    printf("gbfc global %d\n", gbfc);
     if (st->info_level > 0) {
         print_initial_statistics(st);
     }
@@ -93,6 +98,19 @@ int64_t f4_julia_ff(
     sht->dm = uht->dm = ght->dm;
 
     st->num_matrices++;
+
+    for (int ii=0; ii < st->nr_gens; ++ii) {
+        printf("gen[%d] = ", ii);
+        cf16_t *cf = (cf16_t *)bs->m[ii].cl;
+        for (int jj=0; jj < bs->m[ii].sz; ++jj) {
+            printf("%d | ", cf[jj]);
+            for (int kk=0; kk < gbnv; ++kk) {
+                printf("%d", bs->m[ii].h[jj]->exp[kk]);
+            }
+            printf(" || ");
+        }
+        printf("\n");
+    }
     /* sort initial elements, smallest lead term first */
     qsort(bs->m, (unsigned long)st->nr_gens,
             sizeof(mon_t), initial_basis_cmp);
@@ -122,7 +140,35 @@ int64_t f4_julia_ff(
         mat = select_spairs_by_minimal_degree(mat, ps, sht, bs, st);
         mat = symbolic_preprocessing(mat, sht, bs, st);
         hcm = convert_hashes_to_columns(mat, sht, st);
+        printf("pv\n");
+        for (int ii=0; ii<mat->nru; ++ii) {
+            for (int jj=0; jj<mat->pv[ii].sz; ++jj) {
+                printf("%d ", mat->pv[ii].ci[jj]);
+            }
+            printf("\n");
+        }
+        printf("tbr\n");
+        for (int ii=0; ii<mat->nrl; ++ii) {
+            for (int jj=0; jj<mat->tbr[ii].sz; ++jj) {
+                printf("%d ", mat->tbr[ii].ci[jj]);
+            }
+            printf("\n");
+        }
         mat = sort_matrix_rows(mat);
+        printf("pv\n");
+        for (int ii=0; ii<mat->nru; ++ii) {
+            for (int jj=0; jj<mat->pv[ii].sz; ++jj) {
+                printf("%d ", mat->pv[ii].ci[jj]);
+            }
+            printf("\n");
+        }
+        printf("tbr\n");
+        for (int ii=0; ii<mat->nrl; ++ii) {
+            for (int jj=0; jj<mat->tbr[ii].sz; ++jj) {
+                printf("%d ", mat->tbr[ii].ci[jj]);
+            }
+            printf("\n");
+        }
         /* linear algebra, depending on choice, see set_function_pointers() */
         mat = linear_algebra(mat, st);
         /* columns indices are mapped back to exponent hashes */

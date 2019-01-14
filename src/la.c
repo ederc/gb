@@ -242,7 +242,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
     hl_t i, j, k;
     cf_t *cfs;
     dt_t *dts;
-    len_t np  = -1;
+    len_t np  = 0;
     const int64_t mod   = (int64_t)fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
@@ -255,7 +255,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
             continue;
         }
         if (pivs[i] == NULL) {
-            if (np == -1) {
+            if (np == 0) {
                 np  = i;
             }
             k++;
@@ -276,7 +276,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
         const dt_t * const ds = dts + 3;
         for (j = 0; j < os; ++j) {
             dr[ds[j]] -=  mul * cfs[j];
-            dr[ds[j]] +=  (dr[dts[j]] >> 63) & mod2;
+            dr[ds[j]] +=  (dr[ds[j]] >> 63) & mod2;
         }
         for (; j < len; j += 4) {
             dr[ds[j]]   -=  mul * cfs[j];

@@ -97,7 +97,7 @@ static void print_final_statistics(
     printf("#zero reductions   %9ld\n", st->num_zerored);
     printf("#global hash table %9d <= 2^%d\n",
             eld, (int32_t)((ceil(log(eld)/log(2)))));
-    printf("#update hash table  %9d <= 2^%d\n",
+    printf("#update hash table %9d <= 2^%d\n",
             euld, (int32_t)(ceil(log(euld)/log(2))));
     printf("maximal ht size         2^%d\n",
             (int32_t)(ceil(log(st->max_ht_size)/log(2))));

@@ -236,11 +236,11 @@ static void convert_sparse_matrix_rows_to_basis_elements(
         gbcf[bl+i]  = tmpcf[mat[i][0]];
         mat[i][0]   = bl+i;
         gbdt[bl+i]  = mat[i];
-        /* printf("new element [%d]\n", bl);
-         * for (int32_t p = 0; p < gbdt[bl][2]; ++p) {
-         *     printf("%d | ", gbcf[bl][p]);
+        /* printf("new element [%d]\n", bl+i);
+         * for (int32_t p = 0; p < gbdt[bl+i][2]; ++p) {
+         *     printf("%d | ", gbcf[bl+i][p]);
          *     for (int32_t q = 0; q < nvars; ++q) {
-         *         printf("%d", ev[gbdt[bl][p+3]][q]);
+         *         printf("%d", ev[gbdt[bl+i][p+3]][q]);
          *     }
          *     printf(" || ");
          * }

@@ -845,6 +845,9 @@ static inline hl_t insert_in_global_hash_table_product(
   return pos;
 }
 
+/* this function is deprecated, we no longer need to
+ * reset the global or basis hash table */
+#if 0
 static void reset_global_hash_table(
     ps_t *psl,
     stat_t *st
@@ -914,9 +917,8 @@ static void reset_global_hash_table(
   /* timings */
   ct1 = cputime();
   rt1 = realtime();
-  st->rght_ctime  +=  ct1 - ct0;
-  st->rght_rtime  +=  rt1 - rt0;
 }
+#endif
 
 /* we can check equality of lcm and multiplication of two monomials
  * by their hash values. If both hash values are NOT the same, then

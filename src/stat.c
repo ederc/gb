@@ -30,7 +30,6 @@ static stat_t *initialize_statistics(
     stat_t *st  = (stat_t *)malloc(sizeof(stat_t));
 
     st->round_ctime   = 0;
-    st->rght_ctime    = 0;
 	  st->select_ctime  = 0;
     st->symbol_ctime  = 0;
     st->la_ctime      = 0;
@@ -39,7 +38,6 @@ static stat_t *initialize_statistics(
     st->overall_ctime = 0;
 
     st->round_rtime   = 0;
-    st->rght_rtime    = 0;
     st->select_rtime  = 0;
     st->symbol_rtime  = 0;
     st->la_rtime      = 0;
@@ -47,15 +45,15 @@ static stat_t *initialize_statistics(
     st->convert_rtime = 0;
     st->overall_rtime = 0;
 
-    st->num_pairsred    = 0;
-    st->num_gb_crit     = 0;
-    st->num_redundant   = 0;
-    st->num_rowsred     = 0;
-    st->num_zerored     = 0;
+    st->num_pairsred  = 0;
+    st->num_gb_crit   = 0;
+    st->num_redundant = 0;
+    st->num_rowsred   = 0;
+    st->num_zerored   = 0;
 
-    st->max_ht_size       = 0;
-    st->len_output        = 0;
-    st->size_basis        = 0;
+    st->max_ht_size   = 0;
+    st->len_output    = 0;
+    st->size_basis    = 0;
 
     return st;
 }
@@ -82,10 +80,6 @@ static void print_final_statistics(
     printf("convert      %15.3f sec %5.1f%%\n",
             st->convert_rtime,
             (double)100*(double)st->convert_rtime
-            / (double)(st->overall_rtime));
-    printf("rght         %15.3f sec %5.1f%%\n",
-            st->rght_rtime,
-            (double)100*(double)st->rght_rtime
             / (double)(st->overall_rtime));
     printf("la           %15.3f sec %5.1f%%\n",
             st->la_rtime,

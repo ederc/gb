@@ -100,7 +100,6 @@ typedef struct stat_t stat_t;
 struct stat_t
 {
     double round_ctime;
-    double rght_ctime;
     double select_ctime;
     double symbol_ctime;
     double la_ctime;
@@ -109,7 +108,6 @@ struct stat_t
     double overall_ctime;
 
     double round_rtime;
-    double rght_rtime;
     double select_rtime;
     double symbol_rtime;
     double la_rtime;
@@ -213,9 +211,6 @@ static len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
 
 /* threads data */
 static int32_t nthrds = 1; /* number of CPU threads */
-
-/* reset global hash table */
-static int32_t rght = 0; /* reset global hash table after rght rounds */
 
 /* linear algebra options */
 static int32_t laopt  = 0;

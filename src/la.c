@@ -309,7 +309,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
             }
         }
     }
-    if (j == 3) {
+    if (j == 0) {
         free(dt);
         dt  = NULL;
         free(cf);

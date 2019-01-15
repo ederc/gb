@@ -30,6 +30,7 @@ int main(
                 la_option, info_level)) {
         return 1;
     }
+    stat_t *st  = initialize_statistics();
 
     dt_t **mat;
 
@@ -37,8 +38,8 @@ int main(
     initialize_basis(nr_gens);
     initialize_basis_hash_table();
     initialize_update_hash_table();
+    initialize_symbolic_hash_table();
 
-    stat_t *st  = initialize_statistics();
     if (hsz/husz != 32) {
         return 1;
     }

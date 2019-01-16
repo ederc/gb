@@ -119,13 +119,13 @@ static void insert_and_update_spairs(
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
 
-        ps[k].lcm   = get_lcm(gbdt[i][3], nch);
-
         if (red[i]) {
             ps[k].lcm = -1; /* redundant pair */
         } else {
-            if (lcm_equals_multiplication(gbdt[i][3], nch, ps[k].lcm)) {
+            if (prime_monomials(gbdt[i][3], nch)) {
                 ps[k].lcm = -2; /* criterion */
+            } else {
+                ps[k].lcm   = get_lcm(gbdt[i][3], nch);
             }
         }
         /* set plcm after checking the pair for redundancy */

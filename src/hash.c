@@ -906,6 +906,29 @@ static void reset_basis_hash_table(
   rt1 = realtime();
 }
 #endif
+static inline int prime_monomials(
+    const hl_t a,
+    const hl_t b
+    )
+{
+    len_t i;
+
+    const exp_t * const ea = ev[a];
+    const exp_t * const eb = ev[b];
+
+    const len_t nv  = nvars;
+    const len_t os  = nvars % 2;
+    if (ea[0] != 0 && eb[0] != 0) {
+        return 0;
+    }
+    for (i = os; i < nv; ++i) {
+        if ((ea[i] != 0 && eb[i] != 0) || (ea[i+1] != 0 && eb[i+1] != 0)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 
 /* we can check equality of lcm and multiplication of two monomials
  * by their hash values. If both hash values are NOT the same, then

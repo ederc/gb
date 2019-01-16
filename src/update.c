@@ -21,7 +21,6 @@
  */
 
 #include "data.h" 
-#define INSERT_SMALL_FIRST 1
 
 static ps_t *initialize_pairset(
         void
@@ -92,7 +91,6 @@ static void insert_and_update_spairs(
      * }
      * printf("\n"); */
 
-#if INSERT_SMALL_FIRST
     for (i = blold; i < bl; ++i) {
         if (red[i]) {
             continue;
@@ -110,7 +108,6 @@ static void insert_and_update_spairs(
             return;
         }
     }
-#endif
 
     hl_t *plcm  = (hl_t *)malloc((unsigned long)(bl+1) * sizeof(hl_t));
 

@@ -80,16 +80,6 @@ static void insert_and_update_spairs(
     reset_update_hash_table(bl);
 
     lms[bl] = hd[nch].sdm;
-    /* printf("element added to basis %d (%d terms) at %p: ", bload, (nelt[0]-2)/2, nelt);
-     * [> for (int32_t o = 2; o < 3; o += 2) { <]
-     * for (int32_t o = 2; o < nelt[0]; o += 2) {
-     *   printf("%d ", nelt[o+1]);
-     *   for (int32_t p = 0; p < nvars; ++p) {
-     *     printf("%d",(ev+nelt[o]*hl)[p]);
-     *   }
-     *   printf(" | ");
-     * }
-     * printf("\n"); */
 
     for (i = blold; i < bl; ++i) {
         if (red[i]) {
@@ -115,18 +105,8 @@ static void insert_and_update_spairs(
     for (i = 0, k = pl; i < bl; ++i, ++k) {
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
-
-        if (red[i]) {
-            ps[k].lcm = -1; /* redundant pair */
-        } else {
-            if (prime_monomials(gbdt[i][3], nch)) {
-                ps[k].lcm = -2; /* criterion */
-            } else {
-                ps[k].lcm   = get_lcm(gbdt[i][3], nch);
-            }
-        }
-        /* set plcm after checking the pair for redundancy */
-        plcm[i] = ps[k].lcm;
+        ps[k].lcm   = get_lcm(gbdt[i][3], nch);
+        plcm[i]     = ps[k].lcm;
     }
 
     len_t nl  = k;
@@ -136,10 +116,20 @@ static void insert_and_update_spairs(
         j = ps[i].gen1;
         l = ps[i].gen2;
         if (check_monomial_division(ps[i].lcm, nch)
-                && hd[ps[i].lcm].val != hdu[plcm[j]].val
-                && hd[ps[i].lcm].val != hdu[plcm[l]].val
+                && plcm[j] >= 0 && hd[ps[i].lcm].val != hdu[plcm[j]].val
+                && plcm[l] >= 0 && hd[ps[i].lcm].val != hdu[plcm[l]].val
            ) {
             ps[i].lcm = -1;
+        }
+    }
+    /* check new pairs for redundancy */
+    for (i = 0, k = pl; i < bl; ++i, ++k) {
+        if (red[i]) {
+            ps[k].lcm = -1; /* redundant pair */
+        } else {
+            if (prime_monomials(gbdt[i][3], nch)) {
+                ps[k].lcm = -2; /* criterion */
+            }
         }
     }
 

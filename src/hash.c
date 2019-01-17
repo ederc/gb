@@ -573,7 +573,7 @@ static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
 }
 
 
-static inline hl_t insert_in_local_hash_table(
+static inline hl_t insert_in_update_hash_table(
     const exp_t *a
     )
 {
@@ -969,8 +969,7 @@ static inline hl_t get_lcm(
   for (i = 0; i < nvars; ++i) {
     etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
   }
-  /* goes into local hash table for spairs */
-  return insert_in_local_hash_table(etmp);
+  return insert_in_update_hash_table(etmp);
 }
 
 static inline hl_t monomial_multiplication(

@@ -27,7 +27,7 @@ int main(
     ps_t *ps  = initialize_pairset();
     if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                la_option, info_level)) {
+                reset_hash_table, la_option, info_level)) {
         return 1;
     }
     stat_t *st  = initialize_statistics();

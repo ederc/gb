@@ -65,13 +65,14 @@ struct hd_t
     ind_t idx;
     val_t val;
 };
-/* global hash table data */
+/* basis hash table data */
 static hl_t *hmap   = NULL; /* global hash map */
 static hl_t hsz     = 0;
 static exp_t **ev   = NULL; /* exponents from global hash table */
 static hd_t *hd     = NULL;
 static hl_t eld     = 0;
 static hl_t esz     = 0;
+static int32_t rht  = 0;  /* basis hash table resetting */
 
 /* update hash table data */
 static hl_t *humap  = NULL; /* local hash map */
@@ -167,6 +168,11 @@ static val_t mo = 0;
 /* field characteristic */
 static cf_t fc = 0;
 
+/* number generators */
+static int32_t ngens  = 0;
+
+/* maximum number of spair selection */
+static int32_t mnsel = 0;
 /* basis data */
 
 /* we need to store:

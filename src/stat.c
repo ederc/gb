@@ -58,6 +58,34 @@ static stat_t *initialize_statistics(
     return st;
 }
 
+static void print_initial_statistics(
+        void
+        )
+{
+
+    printf("\n--------------- INPUT DATA ---------------\n");
+    printf("#variables             %11d\n", nvars);
+    printf("#equations             %11d\n", ngens);
+    printf("field characteristic   %11d\n", fc);
+    if (mo == 0) {
+        printf("monomial order                 DRL\n");
+    }
+    if (mo == 1) {
+        printf("monomial order                 LEX\n");
+    }
+    if ((mo != 0) && (mo != 1)) {
+        printf("monomial order           DONT KNOW\n");
+    }
+    printf("basis hash table resetting  %6d\n", rht);
+    printf("linear algebra option  %11d\n", laopt);
+    printf("intial hash table size %11d (2^%d)\n",
+            (int32_t)pow(2,htes), htes);
+    printf("max pair selection     %11d\n", mnsel);
+    printf("#threads               %11d\n", nthrds);
+    printf("info level             %11d\n", il);
+    printf("------------------------------------------\n");
+}
+
 static void print_final_statistics(
         const stat_t *st
         )

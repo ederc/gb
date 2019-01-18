@@ -65,33 +65,14 @@ int64_t f4_julia(
      * some of the input data is corrupted. */
     if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                la_option, info_level)) {
+                reset_hash_table, la_option, info_level)) {
         return 0;
     }
 
     /* initialize stuff */
     stat_t *st  = initialize_statistics();
     if (il > 0) {
-        printf("\n--------------- INPUT DATA ---------------\n");
-        printf("#variables             %11d\n", nvars);
-        printf("#equations             %11d\n", nr_gens);
-        printf("field characteristic   %11d\n", fc);
-        if (mo == 0) {
-            printf("monomial order                 DRL\n");
-        }
-        if (mo == 1) {
-            printf("monomial order                 LEX\n");
-        }
-        if ((mo != 0) && (mo != 1)) {
-            printf("monomial order           DONT KNOW\n");
-        }
-        printf("linear algebra option  %11d\n", laopt);
-        printf("intial hash table size %11d (2^%d)\n",
-                (int32_t)pow(2,htes), htes);
-        printf("max pair selection     %11d\n", ps->mnsel);
-        printf("#threads               %11d\n", nthrds);
-        printf("info level             %11d\n", il);
-        printf("------------------------------------------\n");
+        print_initial_statistics();
     }
 
     initialize_basis(nr_gens);

@@ -108,6 +108,7 @@ static inline int32_t check_and_set_meta_data(
         const int32_t ht_size,
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
+        const int32_t reset_hash_table,
         const int32_t la_option,
         const int32_t info_level
         )
@@ -121,6 +122,7 @@ static inline int32_t check_and_set_meta_data(
         return 1;
     }
 
+    ngens = nr_gens;
     nvars = nr_vars;
     /* note: prime check should be done in julia */
     fc    = field_char;
@@ -143,6 +145,9 @@ static inline int32_t check_and_set_meta_data(
         il = 2;
     }
 
+    /* resetting basis hash table */
+    rht = reset_hash_table >= 0 ? reset_hash_table : 0;
+
     /* set number of threads */
     if (nr_threads <= 0) {
         nthrds  = 1;
@@ -155,6 +160,7 @@ static inline int32_t check_and_set_meta_data(
     } else {
         ps->mnsel = max_nr_pairs;
     }
+    mnsel = ps->mnsel;
 
     /* set linear algebra option */
     if (la_option <= 0) {

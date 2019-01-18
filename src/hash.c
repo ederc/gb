@@ -834,7 +834,6 @@ static inline hl_t insert_in_basis_hash_table_product(
 
 /* this function is deprecated, we no longer need to
  * reset the basis hash table */
-#if 0
 static void reset_basis_hash_table(
     ps_t *psl,
     stat_t *st
@@ -905,7 +904,7 @@ static void reset_basis_hash_table(
   ct1 = cputime();
   rt1 = realtime();
 }
-#endif
+
 static inline int prime_monomials(
     const hl_t a,
     const hl_t b

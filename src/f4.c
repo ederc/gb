@@ -54,7 +54,7 @@ int64_t f4_julia(
     ct0 = cputime();
     rt0 = realtime();
 
-    int32_t round, last_reset;
+    int32_t round;
     hl_t *hcm; /* hash-column-map */
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
@@ -97,14 +97,16 @@ int64_t f4_julia(
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
-    last_reset  = 0;
     if (il > 1) {
         printf("\ndeg     sel   pairs        mat          density \
           new data             time(rd)\n");
         printf("-------------------------------------------------\
 ----------------------------------------\n");
     }
-    for (round = 0; ps->ld > 0; ++round) {
+    for (round = 1; ps->ld > 0; ++round) {
+        if (round % rht == 0) {
+            reset_basis_hash_table(ps, st);
+        }
         rct0  = cputime();
         rrt0  = realtime();
         st->max_ht_size = hsz;

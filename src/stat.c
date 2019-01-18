@@ -76,11 +76,19 @@ static void print_initial_statistics(
     if ((mo != 0) && (mo != 1)) {
         printf("monomial order           DONT KNOW\n");
     }
-    printf("basis hash table resetting  %6d\n", rht);
+    if (rht == 2147483647) {
+        printf("basis hash table resetting     OFF\n");
+    } else {
+        printf("basis hash table resetting  %6d\n", rht);
+    }
     printf("linear algebra option  %11d\n", laopt);
     printf("intial hash table size %11d (2^%d)\n",
             (int32_t)pow(2,htes), htes);
-    printf("max pair selection     %11d\n", mnsel);
+    if (mnsel == 2147483647) {
+        printf("max pair selection             ALL\n");
+    } else {
+        printf("max pair selection     %11d\n", mnsel);
+    }
     printf("#threads               %11d\n", nthrds);
     printf("info level             %11d\n", il);
     printf("------------------------------------------\n");

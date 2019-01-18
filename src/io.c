@@ -146,7 +146,7 @@ static inline int32_t check_and_set_meta_data(
     }
 
     /* resetting basis hash table */
-    rht = reset_hash_table >= 0 ? reset_hash_table : 0;
+    rht = reset_hash_table > 0 ? reset_hash_table : 2147483647; /* 2^31-1 */;
 
     /* set number of threads */
     if (nr_threads <= 0) {

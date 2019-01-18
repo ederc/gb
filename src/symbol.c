@@ -251,9 +251,8 @@ static dt_t **symbolic_preprocessing(
         stat_t *st
         )
 {
-    len_t i, j;
+    len_t i;
     dt_t *red;
-    dt_t m;
 
     /* timings */
     double ct0, ct1, rt0, rt1;

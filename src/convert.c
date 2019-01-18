@@ -32,7 +32,7 @@ static hl_t *convert_hashes_to_columns(
         stat_t *st
         )
 {
-    len_t i, j, k, l;
+    len_t i, j, k;
     dt_t *row;
     hl_t *hcm; /* hash-to-column map */
     int64_t nterms = 0;

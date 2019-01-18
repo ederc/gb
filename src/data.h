@@ -107,6 +107,7 @@ struct stat_t
     double update_ctime;
     double convert_ctime;
     double overall_ctime;
+    double rht_ctime;
 
     double round_rtime;
     double select_rtime;
@@ -115,6 +116,7 @@ struct stat_t
     double update_rtime;
     double convert_rtime;
     double overall_rtime;
+    double rht_rtime;
 
     int64_t num_pairsred;
     int64_t num_gb_crit;

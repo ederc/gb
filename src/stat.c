@@ -36,6 +36,7 @@ static stat_t *initialize_statistics(
     st->update_ctime  = 0;
     st->convert_ctime = 0;
     st->overall_ctime = 0;
+    st->rht_ctime     = 0;
 
     st->round_rtime   = 0;
     st->select_rtime  = 0;
@@ -44,6 +45,7 @@ static stat_t *initialize_statistics(
     st->update_rtime  = 0;
     st->convert_rtime = 0;
     st->overall_rtime = 0;
+    st->rht_rtime     = 0;
 
     st->num_pairsred  = 0;
     st->num_gb_crit   = 0;
@@ -121,6 +123,12 @@ static void print_final_statistics(
             st->la_rtime,
             (double)100*(double)st->la_rtime
             / (double)(st->overall_rtime));
+    if (rht != 2147483647) {
+    printf("rht          %15.3f sec %5.1f%%\n",
+            st->rht_rtime,
+            (double)100*(double)st->rht_rtime
+            / (double)(st->overall_rtime));
+    }
     printf("-----------------------------------------\n");
     printf("\n---------- COMPUTATIONAL DATA -----------\n");
     printf("size of basis      %9d\n", st->size_basis);

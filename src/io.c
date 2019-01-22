@@ -297,7 +297,7 @@ static void write_pbm_file(
     unsigned char b = 0;
     char buffer[512];
     char fn[200];
-    sprintf(fn, "%d-%d-%d-%d.pbm", st->current_rd, ncols, nrows, st->current_deg);
+    sprintf(fn, "%d-%d-%d-%d.pbm", st->current_rd, nrows, ncols, st->current_deg);
     FILE *fh  = fopen(fn, "wb");
 
     /* magic header */
@@ -308,22 +308,19 @@ static void write_pbm_file(
 
     for (i = 0; i < nrows; ++i) {
         const len_t len = mat[i][2];
-        const dt_t *row = mat[i] + 3;
+        dt_t row[len];
+        memcpy(row, mat[i]+3, (unsigned long)len * sizeof(dt_t));
+        qsort(row, (unsigned long)len, sizeof(dt_t), pbm_cmp);
         /* the rows may not be sorted by column indices, thus we
          * have to go over them again and again and again */
+        k = 0;
         for (j = 0; j < ncols; ++j) {
-            k = 0;
-            while (k < len) {
-                if (row[k] == j) {
-                    b |=  (1 << (7 - (j % 8)));
-                    break;
-                }
+            if (k < len && row[k] == j) {
+                b |=  (1 << (7 - (j % 8)));
                 k++;
-            }
-            if (k == len) {
+            } else {
                 b &=  ~(1 << (7 - (j % 8)));
             }
-
             /* write each byte */
             if (j % 8 == 7) {
                 fwrite(&b, sizeof(unsigned char), 1, fh);

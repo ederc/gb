@@ -57,21 +57,7 @@ static hl_t *convert_hashes_to_columns(
             k++;
         }
     }
-    /* for (int ii=0; ii < j; ++ii) {
-     *     printf("hcm[%d] = %d | %d | ", ii, hcm[ii], hds[hcm[ii]].idx);
-     *     for (int jj=0; jj < nvars; ++jj) {
-     *         printf("%d ", evs[hcm[ii]][jj]);
-     *     }
-     *     printf("\n");
-     * } */
     qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
-    /* for (int ii=0; ii < j; ++ii) {
-     *     printf("sorted hcm[%d] = %d | ", ii, hcm[ii]);
-     *     for (int jj=0; jj < nvars; ++jj) {
-     *         printf("%d ", evs[hcm[ii]][jj]);
-     *     }
-     *     printf("\n");
-     * } */
 
     nru = ncl = k;
     nrl = nrows - nru;

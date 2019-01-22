@@ -358,6 +358,18 @@ static inline int monomial_cmp_lex(
     /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
+/* comparison for sparse rows in preparation for generation of pbm files */
+static int pbm_cmp(
+        const void *a,
+        const void *b
+        )
+{
+    const dt_t ca = *((dt_t *)a);
+    const dt_t cb = *((dt_t *)b);
+
+    return (ca - cb);
+}
+
 /* comparison for hash-column-maps */
 static int hcm_cmp_pivots_drl(
         const void *a,

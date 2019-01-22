@@ -96,7 +96,6 @@ static len_t bpv    = 0; /* bits per variable in divmask */
 static len_t ndvars = 0; /* number of variables for divmask */
 
 /* statistic stuff */
-static int il       = 0; /* info level for printed output */
 typedef struct stat_t stat_t;
 struct stat_t
 {
@@ -107,6 +106,7 @@ struct stat_t
     double update_ctime;
     double convert_ctime;
     double overall_ctime;
+    double rht_ctime;
 
     double round_rtime;
     double select_rtime;
@@ -115,6 +115,7 @@ struct stat_t
     double update_rtime;
     double convert_rtime;
     double overall_rtime;
+    double rht_rtime;
 
     int64_t num_pairsred;
     int64_t num_gb_crit;
@@ -122,9 +123,14 @@ struct stat_t
     int64_t num_rowsred;
     int64_t num_zerored;
 
+    int32_t current_rd;
+    int32_t current_deg;
     int64_t max_ht_size;
     int64_t len_output;
     int32_t size_basis;
+
+    int32_t info_level;
+    int32_t gen_pbm_file;
 };
 
 /* random values for generating hash values */
@@ -296,6 +302,7 @@ int64_t f4_julia(
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
         const int32_t la_option,
+        const int32_t pbm_file,
         const int32_t info_level
         );
 #endif

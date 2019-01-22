@@ -21,13 +21,15 @@ int main(
     const int32_t nr_threads        = 2;
     const int32_t info_level				=	2;
 		const int32_t la_option         = 1;
+    const int32_t pbm_file          = 0;
     const int32_t max_nr_pairs      = 102;
     const int32_t reset_hash_table  = -2;
 
-    ps_t *ps  = initialize_pairset();
-    if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
+    ps_t *ps    = initialize_pairset();
+    stat_t *st  = initialize_statistics();
+    if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                reset_hash_table, la_option, info_level)) {
+                reset_hash_table, la_option, pbm_file, info_level)) {
         return 1;
     }
 

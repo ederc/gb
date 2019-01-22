@@ -1709,7 +1709,7 @@ static dt_t **probabilistic_sparse_linear_algebra(
     st->la_rtime  +=  rt1 - rt0;
 
     st->num_zerored += (nrl - npivs);
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
     }
@@ -1738,7 +1738,7 @@ static dt_t **exact_sparse_linear_algebra(
     st->la_rtime  +=  rt1 - rt0;
 
     st->num_zerored += (nrl - npivs);
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
     }
@@ -1786,7 +1786,7 @@ static dt_t **exact_sparse_dense_linear_algebra(
     st->la_rtime  +=  rt1 - rt0;
 
     st->num_zerored += (nrl - npivs);
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
     }
@@ -1834,7 +1834,7 @@ static dt_t **probabilistic_sparse_dense_linear_algebra_2(
     st->la_rtime  +=  rt1 - rt0;
 
     st->num_zerored += (nrl - npivs);
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
     }
@@ -1880,7 +1880,7 @@ static dt_t **probabilistic_sparse_dense_linear_algebra(
     st->la_rtime  +=  rt1 - rt0;
 
     st->num_zerored += (nrl - npivs);
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("%7d new %7d zero", npivs, nrl-npivs);
         fflush(stdout);
     }

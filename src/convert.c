@@ -32,7 +32,7 @@ static hl_t *convert_hashes_to_columns(
         stat_t *st
         )
 {
-    len_t i, j, k, l;
+    len_t i, j, k;
     dt_t *row;
     hl_t *hcm; /* hash-to-column map */
     int64_t nterms = 0;
@@ -193,7 +193,7 @@ static hl_t *convert_hashes_to_columns(
     rt1 = realtime();
     st->convert_ctime +=  ct1 - ct0;
     st->convert_rtime +=  rt1 - rt0;
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf(" %7d x %-7d %8.3f%%", nrows, ncols, density);
         fflush(stdout);
     }

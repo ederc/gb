@@ -839,70 +839,72 @@ static void reset_basis_hash_table(
     stat_t *st
     )
 {
-  /* timings */
-  double ct0, ct1, rt0, rt1;
-  ct0 = cputime();
-  rt0 = realtime();
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
 
-  len_t i, j;
-  hl_t k;
-  exp_t *e;
-  dt_t *b;
+    len_t i, j;
+    hl_t k;
+    exp_t *e;
+    dt_t *b;
 
-  spair_t *ps = psl->p;
+    spair_t *ps = psl->p;
 
-  exp_t **oev  = ev;
-  ev  = calloc((unsigned long)esz, sizeof(exp_t *));
-  if (ev == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
-  if (tmp == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  for (k = 0; k < esz; ++k) {
-    ev[k]  = tmp + k*nvars;
-  }
-  eld = 1;
-  memset(hmap, 0, (unsigned long)hsz * sizeof(hl_t));
-  memset(hd, 0, (unsigned long)esz * sizeof(hd_t));
-
-  /* reinsert known elements */
-  for (i = 0; i < bload; ++i) {
-    const len_t os  = gbdt[i][1];
-    const len_t len = gbdt[i][2];
-    b = gbdt[i] + 3;
-    for (j = 0; j < os; ++j) {
-      e = oev[b[j]];
-      b[j]  = insert_in_basis_hash_table_no_enlargement_check(e);
+    exp_t **oev  = ev;
+    ev  = calloc((unsigned long)esz, sizeof(exp_t *));
+    if (ev == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
     }
-    for (; j < len; j += 4) {
-      e       = oev[b[j]];
-      b[j]    = insert_in_basis_hash_table_no_enlargement_check(e);
-      e       = oev[b[j+1]];
-      b[j+1]  = insert_in_basis_hash_table_no_enlargement_check(e);
-      e       = oev[b[j+2]];
-      b[j+2]  = insert_in_basis_hash_table_no_enlargement_check(e);
-      e       = oev[b[j+3]];
-      b[j+3]  = insert_in_basis_hash_table_no_enlargement_check(e);
+    exp_t *tmp  = (exp_t *)malloc(
+            (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
+    if (tmp == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
     }
-  }
-  const len_t pld = psl->ld;
-  for (i = 0; i < pld; ++i) {
-    e = oev[ps[i].lcm];
-    ps[i].lcm = insert_in_basis_hash_table_no_enlargement_check(e);
-  }
-  /* note: all memory is allocated as a big block, so it is
-   *       enough to free oev[0].       */
-  free(oev[0]);
-  free(oev);
+    for (k = 0; k < esz; ++k) {
+        ev[k]  = tmp + k*nvars;
+    }
+    eld = 1;
+    memset(hmap, 0, (unsigned long)hsz * sizeof(hl_t));
+    memset(hd, 0, (unsigned long)esz * sizeof(hd_t));
 
-  /* timings */
-  ct1 = cputime();
-  rt1 = realtime();
+    /* reinsert known elements */
+    for (i = 0; i < bload; ++i) {
+        const len_t os  = gbdt[i][1];
+        const len_t len = gbdt[i][2];
+        b = gbdt[i] + 3;
+        for (j = 0; j < os; ++j) {
+            e = oev[b[j]];
+            b[j]  = insert_in_basis_hash_table_no_enlargement_check(e);
+        }
+        for (; j < len; j += 4) {
+            e       = oev[b[j]];
+            b[j]    = insert_in_basis_hash_table_no_enlargement_check(e);
+            e       = oev[b[j+1]];
+            b[j+1]  = insert_in_basis_hash_table_no_enlargement_check(e);
+            e       = oev[b[j+2]];
+            b[j+2]  = insert_in_basis_hash_table_no_enlargement_check(e);
+            e       = oev[b[j+3]];
+            b[j+3]  = insert_in_basis_hash_table_no_enlargement_check(e);
+        }
+    }
+    const len_t pld = psl->ld;
+    for (i = 0; i < pld; ++i) {
+        e = oev[ps[i].lcm];
+        ps[i].lcm = insert_in_basis_hash_table_no_enlargement_check(e);
+    }
+    /* note: all memory is allocated as a big block, so it is
+     *       enough to free oev[0].       */
+    free(oev[0]);
+    free(oev);
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    st->rht_ctime  +=  ct1 - ct0;
+    st->rht_rtime  +=  rt1 - rt0;
 }
 
 static inline int prime_monomials(

@@ -45,6 +45,7 @@ int64_t f4_julia(
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
         const int32_t la_option,
+        const int32_t pbm_file,
         const int32_t info_level
         )
 {
@@ -61,18 +62,19 @@ int64_t f4_julia(
     dt_t **mat;
 
     ps_t * ps  = initialize_pairset();
-    /* checks and set all meta data. if a nonzero value is returned then
-     * some of the input data is corrupted. */
-    if (check_and_set_meta_data(ps, lens, cfs, exps, field_char, mon_order,
-                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                reset_hash_table, la_option, info_level)) {
-        return 0;
-    }
 
     /* initialize stuff */
     stat_t *st  = initialize_statistics();
-    if (il > 0) {
-        print_initial_statistics();
+
+    /* checks and set all meta data. if a nonzero value is returned then
+     * some of the input data is corrupted. */
+    if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
+                nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
+                reset_hash_table, la_option, pbm_file, info_level)) {
+        return 0;
+    }
+    if (st->info_level > 0) {
+        print_initial_statistics(st);
     }
 
     initialize_basis(nr_gens);
@@ -97,7 +99,7 @@ int64_t f4_julia(
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("\ndeg     sel   pairs        mat          density \
           new data             time(rd)\n");
         printf("-------------------------------------------------\
@@ -110,12 +112,17 @@ int64_t f4_julia(
         rct0  = cputime();
         rrt0  = realtime();
         st->max_ht_size = hsz;
+        st->current_rd  = round;
 
         /* preprocess data for next reduction round */
         mat = select_spairs_by_minimal_degree(ps, mat, st);
         mat = symbolic_preprocessing(mat, st);
         hcm = convert_hashes_to_columns(mat, st);
         mat = sort_matrix_rows(mat);
+        /* print pbm files of the matrices */
+        if (st->gen_pbm_file != 0) {
+            write_pbm_file(mat, st); 
+        }
         /* linear algebra, depending on choice, see set_function_pointers() */
         mat = linear_algebra(mat, st);
         /* columns indices are mapped back to exponent hashes */
@@ -132,11 +139,11 @@ int64_t f4_julia(
 
         rct1 = cputime();
         rrt1 = realtime();
-        if (il > 1) {
+        if (st->info_level > 1) {
             printf("%13.3f sec\n", rrt1-rrt0);
         }
     }
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("-------------------------------------------------\
 ----------------------------------------\n");
     }
@@ -150,7 +157,7 @@ int64_t f4_julia(
     st->overall_ctime = ct1 - ct0;
     st->overall_rtime = rt1 - rt0;
 
-    if (il > 0) {
+    if (st->info_level > 0) {
         print_final_statistics(st);
     }
 

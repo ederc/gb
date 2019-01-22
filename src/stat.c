@@ -36,6 +36,7 @@ static stat_t *initialize_statistics(
     st->update_ctime  = 0;
     st->convert_ctime = 0;
     st->overall_ctime = 0;
+    st->rht_ctime     = 0;
 
     st->round_rtime   = 0;
     st->select_rtime  = 0;
@@ -44,6 +45,7 @@ static stat_t *initialize_statistics(
     st->update_rtime  = 0;
     st->convert_rtime = 0;
     st->overall_rtime = 0;
+    st->rht_rtime     = 0;
 
     st->num_pairsred  = 0;
     st->num_gb_crit   = 0;
@@ -51,15 +53,20 @@ static stat_t *initialize_statistics(
     st->num_rowsred   = 0;
     st->num_zerored   = 0;
 
+    st->current_rd    = 0;
+    st->current_deg   = 0;
     st->max_ht_size   = 0;
     st->len_output    = 0;
     st->size_basis    = 0;
+
+    st->info_level    = 0;
+    st->gen_pbm_file  = 0;
 
     return st;
 }
 
 static void print_initial_statistics(
-        void
+        const stat_t *st
         )
 {
 
@@ -90,7 +97,8 @@ static void print_initial_statistics(
         printf("max pair selection     %11d\n", mnsel);
     }
     printf("#threads               %11d\n", nthrds);
-    printf("info level             %11d\n", il);
+    printf("info level             %11d\n", st->info_level);
+    printf("generate pbm files     %11d\n", st->gen_pbm_file);
     printf("------------------------------------------\n");
 }
 
@@ -121,6 +129,12 @@ static void print_final_statistics(
             st->la_rtime,
             (double)100*(double)st->la_rtime
             / (double)(st->overall_rtime));
+    if (rht != 2147483647) {
+    printf("rht          %15.3f sec %5.1f%%\n",
+            st->rht_rtime,
+            (double)100*(double)st->rht_rtime
+            / (double)(st->overall_rtime));
+    }
     printf("-----------------------------------------\n");
     printf("\n---------- COMPUTATIONAL DATA -----------\n");
     printf("size of basis      %9d\n", st->size_basis);

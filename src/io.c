@@ -98,6 +98,7 @@ static inline void set_function_pointers(
 
 static inline int32_t check_and_set_meta_data(
         ps_t *ps,
+        stat_t *st,
         const int32_t *lens,
         const int32_t *cfs,
         const int32_t *exps,
@@ -110,6 +111,7 @@ static inline int32_t check_and_set_meta_data(
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
         const int32_t la_option,
+        const int32_t pbm_file,
         const int32_t info_level
         )
 {
@@ -137,13 +139,14 @@ static inline int32_t check_and_set_meta_data(
     if (htes <= 0) {
         htes  = 12;
     }
-    il  = info_level;
-    if (il < 0) {
-        il = 0;
+    /* info level */
+    st->info_level  = info_level >= 0 ? info_level : 0;
+    if (st->info_level > 2) {
+        st->info_level = 2;
     }
-    if (il > 2) {
-        il = 2;
-    }
+
+    /* generation of pbm files on the fly? */
+    st->gen_pbm_file  = pbm_file > 0 ? 1 : 0;
 
     /* resetting basis hash table */
     rht = reset_hash_table > 0 ? reset_hash_table : 2147483647; /* 2^31-1 */;
@@ -283,4 +286,55 @@ static int64_t export_julia_data(
     *bp = basis;
 
     return len;
+}
+
+static void write_pbm_file(
+    dt_t **mat,
+    stat_t *st
+    )
+{
+    len_t i, j, k;
+    unsigned char b = 0;
+    char buffer[512];
+    char fn[200];
+    sprintf(fn, "%d-%d-%d-%d.pbm", st->current_rd, ncols, nrows, st->current_deg);
+    FILE *fh  = fopen(fn, "wb");
+
+    /* magic header */
+    sprintf(buffer, "P4\n# matrix size(%u, %u)\n%u %u\n", nrows, ncols, ncols, nrows);
+
+    fwrite(buffer, sizeof(char), strlen(buffer), fh);
+
+
+    for (i = 0; i < nrows; ++i) {
+        const len_t len = mat[i][2];
+        const dt_t *row = mat[i] + 3;
+        /* the rows may not be sorted by column indices, thus we
+         * have to go over them again and again and again */
+        for (j = 0; j < ncols; ++j) {
+            k = 0;
+            while (k < len) {
+                if (row[k] == j) {
+                    b |=  (1 << (7 - (j % 8)));
+                    break;
+                }
+                k++;
+            }
+            if (k == len) {
+                b &=  ~(1 << (7 - (j % 8)));
+            }
+
+            /* write each byte */
+            if (j % 8 == 7) {
+                fwrite(&b, sizeof(unsigned char), 1, fh);
+                b = 0;
+            }
+        }
+        /* write leftover bits */
+        if (j % 8 != 0) {
+            fwrite(&b, sizeof(unsigned char), 1, fh);
+        }
+        fflush(fh);
+    }
+    fclose(fh);
 }

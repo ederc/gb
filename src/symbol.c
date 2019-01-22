@@ -64,7 +64,7 @@ static dt_t **select_spairs_by_minimal_degree(
         }
         npairs = j;
     }
-    if (il > 1) {
+    if (st->info_level > 1) {
         printf("%3d  %6d %7d", md, npairs, psl->ld);
         fflush(stdout);
     }
@@ -145,7 +145,8 @@ static dt_t **select_spairs_by_minimal_degree(
      * each lcm we have one reducer, the other rows have to be reduced.
      * thus in the end we have to subtract ncols from the number of rows
      * considered. */
-    st->num_rowsred     +=  load_all - ncols;
+    st->num_rowsred +=  load_all - ncols;
+    st->current_deg =   md;
 
     free(gens);
 

@@ -53,15 +53,20 @@ static stat_t *initialize_statistics(
     st->num_rowsred   = 0;
     st->num_zerored   = 0;
 
+    st->current_rd    = 0;
+    st->current_deg   = 0;
     st->max_ht_size   = 0;
     st->len_output    = 0;
     st->size_basis    = 0;
+
+    st->info_level    = 0;
+    st->gen_pbm_file  = 0;
 
     return st;
 }
 
 static void print_initial_statistics(
-        void
+        const stat_t *st
         )
 {
 
@@ -92,7 +97,8 @@ static void print_initial_statistics(
         printf("max pair selection     %11d\n", mnsel);
     }
     printf("#threads               %11d\n", nthrds);
-    printf("info level             %11d\n", il);
+    printf("info level             %11d\n", st->info_level);
+    printf("generate pbm files     %11d\n", st->gen_pbm_file);
     printf("------------------------------------------\n");
 }
 

@@ -762,7 +762,7 @@ static cf_t *reduce_dense_row_by_dense_new_pivots_31_bit(
     return row;
 }
 
-static cf_t **probabilistic_sparse_reduced_echelon_form(
+static dt_t **probabilistic_sparse_reduced_echelon_form(
         dt_t **mat
         )
 {
@@ -938,7 +938,7 @@ static cf_t **probabilistic_sparse_reduced_echelon_form(
     return mat;
 }
 
-static cf_t **exact_sparse_reduced_echelon_form(
+static dt_t **exact_sparse_reduced_echelon_form(
         dt_t **mat
         )
 {

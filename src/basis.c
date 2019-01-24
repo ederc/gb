@@ -29,7 +29,7 @@ static void initialize_basis(
     bload = 0;
     bsize = 2*ngens;
 
-    gbcf  = (cf_t **)malloc((unsigned long)bsize * sizeof(cf_t *));
+    gbcf  = (cf32_t **)malloc((unsigned long)bsize * sizeof(cf32_t *));
     gbdt  = (dt_t **)malloc((unsigned long)bsize * sizeof(dt_t *));
     lms   = (sdm_t *)malloc((unsigned long)bsize * sizeof(sdm_t));
     red   = (int8_t *)malloc((unsigned long)bsize * sizeof(int8_t));
@@ -42,7 +42,7 @@ static inline void check_enlarge_basis(
 {
     if (bload+added >= bsize) {
         bsize = bsize*2 > bload+added ? bsize*2 : bload+added;
-        gbcf  = realloc(gbcf, (unsigned long)bsize * sizeof(cf_t *));
+        gbcf  = realloc(gbcf, (unsigned long)bsize * sizeof(cf32_t *));
         gbdt  = realloc(gbdt, (unsigned long)bsize * sizeof(dt_t *));
         lms   = realloc(lms, (unsigned long)bsize * sizeof(sdm_t));
         red   = realloc(red, (unsigned long)bsize * sizeof(int8_t));

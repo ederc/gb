@@ -189,7 +189,7 @@ static void import_julia_data(
 {
     int32_t i, j;
     len_t k;
-    cf_t * cf;
+    cf32_t * cf;
     dt_t *dt;
 
     int32_t off = 0; /* offset in arrays */
@@ -201,7 +201,7 @@ static void import_julia_data(
          * gbdt[1] is the offset of the length of the array for loop unrolling
          * gbdt[2] is the real length of the array for looping */
         gbdt[i]     = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
-        gbcf[i]     = (cf_t *)malloc((unsigned long)(lens[i]) * sizeof(cf_t));
+        gbcf[i]     = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf_t));
         gbdt[i][0]  = i; /* link to matcf entry */
         red[i]      = 0;
         gbdt[i][1]  = (lens[i] % UNROLL); /* offset */
@@ -214,7 +214,7 @@ static void import_julia_data(
                 e[k]  = (exp_t)(exps+(nvars*j))[k];
             }
             dt[j-off]  = insert_in_basis_hash_table(e);
-            cf[j-off]  = (cf_t)cfs[j];
+            cf[j-off]  = (cf32_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
@@ -231,7 +231,7 @@ static int64_t export_julia_data(
     int64_t ctr_lengths, ctr_elements;
     int32_t *basis  = *bp;
 
-    cf_t *cf;
+    cf32_t *cf;
     dt_t *dt;
 
     int64_t len = 0; /* complete length of exported array */

@@ -41,7 +41,7 @@
 #define ORDER_COLUMNS 1
 
 /* computational data */
-typedef int32_t cf_t;     /* coefficient type */
+typedef int32_t cf32_t;     /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t dt_t;        /* data type for other polynomial informatio */
@@ -172,7 +172,7 @@ struct ps_t
 static val_t mo = 0;
 
 /* field characteristic */
-static cf_t fc = 0;
+static cf32_t fc = 0;
 
 /* number generators */
 static int32_t ngens  = 0;
@@ -192,8 +192,8 @@ static int32_t mnsel = 0;
  * length ?
  * offset ? */
 
-static cf_t **gbcf  = NULL;
-static cf_t **tmpcf = NULL;
+static cf32_t **gbcf  = NULL;
+static cf32_t **tmpcf = NULL;
 static dt_t **gbdt  = NULL;
 static int8_t *red  = NULL;
 static bl_t blold   = 0;
@@ -259,7 +259,7 @@ dt_t **(*linear_algebra)(
         stat_t *st
         );
 
-cf_t *(*reduce_dense_row_by_known_pivots)(
+cf32_t *(*reduce_dense_row_by_known_pivots)(
         int64_t *dr,
         dt_t *const *pivs,
         const hl_t dpiv
@@ -272,17 +272,17 @@ dt_t *(*reduce_dense_row_by_known_pivots_sparse)(
         const dt_t tmp_pos
         );
 
-cf_t *(*reduce_dense_row_by_all_pivots)(
+cf32_t *(*reduce_dense_row_by_all_pivots)(
         int64_t *dr,
         len_t *pc,
         dt_t *const *pivs,
-        cf_t *const *dpivs
+        cf32_t *const *dpivs
         );
 
-cf_t *(*reduce_dense_row_by_dense_new_pivots)(
+cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
         int64_t *dr,
         len_t *pc,
-        cf_t *const *pivs
+        cf32_t *const *pivs
         );
 
 /* -----------------------------------

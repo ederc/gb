@@ -36,43 +36,6 @@ static inline cf32_t **free_dense_matrix(
     return dm;
 }
 
-static inline void normalize_matrix_rows(
-        cf32_t **mat,
-        dt_t **dt
-        )
-{
-    len_t i, j;
-    int64_t tmp1, tmp2, tmp3, tmp4;
-
-    for (i = 0; i < nrows; ++i) {
-        cf32_t *row = mat[dt[i][0]];
-
-        const int32_t inv = mod_p_inverse_32((int32_t)row[0], (int32_t)fc);
-        const len_t os    = dt[i][1]; 
-        const len_t len   = dt[i][2]; 
-
-        for (j = 0; j < os; ++j) {
-            tmp1    =   ((int64_t)row[j] * inv) % fc;
-            tmp1    +=  (tmp1 >> 63) & fc;
-            row[j]  =   (cf32_t)tmp1;
-        }
-        for (j = os; j < len; j += 4) {
-            tmp1      =   ((int64_t)row[j] * inv) % fc;
-            tmp2      =   ((int64_t)row[j+1] * inv) % fc;
-            tmp3      =   ((int64_t)row[j+2] * inv) % fc;
-            tmp4      =   ((int64_t)row[j+3] * inv) % fc;
-            tmp1      +=  (tmp1 >> 63) & fc;
-            tmp2      +=  (tmp2 >> 63) & fc;
-            tmp3      +=  (tmp3 >> 63) & fc;
-            tmp4      +=  (tmp4 >> 63) & fc;
-            row[j]    =   (hl_t)tmp1;
-            row[j+1]  =   (hl_t)tmp2;
-            row[j+2]  =   (hl_t)tmp3;
-            row[j+3]  =   (hl_t)tmp4;
-        }
-    }
-}
-
 static inline cf32_t *normalize_dense_matrix_row(
         cf32_t *row,
         const dt_t pc

@@ -92,7 +92,7 @@ int64_t f4_julia(
     qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
             matrix_row_initial_input_cmp);
     /* normalize input generators */
-    normalize_matrix_rows(gbcf_ff, gbdt);
+    normalize_initial_basis();
 
     /* move input generators to basis and generate first spairs */
     update_basis(ps, st);

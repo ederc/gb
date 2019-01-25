@@ -233,6 +233,10 @@ void (*free_basis)(
         void
         );
 
+void (*normalize_initial_basis)(
+        void
+        );
+
 int (*matrix_row_initial_input_cmp)(
         const void *a,
         const void *b

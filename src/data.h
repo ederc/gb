@@ -185,6 +185,10 @@ static int32_t mnsel = 0;
 static cf32_t **gbcf_ff  = NULL;
 static cf32_t **tmpcf_ff = NULL;
 
+/* rationals coefficient arrays */
+static mpz_t **gbcf_q   = NULL;
+static mpz_t **tmpcf_q  = NULL;
+
 static dt_t **gbdt  = NULL;
 static int8_t *red  = NULL;
 static bl_t blold   = 0;
@@ -219,6 +223,16 @@ static int32_t nthrds = 1; /* number of CPU threads */
 static int32_t laopt  = 0;
 
 /* function pointers */
+void (*initialize_basis)(
+        int32_t ngens
+        );
+void (*check_enlarge_basis)(
+        len_t added
+        );
+void (*free_basis)(
+        void
+        );
+
 int (*matrix_row_initial_input_cmp)(
         const void *a,
         const void *b

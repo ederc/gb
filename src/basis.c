@@ -22,35 +22,36 @@
 
 #include "data.h"
 
-static void initialize_basis(
+/* finite field stuff */
+static void initialize_basis_ff(
         int32_t ngens
         )
 {
     bload = 0;
     bsize = 2*ngens;
 
-    gbcf_ff  = (cf32_t **)malloc((unsigned long)bsize * sizeof(cf32_t *));
-    gbdt  = (dt_t **)malloc((unsigned long)bsize * sizeof(dt_t *));
-    lms   = (sdm_t *)malloc((unsigned long)bsize * sizeof(sdm_t));
-    red   = (int8_t *)malloc((unsigned long)bsize * sizeof(int8_t));
+    gbcf_ff = (cf32_t **)malloc((unsigned long)bsize * sizeof(cf32_t *));
+    gbdt    = (dt_t **)malloc((unsigned long)bsize * sizeof(dt_t *));
+    lms     = (sdm_t *)malloc((unsigned long)bsize * sizeof(sdm_t));
+    red     = (int8_t *)malloc((unsigned long)bsize * sizeof(int8_t));
     memset(red, 0, (unsigned long)bsize * sizeof(int8_t));
 }
 
-static inline void check_enlarge_basis(
+static inline void check_enlarge_basis_ff(
         len_t added
         )
 {
     if (bload+added >= bsize) {
         bsize = bsize*2 > bload+added ? bsize*2 : bload+added;
-        gbcf_ff  = realloc(gbcf_ff, (unsigned long)bsize * sizeof(cf32_t *));
-        gbdt  = realloc(gbdt, (unsigned long)bsize * sizeof(dt_t *));
-        lms   = realloc(lms, (unsigned long)bsize * sizeof(sdm_t));
-        red   = realloc(red, (unsigned long)bsize * sizeof(int8_t));
+        gbcf_ff = realloc(gbcf_ff, (unsigned long)bsize * sizeof(cf32_t *));
+        gbdt    = realloc(gbdt, (unsigned long)bsize * sizeof(dt_t *));
+        lms     = realloc(lms, (unsigned long)bsize * sizeof(sdm_t));
+        red     = realloc(red, (unsigned long)bsize * sizeof(int8_t));
         memset(red+bload, 0, (unsigned long)(bsize-bload) * sizeof(int8_t));
     }
 }
 
-static void free_basis(
+static void free_basis_ff(
         void
         )
 {
@@ -62,6 +63,59 @@ static void free_basis(
         }
         free(gbcf_ff);
         gbcf_ff = NULL;
+        free(gbdt);
+        gbdt  = NULL;
+        free(lms);
+        lms = NULL;
+        free(red);
+        red = NULL;
+        blold = 0;
+        bload = 0;
+        bsize = 0;
+    }
+}
+
+/* characteristic zero stuff */
+static void initialize_basis_q(
+        int32_t ngens
+        )
+{
+    bload = 0;
+    bsize = 2*ngens;
+
+    gbcf_q  = (mpz_t **)malloc((unsigned long)bsize * sizeof(mpz_t *));
+    gbdt    = (dt_t **)malloc((unsigned long)bsize * sizeof(dt_t *));
+    lms     = (sdm_t *)malloc((unsigned long)bsize * sizeof(sdm_t));
+    red     = (int8_t *)malloc((unsigned long)bsize * sizeof(int8_t));
+    memset(red, 0, (unsigned long)bsize * sizeof(int8_t));
+}
+
+static inline void check_enlarge_basis_q(
+        len_t added
+        )
+{
+    if (bload+added >= bsize) {
+        bsize = bsize*2 > bload+added ? bsize*2 : bload+added;
+        gbcf_q  = realloc(gbcf_q, (unsigned long)bsize * sizeof(mpz_t *));
+        gbdt    = realloc(gbdt, (unsigned long)bsize * sizeof(dt_t *));
+        lms     = realloc(lms, (unsigned long)bsize * sizeof(sdm_t));
+        red     = realloc(red, (unsigned long)bsize * sizeof(int8_t));
+        memset(red+bload, 0, (unsigned long)(bsize-bload) * sizeof(int8_t));
+    }
+}
+
+static void free_basis_q(
+        void
+        )
+{
+    len_t i;
+    if (gbcf_q) {
+        for (i = 0; i < bload; ++i) {
+            free(gbcf_q[i]);
+            free(gbdt[i]);
+        }
+        free(gbcf_q);
+        gbcf_q  = NULL;
         free(gbdt);
         gbdt  = NULL;
         free(lms);

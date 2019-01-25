@@ -75,6 +75,15 @@ static inline void set_function_pointers(
 
     /* up to 17 bits we can use one modular operation for reducing a row. this works
      * for matrices with #rows <= 54 million */
+    if (fc == 0) {
+        initialize_basis    = initialize_basis_q;
+        check_enlarge_basis = check_enlarge_basis_q;
+        free_basis          = free_basis_q;
+    } else {
+        initialize_basis    = initialize_basis_ff;
+        check_enlarge_basis = check_enlarge_basis_ff;
+        free_basis          = free_basis_ff;
+    }
     if (fc < pow(2, 17)) {
         reduce_dense_row_by_all_pivots =
             reduce_dense_row_by_all_pivots_17_bit;

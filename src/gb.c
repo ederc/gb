@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gmp.h>
 
 #include "stat.c"     /* computational statistics */
 #include "time.c"     /* timing business */

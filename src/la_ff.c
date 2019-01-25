@@ -180,9 +180,9 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
         const int64_t mul = mod - dr[i];
         dts   = pivs[i];
         if (i < ncl) {
-            cfs   = gbcf[dts[0]];
+            cfs   = gbcf_ff[dts[0]];
         } else {
-            cfs   = tmpcf[dts[0]];
+            cfs   = tmpcf_ff[dts[0]];
         }
         const len_t os  = dts[1];
         const len_t len = dts[2];
@@ -202,7 +202,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
         return NULL;
     }
 
-    dt_t *dt  = (dt_t *)malloc((unsigned long)(ncols-np+3) * sizeof(dt_t));
+    dt_t *dt    = (dt_t *)malloc((unsigned long)(ncols-np+3) * sizeof(dt_t));
     cf32_t *cf  = (cf32_t *)malloc((unsigned long)(ncols-np) * sizeof(cf32_t));
     j = 0;
     dt_t *ds = dt + 3;
@@ -227,7 +227,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
         dt[0] = tmp_pos;
         dt[1] = j % 4;
         dt[2] = j;
-        tmpcf[tmp_pos]  = cf;
+        tmpcf_ff[tmp_pos]  = cf;
     }
     return dt;
 }
@@ -266,9 +266,9 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
         const int64_t mul = (int64_t)dr[i];
         dts   = pivs[i];
         if (i < ncl) {
-            cfs   = gbcf[dts[0]];
+            cfs   = gbcf_ff[dts[0]];
         } else {
-            cfs   = tmpcf[dts[0]];
+            cfs   = tmpcf_ff[dts[0]];
         }
 
         const len_t os  = dts[1];
@@ -320,7 +320,7 @@ static dt_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
         dt[0] = tmp_pos;
         dt[1] = j % 4;
         dt[2] = j;
-        tmpcf[tmp_pos]  = cf;
+        tmpcf_ff[tmp_pos]  = cf;
     }
     return dt;
 }
@@ -351,7 +351,7 @@ static cf32_t *reduce_dense_row_by_all_pivots_17_bit(
 
         /* found reducer row, get multiplier */
         const int64_t mul = mod - dr[i];
-        const cf32_t *cfs   = gbcf[pivs[i][0]];
+        const cf32_t *cfs   = gbcf_ff[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
         const cf32_t * const ds  = pivs[i] + 3;
@@ -443,7 +443,7 @@ static cf32_t *reduce_dense_row_by_all_pivots_31_bit(
 
         /* found reducer row, get multiplier */
         const int64_t mul = (int64_t)dr[i];
-        const cf32_t *cfs   = gbcf[pivs[i][0]];
+        const cf32_t *cfs   = gbcf_ff[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
         const dt_t * const ds = pivs[i] + 3;
@@ -541,7 +541,7 @@ static cf32_t *reduce_dense_row_by_known_pivots_17_bit(
 
         /* found reducer row, get multiplier */
         const int64_t mul = mod - dr[i];
-        const cf32_t *cfs   = gbcf[pivs[i][0]];
+        const cf32_t *cfs   = gbcf_ff[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
         const dt_t * const ds = pivs[i] + 3;
@@ -600,7 +600,7 @@ static cf32_t *reduce_dense_row_by_known_pivots_31_bit(
 
         /* found reducer row, get multiplier */
         const int64_t mul = (int64_t)dr[i];
-        const cf32_t *cfs   = gbcf[pivs[i][0]];
+        const cf32_t *cfs   = gbcf_ff[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
         const dt_t * const ds = pivs[i] + 3;
@@ -827,7 +827,7 @@ static dt_t **probabilistic_sparse_reduced_echelon_form(
 
                 for (k = 0, m = i*rpb; m < nbl; ++k, ++m) {
                     npiv  = upivs[m];
-                    cfs   = gbcf[npiv[0]];
+                    cfs   = gbcf_ff[npiv[0]];
                     const len_t os  = npiv[1];
                     const len_t len = npiv[2];
                     const dt_t * const ds = npiv + 3;
@@ -866,11 +866,11 @@ static dt_t **probabilistic_sparse_reduced_echelon_form(
                     * NOTE: this has to be done here, otherwise the reduction may
                     * lead to wrong results in a parallel computation since other
                     * threads might directly use the new pivot once it is synced. */
-                    if (tmpcf[npiv[0]][0] != 1) {
+                    if (tmpcf_ff[npiv[0]][0] != 1) {
                         normalize_sparse_matrix_row(
-                                tmpcf[npiv[0]], npiv[1], npiv[2]);
+                                tmpcf_ff[npiv[0]], npiv[1], npiv[2]);
                     }
-                    cfs = tmpcf[npiv[0]];
+                    cfs = tmpcf_ff[npiv[0]];
                     sc  = npiv[3];
                     k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
                 } while (!k);
@@ -905,7 +905,7 @@ static dt_t **probabilistic_sparse_reduced_echelon_form(
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
             memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
-            cfs = tmpcf[pivs[i][0]];
+            cfs = tmpcf_ff[pivs[i][0]];
             cfp = pivs[i][0];
             const len_t os  = pivs[i][1];
             const len_t len = pivs[i][2];
@@ -971,7 +971,7 @@ static dt_t **exact_sparse_reduced_echelon_form(
     for (i = 0; i < nrl; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         dt_t *npiv      = upivs[i];
-        cf32_t *cfs       = gbcf[npiv[0]];
+        cf32_t *cfs       = gbcf_ff[npiv[0]];
         const len_t os  = npiv[1];
         const len_t len = npiv[2];
         const dt_t * const ds = npiv + 3;
@@ -999,12 +999,12 @@ static dt_t **exact_sparse_reduced_echelon_form(
              * NOTE: this has to be done here, otherwise the reduction may
              * lead to wrong results in a parallel computation since other
              * threads might directly use the new pivot once it is synced. */
-            if (tmpcf[npiv[0]][0] != 1) {
+            if (tmpcf_ff[npiv[0]][0] != 1) {
                 normalize_sparse_matrix_row(
-                        tmpcf[npiv[0]], npiv[1], npiv[2]);
+                        tmpcf_ff[npiv[0]], npiv[1], npiv[2]);
             }
             k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
-            cfs = tmpcf[npiv[0]];
+            cfs = tmpcf_ff[npiv[0]];
         } while (!k);
     }
     free(upivs);
@@ -1027,7 +1027,7 @@ static dt_t **exact_sparse_reduced_echelon_form(
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
             memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
-            cfs = tmpcf[pivs[i][0]];
+            cfs = tmpcf_ff[pivs[i][0]];
             cf_array_pos    = pivs[i][0];
             const len_t os  = pivs[i][1];
             const len_t len = pivs[i][2];
@@ -1060,7 +1060,7 @@ static dt_t **exact_sparse_reduced_echelon_form(
     return mat;
 }
 
-static cf32_t **sparse_AB_CD_linear_algebra(
+static cf32_t **sparse_AB_CD_linear_algebra_ff(
         dt_t ***matp
         )
 {
@@ -1103,7 +1103,7 @@ static cf32_t **sparse_AB_CD_linear_algebra(
         dt_t *npiv  = upivs[i];
         /* do the reduction */
         memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
-        cfs = gbcf[npiv[0]];
+        cfs = gbcf_ff[npiv[0]];
         const len_t os  = npiv[1];
         const len_t len = npiv[2];
         const dt_t * const ds = npiv +3;
@@ -1261,7 +1261,7 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
 
                 for (k = 0, m = i*rpb; m < nbl; ++k, ++m) {
                     npiv  = upivs[m];
-                    tmp   = gbcf[npiv[0]];
+                    tmp   = gbcf_ff[npiv[0]];
                     const len_t os  = npiv[1];
                     const len_t len = npiv[2];
                     const dt_t * const ds = npiv + 3;
@@ -1341,7 +1341,7 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
     return nps;
 }
 
-static cf32_t **exact_dense_linear_algebra(
+static cf32_t **exact_dense_linear_algebra_ff(
         cf32_t **dm,
         const len_t nr
         )
@@ -1454,7 +1454,7 @@ static cf32_t **exact_dense_linear_algebra(
     return nps;
 }
 
-static cf32_t **probabilistic_dense_linear_algebra(
+static cf32_t **probabilistic_dense_linear_algebra_ff(
         cf32_t **dm,
         const len_t nr
         )
@@ -1624,8 +1624,8 @@ static dt_t **convert_to_sparse_matrix_rows(
     cf32_t *cfs;
     dt_t *dts, *dss;
 
-    mat   = realloc(mat, (unsigned long)npivs * sizeof(dt_t *));
-    tmpcf = realloc(tmpcf, (unsigned long)npivs * sizeof(cf32_t *));
+    mat       = realloc(mat, (unsigned long)npivs * sizeof(dt_t *));
+    tmpcf_ff  = realloc(tmpcf_ff, (unsigned long)npivs * sizeof(cf32_t *));
 
     l = 0;
     for (i = ncr-1; i > -1; --i) {
@@ -1673,7 +1673,7 @@ static dt_t **convert_to_sparse_matrix_rows(
 
             /* link to basis */
             mat[l]    = dts;
-            tmpcf[l]  = cfs;
+            tmpcf_ff[l]  = cfs;
             l++;
         }
     }
@@ -1687,7 +1687,7 @@ static dt_t **convert_to_sparse_matrix_rows(
  * the same for both. this generates a dense D' part which is then
  * either reduced via exact linear algebra or via probabilistic
  * linear algebra */
-static dt_t **probabilistic_sparse_linear_algebra(
+static dt_t **probabilistic_sparse_linear_algebra_ff(
         dt_t **mat,
         stat_t *st
         )
@@ -1699,8 +1699,8 @@ static dt_t **probabilistic_sparse_linear_algebra(
 
     /* allocate temporary storage space for sparse
      * coefficients of new pivot rows */
-    tmpcf = realloc(tmpcf, (unsigned long)nrl * sizeof(cf32_t *));
-    mat   = probabilistic_sparse_reduced_echelon_form(mat);
+    tmpcf_ff = realloc(tmpcf_ff, (unsigned long)nrl * sizeof(cf32_t *));
+    mat       = probabilistic_sparse_reduced_echelon_form(mat);
 
     /* timings */
     ct1 = cputime();
@@ -1716,7 +1716,7 @@ static dt_t **probabilistic_sparse_linear_algebra(
     return mat;
 }
 
-static dt_t **exact_sparse_linear_algebra(
+static dt_t **exact_sparse_linear_algebra_ff(
         dt_t **mat,
         stat_t *st
         )
@@ -1728,8 +1728,8 @@ static dt_t **exact_sparse_linear_algebra(
 
     /* allocate temporary storage space for sparse
      * coefficients of new pivot rows */
-    tmpcf = realloc(tmpcf, (unsigned long)nrl * sizeof(cf32_t *));
-    mat   = exact_sparse_reduced_echelon_form(mat);
+    tmpcf_ff  = realloc(tmpcf_ff, (unsigned long)nrl * sizeof(cf32_t *));
+    mat       = exact_sparse_reduced_echelon_form(mat);
 
     /* timings */
     ct1 = cputime();
@@ -1746,7 +1746,7 @@ static dt_t **exact_sparse_linear_algebra(
     return mat;
 }
 
-static dt_t **exact_sparse_dense_linear_algebra(
+static dt_t **exact_sparse_dense_linear_algebra_ff(
         dt_t **mat,
         stat_t *st
         )
@@ -1760,9 +1760,9 @@ static dt_t **exact_sparse_dense_linear_algebra(
 
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm;
-    dm  = sparse_AB_CD_linear_algebra(&mat);
+    dm  = sparse_AB_CD_linear_algebra_ff(&mat);
     if (npivs > 0) {      
-        dm  = exact_dense_linear_algebra(dm, npivs);
+        dm  = exact_dense_linear_algebra_ff(dm, npivs);
         dm  = interreduce_dense_matrix(dm);
     }
 
@@ -1794,7 +1794,7 @@ static dt_t **exact_sparse_dense_linear_algebra(
     return mat;
 }
 
-static dt_t **probabilistic_sparse_dense_linear_algebra_2(
+static dt_t **probabilistic_sparse_dense_linear_algebra_ff_2(
         dt_t **mat,
         stat_t *st
         )
@@ -1808,9 +1808,9 @@ static dt_t **probabilistic_sparse_dense_linear_algebra_2(
 
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm;
-    dm  = sparse_AB_CD_linear_algebra(&mat);
+    dm  = sparse_AB_CD_linear_algebra_ff(&mat);
     if (npivs > 0) {      
-        dm  = probabilistic_dense_linear_algebra(dm, npivs);
+        dm  = probabilistic_dense_linear_algebra_ff(dm, npivs);
         dm  = interreduce_dense_matrix(dm);
     }
 
@@ -1842,7 +1842,7 @@ static dt_t **probabilistic_sparse_dense_linear_algebra_2(
     return mat;
 }
 
-static dt_t **probabilistic_sparse_dense_linear_algebra(
+static dt_t **probabilistic_sparse_dense_linear_algebra_ff(
         dt_t **mat,
         stat_t *st
         )

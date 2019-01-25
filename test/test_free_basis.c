@@ -10,7 +10,7 @@ int main(
     /* initialize stuff */
     initialize_basis(4);
     free_basis();
-    if (gbcf != NULL) {
+    if (gbcf_ff != NULL) {
         return 1;
     }
     if (gbdt != NULL) {

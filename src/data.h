@@ -181,19 +181,10 @@ static int32_t ngens  = 0;
 static int32_t mnsel = 0;
 /* basis data */
 
-/* we need to store:
- * idx of coefficient array
- * length of array
- * offset for loop unrolling
- * => all in all length = real length + 3
- *
- * how to achieve the same offset, i.e. 3 in the coefficient array?
- * redundant yes/no ?
- * length ?
- * offset ? */
+/* finite field coefficient arrays */
+static cf32_t **gbcf_ff  = NULL;
+static cf32_t **tmpcf_ff = NULL;
 
-static cf32_t **gbcf  = NULL;
-static cf32_t **tmpcf = NULL;
 static dt_t **gbdt  = NULL;
 static int8_t *red  = NULL;
 static bl_t blold   = 0;

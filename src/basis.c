@@ -29,7 +29,7 @@ static void initialize_basis(
     bload = 0;
     bsize = 2*ngens;
 
-    gbcf  = (cf32_t **)malloc((unsigned long)bsize * sizeof(cf32_t *));
+    gbcf_ff  = (cf32_t **)malloc((unsigned long)bsize * sizeof(cf32_t *));
     gbdt  = (dt_t **)malloc((unsigned long)bsize * sizeof(dt_t *));
     lms   = (sdm_t *)malloc((unsigned long)bsize * sizeof(sdm_t));
     red   = (int8_t *)malloc((unsigned long)bsize * sizeof(int8_t));
@@ -42,7 +42,7 @@ static inline void check_enlarge_basis(
 {
     if (bload+added >= bsize) {
         bsize = bsize*2 > bload+added ? bsize*2 : bload+added;
-        gbcf  = realloc(gbcf, (unsigned long)bsize * sizeof(cf32_t *));
+        gbcf_ff  = realloc(gbcf_ff, (unsigned long)bsize * sizeof(cf32_t *));
         gbdt  = realloc(gbdt, (unsigned long)bsize * sizeof(dt_t *));
         lms   = realloc(lms, (unsigned long)bsize * sizeof(sdm_t));
         red   = realloc(red, (unsigned long)bsize * sizeof(int8_t));
@@ -55,13 +55,13 @@ static void free_basis(
         )
 {
     len_t i;
-    if (gbcf) {
+    if (gbcf_ff) {
         for (i = 0; i < bload; ++i) {
-            free(gbcf[i]);
+            free(gbcf_ff[i]);
             free(gbdt[i]);
         }
-        free(gbcf);
-        gbcf  = NULL;
+        free(gbcf_ff);
+        gbcf_ff = NULL;
         free(gbdt);
         gbdt  = NULL;
         free(lms);

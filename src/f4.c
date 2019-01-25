@@ -82,7 +82,7 @@ int64_t f4_julia(
     initialize_update_hash_table();
     initialize_symbolic_hash_table();
 
-    import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(lens, cfs, exps, nr_gens);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
@@ -92,7 +92,7 @@ int64_t f4_julia(
     qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
             matrix_row_initial_input_cmp);
     /* normalize input generators */
-    normalize_matrix_rows(gbcf, gbdt);
+    normalize_matrix_rows(gbcf_ff, gbdt);
 
     /* move input generators to basis and generate first spairs */
     update_basis(ps, st);
@@ -148,7 +148,7 @@ int64_t f4_julia(
 ----------------------------------------\n");
     }
 
-    st->len_output  = export_julia_data(jl_basis);
+    st->len_output  = export_julia_data_ff(jl_basis);
     st->size_basis  = (*jl_basis)[0];
 
     /* timings */

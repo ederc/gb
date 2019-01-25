@@ -31,7 +31,7 @@ int main(
 
     initialize_update_hash_table();
 
-    import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(lens, cfs, exps, nr_gens);
 
     calculate_divmask();
     for (i = 0; i < 16; ++i) {

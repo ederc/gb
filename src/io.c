@@ -55,22 +55,22 @@ static inline void set_function_pointers(
 
     switch (laopt) {
         case 1:
-            linear_algebra  = exact_sparse_dense_linear_algebra;
+            linear_algebra  = exact_sparse_dense_linear_algebra_ff;
             break;
         case 2:
-            linear_algebra  = exact_sparse_linear_algebra;
+            linear_algebra  = exact_sparse_linear_algebra_ff;
             break;
         case 42:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra;
+            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff;
             break;
         case 43:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra_2;
+            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_2;
             break;
         case 44:
-            linear_algebra  = probabilistic_sparse_linear_algebra;
+            linear_algebra  = probabilistic_sparse_linear_algebra_ff;
             break;
         default:
-            linear_algebra  = exact_sparse_dense_linear_algebra;
+            linear_algebra  = exact_sparse_dense_linear_algebra_ff;
     }
 
     /* up to 17 bits we can use one modular operation for reducing a row. this works
@@ -180,7 +180,7 @@ static inline int32_t check_and_set_meta_data(
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
-static void import_julia_data(
+static void import_julia_data_ff(
         const int32_t *lens,
         const int32_t *cfs,
         const int32_t *exps,
@@ -201,13 +201,13 @@ static void import_julia_data(
          * gbdt[1] is the offset of the length of the array for loop unrolling
          * gbdt[2] is the real length of the array for looping */
         gbdt[i]     = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
-        gbcf[i]     = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf_t));
+        gbcf_ff[i]  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
         gbdt[i][0]  = i; /* link to matcf entry */
         red[i]      = 0;
         gbdt[i][1]  = (lens[i] % UNROLL); /* offset */
         gbdt[i][2]  = lens[i]; /* length */
 
-        cf  = gbcf[i];
+        cf  = gbcf_ff[i];
         dt  = gbdt[i] + 3;
         for (j = off; j < off+lens[i]; ++j) {
             for (k = 0; k < nvars; ++k) {
@@ -223,7 +223,7 @@ static void import_julia_data(
     free(e);
 }
 
-static int64_t export_julia_data(
+static int64_t export_julia_data_ff(
         int32_t **bp
         )
 {
@@ -273,7 +273,7 @@ static int64_t export_julia_data(
         } else {
             /* length of polynomial including this length entry itself */
             basis[ctr_lengths++]  = (int32_t)((gbdt[i][2]) * lterm);
-            cf  = gbcf[gbdt[i][0]];
+            cf  = gbcf_ff[gbdt[i][0]];
             dt  = gbdt[i] + 3;
             for (j = 0; j < gbdt[i][2]; ++j) {
                 basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */

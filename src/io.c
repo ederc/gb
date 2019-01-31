@@ -201,7 +201,7 @@ static void import_julia_data(
          * gbdt[1] is the offset of the length of the array for loop unrolling
          * gbdt[2] is the real length of the array for looping */
         gbdt[i]     = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
-        gbcf[i]     = (cf_t *)malloc((unsigned long)(lens[i]+3) * sizeof(cf_t));
+        gbcf[i]     = (cf_t *)malloc((unsigned long)(lens[i]) * sizeof(cf_t));
         gbdt[i][0]  = i; /* link to matcf entry */
         red[i]      = 0;
         gbdt[i][1]  = (lens[i] % UNROLL); /* offset */

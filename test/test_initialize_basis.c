@@ -8,13 +8,21 @@ int main(
         )
 {
     /* initialize stuff */
-    initialize_basis(4);
+    initialize_basis_ff(4);
     if (bload != 0) {
         return 1;
     }
     if (bsize != 8) {
         return 1;
     }
-    free_basis();
+    free_basis_ff();
+    initialize_basis_q(4);
+    if (bload != 0) {
+        return 1;
+    }
+    if (bsize != 8) {
+        return 1;
+    }
+    free_basis_q();
     return 0;
 }

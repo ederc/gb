@@ -7,10 +7,26 @@ int main(
         void
         )
 {
-    /* initialize stuff */
-    initialize_basis(4);
-    free_basis();
+    initialize_basis_ff(4);
+    free_basis_ff();
     if (gbcf_ff != NULL) {
+        return 1;
+    }
+    if (gbdt != NULL) {
+        return 1;
+    }
+    if (lms!= NULL) {
+        return 1;
+    }
+    if (bload != 0) {
+        return 1;
+    }
+    if (bsize != 0) {
+        return 1;
+    }
+    initialize_basis_q(4);
+    free_basis_q();
+    if (gbcf_q != NULL) {
         return 1;
     }
     if (gbdt != NULL) {

@@ -19,7 +19,7 @@ int main(
     htes  = 12;
     fc    = 101;
 
-    initialize_basis(nr_gens);
+    initialize_basis_ff(nr_gens);
     initialize_basis_hash_table();
 
     if (ndvars != nvars) {
@@ -44,5 +44,7 @@ int main(
             return 1;
         }
     }
+
+    free_basis_ff();
     return 0;
 }

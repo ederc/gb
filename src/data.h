@@ -28,6 +28,7 @@
 #include <string.h> /* for memset et al. */
 #include <limits.h>
 #include <math.h>
+#include <threads.h>
 
 /* check if OpenMP is available */
 /* #if defined(_OPENMP) */
@@ -66,34 +67,34 @@ struct hd_t
     val_t val;
 };
 /* basis hash table data */
-static hl_t *hmap   = NULL; /* global hash map */
-static hl_t hsz     = 0;
-static exp_t **ev   = NULL; /* exponents from global hash table */
-static hd_t *hd     = NULL;
-static hl_t eld     = 0;
-static hl_t esz     = 0;
-static int32_t rht  = 0;  /* basis hash table resetting */
+static __thread hl_t *hmap   = NULL; /* global hash map */
+static __thread hl_t hsz     = 0;
+static __thread exp_t **ev   = NULL; /* exponents from global hash table */
+static __thread hd_t *hd     = NULL;
+static __thread hl_t eld     = 0;
+static __thread hl_t esz     = 0;
+static __thread int32_t rht  = 0;  /* basis hash table resetting */
 
 /* update hash table data */
-static hl_t *humap  = NULL; /* local hash map */
-static hl_t husz    = 0;
-static exp_t **evu  = NULL; /* exponents from local hash table */
-static hd_t *hdu    = NULL;
-static hl_t euld    = 0;
-static hl_t eusz    = 0;
+static __thread hl_t *humap  = NULL; /* local hash map */
+static __thread hl_t husz    = 0;
+static __thread exp_t **evu  = NULL; /* exponents from local hash table */
+static __thread hd_t *hdu    = NULL;
+static __thread hl_t euld    = 0;
+static __thread hl_t eusz    = 0;
 
 /* symbolic hash table data */
-static hl_t *hmaps  = NULL; /* local hash map */
-static hl_t hssz    = 0;
-static exp_t **evs  = NULL; /* exponents from local hash table */
-static hd_t *hds    = NULL;
-static hl_t esld    = 0;
-static hl_t essz    = 0;
+static __thread hl_t *hmaps  = NULL; /* local hash map */
+static __thread hl_t hssz    = 0;
+static __thread exp_t **evs  = NULL; /* exponents from local hash table */
+static __thread hd_t *hds    = NULL;
+static __thread hl_t esld    = 0;
+static __thread hl_t essz    = 0;
 
-static len_t htes   = 0;  /* hash table exponent at start */
-static len_t nvars  = 0; /* number of variables */
-static len_t bpv    = 0; /* bits per variable in divmask */
-static len_t ndvars = 0; /* number of variables for divmask */
+static __thread len_t htes   = 0;  /* hash table exponent at start */
+static __thread len_t nvars  = 0; /* number of variables */
+static __thread len_t bpv    = 0; /* bits per variable in divmask */
+static __thread len_t ndvars = 0; /* number of variables for divmask */
 
 /* statistic stuff */
 typedef struct stat_t stat_t;
@@ -134,10 +135,10 @@ struct stat_t
 };
 
 /* random values for generating hash values */
-static val_t *rv  = NULL;
+static __thread val_t *rv  = NULL;
 
 /* divisor map for short divisibility tests */
-static sdm_t *dm  = NULL;
+static __thread sdm_t *dm  = NULL;
 
 /* pseudo random number generator for hash value
  * generation */
@@ -169,47 +170,47 @@ struct ps_t
 /* monomial order - until we have general orders:
  * 0 = DRL
  * 1 = LEX */
-static val_t mo = 0;
+static __thread val_t mo = 0;
 
 /* field characteristic */
-static cf32_t fc = 0;
+static __thread cf32_t fc = 0;
 
 /* number generators */
-static int32_t ngens  = 0;
+static __thread int32_t ngens  = 0;
 
 /* maximum number of spair selection */
-static int32_t mnsel = 0;
+static __thread int32_t mnsel = 0;
 /* basis data */
 
 /* finite field coefficient arrays */
-static cf32_t **gbcf_ff  = NULL;
-static cf32_t **tmpcf_ff = NULL;
+static __thread cf32_t **gbcf_ff  = NULL;
+static __thread cf32_t **tmpcf_ff = NULL;
 
 /* rationals coefficient arrays */
-static mpz_t **gbcf_q   = NULL;
-static mpz_t **tmpcf_q  = NULL;
+static __thread mpz_t **gbcf_q   = NULL;
+static __thread mpz_t **tmpcf_q  = NULL;
 
-static dt_t **gbdt  = NULL;
-static int8_t *red  = NULL;
-static bl_t blold   = 0;
-static bl_t bload   = 0;
-static bl_t bsize   = 0;
+static __thread dt_t **gbdt  = NULL;
+static __thread int8_t *red  = NULL;
+static __thread bl_t blold   = 0;
+static __thread bl_t bload   = 0;
+static __thread bl_t bsize   = 0;
 
 /* lead monomials of all basis elements */
-static sdm_t *lms = NULL;
+static __thread sdm_t *lms = NULL;
 
-static const long bred  = (long)1;  /* maRking redundant elements */
-static const long bmask = ~(long)1; /* maSking redundant elements */
+static __thread const long bred  = (long)1;  /* maRking redundant elements */
+static __thread const long bmask = ~(long)1; /* maSking redundant elements */
 
 /* matrix data */
-static len_t nrall  = 0; /* allocated rows for matrix */
-static len_t npivs  = 0; /* new pivots in the current round */
-static len_t nrows  = 0; /* rows used in the current round */
-static len_t ncols  = 0; /* columns used in the current round */
-static len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
-static len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
-static len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
-static len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
+static __thread len_t nrall  = 0; /* allocated rows for matrix */
+static __thread len_t npivs  = 0; /* new pivots in the current round */
+static __thread len_t nrows  = 0; /* rows used in the current round */
+static __thread len_t ncols  = 0; /* columns used in the current round */
+static __thread len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
+static __thread len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
+static __thread len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
+static __thread len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
 
 /* loop unrolling in sparse linear algebra:
  * we store the offset of the first elements not unrolled
@@ -217,10 +218,10 @@ static len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
 #define UNROLL  4
 
 /* threads data */
-static int32_t nthrds = 1; /* number of CPU threads */
+static __thread int32_t nthrds = 1; /* number of CPU threads */
 
 /* linear algebra options */
-static int32_t laopt  = 0;
+static __thread int32_t laopt  = 0;
 
 /* function pointers */
 void (*initialize_basis)(
@@ -295,7 +296,7 @@ cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
         );
 
 /* -----------------------------------
- * non-static functions and procedures
+ * non-static __thread functions and procedures
  * ----------------------------------- */
 int64_t f4_julia(
         int32_t **jl_basis,

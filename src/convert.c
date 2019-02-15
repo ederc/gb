@@ -65,7 +65,7 @@ static hl_t *convert_hashes_to_columns(
 
     st->num_rowsred     +=  nrl;
 
-    /* store the other direction (hash -> column) in HASH_IND */
+    /* store the other direction (hash -> column) */
     for (k = 0; k < j; ++k) {
         hds[hcm[k]].idx  = k;
     }

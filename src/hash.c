@@ -489,17 +489,25 @@ static inline hl_t insert_in_basis_hash_table(
 
   /* probing */
   k = h;
-  for (i = 0; i < hsz; ++i) {
+  i = 0;
+restart:
+  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
-    if (!hmap[k]) {
+    const hl_t hm = hmap[k];
+    if (!hm) {
       break;
     }
-    if (hd[hmap[k]].val != h) {
+    if (hd[hm].val != h) {
       continue;
     }
-    if (memcmp(ev[hmap[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
+    for (j = 0; j < nvars; ++j) {
+        const exp_t * const ehm = ev[hm];
+        if (a[j] != ehm[j]) {
+            i++;
+            goto restart;
+        }
     }
+    return hm;
   }
 
   /* add element to hash table */
@@ -541,17 +549,25 @@ static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
 
   /* probing */
   k = h;
-  for (i = 0; i < hsz; ++i) {
+  i = 0;
+restart:
+  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
-    if (!hmap[k]) {
+    const hl_t hm = hmap[k];
+    if (!hm) {
       break;
     }
-    if (hd[hmap[k]].val != h) {
+    if (hd[hm].val != h) {
       continue;
     }
-    if (memcmp(ev[hmap[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
+    for (j = 0; j < nvars; ++j) {
+        const exp_t * const ehm = ev[hm];
+        if (a[j] != ehm[j]) {
+            i++;
+            goto restart;
+        }
     }
+    return hm;
   }
 
   /* add element to hash table */
@@ -591,17 +607,25 @@ static inline hl_t insert_in_update_hash_table(
 
   /* probing */
   k = h;
-  for (i = 0; i < husz; ++i) {
+  i = 0;
+restart:
+  for (; i < husz; ++i) {
     k = (k+i) & (husz-1);
-    if (!humap[k]) {
+    const hl_t hm = humap[k];
+    if (!hm) {
       break;
     }
-    if (hdu[humap[k]].val != h) {
+    if (hdu[hm].val != h) {
       continue;
     }
-    if (memcmp(evu[humap[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return humap[k];
+    for (j = 0; j < nvars; ++j) {
+        const exp_t * const ehm = evu[hm];
+        if (a[j] != ehm[j]) {
+            i++;
+            goto restart;
+        }
     }
+    return hm;
   }
 
   /* add element to hash table */
@@ -698,17 +722,25 @@ static inline hl_t insert_in_symbolic_hash_table_product_special(
     n[j]  = ea[j] + eb[j];
   }
   k = h;
-  for (i = 0; i < hssz; ++i) {
+  i = 0;
+restart:
+  for (; i < hssz; ++i) {
     k = (k+i) & (hssz-1);
-    if (!hmaps[k]) {
+    const hl_t hm  = hmaps[k];
+    if (!hm) {
       break;
     }
-    if (hds[hmaps[k]].val != h) {
+    if (hds[hm].val != h) {
       continue;
     }
-    if (memcmp(n, evs[hmaps[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmaps[k];
+    for (j = 0; j < nvars; ++j) {
+        const exp_t * const ehm = evs[hm];
+        if (n[j] != ehm[j]) {
+            i++;
+            goto restart;
+        }
     }
+    return hm;
   }
 
   /* add element to hash table */
@@ -744,17 +776,25 @@ static inline hl_t insert_in_basis_hash_table_product_special(
   }
   /* probing */
   k = h;
-  for (i = 0; i < hsz; ++i) {
+  i = 0;
+restart:
+  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
-    if (!hmap[k]) {
+    const hl_t hm = hmap[k];
+    if (!hm) {
       break;
     }
-    if (hd[hmap[k]].val != h) {
+    if (hd[hm].val != h) {
       continue;
     }
-    if (memcmp(n, ev[hmap[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
+    for (j = 0; j < nvars; ++j) {
+        const exp_t * const ehm = ev[hm];
+        if (n[j] != ehm[j]) {
+            i++;
+            goto restart;
+        }
     }
+    return hm;
   }
 
   /* add element to hash table */
@@ -789,16 +829,23 @@ static inline hl_t insert_in_basis_hash_table_product(
     n[j]  = ev[a][j] + ev[b][j];
   }
   k = h;
-  for (i = 0; i < hsz; ++i) {
+  i = 0;
+restart:
+  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
+    const hl_t hm = hmap[k];
     if (!hmap[k]) {
       break;
     }
     if (hd[hmap[k]].val != h) {
       continue;
     }
-    if (memcmp(n, ev[hmap[k]], (unsigned long)nvars * sizeof(exp_t)) == 0) {
-      return hmap[k];
+    for (j = 0; j < nvars; ++j) {
+        const exp_t * const ehm = ev[hm];
+        if (n[j] != ehm[j]) {
+            i++;
+            goto restart;
+        }
     }
   }
 

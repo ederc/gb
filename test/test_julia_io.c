@@ -47,7 +47,7 @@ int main(
         return 1;
     }
 
-    import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(lens, cfs, exps, nr_gens);
 
     /* free and clean up */
     free_update_hash_table();

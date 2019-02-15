@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gmp.h>
 
 #include "stat.c"     /* computational statistics */
 #include "time.c"     /* timing business */
@@ -29,7 +30,7 @@
 #include "hash.c"     /* hash table stuff */
 #include "order.c"    /* order and comparison procedures */
 #include "basis.c"    /* basis and polynomial handling */
-#include "la.c"       /* linear algebra */
+#include "la_ff.c"    /* finite field linear algebra */
 #include "update.c"   /* update process and pairset handling */
 #include "convert.c"  /* conversion between hashes and column indices*/
 #include "symbol.c"   /* symbolic preprocessing */

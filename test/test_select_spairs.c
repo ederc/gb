@@ -45,7 +45,7 @@ int main(
         return 1;
     }
 
-    import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(lens, cfs, exps, nr_gens);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
@@ -55,7 +55,7 @@ int main(
     qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
             matrix_row_initial_input_cmp);
     /* normalize input generators */
-    normalize_matrix_rows(gbcf, gbdt);
+    normalize_initial_basis();
 
     /* move input generators to basis and generate first spairs */
     update_basis(ps, st);

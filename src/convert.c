@@ -219,12 +219,12 @@ static void convert_sparse_matrix_rows_to_basis_elements(
             m[j+2]  = insert_in_basis_hash_table(evs[hcm[m[j+2]]]);
             m[j+3]  = insert_in_basis_hash_table(evs[hcm[m[j+3]]]);
         }
-        gbcf[bl+i]  = tmpcf[mat[i][0]];
-        mat[i][0]   = bl+i;
-        gbdt[bl+i]  = mat[i];
+        gbcf_ff[bl+i] = tmpcf_ff[mat[i][0]];
+        mat[i][0]     = bl+i;
+        gbdt[bl+i]    = mat[i];
         /* printf("new element [%d]\n", bl+i);
          * for (int32_t p = 0; p < gbdt[bl+i][2]; ++p) {
-         *     printf("%d | ", gbcf[bl+i][p]);
+         *     printf("%d | ", gbcf_ff[bl+i][p]);
          *     for (int32_t q = 0; q < nvars; ++q) {
          *         printf("%d", ev[gbdt[bl+i][p+3]][q]);
          *     }
@@ -233,8 +233,8 @@ static void convert_sparse_matrix_rows_to_basis_elements(
          * printf("\n"); */
     }
 
-    free(tmpcf);
-    tmpcf = NULL;
+    free(tmpcf_ff);
+    tmpcf_ff = NULL;
 
     /* timings */
     ct1 = cputime();

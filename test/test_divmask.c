@@ -19,7 +19,7 @@ int main(
     htes  = 12;
     fc    = 101;
 
-    initialize_basis(nr_gens);
+    initialize_basis_ff(nr_gens);
     initialize_basis_hash_table();
 
     if (ndvars != nvars) {
@@ -31,7 +31,7 @@ int main(
 
     initialize_update_hash_table();
 
-    import_julia_data(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(lens, cfs, exps, nr_gens);
 
     calculate_divmask();
     for (i = 0; i < 16; ++i) {
@@ -44,5 +44,7 @@ int main(
             return 1;
         }
     }
+
+    free_basis_ff();
     return 0;
 }

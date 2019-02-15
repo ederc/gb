@@ -138,18 +138,18 @@ static int dense_matrix_row_cmp(
         const void *b
         )
 {
-    const cf_t pa = ((cf_t **)a)[0][0];
-    const cf_t pb = ((cf_t **)b)[0][0];
+    const cf32_t pa = ((cf32_t **)a)[0][0];
+    const cf32_t pb = ((cf32_t **)b)[0][0];
 
     return pa-pb;
 }
 
-static inline cf_t **sort_dense_matrix_rows(
-        cf_t **dm,
+static inline cf32_t **sort_dense_matrix_rows(
+        cf32_t **dm,
         const len_t nr
         )
 {
-    qsort(dm, (unsigned long)nr, sizeof(cf_t *), &dense_matrix_row_cmp);
+    qsort(dm, (unsigned long)nr, sizeof(cf32_t *), &dense_matrix_row_cmp);
     return dm;
 }
 

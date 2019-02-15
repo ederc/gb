@@ -482,16 +482,17 @@ static inline hl_t insert_in_basis_hash_table(
   hd_t *d;
   val_t h = 0;
 
+  const len_t nv  = nvars;
+
   /* generate hash value */
-  for (j = 0; j < nvars; ++j) {
+  for (j = 0; j < nv; ++j) {
     h +=  rv[j] * a[j];
   }
 
   /* probing */
   k = h;
-  i = 0;
+  for (i = 0; i < hsz; ++i) {
 restart:
-  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
     const hl_t hm = hmap[k];
     if (!hm) {
@@ -500,12 +501,16 @@ restart:
     if (hd[hm].val != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-        const exp_t * const ehm = ev[hm];
-        if (a[j] != ehm[j]) {
+    const exp_t * const ehm = ev[hm];
+    for (j = 0; j < nv-1; j += 2) {
+        if (a[j] != ehm[j] || a[j+1] != ehm[j+1]) {
             i++;
             goto restart;
         }
+    }
+    if (a[nv-1] != ehm[nv-1]) {
+        i++;
+        goto restart;
     }
     return hm;
   }
@@ -541,17 +546,17 @@ static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
   exp_t *e;
   hd_t *d;
   val_t h = 0;
+  const len_t nv  = nvars;
 
   /* generate hash value */
-  for (j = 0; j < nvars; ++j) {
+  for (j = 0; j < nv; ++j) {
     h +=  rv[j] * a[j];
   }
 
   /* probing */
   k = h;
-  i = 0;
+  for (i = 0; i < hsz; ++i) {
 restart:
-  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
     const hl_t hm = hmap[k];
     if (!hm) {
@@ -560,12 +565,16 @@ restart:
     if (hd[hm].val != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-        const exp_t * const ehm = ev[hm];
-        if (a[j] != ehm[j]) {
+    const exp_t * const ehm = ev[hm];
+    for (j = 0; j < nv-1; j += 2) {
+        if (a[j] != ehm[j] || a[j+1] != ehm[j+1]) {
             i++;
             goto restart;
         }
+    }
+    if (a[nv-1] != ehm[nv-1]) {
+        i++;
+        goto restart;
     }
     return hm;
   }
@@ -599,17 +608,17 @@ static inline hl_t insert_in_update_hash_table(
   exp_t *e;
   hd_t *d;
   val_t h = 0;
+  const len_t nv  = nvars;
 
   /* generate hash value */
-  for (j = 0; j < nvars; ++j) {
+  for (j = 0; j < nv; ++j) {
     h +=  rv[j] * a[j];
   }
 
   /* probing */
   k = h;
-  i = 0;
+  for (i = 0; i < husz; ++i) {
 restart:
-  for (; i < husz; ++i) {
     k = (k+i) & (husz-1);
     const hl_t hm = humap[k];
     if (!hm) {
@@ -618,12 +627,16 @@ restart:
     if (hdu[hm].val != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-        const exp_t * const ehm = evu[hm];
-        if (a[j] != ehm[j]) {
+    const exp_t * const ehm = evu[hm];
+    for (j = 0; j < nv-1; j += 2) {
+        if (a[j] != ehm[j] || a[j+1] != ehm[j+1]) {
             i++;
             goto restart;
         }
+    }
+    if (a[nv-1] != ehm[nv-1]) {
+        i++;
+        goto restart;
     }
     return hm;
   }
@@ -715,16 +728,16 @@ static inline hl_t insert_in_symbolic_hash_table_product_special(
   /* printf("b %d | bload %d\n", b, bload); */
   const val_t h   = h1 + hd[b].val;
   const exp_t * const eb = ev[b];
+  const len_t nv  = nvars;
 
   /* printf("esld %d / %d essz\n", esld, essz); */
   n = evs[esld];
-  for (j = 0; j < nvars; ++j) {
+  for (j = 0; j < nv; ++j) {
     n[j]  = ea[j] + eb[j];
   }
   k = h;
-  i = 0;
+  for (i = 0; i < hssz; ++i) {
 restart:
-  for (; i < hssz; ++i) {
     k = (k+i) & (hssz-1);
     const hl_t hm  = hmaps[k];
     if (!hm) {
@@ -733,12 +746,16 @@ restart:
     if (hds[hm].val != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-        const exp_t * const ehm = evs[hm];
-        if (n[j] != ehm[j]) {
+    const exp_t * const ehm = evs[hm];
+    for (j = 0; j < nv-1; j += 2) {
+        if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
             i++;
             goto restart;
         }
+    }
+    if (n[nv-1] != ehm[nv-1]) {
+        i++;
+        goto restart;
     }
     return hm;
   }
@@ -769,16 +786,16 @@ static inline hl_t insert_in_basis_hash_table_product_special(
   /* printf("b %d | bload %d\n", b, bload); */
   const val_t h   = h1 + hd[b].val;
   const exp_t * const eb = ev[b];
+  const len_t nv  = nvars;
 
   n = ev[eld];
-  for (j = 0; j < nvars; ++j) {
+  for (j = 0; j < nv; ++j) {
     n[j]  = ea[j] + eb[j];
   }
   /* probing */
   k = h;
-  i = 0;
+  for (i = 0; i < hsz; ++i) {
 restart:
-  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
     const hl_t hm = hmap[k];
     if (!hm) {
@@ -787,12 +804,16 @@ restart:
     if (hd[hm].val != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-        const exp_t * const ehm = ev[hm];
-        if (n[j] != ehm[j]) {
+    const exp_t * const ehm = ev[hm];
+    for (j = 0; j < nv-1; j += 2) {
+        if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
             i++;
             goto restart;
         }
+    }
+    if (n[nv-1] != ehm[nv-1]) {
+        i++;
+        goto restart;
     }
     return hm;
   }
@@ -822,16 +843,16 @@ static inline hl_t insert_in_basis_hash_table_product(
   hd_t *d;
 
   const val_t h   = hd[a].val + hd[b].val;
+  const len_t nv  = nvars; 
 
   /* printf("hash %d\n", h); */
   n = ev[eld];
-  for (j = 0; j < nvars; ++j) {
+  for (j = 0; j < nv; ++j) {
     n[j]  = ev[a][j] + ev[b][j];
   }
   k = h;
-  i = 0;
+  for (i = 0; i < hsz; ++i) {
 restart:
-  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
     const hl_t hm = hmap[k];
     if (!hmap[k]) {
@@ -840,13 +861,18 @@ restart:
     if (hd[hmap[k]].val != h) {
       continue;
     }
-    for (j = 0; j < nvars; ++j) {
-        const exp_t * const ehm = ev[hm];
-        if (n[j] != ehm[j]) {
+    const exp_t * const ehm = ev[hm];
+    for (j = 0; j < nv-1; j += 2) {
+        if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
             i++;
             goto restart;
         }
     }
+    if (n[nv-1] != ehm[nv-1]) {
+        i++;
+        goto restart;
+    }
+    return hm;
   }
 
   /* add element to hash table */

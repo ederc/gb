@@ -491,8 +491,9 @@ static inline hl_t insert_in_basis_hash_table(
 
   /* probing */
   k = h;
-  for (i = 0; i < hsz; ++i) {
+  i = 0;
 restart:
+  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
     const hl_t hm = hmap[k];
     if (!hm) {
@@ -555,8 +556,9 @@ static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
 
   /* probing */
   k = h;
-  for (i = 0; i < hsz; ++i) {
+  i = 0;
 restart:
+  for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
     const hl_t hm = hmap[k];
     if (!hm) {
@@ -617,8 +619,9 @@ static inline hl_t insert_in_update_hash_table(
 
   /* probing */
   k = h;
-  for (i = 0; i < husz; ++i) {
+  i = 0;
 restart:
+  for (; i < husz; ++i) {
     k = (k+i) & (husz-1);
     const hl_t hm = humap[k];
     if (!hm) {
@@ -713,177 +716,71 @@ static inline void reset_symbolic_hash_table(
     esld  = 1;
 }
 
-static inline hl_t insert_in_symbolic_hash_table_product_special(
+static inline void insert_in_symbolic_hash_table_special(
+    dt_t *row,
     const val_t h1,
     const deg_t deg,
     const exp_t * const ea,
-    const hl_t b
+    const hl_t * const b
     )
 {
-  hl_t i, k, pos;
-  len_t j;
-  exp_t *n;
-  hd_t *d;
+    hl_t i, k, pos;
+    len_t j, l;
+    exp_t *n;
+    hd_t *d;
 
-  /* printf("b %d | bload %d\n", b, bload); */
-  const val_t h   = h1 + hd[b].val;
-  const exp_t * const eb = ev[b];
-  const len_t nv  = nvars;
+    const len_t len = b[2]+3;
+    l = 3;
+letsgo:
+    for (; l < len; ++l) {
+        /* printf("b %d | bload %d\n", b, bload); */
+        const val_t h   = h1 + hd[b[l]].val;
+        const exp_t * const eb = ev[b[l]];
+        const len_t nv  = nvars;
 
-  /* printf("esld %d / %d essz\n", esld, essz); */
-  n = evs[esld];
-  for (j = 0; j < nv; ++j) {
-    n[j]  = ea[j] + eb[j];
-  }
-  k = h;
-  for (i = 0; i < hssz; ++i) {
-restart:
-    k = (k+i) & (hssz-1);
-    const hl_t hm  = hmaps[k];
-    if (!hm) {
-      break;
-    }
-    if (hds[hm].val != h) {
-      continue;
-    }
-    const exp_t * const ehm = evs[hm];
-    for (j = 0; j < nv-1; j += 2) {
-        if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
-            i++;
-            goto restart;
+        /* printf("esld %d / %d essz\n", esld, essz); */
+        n = evs[esld];
+        for (j = 0; j < nv; ++j) {
+            n[j]  = ea[j] + eb[j];
         }
-    }
-    if (n[nv-1] != ehm[nv-1]) {
-        i++;
-        goto restart;
-    }
-    return hm;
-  }
-
-  /* add element to hash table */
-  hmaps[k] = pos = esld;
-  d = hds + esld;
-  d->deg  = deg + hd[b].deg;
-  d->sdm  = generate_short_divmask(n);
-  d->val  = h;
-
-  esld++;
-  return pos;
-}
-
-static inline hl_t insert_in_basis_hash_table_product_special(
-    const val_t h1,
-    const deg_t deg,
-    const exp_t * const ea,
-    const hl_t b
-    )
-{
-  hl_t i, k, pos;
-  len_t j;
-  exp_t *n;
-  hd_t *d;
-
-  /* printf("b %d | bload %d\n", b, bload); */
-  const val_t h   = h1 + hd[b].val;
-  const exp_t * const eb = ev[b];
-  const len_t nv  = nvars;
-
-  n = ev[eld];
-  for (j = 0; j < nv; ++j) {
-    n[j]  = ea[j] + eb[j];
-  }
-  /* probing */
-  k = h;
-  for (i = 0; i < hsz; ++i) {
+        k = h;
+        i = 0;
 restart:
-    k = (k+i) & (hsz-1);
-    const hl_t hm = hmap[k];
-    if (!hm) {
-      break;
-    }
-    if (hd[hm].val != h) {
-      continue;
-    }
-    const exp_t * const ehm = ev[hm];
-    for (j = 0; j < nv-1; j += 2) {
-        if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
-            i++;
-            goto restart;
+        for (; i < hssz; ++i) {
+            k = (k+i) & (hssz-1);
+            const hl_t hm  = hmaps[k];
+            if (!hm) {
+                break;
+            }
+            if (hds[hm].val != h) {
+                continue;
+            }
+            const exp_t * const ehm = evs[hm];
+            for (j = 0; j < nv-1; j += 2) {
+                if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
+                    i++;
+                    goto restart;
+                }
+            }
+            if (n[nv-1] != ehm[nv-1]) {
+                i++;
+                goto restart;
+            }
+            row[l] = hm;
+            l++;
+            goto letsgo;
         }
+
+        /* add element to hash table */
+        hmaps[k] = pos = esld;
+        d = hds + esld;
+        d->deg  = deg + hd[b[l]].deg;
+        d->sdm  = generate_short_divmask(n);
+        d->val  = h;
+
+        esld++;
+        row[l] =  pos;
     }
-    if (n[nv-1] != ehm[nv-1]) {
-        i++;
-        goto restart;
-    }
-    return hm;
-  }
-
-  /* add element to hash table */
-  hmap[k] = pos = eld;
-  d = hd + eld;
-  d->deg  = deg + hd[b].deg;
-  d->sdm  = generate_short_divmask(n);
-  d->val  = h;
-
-  eld++;
-  return pos;
-}
-
-/* note that the product insertion, i.e. monomial x polynomial
- * is only needed for the update hash table. in the basis one we
- * only add the basis elements, i.e. no multiplication is applied. */
-static inline hl_t insert_in_basis_hash_table_product(
-    const hl_t a,
-    const hl_t b
-    )
-{
-  hl_t i, k, pos;
-  len_t j;
-  exp_t *n;
-  hd_t *d;
-
-  const val_t h   = hd[a].val + hd[b].val;
-  const len_t nv  = nvars; 
-
-  /* printf("hash %d\n", h); */
-  n = ev[eld];
-  for (j = 0; j < nv; ++j) {
-    n[j]  = ev[a][j] + ev[b][j];
-  }
-  k = h;
-  for (i = 0; i < hsz; ++i) {
-restart:
-    k = (k+i) & (hsz-1);
-    const hl_t hm = hmap[k];
-    if (!hmap[k]) {
-      break;
-    }
-    if (hd[hmap[k]].val != h) {
-      continue;
-    }
-    const exp_t * const ehm = ev[hm];
-    for (j = 0; j < nv-1; j += 2) {
-        if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
-            i++;
-            goto restart;
-        }
-    }
-    if (n[nv-1] != ehm[nv-1]) {
-        i++;
-        goto restart;
-    }
-    return hm;
-  }
-
-  /* add element to hash table */
-  hmap[k] = pos = eld;
-  d = hd + eld;
-  d->deg  = hd[a].deg + hd[b].deg;
-  d->sdm  = generate_short_divmask(n);
-  d->val  = h;
-
-  eld++;
-  return pos;
 }
 
 /* this function is deprecated, we no longer need to
@@ -1027,14 +924,6 @@ static inline hl_t get_lcm(
   return insert_in_update_hash_table(etmp);
 }
 
-static inline hl_t monomial_multiplication(
-    const hl_t a,
-    const hl_t b
-    )
-{
-  return insert_in_basis_hash_table_product(a, b);
-}
-
 /* we try monomial division including check if divisibility is
  * fulfilled. */
 static inline hl_t monomial_division_with_check(
@@ -1095,8 +984,6 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
     const dt_t *poly
     )
 {
-  len_t i;
-
   dt_t *row = (dt_t *)malloc((unsigned long)(poly[2]+3) * sizeof(dt_t));
   row[0]    = poly[0];
   row[1]    = poly[1];
@@ -1107,25 +994,8 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
   while (esld+poly[2] >= essz) {
     enlarge_symbolic_hash_table();
   }
-  const len_t os  = row[1];
-  const len_t len = row[2];
-  dt_t *rs  = row + 3;
-  const dt_t * const ps  = poly + 3;
-  /* printf("poly[1] %d | poly[2] %d\n", poly[1], poly[2]); */
-  for (i = 0; i < os; ++i) {
-    rs[i] = insert_in_symbolic_hash_table_product_special(
-                hm, deg, em, ps[i]);
-  }
-  for (;i < len; i += 4) {
-    rs[i]   = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, ps[i]);
-    rs[i+1] = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, ps[i+1]);
-    rs[i+2] = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, ps[i+2]);
-    rs[i+3] = insert_in_symbolic_hash_table_product_special(
-                  hm, deg, em, ps[i+3]);
-  }
+  insert_in_symbolic_hash_table_special(
+          row, hm, deg, em, poly);
 
   return row;
 }

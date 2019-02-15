@@ -596,7 +596,7 @@ static inline hl_t insert_in_update_hash_table(
     if (!humap[k]) {
       break;
     }
-    if (hd[humap[k]].val != h) {
+    if (hdu[humap[k]].val != h) {
       continue;
     }
     if (memcmp(evu[humap[k]], a, (unsigned long)nvars * sizeof(exp_t)) == 0) {
@@ -697,28 +697,9 @@ static inline hl_t insert_in_symbolic_hash_table_product_special(
   for (j = 0; j < nvars; ++j) {
     n[j]  = ea[j] + eb[j];
   }
-  /* printf("ea ");
-   * for (j = 0; j < nvars; ++j) {
-   *   printf("%d ",ea[j]);
-   * }
-   * printf("\n");
-   * printf("eb ");
-   * for (j = 0; j < nvars; ++j) {
-   *   printf("%d ",eb[j]);
-   * }
-   * printf("\n");
-   * printf("n ");
-   * for (j = 0; j < nvars; ++j) {
-   *   printf("%d ",n[j]);
-   * }
-   * printf("\n"); */
-  /* probing */
   k = h;
   for (i = 0; i < hssz; ++i) {
     k = (k+i) & (hssz-1);
-    /* printf("k %d | i %d\n", k, i);
-     * printf("hmaps[k] %d\n", hmaps[k]);
-     * printf("val %d\n", hds[hmaps[k]].val); */
     if (!hmaps[k]) {
       break;
     }

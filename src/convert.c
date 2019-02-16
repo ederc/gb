@@ -193,7 +193,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
         stat_t *st
         )
 {
-    len_t i, j;
+    len_t i, j, ctr;
 
     len_t bl  = bload;
 
@@ -206,18 +206,25 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     check_enlarge_basis(npivs);
 
 /* #pragma omp parallel for num_threads(nthrds) private(i, j) */
+    ctr = 0;
+    for (i = 0; i < npivs; ++i) {
+        ctr +=  mat[i][2];
+    }
+    while (esz - eld < ctr) {
+        enlarge_basis_hash_table();
+    }
     for (i = 0; i < npivs; ++i) {
         const len_t os  = mat[i][1];
         const len_t len = mat[i][2];
         dt_t *m = mat[i] + 3;
         for (j = 0; j < os; ++j) {
-            m[j]  = insert_in_basis_hash_table(evs[hcm[m[j]]]);
+            m[j]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j]]]);
         }
         for (; j < len; j += 4) {
-            m[j]    = insert_in_basis_hash_table(evs[hcm[m[j]]]);
-            m[j+1]  = insert_in_basis_hash_table(evs[hcm[m[j+1]]]);
-            m[j+2]  = insert_in_basis_hash_table(evs[hcm[m[j+2]]]);
-            m[j+3]  = insert_in_basis_hash_table(evs[hcm[m[j+3]]]);
+            m[j]    = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j]]]);
+            m[j+1]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j+1]]]);
+            m[j+2]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j+2]]]);
+            m[j+3]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j+3]]]);
         }
         gbcf_ff[bl+i] = tmpcf_ff[mat[i][0]];
         mat[i][0]     = bl+i;

@@ -716,7 +716,7 @@ static inline void reset_symbolic_hash_table(
     esld  = 1;
 }
 
-static inline void insert_in_symbolic_hash_table_special(
+static inline void insert_in_symbolic_hash_table(
     dt_t *row,
     const val_t h1,
     const deg_t deg,
@@ -992,8 +992,7 @@ static inline dt_t *multiplied_polynomial_to_matrix_row(
   while (esld+poly[2] >= essz) {
     enlarge_symbolic_hash_table();
   }
-  insert_in_symbolic_hash_table_special(
-          row, hm, deg, em, poly);
+  insert_in_symbolic_hash_table(row, hm, deg, em, poly);
 
   return row;
 }

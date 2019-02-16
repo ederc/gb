@@ -730,13 +730,13 @@ static inline void insert_in_symbolic_hash_table_special(
     hd_t *d;
 
     const len_t len = b[2]+3;
+    const len_t nv  = nvars;
     l = 3;
 letsgo:
     for (; l < len; ++l) {
         /* printf("b %d | bload %d\n", b, bload); */
         const val_t h   = h1 + hd[b[l]].val;
         const exp_t * const eb = ev[b[l]];
-        const len_t nv  = nvars;
 
         /* printf("esld %d / %d essz\n", esld, essz); */
         n = evs[esld];
@@ -783,8 +783,6 @@ restart:
     }
 }
 
-/* this function is deprecated, we no longer need to
- * reset the basis hash table */
 static void reset_basis_hash_table(
     ps_t *psl,
     stat_t *st

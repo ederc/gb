@@ -214,30 +214,10 @@ static void convert_sparse_matrix_rows_to_basis_elements(
         enlarge_basis_hash_table();
     }
     for (i = 0; i < npivs; ++i) {
-        const len_t os  = mat[i][1];
-        const len_t len = mat[i][2];
-        dt_t *m = mat[i] + 3;
-        for (j = 0; j < os; ++j) {
-            m[j]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j]]]);
-        }
-        for (; j < len; j += 4) {
-            m[j]    = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j]]]);
-            m[j+1]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j+1]]]);
-            m[j+2]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j+2]]]);
-            m[j+3]  = insert_in_basis_hash_table_no_enlargement_check(evs[hcm[m[j+3]]]);
-        }
+        insert_in_basis_hash_table_pivots(mat[i], hcm);
         gbcf_ff[bl+i] = tmpcf_ff[mat[i][0]];
         mat[i][0]     = bl+i;
         gbdt[bl+i]    = mat[i];
-        /* printf("new element [%d]\n", bl+i);
-         * for (int32_t p = 0; p < gbdt[bl+i][2]; ++p) {
-         *     printf("%d | ", gbcf_ff[bl+i][p]);
-         *     for (int32_t q = 0; q < nvars; ++q) {
-         *         printf("%d", ev[gbdt[bl+i][p+3]][q]);
-         *     }
-         *     printf(" || ");
-         * }
-         * printf("\n"); */
     }
 
     free(tmpcf_ff);

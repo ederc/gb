@@ -358,6 +358,7 @@ static inline int monomial_cmp_lex(
     /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
+/* comparison for spair generators */
 static int gens_cmp(
         const void *a,
         const void *b

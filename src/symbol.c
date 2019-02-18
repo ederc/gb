@@ -31,7 +31,7 @@ static dt_t **select_spairs_by_minimal_degree(
     len_t i, j, k, l, md, npairs;
     dt_t *b;
     deg_t d = 0;
-    len_t load = 0, load_all = 0;
+    len_t load = 0;
     hl_t lcm;
     len_t *gens;
     exp_t *elcm, *eb;
@@ -70,10 +70,9 @@ static dt_t **select_spairs_by_minimal_degree(
     }
     /* statistics */
     st->num_pairsred  +=  npairs;
-    /* printf("npairs %d\n", npairs); */
 
+    /* list for generators */
     gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
-
     /* preset matrix meta data */
     mat   = (dt_t **)malloc(2 * (unsigned long)npairs * sizeof(dt_t *));
     nrall = 2 * npairs;
@@ -84,7 +83,6 @@ static dt_t **select_spairs_by_minimal_degree(
     while (i < npairs) {
         /* ncols initially counts number of different lcms */
         ncols++;
-        load_all  += load;
         load  = 0;
         lcm   = ps[i].lcm;
         j = i;
@@ -118,27 +116,13 @@ static dt_t **select_spairs_by_minimal_degree(
             const hl_t h  = hd[lcm].val - hd[b[3]].val;
             mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
             /* mark lcm column as lead term column */
-            /* for (int ii=3; ii < mat[nrows][2]; ++ii) {
-             *     printf("%d | ", mat[nrows][ii]);
-             *     for (int jj=0; jj < nvars; ++jj) {
-             *         printf("%d ", evs[mat[nrows][ii]][jj]);
-             *     }
-             *     printf("\n");
-             * }
-             * printf("\n");
-             * printf("%d || idx %d\n", nrows, hds[mat[nrows][3]].idx); */
             hds[mat[nrows][3]].idx = 2;
             nrows++;
         }
 
         i = j;
     }
-
-    /* load_all are all rows from the chosen spairs. for each column, i.e.
-     * each lcm we have one reducer, the other rows have to be reduced.
-     * thus in the end we have to subtract ncols from the number of rows
-     * considered. */
-    st->num_rowsred +=  load_all - ncols;
+    st->num_rowsred +=  nrows - ncols;
     st->current_deg =   md;
 
     free(gens);

@@ -87,34 +87,27 @@ static dt_t **select_spairs_by_minimal_degree(
         load_all  += load;
         load  = 0;
         lcm   = ps[i].lcm;
-        gens[load++] = ps[i].gen1;
-        gens[load++] = ps[i].gen2;
-        j = i+1;
+        j = i;
         while (j < npairs && ps[j].lcm == lcm) {
-            for (k = 0; k < load; ++k) {
-                if (ps[j].gen1 == gens[k]) {
-                    break;
-                }
-            }
-            if (k == load) {
-                gens[load++]  = ps[j].gen1;
-            }
-            for (k = 0; k < load; ++k) {
-                if (ps[j].gen2 == gens[k]) {
-                    break;
-                }
-            }
-            if (k == load) {
-                gens[load++]  = ps[j].gen2;
-            }
-            j++;
+            gens[load++] = ps[i].gen1;
+            gens[load++] = ps[i].gen2;
+            ++j;
         }
+        /* sort gens set */
+        qsort(gens, (unsigned long)load, sizeof(len_t), gens_cmp);
+
+        len_t prev  = -1;
         for (k = 0; k < load; ++k) {
+            /* check sorted list for doubles */
+            if (gens[k] ==  prev) {
+                continue;
+            }
+            prev  = gens[k];
             /* ev might change when enlarging the hash table during insertion of a new
              * row in the matrix, thus we have to reset elcm inside the for loop */
             elcm  = ev[lcm];
             d = 0;
-            b = gbdt[gens[k]];
+            b = gbdt[prev];
             /* b = (hl_t *)((long)bs[gens[k]] & bmask); */
             eb  = ev[b[3]];
             /* m = monomial_division_no_check(lcm, b[2]); */

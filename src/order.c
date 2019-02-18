@@ -358,6 +358,17 @@ static inline int monomial_cmp_lex(
     /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
 }
 
+static int gens_cmp(
+        const void *a,
+        const void *b
+        )
+{
+    const len_t ga = *((len_t *)a);
+    const len_t gb = *((len_t *)b);
+
+    return (ga - gb);
+}
+
 /* comparison for sparse rows in preparation for generation of pbm files */
 static int pbm_cmp(
         const void *a,

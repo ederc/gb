@@ -441,13 +441,5 @@ static int spair_update_cmp(
     const deg_t da  = hdu[((spair_t *)a)->lcm].deg;
     const deg_t db  = hdu[((spair_t *)b)->lcm].deg;
 
-    if (da == db) {
-        return 0;
-    } else {
-        if (da < db) {
-            return -1;
-        } else {
-            return 1;
-        }
-    }
+    return (da-db);
 }

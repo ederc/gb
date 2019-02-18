@@ -193,7 +193,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
         stat_t *st
         )
 {
-    len_t i, j, ctr;
+    len_t i, ctr;
 
     len_t bl  = bload;
 

@@ -161,13 +161,7 @@ static void insert_and_update_spairs(
             ++i;
         }
         j = i-1;
-        while (i < pc) {
-            if (plcm[i] >= 0 &&
-                    check_monomial_division_update(plcm[i], plcmj) != 0) {
-                plcm[i]  = -1;
-            }
-            ++i;
-        }
+        check_monomial_division_update(plcm, i, pc, plcmj);
     }
 
     /* remove useless pairs from pairset */
@@ -179,7 +173,7 @@ static void insert_and_update_spairs(
         }
         ps[j++] = ps[i];
     }
-    if (esz - eld <= nl-psl->ld) {
+    if (esz - eld <= pc) {
         enlarge_basis_hash_table();
     }
     /* new pairs, wee need to add the lcm to the basis hash table */

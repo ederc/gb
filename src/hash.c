@@ -443,34 +443,73 @@ static inline hl_t check_monomial_division(
   return 1;
 }
 
-static inline hl_t check_monomial_division_update(
-    const hl_t a,
+static inline void check_monomial_division_update(
+    hl_t *a,
+    const len_t start,
+    const len_t end,
     const hl_t b
     )
 {
-  len_t i;
+  len_t i, j;
   const len_t nv  = nvars;
 
-  /* short divisor mask check */
-  if (hdu[b].sdm & ~hdu[a].sdm) {
-    return 0;
-  }
-
-  const exp_t *const ea = evu[a];
+  const sdm_t sb        = hdu[b].sdm;
   const exp_t *const eb = evu[b];
-  /* exponent check */
-  if (ea[0] < eb[0]) {
-    return 0;
+  j = start;
+restart:
+  for (; j < end; ++j) {
+      if (a[j] < 0) {
+          continue;
+      }
+      /* short divisor mask check */
+      if (~hdu[a[j]].sdm & sb) {
+          continue;
+      }
+
+      const exp_t *const ea = evu[a[j]];
+      /* exponent check */
+      if (ea[0] < eb[0]) {
+          continue;
+      }
+      i = nv & 1 ? 1 : 0;
+      for (; i < nv; i += 2) {
+          if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+              j++;
+              goto restart;
+          }
+      }
+      a[j]  = -1;
   }
-  i = nv & 1 ? 1 : 0;
-  for (; i < nv; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
-    }
-  }
-  return 1;
 }
 
+/* static inline hl_t check_monomial_division_update(
+ *     const hl_t a,
+ *     const hl_t b
+ *     )
+ * {
+ *   len_t i;
+ *   const len_t nv  = nvars;
+ *
+ *   [> short divisor mask check <]
+ *   if (hdu[b].sdm & ~hdu[a].sdm) {
+ *     return 0;
+ *   }
+ *
+ *   const exp_t *const ea = evu[a];
+ *   const exp_t *const eb = evu[b];
+ *   [> exponent check <]
+ *   if (ea[0] < eb[0]) {
+ *     return 0;
+ *   }
+ *   i = nv & 1 ? 1 : 0;
+ *   for (; i < nv; i += 2) {
+ *     if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+ *       return 0;
+ *     }
+ *   }
+ *   return 1;
+ * }
+ *  */
 static inline hl_t insert_in_basis_hash_table(
     const exp_t *a
     )
@@ -790,7 +829,6 @@ static inline void insert_in_basis_hash_table_pivots(
 {
     hl_t i, k, pos;
     len_t j, l;
-    exp_t *n;
     hd_t *d;
 
     const len_t len = row[2]+3;
@@ -919,10 +957,9 @@ static void reset_basis_hash_table(
     ct0 = cputime();
     rt0 = realtime();
 
-    len_t i, j;
+    len_t i;
     hl_t k;
     exp_t *e;
-    dt_t *b;
 
     spair_t *ps = psl->p;
 
@@ -948,23 +985,6 @@ static void reset_basis_hash_table(
     /* reinsert known elements */
     for (i = 0; i < bload; ++i) {
         reinsert_in_basis_hash_table(gbdt[i], oev);
-        /* const len_t os  = gbdt[i][1];
-         * const len_t len = gbdt[i][2];
-         * b = gbdt[i] + 3;
-         * for (j = 0; j < os; ++j) {
-         *     e = oev[b[j]];
-         *     b[j]  = insert_in_basis_hash_table_no_enlargement_check(e);
-         * }
-         * for (; j < len; j += 4) {
-         *     e       = oev[b[j]];
-         *     b[j]    = insert_in_basis_hash_table_no_enlargement_check(e);
-         *     e       = oev[b[j+1]];
-         *     b[j+1]  = insert_in_basis_hash_table_no_enlargement_check(e);
-         *     e       = oev[b[j+2]];
-         *     b[j+2]  = insert_in_basis_hash_table_no_enlargement_check(e);
-         *     e       = oev[b[j+3]];
-         *     b[j+3]  = insert_in_basis_hash_table_no_enlargement_check(e);
-         * } */
     }
     const len_t pld = psl->ld;
     for (i = 0; i < pld; ++i) {

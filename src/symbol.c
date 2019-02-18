@@ -169,16 +169,15 @@ static inline dt_t *find_multiplied_reducer(
 {
     len_t i, k;
     deg_t d = 0;
-    dt_t *b;
     const exp_t * const e  = evs[m];
     exp_t *f;
 
     const len_t bl  = bload;
-    const len_t os  = nvars & 1 ? 1 : 0;
-    /* i = hds[m].div; */
-    i = 0;
-
+    const len_t nv  = nvars;
+    const len_t os  = nv & 1 ? 1 : 0;
     const sdm_t ns  = ~hds[m].sdm;
+
+    i = 0;
 start:
     while (i < bl-3) {
         if ((lms[i] & ns) &&
@@ -191,28 +190,26 @@ start:
         while (lms[i] & ns) {
             i++;
         }
-        b = gbdt[i];
+        const dt_t *b = gbdt[i];
         f = ev[b[3]];
         if ((e[0]-f[0]) < 0) {
             i++;
             goto start;
         }
-        for (k = os; k < nvars; k += 2) {
+        for (k = os; k < nv; k += 2) {
             if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
                 i++;
                 goto start;
             }
         }
-        for (k = 0; k < nvars; ++k) {
+        for (k = 0; k < nv; ++k) {
             etmp[k] = e[k] - f[k];
         }
         const hl_t h  = hds[m].val - hd[b[3]].val;
-        for (k = 0; k < nvars; ++k) {
+        for (k = 0; k < nv; ++k) {
             d += etmp[k];
         }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hds[m].div = i;
-        return b;
+        return multiplied_polynomial_to_matrix_row(h, d, etmp, b);
     }
 start2:
     while (i < bl) {
@@ -220,30 +217,27 @@ start2:
             i++;
             continue;
         }
-        b = gbdt[i];
+        const dt_t *b = gbdt[i];
         f = ev[b[3]];
         if ((e[0]-f[0]) < 0) {
             i++;
             goto start2;
         }
-        for (k = os; k < nvars; k += 2) {
+        for (k = os; k < nv; k += 2) {
             if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
                 i++;
                 goto start2;
             }
         }
-        for (k = 0; k < nvars; ++k) {
+        for (k = 0; k < nv; ++k) {
             etmp[k] = e[k] - f[k];
         }
         const hl_t h  = hds[m].val - hd[b[3]].val;
-        for (k = 0; k < nvars; ++k) {
+        for (k = 0; k < nv; ++k) {
             d += etmp[k];
         }
-        b = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-        hds[m].div = i;
-        return b;
+        return multiplied_polynomial_to_matrix_row(h, d, etmp, b);
     }
-    hds[m].div = i;
     return NULL;
 }
 

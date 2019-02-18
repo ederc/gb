@@ -420,14 +420,23 @@ static int spair_cmp_drl(
     return (int)monomial_cmp(la, lb);
 }
 
-/* comparison for s-pairs while their lcms are in the update hash table */
+/* comparison for s-pairs while their lcms are in the update hash table:
+ * only sort by degree, divisibility is all we need at this point */
 static int spair_update_cmp(
         const void *a,
         const void *b
         )
 {
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
+    const deg_t da  = hdu[((spair_t *)a)->lcm].deg;
+    const deg_t db  = hdu[((spair_t *)b)->lcm].deg;
 
-    return (int)monomial_update_cmp(la, lb);
+    if (da == db) {
+        return 0;
+    } else {
+        if (da < db) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
 }

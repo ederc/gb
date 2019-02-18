@@ -60,11 +60,10 @@ typedef len_t pl_t;     /* pair set load */
 typedef struct hd_t hd_t;
 struct hd_t
 {
+    val_t val;
     sdm_t sdm;
     deg_t deg;
-    len_t div;
     ind_t idx;
-    val_t val;
 };
 /* basis hash table data */
 static /* __thread */ hl_t *hmap   = NULL; /* global hash map */

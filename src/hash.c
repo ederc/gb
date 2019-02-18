@@ -843,6 +843,72 @@ restart:
     }
 }
 
+static inline void reinsert_in_basis_hash_table(
+    dt_t *row,
+    exp_t **oev
+    )
+{
+    hl_t i, k, pos;
+    len_t j, l;
+    exp_t *e;
+    hd_t *d;
+    val_t h;
+
+    const len_t len = row[2]+3;
+    const len_t nv  = nvars;
+    l = 3;
+letsgo:
+    for (; l < len; ++l) {
+        const exp_t * const n = oev[row[l]];
+        /* generate hash value */
+        h = 0;
+        for (j = 0; j < nv; ++j) {
+            h +=  rv[j] * n[j];
+        }
+        k = h;
+        i = 0;
+restart:
+        for (; i < hsz; ++i) {
+            k = (k+i) & (hsz-1);
+            const hl_t hm  = hmap[k];
+            if (!hm) {
+                break;
+            }
+            if (hd[hm].val != h) {
+                continue;
+            }
+            const exp_t * const ehm = ev[hm];
+            for (j = 0; j < nv-1; j += 2) {
+                if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
+                    i++;
+                    goto restart;
+                }
+            }
+            if (n[nv-1] != ehm[nv-1]) {
+                i++;
+                goto restart;
+            }
+            row[l] = hm;
+            l++;
+            goto letsgo;
+        }
+
+        /* add element to hash table */
+        hmap[k] = pos = eld;
+        e       = ev[eld];
+        d = hd + eld;
+        for (j = 0; j < nv; ++j) {
+            e[j]    =   n[j];
+            d->deg  +=  n[j];
+        }
+        d->sdm  = generate_short_divmask(e);
+        d->val  = h;
+
+        eld++;
+        row[l] =  pos;
+    }
+}
+
 static void reset_basis_hash_table(
     ps_t *psl,
     stat_t *st
@@ -881,23 +947,24 @@ static void reset_basis_hash_table(
 
     /* reinsert known elements */
     for (i = 0; i < bload; ++i) {
-        const len_t os  = gbdt[i][1];
-        const len_t len = gbdt[i][2];
-        b = gbdt[i] + 3;
-        for (j = 0; j < os; ++j) {
-            e = oev[b[j]];
-            b[j]  = insert_in_basis_hash_table_no_enlargement_check(e);
-        }
-        for (; j < len; j += 4) {
-            e       = oev[b[j]];
-            b[j]    = insert_in_basis_hash_table_no_enlargement_check(e);
-            e       = oev[b[j+1]];
-            b[j+1]  = insert_in_basis_hash_table_no_enlargement_check(e);
-            e       = oev[b[j+2]];
-            b[j+2]  = insert_in_basis_hash_table_no_enlargement_check(e);
-            e       = oev[b[j+3]];
-            b[j+3]  = insert_in_basis_hash_table_no_enlargement_check(e);
-        }
+        reinsert_in_basis_hash_table(gbdt[i], oev);
+        /* const len_t os  = gbdt[i][1];
+         * const len_t len = gbdt[i][2];
+         * b = gbdt[i] + 3;
+         * for (j = 0; j < os; ++j) {
+         *     e = oev[b[j]];
+         *     b[j]  = insert_in_basis_hash_table_no_enlargement_check(e);
+         * }
+         * for (; j < len; j += 4) {
+         *     e       = oev[b[j]];
+         *     b[j]    = insert_in_basis_hash_table_no_enlargement_check(e);
+         *     e       = oev[b[j+1]];
+         *     b[j+1]  = insert_in_basis_hash_table_no_enlargement_check(e);
+         *     e       = oev[b[j+2]];
+         *     b[j+2]  = insert_in_basis_hash_table_no_enlargement_check(e);
+         *     e       = oev[b[j+3]];
+         *     b[j+3]  = insert_in_basis_hash_table_no_enlargement_check(e);
+         * } */
     }
     const len_t pld = psl->ld;
     for (i = 0; i < pld; ++i) {

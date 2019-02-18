@@ -845,9 +845,7 @@ letsgo:
         }
         ps[m] = pp[l];
         const val_t h = hdu[lcms[l]].val;
-        for (j = 0; j < nv; ++j) {
-            ev[eld][j]  = evu[lcms[l]][j];
-        }
+        memcpy(ev[eld], evu[lcms[l]], (unsigned long)nv * sizeof(exp_t));
         const exp_t * const n = ev[eld];
         k = h;
         i = 0;
@@ -905,9 +903,7 @@ static inline void insert_in_basis_hash_table_pivots(
 letsgo:
     for (; l < len; ++l) {
         const val_t h = hds[hcm[row[l]]].val;
-        for (j = 0; j < nv; ++j) {
-            ev[eld][j]  = evs[hcm[row[l]]][j];
-        }
+        memcpy(ev[eld], evs[hcm[row[l]]], (unsigned long)nv * sizeof(exp_t));
         const exp_t * const n = ev[eld];
         k = h;
         i = 0;

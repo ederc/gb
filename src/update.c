@@ -177,17 +177,9 @@ static void insert_and_update_spairs(
         enlarge_basis_hash_table();
     }
     /* new pairs, wee need to add the lcm to the basis hash table */
-    for (i = 0; i < pc; ++i) {
-        if (plcm[i] < 0) {
-            continue;
-        }
-        pp[i].lcm = insert_in_basis_hash_table_no_enlargement_check(
-                evu[plcm[i]]);
-        ps[j++]   = pp[i];
-    }
+    insert_in_basis_hash_table_plcms(psl, pp, j, pc, plcm);
     free(plcm);
-    psl->ld = j;
-    st->num_gb_crit +=  nl - j;
+    st->num_gb_crit +=  nl - psl->ld;
 
     /* mark redundant elements in basis */
     for (i = 0; i < bl; ++i) {

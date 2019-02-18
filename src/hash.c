@@ -822,6 +822,74 @@ restart:
     }
 }
 
+static inline void insert_in_basis_hash_table_plcms(
+    ps_t *psl,
+    spair_t *pp,
+    const len_t start,
+    const len_t end,
+    const hl_t * const lcms
+    )
+{
+    hl_t i, k, pos;
+    len_t j, l, m;
+    hd_t *d;
+
+    spair_t *ps     = psl->p;
+    const len_t nv  = nvars;
+    m = start;
+    l = 0;
+letsgo:
+    for (; l < end; ++l) {
+        if (lcms[l] < 0) {
+            continue;
+        }
+        ps[m] = pp[l];
+        const val_t h = hdu[lcms[l]].val;
+        for (j = 0; j < nv; ++j) {
+            ev[eld][j]  = evu[lcms[l]][j];
+        }
+        const exp_t * const n = ev[eld];
+        k = h;
+        i = 0;
+restart:
+        for (; i < hsz; ++i) {
+            k = (k+i) & (hsz-1);
+            const hl_t hm  = hmap[k];
+            if (!hm) {
+                break;
+            }
+            if (hd[hm].val != h) {
+                continue;
+            }
+            const exp_t * const ehm = ev[hm];
+            for (j = 0; j < nv-1; j += 2) {
+                if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
+                    i++;
+                    goto restart;
+                }
+            }
+            if (n[nv-1] != ehm[nv-1]) {
+                i++;
+                goto restart;
+            }
+            ps[m++].lcm = hm;
+            l++;
+            goto letsgo;
+        }
+
+        /* add element to hash table */
+        hmap[k] = pos = eld;
+        d = hd + eld;
+        d->deg  = hdu[lcms[l]].deg;
+        d->sdm  = hdu[lcms[l]].sdm;
+        d->val  = h;
+
+        eld++;
+        ps[m++].lcm =  pos;
+    }
+    psl->ld = m;
+}
+
 static inline void insert_in_basis_hash_table_pivots(
     dt_t *row,
     const hl_t * const hcm

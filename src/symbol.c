@@ -150,77 +150,39 @@ static inline dt_t *find_multiplied_reducer(
         )
 {
     len_t i, k;
-    deg_t d = 0;
     const exp_t * const e  = evs[m];
     exp_t *f;
 
+    const hd_t hdm  = hds[m];
     const len_t bl  = bload;
-    const len_t nv  = nvars;
-    const len_t os  = nv & 1 ? 1 : 0;
-    const sdm_t ns  = ~hds[m].sdm;
+    const sdm_t ns  = ~hdm.sdm;
+    const deg_t hdd = hdm.deg;
 
     i = 0;
 start:
-    while (i < bl-3) {
-        if ((lms[i] & ns) &&
-            (lms[i+1] & ns) &&
-            (lms[i+2] & ns) &&
-            (lms[i+3] & ns)) {
-            i +=  4;
-            continue;
-        }
-        while (lms[i] & ns) {
-            i++;
-        }
+    while (i < bl && lms[i] & ns) {
+        i++;
+    }
+    if (i < bl) {
         const dt_t *b = gbdt[i];
-        f = ev[b[3]];
-        if ((e[0]-f[0]) < 0) {
+        const deg_t d = hdd - hd[b[3]].deg;
+        if (d < 0) {
             i++;
             goto start;
         }
-        for (k = os; k < nv; k += 2) {
-            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
+        f = ev[b[3]];
+        for (k=nvars-1; k >= 0; --k) {
+            etmp[k] = e[k]-f[k];
+            if (etmp[k] < 0) {
                 i++;
                 goto start;
             }
         }
-        for (k = 0; k < nv; ++k) {
-            etmp[k] = e[k] - f[k];
-        }
-        const hl_t h  = hds[m].val - hd[b[3]].val;
-        for (k = 0; k < nv; ++k) {
-            d += etmp[k];
-        }
+        const hl_t h  = hdm.val - hd[b[3]].val;
         return multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+    } else {
+        return NULL;
     }
-start2:
-    while (i < bl) {
-        if (lms[i] & ns) {
-            i++;
-            continue;
-        }
-        const dt_t *b = gbdt[i];
-        f = ev[b[3]];
-        if ((e[0]-f[0]) < 0) {
-            i++;
-            goto start2;
-        }
-        for (k = os; k < nv; k += 2) {
-            if ((e[k]-f[k]) < 0 || (e[k+1]-f[k+1]) < 0) {
-                i++;
-                goto start2;
-            }
-        }
-        for (k = 0; k < nv; ++k) {
-            etmp[k] = e[k] - f[k];
-        }
-        const hl_t h  = hds[m].val - hd[b[3]].val;
-        for (k = 0; k < nv; ++k) {
-            d += etmp[k];
-        }
-        return multiplied_polynomial_to_matrix_row(h, d, etmp, b);
-    }
-    return NULL;
 }
 
 static dt_t **symbolic_preprocessing(

@@ -49,16 +49,13 @@ static int matrix_row_initial_input_cmp_lex(
     const exp_t * const eb  = ev[vb];
 
     /* lexicographical */
-    for (i = 0; i < nvars; ++i) {
-        if (ea[i] < eb[i]) {
-            return -1;
-        }
-        if (ea[i] > eb[i]) {
-            return 1;
-        }
+    const len_t nv  = nvars;
+
+    i = 0;
+    while(i < nv-1 && ea[i] == eb[i]) {
+        ++i;
     }
-    return 0;
-    /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
+    return ea[i] - eb[i];
 }
 
 static int matrix_row_initial_input_cmp_drl(
@@ -87,16 +84,11 @@ static int matrix_row_initial_input_cmp_drl(
     const exp_t * const eb  = ev[vb];
 
     /* note: reverse lexicographical */
-    for (i = nvars; i > 0; --i) {
-        if (ea[i-1] < eb[i-1]) {
-            return -1;
-        } else {
-            if (ea[i-1] != eb[i-1]) {
-                return 1;
-            }
-        }
+    i = nvars - 1;
+    while (i > 0 && ea[i] == eb[i]) {
+        --i;
     }
-    return 0;
+    return ea[i] - eb[i];
 }
 
 static int matrix_row_cmp(
@@ -197,17 +189,11 @@ static int monomial_cmp_pivots_drl(
      * printf("\n"); */
 
     /* note: reverse lexicographical */
-    for (i = nvars; i > 0; --i) {
-        if (ea[i-1] > eb[i-1]) {
-            return 1;
-        } else {
-            if (ea[i-1] != eb[i-1]) {
-                return -1;
-            }
-        }
+    i = nvars - 1;
+    while (i > 0 && ea[i] == eb[i]) {
+        --i;
     }
-
-    return 0;
+    return ea[i] - eb[i];
 }
 
 static int monomial_cmp_pivots_lex(
@@ -234,17 +220,13 @@ static int monomial_cmp_pivots_lex(
     const exp_t * const eb  = evs[b];
 
     /* lexicographical */
-    for (i = 0; i < nvars; ++i) {
-        if (eb[i] < ea[i]) {
-            return -1;
-        }
-        if (eb[i] > ea[i]) {
-            return 1;
-        }
-    }
+    const len_t nv  = nvars;
 
-    return 0;
-    /* return memcmp(eb, ea, (unsigned long)nvars * sizeof(exp_t)); */
+    i = 0;
+    while(i < nv-1 && ea[i] == eb[i]) {
+        ++i;
+    }
+    return eb[i] - ea[i];
 }
 
 static inline int monomial_update_cmp_drl(
@@ -269,16 +251,11 @@ static inline int monomial_update_cmp_drl(
     const exp_t * const ea  = evu[a];
     const exp_t * const eb  = evu[b];
 
-    for (i = nvars; i > 0; --i) {
-        if (ea[i-1] < eb[i-1]) {
-            return 1;
-        } else {
-            if (ea[i-1] != eb[i-1]) {
-                return -1;
-            }
-        }
+    i = nvars - 1;
+    while (i > 0 && ea[i] == eb[i]) {
+        --i;
     }
-    return 0;
+    return eb[i] - ea[i];
 }
 
 static inline int monomial_cmp_drl(
@@ -303,16 +280,11 @@ static inline int monomial_cmp_drl(
     const exp_t * const ea  = ev[a];
     const exp_t * const eb  = ev[b];
 
-    for (i = nvars; i > 0; --i) {
-        if (ea[i-1] < eb[i-1]) {
-            return 1;
-        } else {
-            if (ea[i-1] != eb[i-1]) {
-                return -1;
-            }
-        }
+    i = nvars - 1;
+    while (i > 0 && ea[i] == eb[i]) {
+        --i;
     }
-    return 0;
+    return eb[i] - ea[i];
 }
 
 static inline int monomial_update_cmp_lex(
@@ -324,16 +296,13 @@ static inline int monomial_update_cmp_lex(
 
     const exp_t * const ea  = evu[a];
     const exp_t * const eb  = evu[b];
+    const len_t nv  = nvars;
 
-    for (i = 0; i < nvars; ++i) {
-        if (ea[i] < eb[i]) {
-            return -1;
-        }
-        if (ea[i] > eb[i]) {
-            return 1;
-        }
+    i = 0;
+    while(i < nv-1 && ea[i] == eb[i]) {
+        ++i;
     }
-    return 0;
+    return ea[i] - eb[i];
 }
 
 static inline int monomial_cmp_lex(
@@ -345,17 +314,13 @@ static inline int monomial_cmp_lex(
 
     const exp_t * const ea  = ev[a];
     const exp_t * const eb  = ev[b];
+    const len_t nv  = nvars;
 
-    for (i = 0; i < nvars; ++i) {
-        if (ea[i] < eb[i]) {
-            return -1;
-        }
-        if (ea[i] > eb[i]) {
-            return 1;
-        }
+    i = 0;
+    while(i < nv-1 && ea[i] == eb[i]) {
+        ++i;
     }
-    return 0;
-    /* return memcmp(ea, eb, (unsigned long)nvars * sizeof(exp_t)); */
+    return ea[i] - eb[i];
 }
 
 /* comparison for spair generators */
@@ -432,6 +397,16 @@ static int spair_cmp_drl(
     return (int)monomial_cmp(la, lb);
 }
 
+static int spair_degree_cmp(
+        const void *a,
+        const void *b
+        )
+{
+    const deg_t da  = hd[((spair_t *)a)->lcm].deg;
+    const deg_t db  = hd[((spair_t *)b)->lcm].deg;
+
+    return (da-db);
+}
 /* comparison for s-pairs while their lcms are in the update hash table:
  * only sort by degree, divisibility is all we need at this point */
 static int spair_update_cmp(

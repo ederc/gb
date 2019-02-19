@@ -64,6 +64,7 @@ static dt_t **select_spairs_by_minimal_degree(
         }
         npairs = j;
     }
+    /* qsort(ps, (unsigned long)npairs, sizeof(spair_t), spair_cmp); */
     if (st->info_level > 1) {
         printf("%3d  %6d %7d", md, npairs, psl->ld);
         fflush(stdout);
@@ -87,8 +88,8 @@ static dt_t **select_spairs_by_minimal_degree(
         lcm   = ps[i].lcm;
         j = i;
         while (j < npairs && ps[j].lcm == lcm) {
-            gens[load++] = ps[i].gen1;
-            gens[load++] = ps[i].gen2;
+            gens[load++] = ps[j].gen1;
+            gens[load++] = ps[j].gen2;
             ++j;
         }
         /* sort gens set */

@@ -28,7 +28,7 @@ static dt_t **select_spairs_by_minimal_degree(
         stat_t *st
         )
 {
-    len_t i, j, k, l, md, npairs;
+    len_t i, j, k, l, md, nps, npd;
     dt_t *b;
     deg_t d = 0;
     len_t load = 0;
@@ -44,50 +44,54 @@ static dt_t **select_spairs_by_minimal_degree(
     spair_t *ps = psl->p;
 
     /* sort pair set */
-    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_cmp);
+    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_degree_cmp);
     /* get minimal degree */
     md  = hd[ps[0].lcm].deg;
 
     /* select pairs of this degree respecting maximal selection size mnsel */
     for (i = 0; i < psl->ld; ++i) {
-        if (hd[ps[i].lcm].deg > md || i >= psl->mnsel) {
+        if (hd[ps[i].lcm].deg > md) {
             break;
         }
     }
-    npairs  = i;
+    npd  = i;
+    qsort(ps, (unsigned long)npd, sizeof(spair_t), spair_cmp);
+    /* now do maximal selection if it applies */
+    
     /* if we stopped due to maximal selection size we still get the following
      * pairs of the same lcm in this matrix */
-    if (i > psl->mnsel) {
-        j = i+1;
-        while (ps[j].lcm == ps[i].lcm) {
-            ++j;
+    if (npd > psl->mnsel) {
+        nps = psl->mnsel;
+        lcm = ps[nps].lcm;
+        while (nps < npd && ps[nps+1].lcm == lcm) {
+            nps++;
         }
-        npairs = j;
+    } else {
+        nps = npd;
     }
-    /* qsort(ps, (unsigned long)npairs, sizeof(spair_t), spair_cmp); */
     if (st->info_level > 1) {
-        printf("%3d  %6d %7d", md, npairs, psl->ld);
+        printf("%3d  %6d %7d", md, nps, psl->ld);
         fflush(stdout);
     }
     /* statistics */
-    st->num_pairsred  +=  npairs;
+    st->num_pairsred  +=  nps;
 
     /* list for generators */
-    gens  = (len_t *)malloc(2 * (unsigned long)npairs * sizeof(len_t));
+    gens  = (len_t *)malloc(2 * (unsigned long)nps * sizeof(len_t));
     /* preset matrix meta data */
-    mat   = (dt_t **)malloc(2 * (unsigned long)npairs * sizeof(dt_t *));
-    nrall = 2 * npairs;
+    mat   = (dt_t **)malloc(2 * (unsigned long)nps * sizeof(dt_t *));
+    nrall = 2 * nps;
     ncols = ncl = ncr = 0;
     nrows = 0;
 
     i = 0;
-    while (i < npairs) {
+    while (i < nps) {
         /* ncols initially counts number of different lcms */
         ncols++;
         load  = 0;
         lcm   = ps[i].lcm;
         j = i;
-        while (j < npairs && ps[j].lcm == lcm) {
+        while (j < nps && ps[j].lcm == lcm) {
             gens[load++] = ps[j].gen1;
             gens[load++] = ps[j].gen2;
             ++j;
@@ -129,8 +133,8 @@ static dt_t **select_spairs_by_minimal_degree(
     free(gens);
 
     /* remove selected spairs from pairset */
-    memmove(ps, ps+npairs, (unsigned long)(psl->ld-npairs) * sizeof(spair_t));
-    psl->ld -=  npairs;
+    memmove(ps, ps+nps, (unsigned long)(psl->ld-nps) * sizeof(spair_t));
+    psl->ld -=  nps;
 
     /* timings */
     ct1 = cputime();

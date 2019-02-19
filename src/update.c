@@ -155,13 +155,7 @@ static void insert_and_update_spairs(
             continue;
         }
         const hl_t plcmj = plcm[j];
-        i = j+1;
-        while (plcm[i] == plcmj) {
-            plcm[i] = -1;
-            ++i;
-        }
-        j = i-1;
-        check_monomial_division_update(plcm, i, pc, plcmj);
+        check_monomial_division_update(plcm, j, pc, plcmj);
     }
 
     /* remove useless pairs from pairset */

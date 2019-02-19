@@ -439,8 +439,13 @@ static int spair_update_cmp(
         const void *b
         )
 {
-    const deg_t da  = hdu[((spair_t *)a)->lcm].deg;
-    const deg_t db  = hdu[((spair_t *)b)->lcm].deg;
+/*     const deg_t da  = hdu[((spair_t *)a)->lcm].deg;
+ *     const deg_t db  = hdu[((spair_t *)b)->lcm].deg;
+ *
+ *     return (da-db); */
 
-    return (da-db);
+    const hl_t la = ((spair_t *)a)->lcm;
+    const hl_t lb = ((spair_t *)b)->lcm;
+
+    return (int)monomial_update_cmp(la, lb);
 }

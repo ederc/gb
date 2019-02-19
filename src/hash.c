@@ -450,36 +450,37 @@ static inline void check_monomial_division_update(
     const hl_t b
     )
 {
-  len_t i, j;
-  const len_t nv  = nvars;
+    len_t i, j;
+    const len_t nv  = nvars;
 
-  const sdm_t sb        = hdu[b].sdm;
-  const exp_t *const eb = evu[b];
-  j = start;
+    const sdm_t sb        = hdu[b].sdm;
+    const exp_t *const eb = evu[b];
+    /* pairs are sorted, we only have to search entries
+     * above the starting point */
+        j = start+1;
 restart:
-  for (; j < end; ++j) {
-      if (a[j] < 0) {
-          continue;
-      }
-      /* short divisor mask check */
-      if (~hdu[a[j]].sdm & sb) {
-          continue;
-      }
-
-      const exp_t *const ea = evu[a[j]];
-      /* exponent check */
-      if (ea[0] < eb[0]) {
-          continue;
-      }
-      i = nv & 1 ? 1 : 0;
-      for (; i < nv; i += 2) {
-          if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-              j++;
-              goto restart;
-          }
-      }
-      a[j]  = -1;
-  }
+    for (; j < end; ++j) {
+        if (a[j] < 0) {
+            continue;
+        }
+        /* short divisor mask check */
+        if (~hdu[a[j]].sdm & sb) {
+            continue;
+        }
+        const exp_t *const ea = evu[a[j]];
+        /* exponent check */
+        if (ea[0] < eb[0]) {
+            continue;
+        }
+        i = nv & 1 ? 1 : 0;
+        for (; i < nv; i += 2) {
+            if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+                j++;
+                goto restart;
+            }
+        }
+        a[j]  = -1;
+    }
 }
 
 /* static inline hl_t check_monomial_division_update(

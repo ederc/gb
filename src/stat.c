@@ -150,6 +150,6 @@ static void print_final_statistics(
     printf("#update hash table %9d <= 2^%d\n",
             euld, (int32_t)(ceil(log(euld)/log(2))));
     printf("maximal ht size         2^%d\n",
-            (int32_t)(ceil(log(st->max_ht_size)/log(2))));
+            (int32_t)(ceil(log((double)st->max_ht_size)/log(2))));
     printf("-----------------------------------------\n\n");
 }

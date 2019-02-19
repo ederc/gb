@@ -51,7 +51,7 @@ int64_t f4_julia(
 {
     /* timings */
     double ct0, ct1, rt0, rt1;
-    double rct0, rct1, rrt0, rrt1; /* for one round only */
+    double rrt0, rrt1; /* for one round only */
     ct0 = cputime();
     rt0 = realtime();
 
@@ -109,7 +109,6 @@ int64_t f4_julia(
         if (round % rht == 0) {
             reset_basis_hash_table(ps, st);
         }
-        rct0  = cputime();
         rrt0  = realtime();
         st->max_ht_size = hsz;
         st->current_rd  = round;
@@ -137,7 +136,6 @@ int64_t f4_julia(
 
         update_basis(ps, st);
 
-        rct1 = cputime();
         rrt1 = realtime();
         if (st->info_level > 1) {
             printf("%13.3f sec\n", rrt1-rrt0);

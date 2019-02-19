@@ -773,11 +773,10 @@ static dt_t **probabilistic_sparse_reduced_echelon_form(
             dt_t *npiv  = NULL;
             cf32_t *cfs;
             /* starting column, offset, coefficient array position in tmpcf */
-            dt_t sc, os, cfp;
+            dt_t sc, cfp;
             len_t bctr  = 0;
             while (bctr < nrbl) {
                 cfp = bctr + i*rpb;
-                os  = ncr % 4;
                 sc  = 0;
 
                 /* fill random value array */

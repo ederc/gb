@@ -327,10 +327,10 @@ static void write_pbm_file(
         k = 0;
         for (j = 0; j < ncols; ++j) {
             if (k < len && row[k] == j) {
-                b |=  (1 << (7 - (j % 8)));
+                b |=  (unsigned char)(1 << (7 - (j % 8)));
                 k++;
             } else {
-                b &=  ~(1 << (7 - (j % 8)));
+                b &= (unsigned char) ~(1 << (7 - (j % 8)));
             }
             /* write each byte */
             if (j % 8 == 7) {

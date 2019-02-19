@@ -115,7 +115,7 @@ static dt_t **select_spairs_by_minimal_degree(
             eb  = ev[b[3]];
             /* m = monomial_division_no_check(lcm, b[2]); */
             for (l = 0; l < nvars; ++l) {
-                etmp[l] = elcm[l] - eb[l];
+                etmp[l] = (exp_t)(elcm[l] - eb[l]);
                 d     +=  etmp[l];
             }
             const hl_t h  = hd[lcm].val - hd[b[3]].val;
@@ -172,7 +172,7 @@ start:
         }
         f = ev[b[3]];
         for (k=nvars-1; k >= 0; --k) {
-            etmp[k] = e[k]-f[k];
+            etmp[k] = (exp_t)(e[k]-f[k]);
             if (etmp[k] < 0) {
                 i++;
                 goto start;

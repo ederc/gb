@@ -23,7 +23,9 @@
 #ifndef GB_DATA_H
 #define GB_DATA_H
 
+#define _GNU_SOURCE
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h> /* for memset et al. */
 #include <limits.h>

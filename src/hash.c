@@ -517,7 +517,7 @@ static inline hl_t insert_in_basis_hash_table(
 {
   hl_t i, k, pos;
   len_t j;
-  exp_t deg;
+  deg_t deg;
   exp_t *e;
   hd_t *d;
   val_t h = 0;
@@ -583,7 +583,7 @@ static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
 {
   hl_t i, k, pos;
   len_t j;
-  exp_t deg;
+  deg_t deg;
   exp_t *e;
   hd_t *d;
   val_t h = 0;
@@ -646,7 +646,7 @@ static inline hl_t insert_in_update_hash_table(
 {
   hl_t i, k, pos;
   len_t j;
-  exp_t deg;
+  deg_t deg;
   exp_t *e;
   hd_t *d;
   val_t h = 0;
@@ -706,10 +706,9 @@ static inline void reset_update_hash_table(
     const len_t size
     )
 {
-  hl_t i, j;
+  hl_t i;
   /* is there still enough space in the local table? */
   if (size >= (eusz-euld)) {
-    j = eusz; /* store ol size */
     if (2*size >= husz) {
       while (2*size >= husz) {
         eusz  = 2 * eusz;
@@ -781,7 +780,7 @@ letsgo:
         /* printf("esld %d / %d essz\n", esld, essz); */
         n = evs[esld];
         for (j = 0; j < nv; ++j) {
-            n[j]  = ea[j] + eb[j];
+            n[j]  = (exp_t)(ea[j] + eb[j]);
         }
         k = h;
         i = 0;
@@ -1152,15 +1151,15 @@ static inline hl_t monomial_division_with_check(
 
   const exp_t * const ea  = ev[a];
   const exp_t * const eb  = ev[b];
-  etmp[0]  = ea[0] - eb[0];
+  etmp[0]  = (exp_t)(ea[0] - eb[0]);
 
   i = nvars & 1 ? 1 : 0;
   for (; i < nvars; i += 2) {
     if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
       return 0;
     } else {
-      etmp[i]    = ea[i] - eb[i];
-      etmp[i+1]  = ea[i+1] - eb[i+1];
+      etmp[i]    = (exp_t)(ea[i] - eb[i]);
+      etmp[i+1]  = (exp_t)(ea[i+1] - eb[i+1]);
     }
   }
   return insert_in_basis_hash_table(etmp);
@@ -1180,10 +1179,10 @@ static inline hl_t monomial_division_no_check(
 
   i = nvars & 1 ? 1 : 0;
   for (; i < nvars; i += 2) {
-    etmp[i]    = ea[i]   - eb[i];
-    etmp[i+1]  = ea[i+1] - eb[i+1];
+    etmp[i]    = (exp_t)(ea[i] - eb[i]);
+    etmp[i+1]  = (exp_t)(ea[i+1] - eb[i+1]);
   }
-  etmp[0]  = ea[0] - eb[0];
+  etmp[0]  = (exp_t)(ea[0] - eb[0]);
   return insert_in_basis_hash_table(etmp);
 }
 

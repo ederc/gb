@@ -431,14 +431,13 @@ static inline hl_t check_monomial_division(
   const exp_t *const ea = ev[a];
   const exp_t *const eb = ev[b];
   /* exponent check */
-  if (ea[0] < eb[0]) {
-    return 0;
-  }
-  i = nv & 1 ? 1 : 0;
-  for (; i < nv; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+  for (i = nv-1; i > 0; i -= 2) {
+    if (ea[i] < eb[i] || ea[i-1] < eb[i-1]) {
       return 0;
     }
+  }
+  if (ea[0] < eb[0]) {
+    return 0;
   }
   return 1;
 }
@@ -469,15 +468,14 @@ restart:
         }
         const exp_t *const ea = evu[a[j]];
         /* exponent check */
-        if (ea[0] < eb[0]) {
-            continue;
-        }
-        i = nv & 1 ? 1 : 0;
-        for (; i < nv; i += 2) {
-            if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
+        for (i = nv-1; i > 0; i -= 2) {
+            if (ea[i] < eb[i] || ea[i-1] < eb[i-1]) {
                 j++;
                 goto restart;
             }
+        }
+        if (ea[0] < eb[0]) {
+            continue;
         }
         a[j]  = -1;
     }
@@ -1051,13 +1049,13 @@ static inline int prime_monomials(
 
     const len_t nv  = nvars;
     const len_t os  = nvars % 2;
-    if (ea[0] != 0 && eb[0] != 0) {
-        return 0;
-    }
-    for (i = os; i < nv; ++i) {
-        if ((ea[i] != 0 && eb[i] != 0) || (ea[i+1] != 0 && eb[i+1] != 0)) {
+    for (i = nv-1; i > 0; i -= 2) {
+        if ((ea[i] != 0 && eb[i] != 0) || (ea[i-1] != 0 && eb[i-1] != 0)) {
             return 0;
         }
+    }
+    if (ea[0] != 0 && eb[0] != 0) {
+        return 0;
     }
     return 1;
 }

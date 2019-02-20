@@ -792,6 +792,28 @@ restart:
     }
 }
 
+static inline int prime_monomials(
+    const hl_t a,
+    const hl_t b
+    )
+{
+    len_t i;
+
+    const exp_t * const ea = ev[a];
+    const exp_t * const eb = ev[b];
+
+    const len_t nv  = nvars;
+    for (i = nv-1; i > 0; i -= 2) {
+        if ((ea[i] != 0 && eb[i] != 0) || (ea[i-1] != 0 && eb[i-1] != 0)) {
+            return 0;
+        }
+    }
+    if (ea[0] != 0 && eb[0] != 0) {
+        return 0;
+    }
+    return 1;
+}
+
 static inline void insert_in_basis_hash_table_plcms(
     ps_t *psl,
     spair_t *pp,
@@ -811,6 +833,12 @@ static inline void insert_in_basis_hash_table_plcms(
 letsgo:
     for (; l < end; ++l) {
         if (lcms[l] < 0) {
+            continue;
+        }
+        if (red[pp[l].gen1]) {
+            continue;
+        }
+        if (prime_monomials(gbdt[pp[l].gen1][3], gbdt[pp[0].gen2][3])) {
             continue;
         }
         ps[m] = pp[l];
@@ -1035,28 +1063,6 @@ static void reset_basis_hash_table(
     rt1 = realtime();
     st->rht_ctime  +=  ct1 - ct0;
     st->rht_rtime  +=  rt1 - rt0;
-}
-
-static inline int prime_monomials(
-    const hl_t a,
-    const hl_t b
-    )
-{
-    len_t i;
-
-    const exp_t * const ea = ev[a];
-    const exp_t * const eb = ev[b];
-
-    const len_t nv  = nvars;
-    for (i = nv-1; i > 0; i -= 2) {
-        if ((ea[i] != 0 && eb[i] != 0) || (ea[i-1] != 0 && eb[i-1] != 0)) {
-            return 0;
-        }
-    }
-    if (ea[0] != 0 && eb[0] != 0) {
-        return 0;
-    }
-    return 1;
 }
 
 

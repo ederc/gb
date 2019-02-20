@@ -123,18 +123,14 @@ static void insert_and_update_spairs(
         }
     }
     /* check new pairs for redundancy */
-    for (i = 0, k = pl; i < bl; ++i, ++k) {
+    spair_t *pp = ps+pl;
+    for (i = 0; i < bl; ++i) {
         if (red[i]) {
-            ps[k].lcm = -1; /* redundant pair */
-        } else {
-            if (prime_monomials(gbdt[i][3], nch)) {
-                ps[k].lcm = -2; /* criterion */
-            }
+            pp[i].lcm = -1; /* redundant pair */
         }
     }
 
     /* sort new pairs by increasing lcm, earlier polys coming first */
-    spair_t *pp = ps+pl;
     j = 0;
     for (i = 0; i < bl; ++i) {
         if (pp[i].lcm >= 0) {

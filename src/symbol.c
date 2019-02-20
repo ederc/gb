@@ -151,7 +151,6 @@ static inline dt_t *find_multiplied_reducer(
 {
     len_t i, k;
     const exp_t * const e  = evs[m];
-    exp_t *f;
 
     const hd_t hdm  = hds[m];
     const len_t bl  = bload;
@@ -170,7 +169,7 @@ start:
             i++;
             goto start;
         }
-        f = ev[b[3]];
+        const exp_t * const f = ev[b[3]];
         for (k=nvars-1; k >= 0; --k) {
             etmp[k] = (exp_t)(e[k]-f[k]);
             if (etmp[k] < 0) {
@@ -204,14 +203,16 @@ static dt_t **symbolic_preprocessing(
      * we only have to do the bookkeeping for newly added reducers
      * in the following. */
 
-    for (i = 1; i < esld; ++i) {
-        if (esld >= essz) {
-            enlarge_symbolic_hash_table();
-        }
-        if (nrall == nrows) {
-            nrall *=  2;
-            mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
-        }
+    const len_t oesld = esld;
+    i = 1;
+    /* we only have to check if idx is set for the elements already set
+     * when selecting spairs, afterwards (second for loop) we do not
+     * have to do this check */
+    while (nrall <= nrows + oesld) {
+        nrall *=  2;
+        mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+    }
+    for (; i < oesld; ++i) {
         if (!hds[i].idx) {
             hds[i].idx = 1;
             ncols++;
@@ -221,6 +222,20 @@ static dt_t **symbolic_preprocessing(
                 /* add new reducer to matrix */
                 mat[nrows++]  = red;
             }
+        }
+    }
+    for (; i < esld; ++i) {
+        if (nrall == nrows) {
+            nrall *=  2;
+            mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+        }
+        hds[i].idx = 1;
+        ncols++;
+        red = find_multiplied_reducer(i);
+        if (red) {
+            hds[i].idx = 2;
+            /* add new reducer to matrix */
+            mat[nrows++]  = red;
         }
     }
     /* realloc to real size */

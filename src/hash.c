@@ -1048,7 +1048,6 @@ static inline int prime_monomials(
     const exp_t * const eb = ev[b];
 
     const len_t nv  = nvars;
-    const len_t os  = nvars % 2;
     for (i = nv-1; i > 0; i -= 2) {
         if ((ea[i] != 0 && eb[i] != 0) || (ea[i-1] != 0 && eb[i-1] != 0)) {
             return 0;

@@ -483,34 +483,6 @@ restart:
     }
 }
 
-/* static inline hl_t check_monomial_division_update(
- *     const hl_t a,
- *     const hl_t b
- *     )
- * {
- *   len_t i;
- *   const len_t nv  = nvars;
- *
- *   [> short divisor mask check <]
- *   if (hdu[b].sdm & ~hdu[a].sdm) {
- *     return 0;
- *   }
- *
- *   const exp_t *const ea = evu[a];
- *   const exp_t *const eb = evu[b];
- *   [> exponent check <]
- *   if (ea[0] < eb[0]) {
- *     return 0;
- *   }
- *   i = nv & 1 ? 1 : 0;
- *   for (; i < nv; i += 2) {
- *     if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
- *       return 0;
- *     }
- *   }
- *   return 1;
- * }
- *  */
 static inline hl_t insert_in_basis_hash_table(
     const exp_t *a
     )
@@ -543,13 +515,13 @@ restart:
       continue;
     }
     const exp_t * const ehm = ev[hm];
-    for (j = 0; j < nv-1; j += 2) {
-        if (a[j] != ehm[j] || a[j+1] != ehm[j+1]) {
+    for (j = nv-1; j > 0; j -= 2) {
+        if (a[j] != ehm[j] || a[j-1] != ehm[j-1]) {
             i++;
             goto restart;
         }
     }
-    if (a[nv-1] != ehm[nv-1]) {
+    if (a[0] != ehm[0]) {
         i++;
         goto restart;
     }
@@ -608,13 +580,13 @@ restart:
       continue;
     }
     const exp_t * const ehm = ev[hm];
-    for (j = 0; j < nv-1; j += 2) {
-        if (a[j] != ehm[j] || a[j+1] != ehm[j+1]) {
+    for (j = nv-1; j > 0; j -= 2) {
+        if (a[j] != ehm[j] || a[j-1] != ehm[j-1]) {
             i++;
             goto restart;
         }
     }
-    if (a[nv-1] != ehm[nv-1]) {
+    if (a[0] != ehm[0]) {
         i++;
         goto restart;
     }
@@ -671,13 +643,13 @@ restart:
       continue;
     }
     const exp_t * const ehm = evu[hm];
-    for (j = 0; j < nv-1; j += 2) {
-        if (a[j] != ehm[j] || a[j+1] != ehm[j+1]) {
+    for (j = nv-1; j > 0; j -= 2) {
+        if (a[j] != ehm[j] || a[j-1] != ehm[j-1]) {
             i++;
             goto restart;
         }
     }
-    if (a[nv-1] != ehm[nv-1]) {
+    if (a[0] != ehm[0]) {
         i++;
         goto restart;
     }
@@ -795,13 +767,13 @@ restart:
                 continue;
             }
             const exp_t * const ehm = evs[hm];
-            for (j = 0; j < nv-1; j += 2) {
-                if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
+            for (j = 0; j > 0; j -= 2) {
+                if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
                     goto restart;
                 }
             }
-            if (n[nv-1] != ehm[nv-1]) {
+            if (n[0] != ehm[0]) {
                 i++;
                 goto restart;
             }
@@ -860,13 +832,13 @@ restart:
                 continue;
             }
             const exp_t * const ehm = ev[hm];
-            for (j = 0; j < nv-1; j += 2) {
-                if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
+            for (j = nv-1; j < 0; j -= 2) {
+                if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
                     goto restart;
                 }
             }
-            if (n[nv-1] != ehm[nv-1]) {
+            if (n[0] != ehm[0]) {
                 i++;
                 goto restart;
             }
@@ -918,13 +890,13 @@ restart:
                 continue;
             }
             const exp_t * const ehm = ev[hm];
-            for (j = 0; j < nv-1; j += 2) {
-                if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
+            for (j = nv-1; j > 0; j -= 2) {
+                if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
                     goto restart;
                 }
             }
-            if (n[nv-1] != ehm[nv-1]) {
+            if (n[0] != ehm[0]) {
                 i++;
                 goto restart;
             }
@@ -980,13 +952,13 @@ restart:
                 continue;
             }
             const exp_t * const ehm = ev[hm];
-            for (j = 0; j < nv-1; j += 2) {
-                if (n[j] != ehm[j] || n[j+1] != ehm[j+1]) {
+            for (j = nv-1; j > 0; j -= 2) {
+                if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
                     goto restart;
                 }
             }
-            if (n[nv-1] != ehm[nv-1]) {
+            if (n[0] != ehm[0]) {
                 i++;
                 goto restart;
             }

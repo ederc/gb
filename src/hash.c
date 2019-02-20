@@ -767,7 +767,7 @@ restart:
                 continue;
             }
             const exp_t * const ehm = evs[hm];
-            for (j = 0; j > 0; j -= 2) {
+            for (j = nv-1; j > 0; j -= 2) {
                 if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
                     goto restart;
@@ -832,7 +832,7 @@ restart:
                 continue;
             }
             const exp_t * const ehm = ev[hm];
-            for (j = nv-1; j < 0; j -= 2) {
+            for (j = nv-1; j > 0; j -= 2) {
                 if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
                     goto restart;

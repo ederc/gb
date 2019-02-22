@@ -835,9 +835,6 @@ letsgo:
         if (lcms[l] < 0) {
             continue;
         }
-        if (red[pp[l].gen1]) {
-            continue;
-        }
         if (prime_monomials(gbdt[pp[l].gen1][3], gbdt[pp[0].gen2][3])) {
             continue;
         }

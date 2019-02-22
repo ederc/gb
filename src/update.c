@@ -124,19 +124,13 @@ static void insert_and_update_spairs(
     }
     /* check new pairs for redundancy */
     spair_t *pp = ps+pl;
-    for (i = 0; i < bl; ++i) {
-        if (red[i]) {
-            pp[i].lcm = -1; /* redundant pair */
-        }
-    }
-
-    /* sort new pairs by increasing lcm, earlier polys coming first */
     j = 0;
     for (i = 0; i < bl; ++i) {
-        if (pp[i].lcm >= 0) {
+        if (red[i] == 0) {
             pp[j++] = pp[i];
         }
     }
+    /* sort new pairs by increasing lcm, earlier polys coming first */
     qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_update_cmp);
     for (i = 0; i < j; ++i) {
         plcm[i] = pp[i].lcm;
@@ -145,7 +139,6 @@ static void insert_and_update_spairs(
     const len_t pc  = j;
 
     j = 0;
-
     for (; j < pc; ++j) {
         if (plcm[j] < 0) {
             continue;

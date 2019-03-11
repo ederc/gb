@@ -1,4 +1,5 @@
-/* Isaac Turner 29 April 2014 Public Domain */
+/* Initial version by Isaac Turner 29 April 2014 Public Domain */
+/* Further changes in the gb repository done by Christian Eder. */
 #ifndef SORT_R_H_
 #define SORT_R_H_
 
@@ -200,14 +201,14 @@ static _SORT_R_INLINE void sort_r_simple(void *base, size_t nel, size_t w,
     Pivot comparison key:
       E = equal, L = less than, u = unknown, G = greater than, E = equal
     */
-    sort_r_swap_blocks(b, ple-b, pl-ple);
-    sort_r_swap_blocks(pr, pre-pr, end-pre);
+    sort_r_swap_blocks(b, (size_t)(ple-b), (size_t)(pl-ple));
+    sort_r_swap_blocks(pr, (size_t)(pre-pr), (size_t)(end-pre));
 
     /*for(size_t i=0; i<nel; i++) {printf("%4i", *(int*)(b + i*sizeof(int)));}
     printf("\n");*/
 
-    sort_r_simple(b, (pl-ple)/w, w, compar, arg);
-    sort_r_simple(end-(pre-pr), (pre-pr)/w, w, compar, arg);
+    sort_r_simple(b, (unsigned long)(pl-ple)/w, w, compar, arg);
+    sort_r_simple(end-(pre-pr), (unsigned long)(pre-pr)/w, w, compar, arg);
   }
 }
 

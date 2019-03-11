@@ -110,7 +110,7 @@ int64_t f4_julia(
             reset_basis_hash_table(ps, st);
         }
         rrt0  = realtime();
-        st->max_ht_size = hsz;
+        st->max_ht_size = st->max_ht_size > hsz ? st->max_ht_size : hsz;
         st->current_rd  = round;
 
         /* preprocess data for next reduction round */

@@ -27,6 +27,7 @@
 #include "stat.c"     /* computational statistics */
 #include "time.c"     /* timing business */
 #include "tools.c"    /* tools like inversion mod p, etc. */
+#include "sort_r.h"
 #include "hash.c"     /* hash table stuff */
 #include "order.c"    /* order and comparison procedures */
 #include "basis.c"    /* basis and polynomial handling */

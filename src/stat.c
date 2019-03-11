@@ -53,6 +53,7 @@ static stat_t *initialize_statistics(
     st->num_rowsred   = 0;
     st->num_zerored   = 0;
 
+    st->reset_ht      = 0;
     st->current_rd    = 0;
     st->current_deg   = 0;
     st->max_ht_size   = 0;
@@ -83,10 +84,10 @@ static void print_initial_statistics(
     if ((mo != 0) && (mo != 1)) {
         printf("monomial order           DONT KNOW\n");
     }
-    if (rht == 2147483647) {
+    if (st->reset_ht == 2147483647) {
         printf("basis hash table resetting     OFF\n");
     } else {
-        printf("basis hash table resetting  %6d\n", rht);
+        printf("basis hash table resetting  %6d\n", st->reset_ht);
     }
     printf("linear algebra option  %11d\n", laopt);
     printf("intial hash table size %11d (2^%d)\n",

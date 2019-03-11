@@ -160,7 +160,7 @@ static inline int32_t check_and_set_meta_data(
     st->gen_pbm_file  = pbm_file > 0 ? 1 : 0;
 
     /* resetting basis hash table */
-    rht = reset_hash_table > 0 ? reset_hash_table : 2147483647; /* 2^31-1 */;
+    st->reset_ht = reset_hash_table > 0 ? reset_hash_table : 2147483647; /* 2^31-1 */;
 
     /* set number of threads */
     if (nr_threads <= 0) {

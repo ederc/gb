@@ -106,7 +106,7 @@ int64_t f4_julia(
 ----------------------------------------\n");
     }
     for (round = 1; ps->ld > 0; ++round) {
-        if (round % rht == 0) {
+        if (round % st->reset_ht == 0) {
             reset_basis_hash_table(ps, st);
         }
         rrt0  = realtime();

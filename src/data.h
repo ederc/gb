@@ -91,7 +91,6 @@ static /* __thread */ exp_t **ev   = NULL; /* exponents from global hash table *
 static /* __thread */ hd_t *hd     = NULL;
 static /* __thread */ hl_t eld     = 0;
 static /* __thread */ hl_t esz     = 0;
-static /* __thread */ int32_t rht  = 0;  /* basis hash table resetting */
 
 /* update hash table data */
 static /* __thread */ hl_t *humap  = NULL; /* local hash map */

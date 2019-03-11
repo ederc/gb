@@ -67,6 +67,23 @@ struct hd_t
     deg_t deg;
     ind_t idx;
 };
+
+/* hash table data structure */
+typedef struct ht_t ht_t;
+struct ht_t
+{
+    exp_t **ev;   /* exponent vector */
+    hd_t *hd;     /* hash data */
+    hl_t *hmap;   /* hash map */
+    hl_t eld;     /* load of exponent vector */
+    hl_t esz;     /* size of exponent vector */
+    hl_t hsz;     /* size of hash map */
+    len_t nv;     /* number of variables */
+    sdm_t dm;     /* divisor map for divisibility checks */
+    len_t ndv;    /* number of variables for divmask */
+    len_t bpv;    /* bits per variable in divmask */
+    val_t *rn;    /* random numbers for hash generation */
+};
 /* basis hash table data */
 static /* __thread */ hl_t *hmap   = NULL; /* global hash map */
 static /* __thread */ hl_t hsz     = 0;
@@ -125,6 +142,7 @@ struct stat_t
     int64_t num_rowsred;
     int64_t num_zerored;
 
+    int32_t reset_ht;
     int32_t current_rd;
     int32_t current_deg;
     int64_t max_ht_size;

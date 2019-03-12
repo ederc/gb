@@ -40,115 +40,103 @@ static val_t pseudo_random_number_generator(
 	return (val_t)rseed;
 }
 
-static void initialize_basis_hash_table(
-    void
+static ht_t *initialize_basis_hash_table(
+    const stat_t *st
     )
 {
-  len_t i;
-  hl_t j;
+    len_t i;
+    hl_t j;
 
-  /* generate map */
-  bpv   = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nvars);
-  if (bpv == 0) {
-    bpv++;
-  }
-  ndvars  = (unsigned long)nvars < (CHAR_BIT * sizeof(sdm_t)) ?
-    nvars : (len_t)((CHAR_BIT * sizeof(sdm_t)));
-  hsz   = (hl_t)pow(2, htes);
-  hmap  = calloc((unsigned long)hsz, sizeof(hl_t));
+    ht_t *ht        = (ht_t *)malloc(sizeof(ht_t));
+    const len_t nv  = st->nvars;
 
-  /* generate divmask map */
-  dm  = calloc((unsigned long)(ndvars * bpv), sizeof(sdm_t));
+    ht->nv  = nv;
+    /* generate map */
+    ht->bpv = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nv);
+    if (ht->bpv == 0) {
+        ht->bpv++;
+    }
+    ht->ndv = (unsigned long)nv < (CHAR_BIT * sizeof(sdm_t)) ?
+        nv : (len_t)((CHAR_BIT * sizeof(sdm_t)));
+    ht->hsz   = (hl_t)pow(2, st->init_hts);
+    ht->hmap  = calloc((unsigned long)ht->hsz, sizeof(hl_t));
 
-  /* generate random values */
-  rv  = calloc((unsigned long)nvars, sizeof(val_t));
-  for (i = nvars; i > 0; --i) {
-    /* random values should not be zero */
-    rv[i-1] = pseudo_random_number_generator() | 1;
-  }
-  /* generate exponent vector */
-  esz = hsz/2;
-  /* keep first entry empty for faster divisibility checks */
-  eld = 1;
-  hd  = (hd_t *)calloc((unsigned long)esz, sizeof(hd_t));
-  ev  = (exp_t **)malloc((unsigned long)esz * sizeof(exp_t *));
-  if (ev == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
-  if (tmp == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  for (j = 0; j < esz; ++j) {
-    ev[j]  = tmp + (unsigned long)(j*nvars);
-  }
+    /* generate divmask map */
+    ht->dm  = (sdm_t *)calloc(
+            (unsigned long)(ht->ndv * ht->bpv), sizeof(sdm_t));
 
-  etmp  = (exp_t *)malloc((unsigned long)esz * sizeof(exp_t));
+    /* generate random values */
+    ht->rn  = calloc((unsigned long)nv, sizeof(val_t));
+    for (i = nv; i > 0; --i) {
+        /* random values should not be zero */
+        ht->rn[i-1] = pseudo_random_number_generator() | 1;
+    }
+    /* generate exponent vector */
+    ht->esz = ht->hsz/2;
+    /* keep first entry empty for faster divisibility checks */
+    ht->eld = 1;
+    ht->hd  = (hd_t *)calloc((unsigned long)ht->esz, sizeof(hd_t));
+    ht->ev  = (exp_t **)malloc((unsigned long)ht->esz * sizeof(exp_t *));
+    if (ht->ev == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    exp_t *tmp  = (exp_t *)malloc(
+            (unsigned long)ht->nv * (unsigned long)ht->esz * sizeof(exp_t));
+    if (tmp == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    const hl_t esz  = ht->esz;
+    for (j = 0; j < esz; ++j) {
+        ev[j]  = tmp + (unsigned long)(j*nv);
+    }
+
+    etmp  = (exp_t *)malloc((unsigned long)esz * sizeof(exp_t));
+
+    return ht;
 }
 
-static void initialize_update_hash_table(
-    void
+static ht_t *initialize_secondary_hash_table(
+    const ht_t *bht,
+    const stat_t *st
     )
 {
-  hl_t j;
+    hl_t j;
+    const hl_t nv = bht->nv;
 
-  /* generate map */
-  husz  = (hl_t)pow(2, htes-5);
-  humap = calloc((unsigned long)husz, sizeof(hl_t));
+    ht_t *ht  = (ht_t *)malloc(sizeof(ht_t)); 
+    ht->nv    = nv;
 
-  /* generate exponent vector */
-  eusz  = husz/2;
-  /* keep first entry empty for faster divisibility checks */
-  euld  = 1;
-  hdu   = (hd_t *)calloc((unsigned long)eusz, sizeof(hd_t));
-  evu   = (exp_t **)malloc((unsigned long)eusz * sizeof(exp_t *));
-  if (evu == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)eusz * sizeof(exp_t));
-  if (tmp == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  for (j = 0; j < eusz; ++j) {
-    evu[j]  = tmp + (unsigned long)(j*nvars);
-  }
-}
+    /* generate map */
+    ht->hsz   = (hl_t)pow(2, st->init_hts-5);
+    ht->hmap  = calloc((unsigned long)ht->hsz, sizeof(hl_t));
 
-static void initialize_symbolic_hash_table(
-    void
-    )
-{
-  hl_t j;
+    /* divisor mask and hash value seeds from basis hash table */
+    ht->dm  = bht->dm;
+    ht->rn  = bht->rn;
 
-  /* generate map */
-  hssz  = (hl_t)pow(2, htes-2);
-  hmaps = calloc((unsigned long)hssz, sizeof(hl_t));
-
-  /* generate exponent vector */
-  essz  = hssz/2;
-  /* keep first entry empty for faster divisibility checks */
-  esld  = 1;
-  hds   = (hd_t *)calloc((unsigned long)essz, sizeof(hd_t));
-  evs   = (exp_t **)malloc((unsigned long)essz * sizeof(exp_t *));
-  if (evs == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  exp_t *tmp  = (exp_t *)malloc(
-      (unsigned long)nvars * (unsigned long)essz * sizeof(exp_t));
-  if (tmp == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  for (j = 0; j < essz; ++j) {
-    evs[j]  = tmp + (unsigned long)(j*nvars);
-  }
+    /* generate exponent vector */
+    ht->esz = ht->hsz/2;
+    /* keep first entry empty for faster divisibility checks */
+    ht->eld = 1;
+    ht->hd  = (hd_t *)calloc((unsigned long)ht->esz, sizeof(hd_t));
+    ht->ev  = (exp_t **)malloc((unsigned long)ht->esz * sizeof(exp_t *));
+    if (ht->ev == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    exp_t *tmp  = (exp_t *)malloc(
+            (unsigned long)nv * (unsigned long)eusz * sizeof(exp_t));
+    if (tmp == NULL) {
+        printf("Computation needs too much memory on this machine, \
+                segmentation fault will follow.\n");
+    }
+    const hl_t esz  = ht->esz;
+    for (j = 0; j < esz; ++j) {
+        evu[j]  = tmp + (unsigned long)(j*nv);
+    }
+    return ht;
 }
 
 static void free_basis_hash_table(
@@ -364,12 +352,13 @@ static inline sdm_t generate_short_divmask(
  * are first stored in the local hash table. thus we use the local exponents to
  * generate the divmask */
 static inline void calculate_divmask(
-    void
+    ht_t *ht
     )
 {
   hl_t i;
   len_t j, steps;
   int32_t ctr = 0;
+  exp_t **ev  = ht->ev;
 
   deg_t *max_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
   deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
@@ -377,14 +366,14 @@ static inline void calculate_divmask(
   exp_t *e  = ev[1];
 
   /* get initial values from first hash table entry */
-  for (i = 0; i < ndvars; ++i) {
+  for (i = 0; i < ht->ndv; ++i) {
     max_exp[i]  = min_exp[i]  = e[i];
   }
 
   /* get maximal and minimal exponent element entries in hash table */
-  for (i = 2; i < eld; ++i) {
+  for (i = 2; i < ht->eld; ++i) {
     e = ev[i];
-    for (j = 0; j < ndvars; ++j) {
+    for (j = 0; j < ht->ndv; ++j) {
       if (e[j] > max_exp[j]) {
         max_exp[j]  = e[j];
         continue;
@@ -396,18 +385,18 @@ static inline void calculate_divmask(
   }
 
   /* calculate average values for generating divmasks */
-  for (i = 0; i < ndvars; ++i) {
-    steps = (max_exp[i] - min_exp[i]) / bpv;
+  for (i = 0; i < ht->ndv; ++i) {
+    steps = (max_exp[i] - min_exp[i]) / ht->bpv;
     if (steps == 0)
       steps++;
-    for (j = 0; j < bpv; ++j) {
-      dm[ctr++] = (sdm_t)steps++;
+    for (j = 0; j < ht->bpv; ++j) {
+      ht->dm[ctr++] = (sdm_t)steps++;
     }
   }
 
   /* initialize divmasks for elements already added to hash table */
-  for (i = 1; i < eld; i++) {
-    hd[i].sdm = generate_short_divmask(ev[i]);
+  for (i = 1; i < ht->eld; i++) {
+    ht->hd[i].sdm = generate_short_divmask(ev[i]);
   }
 
   free(max_exp);

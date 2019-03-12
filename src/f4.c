@@ -77,16 +77,18 @@ int64_t f4_julia(
         print_initial_statistics(st);
     }
 
-    initialize_basis(nr_gens);
-    initialize_basis_hash_table();
-    initialize_update_hash_table();
-    initialize_symbolic_hash_table();
+    /* initialize basis */
+    initialize_basis(st->ngens);
+    /* initialize basis hash table, update hash table, symbolic hash table */
+    ht_t *bht = initialize_basis_hash_table(st);
+    ht_t *uht = initialize_secondary_hash_table(bht, st);
+    ht_t *sht = initialize_secondary_hash_table(bht, st);
 
     import_julia_data_ff(lens, cfs, exps, nr_gens);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
-    calculate_divmask();
+    calculate_divmask(bht);
 
     /* sort initial elements, smallest lead term first */
     qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),

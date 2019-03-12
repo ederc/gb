@@ -79,7 +79,7 @@ struct ht_t
     hl_t esz;     /* size of exponent vector */
     hl_t hsz;     /* size of hash map */
     len_t nv;     /* number of variables */
-    sdm_t dm;     /* divisor map for divisibility checks */
+    sdm_t *dm;    /* divisor map for divisibility checks */
     len_t ndv;    /* number of variables for divmask */
     len_t bpv;    /* bits per variable in divmask */
     val_t *rn;    /* random numbers for hash generation */
@@ -141,6 +141,14 @@ struct stat_t
     int64_t num_rowsred;
     int64_t num_zerored;
 
+    int32_t ngens;
+    int32_t nvars;
+    int32_t mnsel;
+    int32_t fc;
+    int32_t mo;
+    int32_t laopt;
+    int32_t init_hts;
+    int32_t nthrds;
     int32_t reset_ht;
     int32_t current_rd;
     int32_t current_deg;

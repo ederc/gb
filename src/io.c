@@ -23,11 +23,11 @@
 #include "data.h"
 
 static inline void set_function_pointers(
-        void
+        const stat_t *st
         )
 {
     /* todo: this needs to be generalized for different monomial orders */
-    switch (mo) {
+    switch (st->mo) {
         case 0:
             matrix_row_initial_input_cmp  =
                 matrix_row_initial_input_cmp_drl;
@@ -53,7 +53,7 @@ static inline void set_function_pointers(
             hcm_cmp             = hcm_cmp_pivots_drl;
     }
 
-    switch (laopt) {
+    switch (st->laopt) {
         case 1:
             linear_algebra  = exact_sparse_dense_linear_algebra_ff;
             break;
@@ -75,7 +75,7 @@ static inline void set_function_pointers(
 
     /* up to 17 bits we can use one modular operation for reducing a row. this works
      * for matrices with #rows <= 54 million */
-    if (fc == 0) {
+    if (st->fc == 0) {
         initialize_basis        = initialize_basis_q;
         check_enlarge_basis     = check_enlarge_basis_q;
         free_basis              = free_basis_q;
@@ -86,7 +86,7 @@ static inline void set_function_pointers(
         free_basis              = free_basis_ff;
         normalize_initial_basis = normalize_initial_basis_ff;
     }
-    if (fc < pow(2, 17)) {
+    if (st->fc < pow(2, 17)) {
         reduce_dense_row_by_all_pivots =
             reduce_dense_row_by_all_pivots_17_bit;
         reduce_dense_row_by_known_pivots =
@@ -135,20 +135,20 @@ static inline int32_t check_and_set_meta_data(
         return 1;
     }
 
-    ngens = nr_gens;
-    nvars = nr_vars;
+    st->ngens = nr_gens;
+    st->nvars = nr_vars;
     /* note: prime check should be done in julia */
-    fc    = field_char;
+    st->fc    = field_char;
     /* monomial order */
     if (mon_order != 0 && mon_order != 1) {
-        mo  = 0;
+        st->mo  = 0;
     } else {
-        mo  = mon_order;
+        st->mo  = mon_order;
     }
     /* set hash table size */
-    htes  = ht_size;
-    if (htes <= 0) {
-        htes  = 12;
+    st->init_hts  = ht_size;
+    if (st->init_hts <= 0) {
+        st->init_hts  = 12;
     }
     /* info level */
     st->info_level  = info_level >= 0 ? info_level : 0;
@@ -164,9 +164,9 @@ static inline int32_t check_and_set_meta_data(
 
     /* set number of threads */
     if (nr_threads <= 0) {
-        nthrds  = 1;
+        st->nthrds  = 1;
     } else {
-        nthrds  = nr_threads;
+        st->nthrds  = nr_threads;
     }
 
     if (max_nr_pairs <= 0) {
@@ -174,16 +174,16 @@ static inline int32_t check_and_set_meta_data(
     } else {
         ps->mnsel = max_nr_pairs;
     }
-    mnsel = ps->mnsel;
+    st->mnsel = ps->mnsel;
 
     /* set linear algebra option */
     if (la_option <= 0) {
-        laopt = 1;
+        st->laopt = 1;
     } else {
-        laopt = la_option;
+        st->laopt = la_option;
     }
 
-    set_function_pointers();
+    set_function_pointers(st);
 
     return 0;
 }

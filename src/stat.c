@@ -53,7 +53,15 @@ static stat_t *initialize_statistics(
     st->num_rowsred   = 0;
     st->num_zerored   = 0;
 
+    st->ngens         = 0;
+    st->nvars         = 0;
+    st->mnsel         = 0;
+    st->fc            = 0;
+    st->mo            = 0;
+    st->laopt         = 0;
     st->reset_ht      = 0;
+    st->init_hts      = 0;
+    st->nthrds        = 0;
     st->current_rd    = 0;
     st->current_deg   = 0;
     st->max_ht_size   = 0;

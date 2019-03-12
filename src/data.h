@@ -83,6 +83,7 @@ struct ht_t
     len_t ndv;    /* number of variables for divmask */
     len_t bpv;    /* bits per variable in divmask */
     val_t *rn;    /* random numbers for hash generation */
+    uint32_t rsd; /* seed for random number generator */
 };
 /* basis hash table data */
 static /* __thread */ hl_t *hmap   = NULL; /* global hash map */

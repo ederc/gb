@@ -31,13 +31,15 @@
 /* The idea of the structure of the hash table is taken from an
  * implementation by Roman Pearce and Michael Monagan in Maple. */
 static val_t pseudo_random_number_generator(
-    void
+    uint32_t *seed
     )
 {
-	rseed ^= (rseed << 13);
-	rseed ^= (rseed >> 17);
-	rseed ^= (rseed << 5);
-	return (val_t)rseed;
+    uint32_t rseed  = *seed;
+    rseed ^=  (rseed << 13);
+    rseed ^=  (rseed >> 17);
+    rseed ^=  (rseed << 5);
+    *seed =   rseed;
+    return (val_t)rseed;
 }
 
 static ht_t *initialize_basis_hash_table(
@@ -66,10 +68,11 @@ static ht_t *initialize_basis_hash_table(
             (unsigned long)(ht->ndv * ht->bpv), sizeof(sdm_t));
 
     /* generate random values */
+    ht->rsd = 2463534242;
     ht->rn  = calloc((unsigned long)nv, sizeof(val_t));
     for (i = nv; i > 0; --i) {
         /* random values should not be zero */
-        ht->rn[i-1] = pseudo_random_number_generator() | 1;
+        ht->rn[i-1] = pseudo_random_number_generator(&(ht->rsd)) | 1;
     }
     /* generate exponent vector */
     ht->esz = ht->hsz/2;

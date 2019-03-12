@@ -162,9 +162,11 @@ int64_t f4_julia(
     }
 
     /* free and clean up */
-    free_symbolic_hash_table();
-    free_update_hash_table();
-    free_basis_hash_table();
+    free_divmask(bht);
+    free_random_numbers(bht);
+    free_hash_table(&sht);
+    free_hash_table(&uht);
+    free_hash_table(&bht);
     free_pairset(&ps);
     /* note that all rows kept from mat during the overall computation are
      * basis elements and thus we do not need to free the rows itself, but

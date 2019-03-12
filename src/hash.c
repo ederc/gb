@@ -23,13 +23,14 @@
 #include "data.h"
 
 /* we have three different hash tables:
- * 1. one hash table for elements in the basis
- * 2. one hash table for the spairs during the update process
+ * 1. one hash table for elements in the basis (bht)
+ * 2. one hash table for the spairs during the update process (uht)
  * 3. one hash table for the multiplied elements during symbolic
- *    preprocessing */
+ *    preprocessing (sht) */
 
 /* The idea of the structure of the hash table is taken from an
  * implementation by Roman Pearce and Michael Monagan in Maple. */
+
 static val_t pseudo_random_number_generator(
     uint32_t *seed
     )
@@ -49,10 +50,10 @@ static ht_t *initialize_basis_hash_table(
     len_t i;
     hl_t j;
 
-    ht_t *ht        = (ht_t *)malloc(sizeof(ht_t));
     const len_t nv  = st->nvars;
 
-    ht->nv  = nv;
+    ht_t *ht  = (ht_t *)malloc(sizeof(ht_t));
+    ht->nv    = nv;
     /* generate map */
     ht->bpv = (len_t)((CHAR_BIT * sizeof(sdm_t)) / (unsigned long)nv);
     if (ht->bpv == 0) {
@@ -94,9 +95,6 @@ static ht_t *initialize_basis_hash_table(
     for (j = 0; j < esz; ++j) {
         ev[j]  = tmp + (unsigned long)(j*nv);
     }
-
-    etmp  = (exp_t *)malloc((unsigned long)esz * sizeof(exp_t));
-
     return ht;
 }
 
@@ -142,90 +140,49 @@ static ht_t *initialize_secondary_hash_table(
     return ht;
 }
 
-static void free_basis_hash_table(
-    void
+static void free_divmask(
+        ht_t *ht
+        )
+{
+    if (ht->dm) {
+        free(ht->dm);
+        ht->dm  = NULL;
+    }
+}
+
+static void free_random_numbers(
+        ht_t *ht
+        )
+{
+    if (ht->rn) {
+        free(ht->rn);
+        ht->rn  = NULL;
+    }
+}
+
+static void free_hash_table(
+        ht_t **htp
     )
 {
-  if (hmap) {
-    free(hmap);
-    hmap = NULL;
+    ht_t *ht  = *htp;
+  if (ht->hmap) {
+    free(ht->hmap);
+    ht->hmap = NULL;
   }
-  if (hd) {
-    free(hd);
-    hd  = NULL;
+  if (ht->hd) {
+    free(ht->hd);
+    ht->hd  = NULL;
   }
-  if (dm) {
-    free(dm);
-    dm  = NULL;
-  }
-  if (rv) {
-    free(rv);
-    rv  = NULL;
-  }
-  if (ev) {
+  if (ht->ev) {
     /* note: memory is allocated as one big block,
      *       so freeing ev[0] is enough */
-    free(ev[0]);
-    free(ev);
-    ev  = NULL;
+    free(ht->ev[0]);
+    free(ht->ev);
+    ht->ev  = NULL;
   }
-  if (etmp) {
-    free(etmp);
-    etmp  = NULL;
-  }
-  fc    = 0;
-  nvars = 0;
-  esz   = 0;
-  eld   = 0;
-  hsz   = 0;
-}
-
-static void free_update_hash_table(
-    void
-    )
-{
-  if (humap) {
-    free(humap);
-    humap  = NULL;
-  }
-  if (hdu) {
-    free(hdu);
-    hdu = NULL;
-  }
-  if (evu) {
-    /* note: memory is allocated as one big block,
-     *       so freeing evu[0] is enough */
-    free(evu[0]);
-    free(evu);
-    evu = NULL;
-  }
-  eusz  = 0;
-  euld  = 0;
-  husz  = 0;
-}
-
-static void free_symbolic_hash_table(
-    void
-    )
-{
-  if (hmaps) {
-    free(hmaps);
-    hmaps  = NULL;
-  }
-  if (hds) {
-    free(hds);
-    hds = NULL;
-  }
-  if (evs) {
-    /* note: memory is allocated as one big block,
-     *       so freeing evl[0] is enough */
-    free(evs[0]);
-    free(evs);
-    evs = NULL;
-  }
-  essz  = 0;
-  esld  = 0;
-  hssz  = 0;
+  free(ht);
+  ht    = NULL;
+  *htp  = ht;
 }
 
 /* we just double the hash table size */

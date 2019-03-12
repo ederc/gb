@@ -78,7 +78,7 @@ int64_t f4_julia(
     }
 
     /* initialize basis */
-    initialize_basis(st->ngens);
+    bs_t *bs  = initialize_basis(st->ngens);
     /* initialize basis hash table, update hash table, symbolic hash table */
     ht_t *bht = initialize_basis_hash_table(st);
     ht_t *uht = initialize_secondary_hash_table(bht, st);
@@ -172,7 +172,7 @@ int64_t f4_julia(
      * basis elements and thus we do not need to free the rows itself, but
      * just the matrix structure */
     free(mat);
-    free_basis();
+    free_basis(&bs);
 
     int64_t output  = st->len_output;
     free(st);

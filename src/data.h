@@ -114,6 +114,19 @@ static /* __thread */ len_t nvars  = 0; /* number of variables */
 static /* __thread */ len_t bpv    = 0; /* bits per variable in divmask */
 static /* __thread */ len_t ndvars = 0; /* number of variables for divmask */
 
+/* random values for generating hash values */
+static /* __thread */ val_t *rv  = NULL;
+
+/* divisor map for short divisibility tests */
+static /* __thread */ sdm_t *dm  = NULL;
+
+/* pseudo random number generator for hash value
+ * generation */
+uint32_t rseed  = 2463534242;
+
+/* temporary exponent vector for diffrerent situations */
+exp_t *etmp     = NULL;
+
 /* statistic stuff */
 typedef struct stat_t stat_t;
 struct stat_t
@@ -160,19 +173,6 @@ struct stat_t
     int32_t info_level;
     int32_t gen_pbm_file;
 };
-
-/* random values for generating hash values */
-static /* __thread */ val_t *rv  = NULL;
-
-/* divisor map for short divisibility tests */
-static /* __thread */ sdm_t *dm  = NULL;
-
-/* pseudo random number generator for hash value
- * generation */
-uint32_t rseed  = 2463534242;
-
-/* temporary exponent vector for diffrerent situations */
-exp_t *etmp     = NULL;
 
 /* S-pair types */
 typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
@@ -226,8 +226,18 @@ static /* __thread */ bl_t bsize   = 0;
 /* lead monomials of all basis elements */
 static /* __thread */ sdm_t *lms = NULL;
 
-static /* __thread */ const long bred  = (long)1;  /* maRking redundant elements */
-static /* __thread */ const long bmask = ~(long)1; /* maSking redundant elements */
+typedef struct bs_t bs_t;
+struct bs_t
+{
+    bl_t ld;        /* load of basis */
+    bl_t sz;        /* size allocated for basis */
+    bl_t lo;        /* load before current update */
+    sdm_t *lm;      /* lead monomials as short divmask */
+    int8_t *red;    /* tracks redundancy of basis elements */
+    dt_t **hd;      /* hash data representing exponents */
+    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
+    mpz_t **cf_q;   /* coefficients for rationals */
+};
 
 /* matrix data */
 static /* __thread */ len_t nrall  = 0; /* allocated rows for matrix */
@@ -251,14 +261,12 @@ static /* __thread */ int32_t nthrds = 1; /* number of CPU threads */
 static /* __thread */ int32_t laopt  = 0;
 
 /* function pointers */
-void (*initialize_basis)(
-        int32_t ngens
+bs_t *(*initialize_basis)(
+        const int32_t ngens
         );
 void (*check_enlarge_basis)(
-        len_t added
-        );
-void (*free_basis)(
-        void
+        bs_t *bs,
+        const len_t added
         );
 
 void (*normalize_initial_basis)(

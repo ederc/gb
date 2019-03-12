@@ -78,12 +78,10 @@ static inline void set_function_pointers(
     if (st->fc == 0) {
         initialize_basis        = initialize_basis_q;
         check_enlarge_basis     = check_enlarge_basis_q;
-        free_basis              = free_basis_q;
         normalize_initial_basis = normalize_initial_basis_q;
     } else {
         initialize_basis        = initialize_basis_ff;
         check_enlarge_basis     = check_enlarge_basis_ff;
-        free_basis              = free_basis_ff;
         normalize_initial_basis = normalize_initial_basis_ff;
     }
     if (st->fc < pow(2, 17)) {

@@ -65,6 +65,9 @@ static void free_pairset(
 
 static void insert_and_update_spairs(
         ps_t *psl,
+        bs_t *bs,
+        ht_t *bht,
+        ht_t *uht,
         stat_t *st
         )
 {
@@ -73,9 +76,9 @@ static void insert_and_update_spairs(
     spair_t *ps = psl->p;
 
     const len_t pl  = psl->ld;
-    const len_t bl  = bload;
+    const len_t bl  = bs->ld;
 
-    const hm_t nch = gbdt[bl][3];
+    const hm_t nch = bs->hm[bl][3];
 
     reset_update_hash_table(bl);
 
@@ -179,7 +182,11 @@ static void insert_and_update_spairs(
 
 static void update_basis(
         ps_t *ps,
-        stat_t *st
+        bs_t *bs,
+        ht_t *bht,
+        ht_t *uht,
+        stat_t *st,
+        const len_t npivs
         )
 {
     len_t i;
@@ -189,8 +196,6 @@ static void update_basis(
     ct0 = cputime();
     rt0 = realtime();
 
-    check_enlarge_basis(npivs);
-
     /* compute number of new pairs we need to handle at most */
     len_t np  = bload * npivs;
     for (i = 1; i < npivs; ++i) {
@@ -199,10 +204,10 @@ static void update_basis(
     check_enlarge_pairset(ps, np);
 
     for (i = 0; i < npivs; ++i) {
-        insert_and_update_spairs(ps, st);
+        insert_and_update_spairs(ps, bs, bht, uht, st);
     }
 
-    blold = bload;
+    bs->lo  = bs->ld;
 
     /* timings */
     ct1 = cputime();

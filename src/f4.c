@@ -96,8 +96,11 @@ int64_t f4_julia(
     /* normalize input generators */
     normalize_initial_basis(bs, st->fc);
 
+    /* reset bs->ld for first update process */
+    bs->ld  = 0;
+
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, st);
+    update_basis(ps, bs, bht, uht, st, st->ngens);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
@@ -136,7 +139,7 @@ int64_t f4_julia(
         free(hcm);
         hcm = NULL;
 
-        update_basis(ps, st);
+        update_basis(ps, bs, bht, uht, st, mat->np);
 
         rrt1 = realtime();
         if (st->info_level > 1) {

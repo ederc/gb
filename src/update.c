@@ -84,19 +84,18 @@ static void insert_and_update_spairs(
 
     lms[bl] = hd[nch].sdm;
 
-    for (i = blold; i < bl; ++i) {
+    for (i = bs->lo; i < bl; ++i) {
         if (red[i]) {
             continue;
         }
-        if (check_monomial_division(nch, gbdt[i][3])) {
+        if (check_monomial_division(nch, bs->hm[i][3], bht)) {
             /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
             ps[pl].gen1 = i;
             ps[pl].gen2 = bl;
-            ps[pl].lcm  = get_lcm(gbdt[i][3], nch);
-            ps[pl].lcm  = insert_in_basis_hash_table(evu[ps[pl].lcm]);
-            red[bl]     = 1;
+            ps[pl].lcm  = get_lcm(bs->hm[i][3], nch, bht, bht);
+            bs->red[bl] = 1;
             st->num_redundant++;
-            bload++;
+            bs->ld++;
             psl->ld++;
             return;
         }
@@ -108,7 +107,7 @@ static void insert_and_update_spairs(
     for (i = 0, k = pl; i < bl; ++i, ++k) {
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
-        ps[k].lcm   = get_lcm(gbdt[i][3], nch);
+        ps[k].lcm   = get_lcm(gbdt[i][3], nch, bht, uht);
         plcm[i]     = ps[k].lcm;
     }
 
@@ -118,7 +117,7 @@ static void insert_and_update_spairs(
     for (i = 0; i < pl; ++i) {
         j = ps[i].gen1;
         l = ps[i].gen2;
-        if (check_monomial_division(ps[i].lcm, nch)
+        if (check_monomial_division(ps[i].lcm, nch, bht)
                 && hd[ps[i].lcm].val != hdu[plcm[j]].val
                 && hd[ps[i].lcm].val != hdu[plcm[l]].val
            ) {
@@ -172,8 +171,8 @@ static void insert_and_update_spairs(
         if (red[i]) {
             continue;
         }
-        if (check_monomial_division(gbdt[i][3], nch)) {
-            red[i]  = 1;
+        if (check_monomial_division(gbdt[i][3], nch, bht))
+            bs->red[i]  = 1;
             st->num_redundant++;
         }
     }

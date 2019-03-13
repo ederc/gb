@@ -366,19 +366,20 @@ static inline void calculate_divmask(
 /* returns zero if a is not divisible by b, else 1 is returned */
 static inline hl_t check_monomial_division(
     const hl_t a,
-    const hl_t b
+    const hl_t b,
+    const ht_t *ht
     )
 {
   len_t i;
-  const len_t nv  = nvars;
+  const len_t nv  = ht->nv;
 
   /* short divisor mask check */
-  if (hd[b].sdm & ~hd[a].sdm) {
+  if (ht->hd[b].sdm & ~ht->hd[a].sdm) {
     return 0;
   }
 
-  const exp_t *const ea = ev[a];
-  const exp_t *const eb = ev[b];
+  const exp_t *const ea = ht->ev[a];
+  const exp_t *const eb = ht->ev[b];
   /* exponent check */
   for (i = nv-1; i > 0; i -= 2) {
     if (ea[i] < eb[i] || ea[i-1] < eb[i-1]) {
@@ -1036,21 +1037,26 @@ static inline int lcm_equals_multiplication(
   }
 }
 
+/* computes lcm of a and b from ht1 and inserts it in ht2 */
 static inline hl_t get_lcm(
     const hl_t a,
-    const hl_t b
+    const hl_t b,
+    const ht_t *ht1,
+    ht_t *ht2
     )
 {
-  len_t i;
+    len_t i;
 
-  /* exponents of basis elements, thus from basis hash table */
-  const exp_t * const ea = ev[a];
-  const exp_t * const eb = ev[b];
+    /* exponents of basis elements, thus from basis hash table */
+    const exp_t * const ea = ht1->ev[a];
+    const exp_t * const eb = ht1->ev[b];
+    exp_t *etmp = ht1->ev[0];
+    const len_t nv  = ht1->nv;
 
-  for (i = 0; i < nvars; ++i) {
-    etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
-  }
-  return insert_in_update_hash_table(etmp);
+    for (i = 0; i < nv; ++i) {
+        etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
+    }
+    return insert_in_hash_table(etmp, ht2);
 }
 
 /* we try monomial division including check if divisibility is

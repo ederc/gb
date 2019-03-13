@@ -146,7 +146,7 @@ static void insert_and_update_spairs(
             continue;
         }
         const hl_t plcmj = plcm[j];
-        check_monomial_division_update(plcm, j, pc, plcmj);
+        check_monomial_division_in_update(plcm, j, pc, plcmj, uht);
     }
 
     /* remove useless pairs from pairset */

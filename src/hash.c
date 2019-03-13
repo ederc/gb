@@ -392,18 +392,19 @@ static inline hl_t check_monomial_division(
   return 1;
 }
 
-static inline void check_monomial_division_update(
+static inline void check_monomial_division_in_update(
     hl_t *a,
     const len_t start,
     const len_t end,
-    const hl_t b
+    const hl_t b,
+    const ht_t *ht
     )
 {
     len_t i, j;
-    const len_t nv  = nvars;
+    const len_t nv  = ht->nv;
 
-    const sdm_t sb        = hdu[b].sdm;
-    const exp_t *const eb = evu[b];
+    const sdm_t sb        = ht->hd[b].sdm;
+    const exp_t *const eb = ht->ev[b];
     /* pairs are sorted, we only have to search entries
      * above the starting point */
         j = start+1;
@@ -413,10 +414,10 @@ restart:
             continue;
         }
         /* short divisor mask check */
-        if (~hdu[a[j]].sdm & sb) {
+        if (~ht->hd[a[j]].sdm & sb) {
             continue;
         }
-        const exp_t *const ea = evu[a[j]];
+        const exp_t *const ea = ht->ev[a[j]];
         /* exponent check */
         for (i = nv-1; i > 0; i -= 2) {
             if (ea[i] < eb[i] || ea[i-1] < eb[i-1]) {

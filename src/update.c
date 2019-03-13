@@ -80,7 +80,7 @@ static void insert_and_update_spairs(
 
     const hm_t nch = bs->hm[bl][3];
 
-    reset_update_hash_table(bl);
+    reinitialize_hash_table(uht, bl);
 
     lms[bl] = hd[nch].sdm;
 

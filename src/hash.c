@@ -621,44 +621,45 @@ restart:
   return pos;
 }
 
-static inline void reset_update_hash_table(
+static inline void reinitialize_hash_table(
+    ht_t *ht,
     const len_t size
     )
 {
     hl_t i;
     /* is there still enough space in the local table? */
-    if (size >= (eusz)) {
-        while (size >= eusz) {
-            eusz  = 2 * eusz;
-            husz  = 2 * husz;
+    if (size >= (ht->esz)) {
+        while (size >= ht->esz) {
+            ht->esz = 2 * ht->esz;
+            ht->hsz = 2 * ht->hsz;
         }
-        hdu   = realloc(hdu, (unsigned long)eusz * sizeof(hd_t));
-        evu  = realloc(evu, (unsigned long)eusz * sizeof(exp_t *));
-        if (evu == NULL) {
+        const hl_t esz  = ht->esz;
+        const hl_t hsz  = ht->hsz;
+        const len_t nv  = ht->nv;
+        ht->hd  = realloc(ht->hd, (unsigned long)esz * sizeof(hd_t));
+        ht->ev  = realloc(ht->ev, (unsigned long)esz * sizeof(exp_t *));
+        if (ht->ev == NULL) {
             printf("Computation needs too much memory on this machine, \
                     segmentation fault will follow.\n");
         }
         /* note: memory is allocated as one big block, so reallocating
          *       memory from evl[0] is enough    */
-        evu[0]  = realloc(evu[0],
-                (unsigned long)eusz * (unsigned long)nvars * sizeof(exp_t));
+        ht->ev[0]  = realloc(ht->ev[0],
+                (unsigned long)esz * (unsigned long)nv * sizeof(exp_t));
         if (evu[0] == NULL) {
             printf("Computation needs too much memory on this machine, \
                     segmentation fault will follow.\n");
         }
         /* due to realloc we have to reset ALL evl entries, memory might be moved */
-        for (i = 1; i < eusz; ++i) {
-            evu[i] = evu[0] + (unsigned long)(i*nvars);
+        for (i = 1; i < esz; ++i) {
+            ht->ev[i] = ht->ev[0] + (unsigned long)(i*nv);
         }
-        /* for (i = j; i < elsz; ++i) {
-         *   evl[i]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-         * } */
-        humap = realloc(humap, (unsigned long)husz * sizeof(hl_t));
+        ht->hmap  = realloc(ht->hmap, (unsigned long)hsz * sizeof(hl_t));
     }
-    memset(hdu, 0, (unsigned long)eusz * sizeof(hd_t));
-    memset(humap, 0, (unsigned long)husz * sizeof(hl_t));
+    memset(ht->hd, 0, (unsigned long)esz * sizeof(hd_t));
+    memset(ht->hmap, 0, (unsigned long)hsz * sizeof(hl_t));
 
-    euld  = 1;
+    ht->eld  = 1;
 }
 
 static inline void reset_symbolic_hash_table(

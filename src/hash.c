@@ -679,34 +679,32 @@ static inline void reset_update_hash_table(
     hl_t i;
     /* is there still enough space in the local table? */
     if (size >= (eusz)) {
-        if (2*size >= husz) {
-            while (2*size >= husz) {
-                eusz  = 2 * eusz;
-                husz  = 2 * husz;
-            }
-            hdu   = realloc(hdu, (unsigned long)eusz * sizeof(hd_t));
-            evu  = realloc(evu, (unsigned long)eusz * sizeof(exp_t *));
-            if (evu == NULL) {
-                printf("Computation needs too much memory on this machine, \
-                        segmentation fault will follow.\n");
-            }
-            /* note: memory is allocated as one big block, so reallocating
-             *       memory from evl[0] is enough    */
-            evu[0]  = realloc(evu[0],
-                    (unsigned long)eusz * (unsigned long)nvars * sizeof(exp_t));
-            if (evu[0] == NULL) {
-                printf("Computation needs too much memory on this machine, \
-                        segmentation fault will follow.\n");
-            }
-            /* due to realloc we have to reset ALL evl entries, memory might be moved */
-            for (i = 1; i < eusz; ++i) {
-                evu[i] = evu[0] + (unsigned long)(i*nvars);
-            }
-            /* for (i = j; i < elsz; ++i) {
-             *   evl[i]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
-             * } */
-            humap = realloc(humap, (unsigned long)husz * sizeof(hl_t));
+        while (size >= eusz) {
+            eusz  = 2 * eusz;
+            husz  = 2 * husz;
         }
+        hdu   = realloc(hdu, (unsigned long)eusz * sizeof(hd_t));
+        evu  = realloc(evu, (unsigned long)eusz * sizeof(exp_t *));
+        if (evu == NULL) {
+            printf("Computation needs too much memory on this machine, \
+                    segmentation fault will follow.\n");
+        }
+        /* note: memory is allocated as one big block, so reallocating
+         *       memory from evl[0] is enough    */
+        evu[0]  = realloc(evu[0],
+                (unsigned long)eusz * (unsigned long)nvars * sizeof(exp_t));
+        if (evu[0] == NULL) {
+            printf("Computation needs too much memory on this machine, \
+                    segmentation fault will follow.\n");
+        }
+        /* due to realloc we have to reset ALL evl entries, memory might be moved */
+        for (i = 1; i < eusz; ++i) {
+            evu[i] = evu[0] + (unsigned long)(i*nvars);
+        }
+        /* for (i = j; i < elsz; ++i) {
+         *   evl[i]  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+         * } */
+        humap = realloc(humap, (unsigned long)husz * sizeof(hl_t));
     }
     memset(hdu, 0, (unsigned long)eusz * sizeof(hd_t));
     memset(humap, 0, (unsigned long)husz * sizeof(hl_t));

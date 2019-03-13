@@ -92,19 +92,23 @@ static inline void check_enlarge_basis_ff(
 }
 
 static inline void normalize_initial_basis_ff(
-        void
+        bs_t *bs,
+        const int32_t fc
         )
 {
     len_t i, j;
     int64_t tmp1, tmp2, tmp3, tmp4;
-    hm_t **dt = gbdt;
 
-    for (i = 0; i < nrows; ++i) {
-        cf32_t *row = gbcf_ff[dt[i][0]];
+    cf32_t **cf       = bs->cf_ff;
+    hm_t * const *hm  = bs->hm;
+    const bl_t ld     = bs->ld;
+
+    for (i = 0; i < ld; ++i) {
+        cf32_t *row = cf[hm[i][0]];
 
         const int32_t inv = mod_p_inverse_32((int32_t)row[0], (int32_t)fc);
-        const len_t os    = dt[i][1]; 
-        const len_t len   = dt[i][2]; 
+        const len_t os    = hm[i][1]; 
+        const len_t len   = hm[i][2]; 
 
         for (j = 0; j < os; ++j) {
             tmp1    =   ((int64_t)row[j] * inv) % fc;
@@ -163,7 +167,8 @@ static inline void check_enlarge_basis_q(
 }
 
 static inline void normalize_initial_basis_q(
-        void
+        bs_t *bs,
+        const int32_t fc
         )
 {
 }

@@ -94,7 +94,7 @@ int64_t f4_julia(
     sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
             initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis();
+    normalize_initial_basis(bs, st->fc);
 
     /* move input generators to basis and generate first spairs */
     update_basis(ps, st);

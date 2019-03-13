@@ -270,7 +270,8 @@ void (*check_enlarge_basis)(
         );
 
 void (*normalize_initial_basis)(
-        void
+        bs_t *bs,
+        const int32_t fc
         );
 
 int (*initial_input_cmp)(

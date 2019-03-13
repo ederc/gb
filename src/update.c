@@ -116,8 +116,8 @@ static void insert_and_update_spairs(
         j = ps[i].gen1;
         l = ps[i].gen2;
         if (check_monomial_division(ps[i].lcm, nch)
-                && plcm[j] >= 0 && hd[ps[i].lcm].val != hdu[plcm[j]].val
-                && plcm[l] >= 0 && hd[ps[i].lcm].val != hdu[plcm[l]].val
+                && hd[ps[i].lcm].val != hdu[plcm[j]].val
+                && hd[ps[i].lcm].val != hdu[plcm[l]].val
            ) {
             ps[i].lcm = -1;
         }

@@ -59,7 +59,7 @@ int64_t f4_julia(
     hl_t *hcm; /* hash-column-map */
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
-    dt_t **mat;
+    hm_t **mat;
 
     ps_t * ps  = initialize_pairset();
 
@@ -91,7 +91,7 @@ int64_t f4_julia(
     calculate_divmask(bht);
 
     /* sort initial elements, smallest lead term first */
-    qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
+    qsort(gbdt, (unsigned long)nrows, sizeof(hm_t *),
             matrix_row_initial_input_cmp);
     /* normalize input generators */
     normalize_initial_basis();

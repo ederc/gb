@@ -22,14 +22,14 @@
 
 #include "data.h"
 
-static dt_t **select_spairs_by_minimal_degree(
+static hm_t **select_spairs_by_minimal_degree(
         ps_t *psl,
-        dt_t **mat,
+        hm_t **mat,
         stat_t *st
         )
 {
     len_t i, j, k, l, md, nps, npd;
-    dt_t *b;
+    hm_t *b;
     deg_t d = 0;
     len_t load = 0;
     hl_t lcm;
@@ -79,7 +79,7 @@ static dt_t **select_spairs_by_minimal_degree(
     /* list for generators */
     gens  = (len_t *)malloc(2 * (unsigned long)nps * sizeof(len_t));
     /* preset matrix meta data */
-    mat   = (dt_t **)malloc(2 * (unsigned long)nps * sizeof(dt_t *));
+    mat   = (hm_t **)malloc(2 * (unsigned long)nps * sizeof(hm_t *));
     nrall = 2 * nps;
     ncols = ncl = ncr = 0;
     nrows = 0;
@@ -145,8 +145,8 @@ static dt_t **select_spairs_by_minimal_degree(
     return mat;
 }
 
-static inline dt_t *find_multiplied_reducer(
-        const dt_t m
+static inline hm_t *find_multiplied_reducer(
+        const hm_t m
         )
 {
     len_t i, k;
@@ -163,7 +163,7 @@ start:
         i++;
     }
     if (i < bl) {
-        const dt_t *b = gbdt[i];
+        const hm_t *b = gbdt[i];
         const deg_t d = hdd - hd[b[3]].deg;
         if (d < 0) {
             i++;
@@ -184,13 +184,13 @@ start:
     }
 }
 
-static dt_t **symbolic_preprocessing(
-        dt_t **mat,
+static hm_t **symbolic_preprocessing(
+        hm_t **mat,
         stat_t *st
         )
 {
     len_t i;
-    dt_t *red;
+    hm_t *red;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -210,7 +210,7 @@ static dt_t **symbolic_preprocessing(
      * have to do this check */
     while (nrall <= nrows + oesld) {
         nrall *=  2;
-        mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+        mat   =   realloc(mat, (unsigned long)nrall * sizeof(hm_t *));
     }
     for (; i < oesld; ++i) {
         if (!hds[i].idx) {
@@ -227,7 +227,7 @@ static dt_t **symbolic_preprocessing(
     for (; i < esld; ++i) {
         if (nrall == nrows) {
             nrall *=  2;
-            mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+            mat   =   realloc(mat, (unsigned long)nrall * sizeof(hm_t *));
         }
         hds[i].idx = 1;
         ncols++;
@@ -239,7 +239,7 @@ static dt_t **symbolic_preprocessing(
         }
     }
     /* realloc to real size */
-    mat   = realloc(mat, (unsigned long)nrows * sizeof(dt_t *));
+    mat   = realloc(mat, (unsigned long)nrows * sizeof(hm_t *));
     nrall = nrows;
 
     /* timings */

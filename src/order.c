@@ -42,8 +42,8 @@ static int matrix_row_initial_input_cmp_lex(
 {
     len_t i;
 
-    const dt_t va  = ((dt_t **)a)[0][3];
-    const dt_t vb  = ((dt_t **)b)[0][3];
+    const hm_t va  = ((hm_t **)a)[0][3];
+    const hm_t vb  = ((hm_t **)b)[0][3];
 
     const exp_t * const ea  = ev[va];
     const exp_t * const eb  = ev[vb];
@@ -65,8 +65,8 @@ static int matrix_row_initial_input_cmp_drl(
 {
     len_t i;
 
-    const dt_t va  = ((dt_t **)a)[0][3];
-    const dt_t vb  = ((dt_t **)b)[0][3];
+    const hm_t va  = ((hm_t **)a)[0][3];
+    const hm_t vb  = ((hm_t **)b)[0][3];
 
     const deg_t da = hd[va].deg;
     const deg_t db = hd[vb].deg;
@@ -96,10 +96,10 @@ static int matrix_row_cmp(
         const void *b
         )
 {
-    dt_t va, vb;
+    hm_t va, vb;
     /* compare pivot resp. column index */
-    va  = ((dt_t **)a)[0][3];
-    vb  = ((dt_t **)b)[0][3];
+    va  = ((hm_t **)a)[0][3];
+    vb  = ((hm_t **)b)[0][3];
     if (va > vb) {
         return 1;
     }
@@ -107,8 +107,8 @@ static int matrix_row_cmp(
         return -1;
     }
     /* same column index => compare density of row */
-    va  = ((dt_t **)a)[0][2];
-    vb  = ((dt_t **)b)[0][2];
+    va  = ((hm_t **)a)[0][2];
+    vb  = ((hm_t **)b)[0][2];
     if (va > vb) {
         return 1;
     }
@@ -118,10 +118,10 @@ static int matrix_row_cmp(
     return 0;
 }
 
-static inline dt_t **sort_matrix_rows(
-        dt_t **matdt)
+static inline hm_t **sort_matrix_rows(
+        hm_t **matdt)
 {
-    qsort(matdt, (unsigned long)nrows, sizeof(dt_t *), &matrix_row_cmp);
+    qsort(matdt, (unsigned long)nrows, sizeof(hm_t *), &matrix_row_cmp);
     return matdt;
 }
 
@@ -341,8 +341,8 @@ static int pbm_cmp(
         const void *b
         )
 {
-    const dt_t ca = *((dt_t *)a);
-    const dt_t cb = *((dt_t *)b);
+    const hm_t ca = *((hm_t *)a);
+    const hm_t cb = *((hm_t *)b);
 
     return (ca - cb);
 }
@@ -411,7 +411,8 @@ static int spair_degree_cmp(
  * only sort by degree, divisibility is all we need at this point */
 static int spair_update_cmp(
         const void *a,
-        const void *b
+        const void *b,
+        void *c
         )
 {
 /*     const deg_t da  = hdu[((spair_t *)a)->lcm].deg;

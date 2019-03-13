@@ -28,12 +28,12 @@
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
 static hl_t *convert_hashes_to_columns(
-        dt_t **matdt,
+        hm_t **matdt,
         stat_t *st
         )
 {
     len_t i, j, k;
-    dt_t *row;
+    hm_t *row;
     hl_t *hcm; /* hash-to-column map */
     int64_t nterms = 0;
 
@@ -188,7 +188,7 @@ static hl_t *convert_hashes_to_columns(
 }
 
 static void convert_sparse_matrix_rows_to_basis_elements(
-        dt_t **mat,
+        hm_t **mat,
         const hl_t *hcm,
         stat_t *st
         )

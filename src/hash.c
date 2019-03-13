@@ -673,7 +673,7 @@ static inline void reset_symbolic_hash_table(
 }
 
 static inline void insert_in_symbolic_hash_table(
-    dt_t *row,
+    hm_t *row,
     const val_t h1,
     const deg_t deg,
     const exp_t * const ea,
@@ -831,7 +831,7 @@ restart:
 }
 
 static inline void insert_in_basis_hash_table_pivots(
-    dt_t *row,
+    hm_t *row,
     const hl_t * const hcm
     )
 {
@@ -888,7 +888,7 @@ restart:
 }
 
 static inline void reinsert_in_basis_hash_table(
-    dt_t *row,
+    hm_t *row,
     exp_t **oev
     )
 {
@@ -1105,14 +1105,14 @@ static inline hl_t monomial_division_no_check(
   return insert_in_basis_hash_table(etmp);
 }
 
-static inline dt_t *multiplied_polynomial_to_matrix_row(
+static inline hm_t *multiplied_polynomial_to_matrix_row(
     const val_t hm,
     const deg_t deg,
     const exp_t * const em,
-    const dt_t *poly
+    const hm_t *poly
     )
 {
-  dt_t *row = (dt_t *)malloc((unsigned long)(poly[2]+3) * sizeof(dt_t));
+  hm_t *row = (hm_t *)malloc((unsigned long)(poly[2]+3) * sizeof(hm_t));
   row[0]    = poly[0];
   row[1]    = poly[1];
   row[2]    = poly[2];

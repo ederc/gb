@@ -75,7 +75,7 @@ static void insert_and_update_spairs(
     const len_t pl  = psl->ld;
     const len_t bl  = bload;
 
-    const dt_t nch = gbdt[bl][3];
+    const hm_t nch = gbdt[bl][3];
 
     reset_update_hash_table(bl);
 

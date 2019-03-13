@@ -47,7 +47,7 @@
 typedef int32_t cf32_t;     /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
 typedef val_t hl_t;       /* length of hash table */
-typedef hl_t dt_t;        /* data type for other polynomial informatio */
+typedef hl_t hm_t;        /* hashed monomials for polynomial entries */
 /* like exponent hashes, etc. */
 typedef int32_t ind_t;    /* index in hash table structure */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
@@ -217,7 +217,7 @@ static /* __thread */ cf32_t **tmpcf_ff = NULL;
 static /* __thread */ mpz_t **gbcf_q   = NULL;
 static /* __thread */ mpz_t **tmpcf_q  = NULL;
 
-static /* __thread */ dt_t **gbdt  = NULL;
+static /* __thread */ hm_t **gbdt  = NULL;
 static /* __thread */ int8_t *red  = NULL;
 static /* __thread */ bl_t blold   = 0;
 static /* __thread */ bl_t bload   = 0;
@@ -234,7 +234,7 @@ struct bs_t
     bl_t lo;        /* load before current update */
     sdm_t *lm;      /* lead monomials as short divmask */
     int8_t *red;    /* tracks redundancy of basis elements */
-    dt_t **hm;      /* hashed monomials representing exponents */
+    hm_t **hm;      /* hashed monomials representing exponents */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
     mpz_t **cf_q;   /* coefficients for rationals */
 };
@@ -299,28 +299,28 @@ int (*hcm_cmp)(
         );
 
 /* linear algebra routines */
-dt_t **(*linear_algebra)(
-        dt_t **mat,
+hm_t **(*linear_algebra)(
+        hm_t **mat,
         stat_t *st
         );
 
 cf32_t *(*reduce_dense_row_by_known_pivots)(
         int64_t *dr,
-        dt_t *const *pivs,
+        hm_t *const *pivs,
         const hl_t dpiv
         );
 
-dt_t *(*reduce_dense_row_by_known_pivots_sparse)(
+hm_t *(*reduce_dense_row_by_known_pivots_sparse)(
         int64_t *dr,
-        dt_t *const *pivs,
+        hm_t *const *pivs,
         const hl_t dpiv,
-        const dt_t tmp_pos
+        const hm_t tmp_pos
         );
 
 cf32_t *(*reduce_dense_row_by_all_pivots)(
         int64_t *dr,
         len_t *pc,
-        dt_t *const *pivs,
+        hm_t *const *pivs,
         cf32_t *const *dpivs
         );
 

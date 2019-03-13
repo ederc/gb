@@ -201,7 +201,7 @@ static void import_julia_data_ff(
     int32_t i, j;
     len_t k;
     cf32_t * cf;
-    dt_t *hm;
+    hm_t *hm;
 
     int32_t off     = 0; /* offset in arrays */
     exp_t *e        = ht->ev[0]; /* use as temporary storage */
@@ -210,7 +210,7 @@ static void import_julia_data_ff(
     for (i = 0; i < st->ngens; ++i) {
         hm  = bs->hm[i];
         cf  = bs->cf_ff[i];
-        hm  = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
+        hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
 
         hm[0]  = i; /* link to matcf entry */
@@ -244,7 +244,7 @@ static int64_t export_julia_data_ff(
     int32_t *basis  = *bp;
 
     cf32_t *cf;
-    dt_t *dt;
+    hm_t *dt;
 
     int64_t len = 0; /* complete length of exported array */
     int64_t nb  = 0; /* # elemnts in basis */
@@ -301,7 +301,7 @@ static int64_t export_julia_data_ff(
 }
 
 static void write_pbm_file(
-    dt_t **mat,
+    hm_t **mat,
     stat_t *st
     )
 {
@@ -320,9 +320,9 @@ static void write_pbm_file(
 
     for (i = 0; i < nrows; ++i) {
         const len_t len = mat[i][2];
-        dt_t row[len];
-        memcpy(row, mat[i]+3, (unsigned long)len * sizeof(dt_t));
-        qsort(row, (unsigned long)len, sizeof(dt_t), pbm_cmp);
+        hm_t row[len];
+        memcpy(row, mat[i]+3, (unsigned long)len * sizeof(hm_t));
+        qsort(row, (unsigned long)len, sizeof(hm_t), pbm_cmp);
         /* the rows may not be sorted by column indices, thus we
          * have to go over them again and again and again */
         k = 0;

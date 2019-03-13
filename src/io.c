@@ -190,45 +190,48 @@ static inline int32_t check_and_set_meta_data(
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
 static void import_julia_data_ff(
+        bs_t *bs,
+        ht_t *ht,
+        const stat_t *st,
         const int32_t *lens,
         const int32_t *cfs,
-        const int32_t *exps,
-        const int32_t nr_gens
+        const int32_t *exps
         )
 {
     int32_t i, j;
     len_t k;
     cf32_t * cf;
-    dt_t *dt;
+    dt_t *hm;
 
-    int32_t off = 0; /* offset in arrays */
-    exp_t *e  = (exp_t *)malloc((unsigned long)nvars * sizeof(exp_t));
+    int32_t off     = 0; /* offset in arrays */
+    exp_t *e        = ht->ev[0]; /* use as temporary storage */
+    const len_t nv  = st->nvars;
 
-    for (i = 0; i < nr_gens; ++i) {
-        /* gbdt rows store three more elemets at the beginning:
-         * gbdt[0] is the index j of the corresponding coefficient array gbcf[j]
-         * gbdt[1] is the offset of the length of the array for loop unrolling
-         * gbdt[2] is the real length of the array for looping */
-        gbdt[i]     = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
-        gbcf_ff[i]  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
-        gbdt[i][0]  = i; /* link to matcf entry */
-        red[i]      = 0;
-        gbdt[i][1]  = (lens[i] % UNROLL); /* offset */
-        gbdt[i][2]  = lens[i]; /* length */
+    for (i = 0; i < st->ngens; ++i) {
+        hm  = bs->hm[i];
+        cf  = bs->cf_ff[i];
+        hm  = (dt_t *)malloc(((unsigned long)lens[i]+3) * sizeof(dt_t));
+        cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
 
-        cf  = gbcf_ff[i];
-        dt  = gbdt[i] + 3;
+        hm[0]  = i; /* link to matcf entry */
+        hm[1]  = (lens[i] % UNROLL); /* offset */
+        hm[2]  = lens[i]; /* length */
+
+        bs->red[i] = 0;
+
         for (j = off; j < off+lens[i]; ++j) {
-            for (k = 0; k < nvars; ++k) {
-                e[k]  = (exp_t)(exps+(nvars*j))[k];
+            for (k = 0; k < nv; ++k) {
+                e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            dt[j-off]  = insert_in_basis_hash_table(e);
+            hm[j-off]  = insert_in_basis_hash_table(e);
             cf[j-off]  = (cf32_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
-    npivs = nrows = nrall = nr_gens;
+    /* we have to reset the ld value once we have normalized the initial
+     * elements in order to start update correctly */
+    bs->ld  = st->ngens;
     free(e);
 }
 

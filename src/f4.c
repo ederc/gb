@@ -84,7 +84,7 @@ int64_t f4_julia(
     ht_t *uht = initialize_secondary_hash_table(bht, st);
     ht_t *sht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data_ff(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */

@@ -282,17 +282,14 @@ int (*initial_input_cmp)(
 
 int (*monomial_cmp)(
         const hl_t a,
-        const hl_t b
-        );
-
-int (*monomial_update_cmp)(
-        const hl_t a,
-        const hl_t b
+        const hl_t b,
+        const ht_t *ht
         );
 
 int (*spair_cmp)(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         );
 
 int (*hcm_cmp)(

@@ -133,7 +133,7 @@ static void insert_and_update_spairs(
         }
     }
     /* sort new pairs by increasing lcm, earlier polys coming first */
-    qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_update_cmp);
+    sort_r(pp, (unsigned long)j, sizeof(spair_t), spair_cmp, uht);
     for (i = 0; i < j; ++i) {
         plcm[i] = pp[i].lcm;
     }
@@ -158,7 +158,7 @@ static void insert_and_update_spairs(
         }
         ps[j++] = ps[i];
     }
-    if (esz - eld <= pc) {
+    if (bht->esz - bht->eld <= pc) {
         enlarge_basis_hash_table();
     }
     /* new pairs, wee need to add the lcm to the basis hash table */
@@ -171,12 +171,12 @@ static void insert_and_update_spairs(
         if (red[i]) {
             continue;
         }
-        if (check_monomial_division(gbdt[i][3], nch, bht))
+        if (check_monomial_division(gbdt[i][3], nch, bht)) {
             bs->red[i]  = 1;
             st->num_redundant++;
         }
     }
-    bload++;
+    bs->ld++;
 }
 
 static void update_basis(

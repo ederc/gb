@@ -233,44 +233,16 @@ static int monomial_cmp_pivots_lex(
     return eb[i] - ea[i];
 }
 
-static inline int monomial_update_cmp_drl(
-        const hl_t a,
-        const hl_t b
-        )
-{
-    len_t i;
-
-    const deg_t da = hdu[a].deg;
-    const deg_t db = hdu[b].deg;
-
-    /* DRL */
-    if (da > db) {
-        return 1;
-    } else {
-        if (da != db) {
-            return -1;
-        }
-    }
-
-    const exp_t * const ea  = evu[a];
-    const exp_t * const eb  = evu[b];
-
-    i = nvars - 1;
-    while (i > 0 && ea[i] == eb[i]) {
-        --i;
-    }
-    return eb[i] - ea[i];
-}
-
 static inline int monomial_cmp_drl(
         const hl_t a,
-        const hl_t b
+        const hl_t b,
+        const ht_t *ht
         )
 {
     len_t i;
 
-    const deg_t da = hd[a].deg;
-    const deg_t db = hd[b].deg;
+    const deg_t da = ht->hd[a].deg;
+    const deg_t db = ht->hd[b].deg;
 
     /* DRL */
     if (da > db) {
@@ -281,44 +253,27 @@ static inline int monomial_cmp_drl(
         }
     }
 
-    const exp_t * const ea  = ev[a];
-    const exp_t * const eb  = ev[b];
+    const exp_t * const ea  = ht->ev[a];
+    const exp_t * const eb  = ht->ev[b];
 
-    i = nvars - 1;
+    i = ht->nv - 1;
     while (i > 0 && ea[i] == eb[i]) {
         --i;
     }
     return eb[i] - ea[i];
-}
-
-static inline int monomial_update_cmp_lex(
-        const hl_t a,
-        const hl_t b
-        )
-{
-    len_t i;
-
-    const exp_t * const ea  = evu[a];
-    const exp_t * const eb  = evu[b];
-    const len_t nv  = nvars;
-
-    i = 0;
-    while(i < nv-1 && ea[i] == eb[i]) {
-        ++i;
-    }
-    return ea[i] - eb[i];
 }
 
 static inline int monomial_cmp_lex(
         const hl_t a,
-        const hl_t b
+        const hl_t b,
+        const ht_t *ht
         )
 {
     len_t i;
 
-    const exp_t * const ea  = ev[a];
-    const exp_t * const eb  = ev[b];
-    const len_t nv  = nvars;
+    const exp_t * const ea  = ht->ev[a];
+    const exp_t * const eb  = ht->ev[b];
+    const len_t nv  = ht->nv;
 
     i = 0;
     while(i < nv-1 && ea[i] == eb[i]) {
@@ -377,28 +332,32 @@ static int hcm_cmp_pivots_lex(
 /* comparison for s-pairs once their lcms are in the global hash table */
 static int spair_cmp_deglex(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         )
 {
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
+    const hl_t la   = ((spair_t *)a)->lcm;
+    const hl_t lb   = ((spair_t *)b)->lcm;
+    const ht_t *ht  = (ht_t *)htp;
 
-    if (hd[la].deg != hd[lb].deg) {
-        return (hd[la].deg < hd[lb].deg) ? -1 : 1;
+    if (ht->hd[la].deg != ht->hd[lb].deg) {
+        return (ht->hd[la].deg < ht->hd[lb].deg) ? -1 : 1;
     } else {
-        return (int)monomial_cmp(la, lb);
+        return (int)monomial_cmp(la, lb, ht);
     }
 }
 
 static int spair_cmp_drl(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         )
 {
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
+    const hl_t la   = ((spair_t *)a)->lcm;
+    const hl_t lb   = ((spair_t *)b)->lcm;
+    const ht_t *ht  = (ht_t *)htp;
 
-    return (int)monomial_cmp(la, lb);
+    return (int)monomial_cmp(la, lb, ht);
 }
 
 static int spair_degree_cmp(
@@ -410,22 +369,4 @@ static int spair_degree_cmp(
     const deg_t db  = hd[((spair_t *)b)->lcm].deg;
 
     return (da-db);
-}
-/* comparison for s-pairs while their lcms are in the update hash table:
- * only sort by degree, divisibility is all we need at this point */
-static int spair_update_cmp(
-        const void *a,
-        const void *b,
-        void *c
-        )
-{
-/*     const deg_t da  = hdu[((spair_t *)a)->lcm].deg;
- *     const deg_t db  = hdu[((spair_t *)b)->lcm].deg;
- *
- *     return (da-db); */
-
-    const hl_t la = ((spair_t *)a)->lcm;
-    const hl_t lb = ((spair_t *)b)->lcm;
-
-    return (int)monomial_update_cmp(la, lb);
 }

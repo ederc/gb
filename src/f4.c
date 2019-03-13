@@ -91,8 +91,8 @@ int64_t f4_julia(
     calculate_divmask(bht);
 
     /* sort initial elements, smallest lead term first */
-    qsort(gbdt, (unsigned long)nrows, sizeof(hm_t *),
-            matrix_row_initial_input_cmp);
+    sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
+            initial_input_cmp, bht);
     /* normalize input generators */
     normalize_initial_basis();
 

@@ -35,21 +35,23 @@ static int columns_cmp(
     return (int)(ca - cb);
 }
 #endif
-static int matrix_row_initial_input_cmp_lex(
+static int initial_input_cmp_lex(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         )
 {
     len_t i;
+    ht_t *ht  = htp;
 
-    const hm_t va  = ((hm_t **)a)[0][3];
-    const hm_t vb  = ((hm_t **)b)[0][3];
+    const hm_t ha  = ((hm_t **)a)[0][3];
+    const hm_t hb  = ((hm_t **)b)[0][3];
 
-    const exp_t * const ea  = ev[va];
-    const exp_t * const eb  = ev[vb];
+    const exp_t * const ea  = ht->ev[ha];
+    const exp_t * const eb  = ht->ev[hb];
 
     /* lexicographical */
-    const len_t nv  = nvars;
+    const len_t nv  = ht->nv;
 
     i = 0;
     while(i < nv-1 && ea[i] == eb[i]) {
@@ -58,18 +60,20 @@ static int matrix_row_initial_input_cmp_lex(
     return ea[i] - eb[i];
 }
 
-static int matrix_row_initial_input_cmp_drl(
+static int initial_input_cmp_drl(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         )
 {
     len_t i;
+    ht_t *ht  = htp;
 
-    const hm_t va  = ((hm_t **)a)[0][3];
-    const hm_t vb  = ((hm_t **)b)[0][3];
+    const hm_t ha  = ((hm_t **)a)[0][3];
+    const hm_t hb  = ((hm_t **)b)[0][3];
 
-    const deg_t da = hd[va].deg;
-    const deg_t db = hd[vb].deg;
+    const deg_t da = ht->hd[ha].deg;
+    const deg_t db = ht->hd[hb].deg;
 
     /* DRL */
     if (da < db) {
@@ -80,11 +84,11 @@ static int matrix_row_initial_input_cmp_drl(
         }
     }
 
-    const exp_t * const ea  = ev[va];
-    const exp_t * const eb  = ev[vb];
+    const exp_t * const ea  = ht->ev[ha];
+    const exp_t * const eb  = ht->ev[hb];
 
     /* note: reverse lexicographical */
-    i = nvars - 1;
+    i = ht->nv - 1;
     while (i > 0 && ea[i] == eb[i]) {
         --i;
     }

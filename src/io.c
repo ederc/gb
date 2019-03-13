@@ -29,24 +29,21 @@ static inline void set_function_pointers(
     /* todo: this needs to be generalized for different monomial orders */
     switch (st->mo) {
         case 0:
-            matrix_row_initial_input_cmp  =
-                matrix_row_initial_input_cmp_drl;
+            initial_input_cmp   = initial_input_cmp_drl;
             monomial_cmp        = monomial_cmp_drl;
             monomial_update_cmp = monomial_update_cmp_drl;
             spair_cmp           = spair_cmp_drl;
             hcm_cmp             = hcm_cmp_pivots_drl;
             break;
         case 1:
-            matrix_row_initial_input_cmp  =
-                matrix_row_initial_input_cmp_lex;
+            initial_input_cmp   = initial_input_cmp_lex;
             monomial_cmp        = monomial_cmp_lex;
             monomial_update_cmp = monomial_update_cmp_lex;
             spair_cmp           = spair_cmp_deglex;
             hcm_cmp             = hcm_cmp_pivots_lex;
             break;
         default:
-            matrix_row_initial_input_cmp  =
-                matrix_row_initial_input_cmp_drl;
+            initial_input_cmp   = initial_input_cmp_drl;
             monomial_cmp        = monomial_cmp_drl;
             monomial_update_cmp = monomial_update_cmp_drl;
             spair_cmp           = spair_cmp_drl;

@@ -31,22 +31,22 @@ static void free_basis(
     if (bs->cf_ff) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf_ff[i]);
-            free(bs->hd[i]);
+            free(bs->hm[i]);
         }
         free(bs->cf_ff);
         bs->cf_ff = NULL;
-        free(bs->hd);
-        bs->hd  = NULL;
+        free(bs->hm);
+        bs->hm  = NULL;
     }
     if (bs->cf_q) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf_q[i]);
-            free(bs->hd[i]);
+            free(bs->hm[i]);
         }
         free(bs->cf_q);
         bs->cf_q  = NULL;
-        free(bs->hd);
-        bs->hd  = NULL;
+        free(bs->hm);
+        bs->hm  = NULL;
     }
     free(bs->lm);
     bs->lm  = NULL;
@@ -67,7 +67,7 @@ static bs_t *initialize_basis_ff(
     bs->sz  = 2*ngens;
 
     bs->cf_ff = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
-    bs->hd    = (dt_t **)malloc((unsigned long)bs->sz * sizeof(dt_t *));
+    bs->hm    = (dt_t **)malloc((unsigned long)bs->sz * sizeof(dt_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->red   = (int8_t *)calloc((unsigned long)bs->sz, sizeof(int8_t));
 
@@ -83,7 +83,7 @@ static inline void check_enlarge_basis_ff(
         bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
         bs->cf_ff = realloc(bs->cf_ff,
                 (unsigned long)bs->sz * sizeof(cf32_t *));
-        bs->hd    = realloc(bs->hd, (unsigned long)bs->sz * sizeof(dt_t *));
+        bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(dt_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->red   = realloc(bs->red, (unsigned long)bs->sz * sizeof(int8_t));
         memset(bs->red+bs->ld, 0,
@@ -138,7 +138,7 @@ static bs_t *initialize_basis_q(
     bs->sz  = 2*ngens;
 
     bs->cf_q  = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
-    bs->hd    = (dt_t **)malloc((unsigned long)bs->sz * sizeof(dt_t *));
+    bs->hm    = (dt_t **)malloc((unsigned long)bs->sz * sizeof(dt_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->red   = (int8_t *)calloc((unsigned long)bs->sz, sizeof(int8_t));
 
@@ -154,7 +154,7 @@ static inline void check_enlarge_basis_q(
         bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
         bs->cf_q  = realloc(bs->cf_q,
                 (unsigned long)bs->sz * sizeof(mpz_t *));
-        bs->hd    = realloc(bs->hd, (unsigned long)bs->sz * sizeof(dt_t *));
+        bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(dt_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->red   = realloc(bs->red, (unsigned long)bs->sz * sizeof(int8_t));
         memset(bs->red+bs->ld, 0,

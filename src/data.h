@@ -234,7 +234,7 @@ struct bs_t
     bl_t lo;        /* load before current update */
     sdm_t *lm;      /* lead monomials as short divmask */
     int8_t *red;    /* tracks redundancy of basis elements */
-    dt_t **hd;      /* hash data representing exponents */
+    dt_t **hm;      /* hashed monomials representing exponents */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
     mpz_t **cf_q;   /* coefficients for rationals */
 };

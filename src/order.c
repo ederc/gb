@@ -362,9 +362,11 @@ static int spair_cmp_drl(
 
 static int spair_degree_cmp(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         )
 {
+    const hd_t *hd  = ((ht_t *)htp)->hd;
     const deg_t da  = hd[((spair_t *)a)->lcm].deg;
     const deg_t db  = hd[((spair_t *)b)->lcm].deg;
 

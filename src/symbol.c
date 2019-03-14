@@ -22,10 +22,13 @@
 
 #include "data.h"
 
-static hm_t **select_spairs_by_minimal_degree(
+static void select_spairs_by_minimal_degree(
+        mat_t *mat,
+        const bs_t *bs,
         ps_t *psl,
-        hm_t **mat,
-        stat_t *st
+        stat_t *st,
+        ht_t *sht,
+        ht_t *bht
         )
 {
     len_t i, j, k, l, md, nps, npd;
@@ -35,27 +38,29 @@ static hm_t **select_spairs_by_minimal_degree(
     hl_t lcm;
     len_t *gens;
     exp_t *elcm, *eb;
+    exp_t *etmp = bht->ev[0];
 
     /* timings */
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
 
-    spair_t *ps = psl->p;
+    spair_t *ps     = psl->p;
+    const len_t nv  = bht->nv;
 
     /* sort pair set */
-    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_degree_cmp);
+    sort_r(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_degree_cmp, bht);
     /* get minimal degree */
-    md  = hd[ps[0].lcm].deg;
+    md  = bht->hd[ps[0].lcm].deg;
 
     /* select pairs of this degree respecting maximal selection size mnsel */
     for (i = 0; i < psl->ld; ++i) {
-        if (hd[ps[i].lcm].deg > md) {
+        if (bht->hd[ps[i].lcm].deg > md) {
             break;
         }
     }
     npd  = i;
-    qsort(ps, (unsigned long)npd, sizeof(spair_t), spair_cmp);
+    sort_r(ps, (unsigned long)npd, sizeof(spair_t), spair_cmp, bht);
     /* now do maximal selection if it applies */
     
     /* if we stopped due to maximal selection size we still get the following
@@ -108,20 +113,18 @@ static hm_t **select_spairs_by_minimal_degree(
             prev  = gens[k];
             /* ev might change when enlarging the hash table during insertion of a new
              * row in the matrix, thus we have to reset elcm inside the for loop */
-            elcm  = ev[lcm];
-            d = 0;
-            b = gbdt[prev];
-            /* b = (hl_t *)((long)bs[gens[k]] & bmask); */
-            eb  = ev[b[3]];
-            /* m = monomial_division_no_check(lcm, b[2]); */
-            for (l = 0; l < nvars; ++l) {
+            elcm  = bht->ev[lcm];
+            d     = 0;
+            b     = bs->hm[prev];
+            eb    = bht->ev[b[3]];
+            for (l = 0; l < nv; ++l) {
                 etmp[l] = (exp_t)(elcm[l] - eb[l]);
                 d     +=  etmp[l];
             }
-            const hl_t h  = hd[lcm].val - hd[b[3]].val;
+            const hl_t h  = bht->hd[lcm].val - bht->hd[b[3]].val;
             mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
             /* mark lcm column as lead term column */
-            hds[mat[nrows][3]].idx = 2;
+            sht->hd[mat[nrows][3]].idx = 2;
             nrows++;
         }
 

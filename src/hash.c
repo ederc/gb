@@ -289,16 +289,19 @@ static void enlarge_symbolic_hash_table(
 }
 
 static inline sdm_t generate_short_divmask(
-    const exp_t * const a
+    const exp_t * const a,
+    const ht_t *ht
     )
 {
   len_t i, j;
   int32_t res = 0;
   int32_t ctr = 0;
+  const len_t ndv = ht->ndv;
+  const len_t bpv = ht->bpv
 
-  for (i = 0; i < ndvars; ++i) {
+  for (i = 0; i < ndv; ++i) {
     for (j = 0; j < bpv; ++j) {
-      if ((sdm_t)a[i] >= dm[ctr]) {
+      if ((sdm_t)a[i] >= ht->dm[ctr]) {
         res |= 1 << ctr;
       }
       ctr++;
@@ -356,7 +359,7 @@ static inline void calculate_divmask(
 
   /* initialize divmasks for elements already added to hash table */
   for (i = 1; i < ht->eld; i++) {
-    ht->hd[i].sdm = generate_short_divmask(ev[i]);
+    ht->hd[i].sdm = generate_short_divmask(ev[i], ht);
   }
 
   free(max_exp);
@@ -498,8 +501,9 @@ restart:
   return pos;
 }
 
-static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
-    const exp_t *a
+static inline hl_t insert_in_hash_table(
+    const exp_t *a,
+    ht_t *ht
     )
 {
   hl_t i, k, pos;
@@ -508,7 +512,8 @@ static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
   exp_t *e;
   hd_t *d;
   val_t h = 0;
-  const len_t nv  = nvars;
+  const len_t nv  = ht->nv;
+  const hl_t hsz  = ht->hsz;
 
   /* generate hash value */
   for (j = 0; j < nv; ++j) {
@@ -521,14 +526,14 @@ static inline hl_t insert_in_basis_hash_table_no_enlargement_check(
 restart:
   for (; i < hsz; ++i) {
     k = (k+i) & (hsz-1);
-    const hl_t hm = hmap[k];
+    const hl_t hm = ht->hmap[k];
     if (!hm) {
       break;
     }
-    if (hd[hm].val != h) {
+    if (ht->hd[hm].val != h) {
       continue;
     }
-    const exp_t * const ehm = ev[hm];
+    const exp_t * const ehm = ht->ev[hm];
     for (j = nv-1; j > 0; j -= 2) {
         if (a[j] != ehm[j] || a[j-1] != ehm[j-1]) {
             i++;
@@ -543,19 +548,19 @@ restart:
   }
 
   /* add element to hash table */
-  hmap[k]  = pos = eld;
-  e   = ev[pos];
-  d   = hd + pos;
+  ht->hmap[k]  = pos = eld;
+  e   = ht->ev[pos];
+  d   = ht->hd + pos;
   deg = 0;
-  for (j = 0; j < nvars; ++j) {
+  for (j = 0; j < nv; ++j) {
     e[j]  =   a[j];
     deg   +=  a[j];
   }
   d->deg  = deg;
-  d->sdm  = generate_short_divmask(e);
+  d->sdm  = generate_short_divmask(e, ht);
   d->val  = h;
 
-  eld++;
+  ht->eld++;
 
   return pos;
 }
@@ -744,15 +749,16 @@ restart:
 
 static inline int prime_monomials(
     const hl_t a,
-    const hl_t b
+    const hl_t b,
+    const ht_t *ht
     )
 {
     len_t i;
 
-    const exp_t * const ea = ev[a];
-    const exp_t * const eb = ev[b];
+    const exp_t * const ea = ht->ev[a];
+    const exp_t * const eb = ht->ev[b];
 
-    const len_t nv  = nvars;
+    const len_t nv  = ht->nv;
     for (i = nv-1; i > 0; i -= 2) {
         if ((ea[i] != 0 && eb[i] != 0) || (ea[i-1] != 0 && eb[i-1] != 0)) {
             return 0;
@@ -764,12 +770,14 @@ static inline int prime_monomials(
     return 1;
 }
 
-static inline void insert_in_basis_hash_table_plcms(
+static inline void insert_plcms_in_basis_hash_table(
     ps_t *psl,
     spair_t *pp,
+    ht_t *bht,
+    const ht_t *uht,
+    const hl_t * const lcms,
     const len_t start,
-    const len_t end,
-    const hl_t * const lcms
+    const len_t end
     )
 {
     hl_t i, k, pos;
@@ -777,7 +785,8 @@ static inline void insert_in_basis_hash_table_plcms(
     hd_t *d;
 
     spair_t *ps     = psl->p;
-    const len_t nv  = nvars;
+    const len_t nv  = bht->nv;
+    const hl_t hsz  = bht->hsz;
     m = start;
     l = 0;
 letsgo:
@@ -785,26 +794,27 @@ letsgo:
         if (lcms[l] < 0) {
             continue;
         }
-        if (prime_monomials(gbdt[pp[l].gen1][3], gbdt[pp[0].gen2][3])) {
+        if (prime_monomials(gbdt[pp[l].gen1][3], gbdt[pp[0].gen2][3], bht)) {
             continue;
         }
         ps[m] = pp[l];
-        const val_t h = hdu[lcms[l]].val;
-        memcpy(ev[eld], evu[lcms[l]], (unsigned long)nv * sizeof(exp_t));
-        const exp_t * const n = ev[eld];
+        const val_t h = uht->hd[lcms[l]].val;
+        memcpy(bht->ev[bht->eld], uht->ev[lcms[l]],
+                (unsigned long)nv * sizeof(exp_t));
+        const exp_t * const n = bht->ev[eld];
         k = h;
         i = 0;
 restart:
         for (; i < hsz; ++i) {
             k = (k+i) & (hsz-1);
-            const hl_t hm  = hmap[k];
+            const hl_t hm = bht->hmap[k];
             if (!hm) {
                 break;
             }
-            if (hd[hm].val != h) {
+            if (bht->hd[hm].val != h) {
                 continue;
             }
-            const exp_t * const ehm = ev[hm];
+            const exp_t * const ehm = bht->ev[hm];
             for (j = nv-1; j > 0; j -= 2) {
                 if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
@@ -821,13 +831,13 @@ restart:
         }
 
         /* add element to hash table */
-        hmap[k] = pos = eld;
-        d = hd + eld;
-        d->deg  = hdu[lcms[l]].deg;
-        d->sdm  = hdu[lcms[l]].sdm;
+        bht->hmap[k] = pos = bht->eld;
+        d = bht->hd + bht->eld;
+        d->deg  = uht->hd[lcms[l]].deg;
+        d->sdm  = uht->hd[lcms[l]].sdm;
         d->val  = h;
 
-        eld++;
+        bht->eld++;
         ps[m++].lcm =  pos;
     }
     psl->ld = m;

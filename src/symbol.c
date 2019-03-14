@@ -24,7 +24,7 @@
 
 static void select_spairs_by_minimal_degree(
         mat_t *mat,
-        const bs_t *bs,
+        const bs_t * const bs,
         ps_t *psl,
         stat_t *st,
         ht_t *sht,
@@ -122,7 +122,7 @@ static void select_spairs_by_minimal_degree(
                 d     +=  etmp[l];
             }
             const hl_t h  = bht->hd[lcm].val - bht->hd[b[3]].val;
-            mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+            mat[nrows]    = multiplied_poly_to_matrix_row(sht, bht, h, d, etmp, b);
             /* mark lcm column as lead term column */
             sht->hd[mat[nrows][3]].idx = 2;
             nrows++;
@@ -149,16 +149,27 @@ static void select_spairs_by_minimal_degree(
 }
 
 static inline hm_t *find_multiplied_reducer(
-        const hm_t m
+        const bs_t * const bs,
+        const hm_t m,
+        const ht_t * const bht,
+        ht_t *sht
         )
 {
     len_t i, k;
-    const exp_t * const e  = evs[m];
+    const exp_t * const e  = sht->ev[m];
 
-    const hd_t hdm  = hds[m];
-    const len_t bl  = bload;
+    const hd_t hdm  = sht->hd[m];
+    const len_t bl  = bs->ld;
     const sdm_t ns  = ~hdm.sdm;
     const deg_t hdd = hdm.deg;
+
+    const len_t nv  = bht->nv;
+
+    const sdm_t * const lms = bs->lm;
+
+    exp_t *etmp = bht->ev[0];
+    const hd_t * const hdb  = bht->hd;
+    exp_t * const * const evb = bht->ev;
 
     i = 0;
 start:
@@ -166,30 +177,33 @@ start:
         i++;
     }
     if (i < bl) {
-        const hm_t *b = gbdt[i];
-        const deg_t d = hdd - hd[b[3]].deg;
+        const hm_t *b = bs->hm[i];
+        const deg_t d = hdd - hdb[b[3]].deg;
         if (d < 0) {
             i++;
             goto start;
         }
-        const exp_t * const f = ev[b[3]];
-        for (k=nvars-1; k >= 0; --k) {
+        const exp_t * const f = evb[b[3]];
+        for (k=nv-1; k >= 0; --k) {
             etmp[k] = (exp_t)(e[k]-f[k]);
             if (etmp[k] < 0) {
                 i++;
                 goto start;
             }
         }
-        const hl_t h  = hdm.val - hd[b[3]].val;
-        return multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+        const hl_t h  = hdm.val - hdb[b[3]].val;
+        return multiplied_poly_to_matrix_row(sht, bht, h, d, etmp, b);
     } else {
         return NULL;
     }
 }
 
 static hm_t **symbolic_preprocessing(
-        hm_t **mat,
-        stat_t *st
+        const bs_t * const bs,
+        mat_t *mat,
+        stat_t *st,
+        const ht_t * const bht,
+        ht_t *sht
         )
 {
     len_t i;
@@ -206,7 +220,8 @@ static hm_t **symbolic_preprocessing(
      * we only have to do the bookkeeping for newly added reducers
      * in the following. */
 
-    const len_t oesld = esld;
+    const len_t oesld = sht->eld;
+    hd_t *hds = sht->hd; 
     i = 1;
     /* we only have to check if idx is set for the elements already set
      * when selecting spairs, afterwards (second for loop) we do not
@@ -219,7 +234,7 @@ static hm_t **symbolic_preprocessing(
         if (!hds[i].idx) {
             hds[i].idx = 1;
             ncols++;
-            red = find_multiplied_reducer(i);
+            red = find_multiplied_reducer(bs, i, bht, sht);
             if (red) {
                 hds[i].idx = 2;
                 /* add new reducer to matrix */
@@ -234,7 +249,7 @@ static hm_t **symbolic_preprocessing(
         }
         hds[i].idx = 1;
         ncols++;
-        red = find_multiplied_reducer(i);
+        red = find_multiplied_reducer(bs, i, bht, sht);
         if (red) {
             hds[i].idx = 2;
             /* add new reducer to matrix */

@@ -297,7 +297,7 @@ static inline sdm_t generate_short_divmask(
   int32_t res = 0;
   int32_t ctr = 0;
   const len_t ndv = ht->ndv;
-  const len_t bpv = ht->bpv
+  const len_t bpv = ht->bpv;
 
   for (i = 0; i < ndv; ++i) {
     for (j = 0; j < bpv; ++j) {
@@ -900,9 +900,10 @@ restart:
     }
 }
 
-static inline void reinsert_in_basis_hash_table(
+static inline void reinsert_in_hash_table(
     hm_t *row,
-    exp_t **oev
+    exp_t * const *oev,
+    ht_t *ht
     )
 {
     hl_t i, k, pos;
@@ -912,7 +913,8 @@ static inline void reinsert_in_basis_hash_table(
     val_t h;
 
     const len_t len = row[2]+3;
-    const len_t nv  = nvars;
+    const len_t nv  = ht->nv;
+    const hl_t hsz  = ht->hsz;
     l = 3;
 letsgo:
     for (; l < len; ++l) {
@@ -927,14 +929,14 @@ letsgo:
 restart:
         for (; i < hsz; ++i) {
             k = (k+i) & (hsz-1);
-            const hl_t hm  = hmap[k];
+            const hl_t hm  = ht->hmap[k];
             if (!hm) {
                 break;
             }
-            if (hd[hm].val != h) {
+            if (ht->hd[hm].val != h) {
                 continue;
             }
-            const exp_t * const ehm = ev[hm];
+            const exp_t * const ehm = ht->ev[hm];
             for (j = nv-1; j > 0; j -= 2) {
                 if (n[j] != ehm[j] || n[j-1] != ehm[j-1]) {
                     i++;
@@ -951,22 +953,24 @@ restart:
         }
 
         /* add element to hash table */
-        hmap[k] = pos = eld;
-        e       = ev[eld];
-        d = hd + eld;
+        ht->hmap[k] = pos = ht->eld;
+        e = ht->ev[ht->eld];
+        d = ht->hd + ht->eld;
         for (j = 0; j < nv; ++j) {
             e[j]    =   n[j];
             d->deg  +=  n[j];
         }
-        d->sdm  = generate_short_divmask(e);
+        d->sdm  = generate_short_divmask(e, ht);
         d->val  = h;
 
-        eld++;
+        ht->eld++;
         row[l] =  pos;
     }
 }
 
-static void reset_basis_hash_table(
+static void reset_hash_table(
+    ht_t *ht,
+    bs_t *bs,
     ps_t *psl,
     stat_t *st
     )
@@ -981,34 +985,38 @@ static void reset_basis_hash_table(
     exp_t *e;
 
     spair_t *ps = psl->p;
+    exp_t **oev  = ht->ev;
 
-    exp_t **oev  = ev;
-    ev  = calloc((unsigned long)esz, sizeof(exp_t *));
-    if (ev == NULL) {
+    const len_t nv  = ht->nv;
+    const hl_t esz  = ht->esz;
+    const bl_t bld  = bs->ld;
+    const len_t pld = psl->ld;
+
+    ht->ev  = calloc((unsigned long)esz, sizeof(exp_t *));
+    if (ht->ev == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");
     }
     exp_t *tmp  = (exp_t *)malloc(
-            (unsigned long)nvars * (unsigned long)esz * sizeof(exp_t));
+            (unsigned long)nv * (unsigned long)esz * sizeof(exp_t));
     if (tmp == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");
     }
     for (k = 0; k < esz; ++k) {
-        ev[k]  = tmp + k*nvars;
+        ht->ev[k]  = tmp + k*nv;
     }
-    eld = 1;
-    memset(hmap, 0, (unsigned long)hsz * sizeof(hl_t));
-    memset(hd, 0, (unsigned long)esz * sizeof(hd_t));
+    ht->eld = 1;
+    memset(ht->hmap, 0, (unsigned long)hsz * sizeof(hl_t));
+    memset(ht->hd, 0, (unsigned long)esz * sizeof(hd_t));
 
     /* reinsert known elements */
-    for (i = 0; i < bload; ++i) {
-        reinsert_in_basis_hash_table(gbdt[i], oev);
+    for (i = 0; i < bld; ++i) {
+        reinsert_in_hash_table(gbdt[i], oev, ht);
     }
-    const len_t pld = psl->ld;
     for (i = 0; i < pld; ++i) {
         e = oev[ps[i].lcm];
-        ps[i].lcm = insert_in_basis_hash_table_no_enlargement_check(e);
+        ps[i].lcm = insert_in_hash_table(e, ht);
     }
     /* note: all memory is allocated as a big block, so it is
      *       enough to free oev[0].       */

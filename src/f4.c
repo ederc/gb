@@ -43,7 +43,7 @@ int64_t f4_julia(
         const int32_t ht_size,
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
-        const int32_t reset_hash_table,
+        const int32_t reset_ht,
         const int32_t la_option,
         const int32_t pbm_file,
         const int32_t info_level
@@ -70,7 +70,7 @@ int64_t f4_julia(
      * some of the input data is corrupted. */
     if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                reset_hash_table, la_option, pbm_file, info_level)) {
+                reset_ht, la_option, pbm_file, info_level)) {
         return 0;
     }
     if (st->info_level > 0) {
@@ -98,7 +98,6 @@ int64_t f4_julia(
 
     /* reset bs->ld for first update process */
     bs->ld  = 0;
-
     /* move input generators to basis and generate first spairs */
     update_basis(ps, bs, bht, uht, st, st->ngens);
 
@@ -112,7 +111,7 @@ int64_t f4_julia(
     }
     for (round = 1; ps->ld > 0; ++round) {
         if (round % st->reset_ht == 0) {
-            reset_basis_hash_table(ps, st);
+            reset_hash_table(bht, bs, ps, st);
         }
         rrt0  = realtime();
         st->max_ht_size = st->max_ht_size > hsz ? st->max_ht_size : hsz;

@@ -1030,54 +1030,6 @@ static void reset_hash_table(
     st->rht_rtime  +=  rt1 - rt0;
 }
 
-
-/* we can check equality of lcm and multiplication of two monomials
- * by their hash values. If both hash values are NOT the same, then
- * the corresponding exponent vectors CANNOT be the same. */
-static inline int lcm_equals_multiplication(
-    const hl_t a,
-    const hl_t b,
-    const hl_t lcm
-    )
-{
-  const hd_t ha = hd[a];
-  const hd_t hb = hd[b];
-  const hd_t hl = hdu[lcm];
-
-  if (hl.deg != ha.deg + hb.deg) {
-    return 0;
-  }
-  if (hl.val != ha.val + hb.val) {
-    return 0;
-  } else {
-    /* both have the same degree and the same hash value, either they
-     * are the same or our hashing is broken resp. really bad */
-    return 1;
-  }
-}
-
-/* computes lcm of a and b from ht1 and inserts it in ht2 */
-static inline hl_t get_lcm(
-    const hl_t a,
-    const hl_t b,
-    const ht_t *ht1,
-    ht_t *ht2
-    )
-{
-    len_t i;
-
-    /* exponents of basis elements, thus from basis hash table */
-    const exp_t * const ea = ht1->ev[a];
-    const exp_t * const eb = ht1->ev[b];
-    exp_t *etmp = ht1->ev[0];
-    const len_t nv  = ht1->nv;
-
-    for (i = 0; i < nv; ++i) {
-        etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
-    }
-    return insert_in_hash_table(etmp, ht2);
-}
-
 /* we try monomial division including check if divisibility is
  * fulfilled. */
 static inline hl_t monomial_division_with_check(
@@ -1152,20 +1104,3 @@ static inline hm_t *multiplied_polynomial_to_matrix_row(
 
   return row;
 }
-
-/* deprecated once we use an own hash table for symbolic preprocessing data */
-#if 0
-static inline hl_t *reset_idx_in_basis_hash_table_and_free_hcm(
-        hl_t *hcm
-        )
-{
-    len_t i;
-
-    for (i = 0; i < ncols; ++i) {
-        hd[hcm[i]].idx  = 0;
-    }
-    free(hcm);
-
-    return NULL;
-}
-#endif

@@ -217,7 +217,7 @@ static void import_julia_data_ff(
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            hm[j-off]  = insert_in_basis_hash_table(e);
+            hm[j-off]  = insert_in_hash_table(e, ht);
             cf[j-off]  = (cf32_t)cfs[j];
         }
         /* mark initial generators, they have to be added to the basis first */

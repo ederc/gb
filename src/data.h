@@ -42,6 +42,11 @@
  * #endif */
 
 #define ORDER_COLUMNS 1
+/* loop unrolling in sparse linear algebra:
+ * we store the offset of the first elements not unrolled
+ * in the second entry of the sparse row resp. sparse polynomial. */
+#define UNROLL  4
+
 
 /* computational data */
 typedef int32_t cf32_t;     /* coefficient type */
@@ -127,6 +132,104 @@ uint32_t rseed  = 2463534242;
 /* temporary exponent vector for diffrerent situations */
 exp_t *etmp     = NULL;
 
+/* S-pair types */
+typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
+typedef struct spair_t spair_t;
+struct spair_t
+{
+    hl_t lcm;
+    bi_t gen1;
+    bi_t gen2;
+    spt_t type;
+};
+
+typedef struct ps_t ps_t;
+struct ps_t
+{
+    len_t ld;
+    len_t sz;
+    len_t mnsel;  /* maximal number of pairs selected */
+    spair_t *p;
+};
+
+/* monomial order - until we have general orders:
+ * 0 = DRL
+ * 1 = LEX */
+static /* __thread */ val_t mo = 0;
+
+/* field characteristic */
+static /* __thread */ cf32_t fc = 0;
+
+/* number generators */
+static /* __thread */ int32_t ngens  = 0;
+
+/* maximum number of spair selection */
+static /* __thread */ int32_t mnsel = 0;
+/* basis data */
+
+/* threads data */
+static /* __thread */ int32_t nthrds = 1; /* number of CPU threads */
+
+/* linear algebra options */
+static /* __thread */ int32_t laopt  = 0;
+
+/* finite field coefficient arrays */
+static /* __thread */ cf32_t **gbcf_ff  = NULL;
+static /* __thread */ cf32_t **tmpcf_ff = NULL;
+
+/* rationals coefficient arrays */
+static /* __thread */ mpz_t **gbcf_q   = NULL;
+static /* __thread */ mpz_t **tmpcf_q  = NULL;
+
+static /* __thread */ hm_t **gbdt  = NULL;
+static /* __thread */ int8_t *red  = NULL;
+static /* __thread */ bl_t blold   = 0;
+static /* __thread */ bl_t bload   = 0;
+static /* __thread */ bl_t bsize   = 0;
+
+/* lead monomials of all basis elements */
+static /* __thread */ sdm_t *lms = NULL;
+
+typedef struct bs_t bs_t;
+struct bs_t
+{
+    bl_t ld;        /* load of basis */
+    bl_t sz;        /* size allocated for basis */
+    bl_t lo;        /* load before current update */
+    sdm_t *lm;      /* lead monomials as short divmask */
+    int8_t *red;    /* tracks redundancy of basis elements */
+    hm_t **hm;      /* hashed monomials representing exponents */
+    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
+    mpz_t **cf_q;   /* coefficients for rationals */
+};
+
+typedef struct mat_t mat_t;
+struct mat_t
+{
+    hm_t **r;       /* rows of the matrix, only column entries, coefficients */
+                    /* are handled via linking to coefficient arrays */
+    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
+    mpz_t **cf_q;   /* coefficients for rationals */
+    len_t na;       /* number of rows allocated */
+    len_t np;       /* number of new pivots */
+    len_t nr;       /* number of rows set */
+    len_t nc;       /* number of columns */
+    len_t nru;      /* number of upper rows (in ABCD splicing) */
+    len_t nrl;      /* number of lower rows (in ABCD splicing) */
+    len_t ncl;      /* number of left columns (in ABCD splicing) */
+    len_t ncr;      /* number of right columns (in ABCD splicing) */
+};
+
+/* matrix data */
+static /* __thread */ len_t nrall  = 0; /* allocated rows for matrix */
+static /* __thread */ len_t npivs  = 0; /* new pivots in the current round */
+static /* __thread */ len_t nrows  = 0; /* rows used in the current round */
+static /* __thread */ len_t ncols  = 0; /* columns used in the current round */
+static /* __thread */ len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
+static /* __thread */ len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
+static /* __thread */ len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
+static /* __thread */ len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
+
 /* statistic stuff */
 typedef struct stat_t stat_t;
 struct stat_t
@@ -173,92 +276,6 @@ struct stat_t
     int32_t info_level;
     int32_t gen_pbm_file;
 };
-
-/* S-pair types */
-typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
-typedef struct spair_t spair_t;
-struct spair_t
-{
-    hl_t lcm;
-    bi_t gen1;
-    bi_t gen2;
-    spt_t type;
-};
-
-typedef struct ps_t ps_t;
-struct ps_t
-{
-    len_t ld;
-    len_t sz;
-    len_t mnsel;  /* maximal number of pairs selected */
-    spair_t *p;
-};
-
-/* monomial order - until we have general orders:
- * 0 = DRL
- * 1 = LEX */
-static /* __thread */ val_t mo = 0;
-
-/* field characteristic */
-static /* __thread */ cf32_t fc = 0;
-
-/* number generators */
-static /* __thread */ int32_t ngens  = 0;
-
-/* maximum number of spair selection */
-static /* __thread */ int32_t mnsel = 0;
-/* basis data */
-
-/* finite field coefficient arrays */
-static /* __thread */ cf32_t **gbcf_ff  = NULL;
-static /* __thread */ cf32_t **tmpcf_ff = NULL;
-
-/* rationals coefficient arrays */
-static /* __thread */ mpz_t **gbcf_q   = NULL;
-static /* __thread */ mpz_t **tmpcf_q  = NULL;
-
-static /* __thread */ hm_t **gbdt  = NULL;
-static /* __thread */ int8_t *red  = NULL;
-static /* __thread */ bl_t blold   = 0;
-static /* __thread */ bl_t bload   = 0;
-static /* __thread */ bl_t bsize   = 0;
-
-/* lead monomials of all basis elements */
-static /* __thread */ sdm_t *lms = NULL;
-
-typedef struct bs_t bs_t;
-struct bs_t
-{
-    bl_t ld;        /* load of basis */
-    bl_t sz;        /* size allocated for basis */
-    bl_t lo;        /* load before current update */
-    sdm_t *lm;      /* lead monomials as short divmask */
-    int8_t *red;    /* tracks redundancy of basis elements */
-    hm_t **hm;      /* hashed monomials representing exponents */
-    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
-    mpz_t **cf_q;   /* coefficients for rationals */
-};
-
-/* matrix data */
-static /* __thread */ len_t nrall  = 0; /* allocated rows for matrix */
-static /* __thread */ len_t npivs  = 0; /* new pivots in the current round */
-static /* __thread */ len_t nrows  = 0; /* rows used in the current round */
-static /* __thread */ len_t ncols  = 0; /* columns used in the current round */
-static /* __thread */ len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
-static /* __thread */ len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
-static /* __thread */ len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
-static /* __thread */ len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
-
-/* loop unrolling in sparse linear algebra:
- * we store the offset of the first elements not unrolled
- * in the second entry of the sparse row resp. sparse polynomial. */
-#define UNROLL  4
-
-/* threads data */
-static /* __thread */ int32_t nthrds = 1; /* number of CPU threads */
-
-/* linear algebra options */
-static /* __thread */ int32_t laopt  = 0;
 
 /* function pointers */
 bs_t *(*initialize_basis)(

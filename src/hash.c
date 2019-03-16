@@ -435,72 +435,6 @@ restart:
     }
 }
 
-static inline hl_t insert_in_basis_hash_table(
-    const exp_t *a
-    )
-{
-  hl_t i, k, pos;
-  len_t j;
-  deg_t deg;
-  exp_t *e;
-  hd_t *d;
-  val_t h = 0;
-
-  const len_t nv  = nvars;
-
-  /* generate hash value */
-  for (j = 0; j < nv; ++j) {
-    h +=  rv[j] * a[j];
-  }
-
-  /* probing */
-  k = h;
-  i = 0;
-restart:
-  for (; i < hsz; ++i) {
-    k = (k+i) & (hsz-1);
-    const hl_t hm = hmap[k];
-    if (!hm) {
-      break;
-    }
-    if (hd[hm].val != h) {
-      continue;
-    }
-    const exp_t * const ehm = ev[hm];
-    for (j = nv-1; j > 0; j -= 2) {
-        if (a[j] != ehm[j] || a[j-1] != ehm[j-1]) {
-            i++;
-            goto restart;
-        }
-    }
-    if (a[0] != ehm[0]) {
-        i++;
-        goto restart;
-    }
-    return hm;
-  }
-
-  /* add element to hash table */
-  hmap[k]  = pos = eld;
-  e   = ev[pos];
-  d   = hd + pos;
-  deg = 0;
-  for (j = 0; j < nvars; ++j) {
-    e[j]  =   a[j];
-    deg   +=  a[j];
-  }
-  d->deg  = deg;
-  d->sdm  = generate_short_divmask(e);
-  d->val  = h;
-
-  eld++;
-  if (eld >= esz) {
-    enlarge_basis_hash_table();
-  }
-
-  return pos;
-}
-
 static inline hl_t insert_in_hash_table(
     const exp_t *a,
     ht_t *ht
@@ -561,69 +495,6 @@ restart:
   d->val  = h;
 
   ht->eld++;
-
-  return pos;
-}
-
-
-static inline hl_t insert_in_update_hash_table(
-    const exp_t *a
-    )
-{
-  hl_t i, k, pos;
-  len_t j;
-  deg_t deg;
-  exp_t *e;
-  hd_t *d;
-  val_t h = 0;
-  const len_t nv  = nvars;
-
-  /* generate hash value */
-  for (j = 0; j < nv; ++j) {
-    h +=  rv[j] * a[j];
-  }
-
-  /* probing */
-  k = h;
-  i = 0;
-restart:
-  for (; i < husz; ++i) {
-    k = (k+i) & (husz-1);
-    const hl_t hm = humap[k];
-    if (!hm) {
-      break;
-    }
-    if (hdu[hm].val != h) {
-      continue;
-    }
-    const exp_t * const ehm = evu[hm];
-    for (j = nv-1; j > 0; j -= 2) {
-        if (a[j] != ehm[j] || a[j-1] != ehm[j-1]) {
-            i++;
-            goto restart;
-        }
-    }
-    if (a[0] != ehm[0]) {
-        i++;
-        goto restart;
-    }
-    return hm;
-  }
-
-  /* add element to hash table */
-  humap[k]  = pos = euld;
-  e   = evu[pos];
-  d   = hdu + pos;
-  deg = 0;
-  for (j = 0; j < nvars; ++j) {
-    e[j]  =   a[j];
-    deg   +=  a[j];
-  }
-  d->deg  = deg;
-  d->sdm  = generate_short_divmask(e);
-  d->val  = h;
-
-  euld++;
 
   return pos;
 }
@@ -1060,59 +931,6 @@ static inline hl_t get_lcm(
         etmp[i]  = ea[i] < eb[i] ? eb[i] : ea[i];
     }
     return insert_in_hash_table(etmp, ht2);
-}
-
-/* we try monomial division including check if divisibility is
- * fulfilled. */
-static inline hl_t monomial_division_with_check(
-    const hl_t a,
-    const hl_t b
-    )
-{
-  len_t i;
-
-  const hd_t ha = hd[a];
-  const hd_t hb = hd[b];
-  /* short divisor mask check */
-  if (hb.sdm & ~ha.sdm) {
-    return 0;
-  }
-
-  const exp_t * const ea  = ev[a];
-  const exp_t * const eb  = ev[b];
-  etmp[0]  = (exp_t)(ea[0] - eb[0]);
-
-  i = nvars & 1 ? 1 : 0;
-  for (; i < nvars; i += 2) {
-    if (ea[i] < eb[i] || ea[i+1] < eb[i+1]) {
-      return 0;
-    } else {
-      etmp[i]    = (exp_t)(ea[i] - eb[i]);
-      etmp[i+1]  = (exp_t)(ea[i+1] - eb[i+1]);
-    }
-  }
-  return insert_in_basis_hash_table(etmp);
-}
-
-/* it is assumed that b divides a, thus no tests for
- * divisibility at all */
-static inline hl_t monomial_division_no_check(
-    const hl_t a,
-    const hl_t b
-    )
-{
-  len_t i;
-
-  const exp_t * const ea  = ev[a];
-  const exp_t * const eb  = ev[b];
-
-  i = nvars & 1 ? 1 : 0;
-  for (; i < nvars; i += 2) {
-    etmp[i]    = (exp_t)(ea[i] - eb[i]);
-    etmp[i+1]  = (exp_t)(ea[i+1] - eb[i+1]);
-  }
-  etmp[0]  = (exp_t)(ea[0] - eb[0]);
-  return insert_in_basis_hash_table(etmp);
 }
 
 static inline hm_t *multiplied_poly_to_matrix_row(

@@ -210,7 +210,7 @@ struct mat_t
                     /* are handled via linking to coefficient arrays */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
     mpz_t **cf_q;   /* coefficients for rationals */
-    len_t na;       /* number of rows allocated */
+    len_t sz;       /* number of rows allocated resp. size */
     len_t np;       /* number of new pivots */
     len_t nr;       /* number of rows set */
     len_t nc;       /* number of columns */

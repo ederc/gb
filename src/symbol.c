@@ -39,6 +39,7 @@ static void select_spairs_by_minimal_degree(
     len_t *gens;
     exp_t *elcm, *eb;
     exp_t *etmp = bht->ev[0];
+    hm_t **rows = mat->r;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -84,15 +85,15 @@ static void select_spairs_by_minimal_degree(
     /* list for generators */
     gens  = (len_t *)malloc(2 * (unsigned long)nps * sizeof(len_t));
     /* preset matrix meta data */
-    mat   = (hm_t **)malloc(2 * (unsigned long)nps * sizeof(hm_t *));
-    nrall = 2 * nps;
-    ncols = ncl = ncr = 0;
-    nrows = 0;
+    rows    = (hm_t **)malloc(2 * (unsigned long)nps * sizeof(hm_t *));
+    mat->sz = 2 * nps;
+    mat->nc = mat->ncl = mat->ncr = 0;
+    mat->nr = 0;
 
     i = 0;
     while (i < nps) {
         /* ncols initially counts number of different lcms */
-        ncols++;
+        mat->nc++;
         load  = 0;
         lcm   = ps[i].lcm;
         j = i;
@@ -122,15 +123,15 @@ static void select_spairs_by_minimal_degree(
                 d     +=  etmp[l];
             }
             const hl_t h  = bht->hd[lcm].val - bht->hd[b[3]].val;
-            mat[nrows]    = multiplied_poly_to_matrix_row(sht, bht, h, d, etmp, b);
+            rows[mat->nr] = multiplied_poly_to_matrix_row(sht, bht, h, d, etmp, b);
             /* mark lcm column as lead term column */
-            sht->hd[mat[nrows][3]].idx = 2;
-            nrows++;
+            sht->hd[rows[mat->nr][3]].idx = 2;
+            mat->nr++;
         }
 
         i = j;
     }
-    st->num_rowsred +=  nrows - ncols;
+    st->num_rowsred +=  mat->nr - mat->nc;
     st->current_deg =   md;
 
     free(gens);
@@ -144,8 +145,6 @@ static void select_spairs_by_minimal_degree(
     rt1 = realtime();
     st->select_ctime  +=  ct1 - ct0;
     st->select_rtime  +=  rt1 - rt0;
-
-    return mat;
 }
 
 static inline hm_t *find_multiplied_reducer(
@@ -198,16 +197,17 @@ start:
     }
 }
 
-static hm_t **symbolic_preprocessing(
-        const bs_t * const bs,
+static void symbolic_preprocessing(
         mat_t *mat,
+        const bs_t * const bs,
         stat_t *st,
-        const ht_t * const bht,
-        ht_t *sht
+        ht_t *sht,
+        const ht_t * const bht
         )
 {
     len_t i;
     hm_t *red;
+    hm_t **rows = mat->r;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -226,9 +226,9 @@ static hm_t **symbolic_preprocessing(
     /* we only have to check if idx is set for the elements already set
      * when selecting spairs, afterwards (second for loop) we do not
      * have to do this check */
-    while (nrall <= nrows + oesld) {
-        nrall *=  2;
-        mat   =   realloc(mat, (unsigned long)nrall * sizeof(hm_t *));
+    while (mat->sz <= mat->nr + oesld) {
+        mat->sz *=  2;
+        rows    =   realloc(rows, (unsigned long)mat->sz * sizeof(hm_t *));
     }
     for (; i < oesld; ++i) {
         if (!hds[i].idx) {
@@ -238,33 +238,31 @@ static hm_t **symbolic_preprocessing(
             if (red) {
                 hds[i].idx = 2;
                 /* add new reducer to matrix */
-                mat[nrows++]  = red;
+                rows[mat->nr++] = red;
             }
         }
     }
     for (; i < esld; ++i) {
-        if (nrall == nrows) {
-            nrall *=  2;
-            mat   =   realloc(mat, (unsigned long)nrall * sizeof(hm_t *));
+        if (mat->sz == mat->nr) {
+            mat->sz *=  2;
+            rows    =   realloc(rows, (unsigned long)mat->sz * sizeof(hm_t *));
         }
         hds[i].idx = 1;
-        ncols++;
+        mat->nc++;
         red = find_multiplied_reducer(bs, i, bht, sht);
         if (red) {
             hds[i].idx = 2;
             /* add new reducer to matrix */
-            mat[nrows++]  = red;
+            rows[mat->nr++]  = red;
         }
     }
     /* realloc to real size */
-    mat   = realloc(mat, (unsigned long)nrows * sizeof(hm_t *));
-    nrall = nrows;
+    rows    = realloc(rows, (unsigned long)mat->nr * sizeof(hm_t *));
+    mat->sz = mat->nr;
 
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
     st->symbol_ctime  +=  ct1 - ct0;
     st->symbol_rtime  +=  rt1 - rt0;
-
-    return mat;
 }

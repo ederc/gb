@@ -59,9 +59,9 @@ int64_t f4_julia(
     hl_t *hcm; /* hash-column-map */
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
-    hm_t **mat;
+    mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
 
-    ps_t * ps  = initialize_pairset();
+    ps_t * ps   = initialize_pairset();
 
     /* initialize stuff */
     stat_t *st  = initialize_statistics();
@@ -118,8 +118,8 @@ int64_t f4_julia(
         st->current_rd  = round;
 
         /* preprocess data for next reduction round */
-        mat = select_spairs_by_minimal_degree(ps, mat, st);
-        mat = symbolic_preprocessing(mat, st);
+        select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
+        symbolic_preprocessing(mat, bs, st, sht, bht);
         hcm = convert_hashes_to_columns(mat, st);
         mat = sort_matrix_rows(mat);
         /* print pbm files of the matrices */
@@ -170,11 +170,11 @@ int64_t f4_julia(
     free_hash_table(&uht);
     free_hash_table(&bht);
     free_pairset(&ps);
+    free_basis(&bs);
     /* note that all rows kept from mat during the overall computation are
      * basis elements and thus we do not need to free the rows itself, but
      * just the matrix structure */
     free(mat);
-    free_basis(&bs);
 
     int64_t output  = st->len_output;
     free(st);

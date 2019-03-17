@@ -295,14 +295,19 @@ static int64_t export_julia_data_ff(
 }
 
 static void write_pbm_file(
-    hm_t **mat,
-    stat_t *st
+    mat_t *mat,
+    const stat_t * const st
     )
 {
     len_t i, j, k;
     unsigned char b = 0;
     char buffer[512];
     char fn[200];
+
+    hm_t **rows = mat->r;
+    const len_t ncols = mat->nc;
+    const len_t nrows = mat->nr;
+
     sprintf(fn, "%d-%d-%d-%d.pbm", st->current_rd, nrows, ncols, st->current_deg);
     FILE *fh  = fopen(fn, "wb");
 
@@ -313,9 +318,9 @@ static void write_pbm_file(
 
 
     for (i = 0; i < nrows; ++i) {
-        const len_t len = mat[i][2];
+        const len_t len = rows[i][2];
         hm_t row[len];
-        memcpy(row, mat[i]+3, (unsigned long)len * sizeof(hm_t));
+        memcpy(row, rows[i]+3, (unsigned long)len * sizeof(hm_t));
         qsort(row, (unsigned long)len, sizeof(hm_t), pbm_cmp);
         /* the rows may not be sorted by column indices, thus we
          * have to go over them again and again and again */

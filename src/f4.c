@@ -56,7 +56,9 @@ int64_t f4_julia(
     rt0 = realtime();
 
     int32_t round;
-    hl_t *hcm; /* hash-column-map */
+    /* hashes-to-columns map, initialized with length 1, is reallocated
+     * in each call when generating matrices for linear algebra */
+    hl_t *hcm = (hl_t *)malloc(sizeof(hl_t));
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
     mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
@@ -135,8 +137,6 @@ int64_t f4_julia(
         reset_symbolic_hash_table();
         free(mat);
         mat = NULL;
-        free(hcm);
-        hcm = NULL;
 
         update_basis(ps, bs, bht, uht, st, mat->np);
 
@@ -164,6 +164,7 @@ int64_t f4_julia(
     }
 
     /* free and clean up */
+    free(hcm);
     free_divmask(bht);
     free_random_numbers(bht);
     free_hash_table(&sht);

@@ -27,7 +27,7 @@
  * hashes in the polynomials resp. rows. moreover, we have sorted each row
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
-static hl_t *convert_hashes_to_columns(
+static void convert_hashes_to_columns(
         hl_t *hcm,
         mat_t *mat,
         stat_t *st,
@@ -45,15 +45,14 @@ static hl_t *convert_hashes_to_columns(
 
     len_t hi;
 
+    const len_t mnr = mat->nr;
     const hl_t esld = sht->eld;
     hd_t *hds       = sht->hd;
     hm_t **rows     = mat->r;
 
-    /* need to allocate memory for all possible exponents we
-     * have in the local hash table since we do not which of
-     * them are corresponding to multipliers and which are
-     * corresponding to the multiplied terms in reducers. */
-    hcm = (hl_t *)malloc((unsigned long)(esld-1) * sizeof(hl_t));
+    /* all elements in the sht hash table represent
+     * exactly one column of the matrix */
+    hcm = realloc(hcm, (unsigned long)(esld-1) * sizeof(hl_t));
     for (k = 0, j = 0, i = 1; i < esld; ++i) {
         hi  = hds[i].idx;
 
@@ -66,17 +65,15 @@ static hl_t *convert_hashes_to_columns(
 
     mat->nru  = mat->ncl = k;
     mat->nrl  = mat->nr - mat->nru;
-    mat->ncr  = j - mat->ncl;
+    mat->ncr  = esld - 1 - mat->ncl;
 
-    st->num_rowsred     +=  nrl;
+    st->num_rowsred +=  mat->nrl;
 
-    const len_t hld = j;
     /* store the other direction (hash -> column) */
-    for (k = 0; k < hld; ++k) {
+    for (k = 0; k < esld-1; ++k) {
         hds[hcm[k]].idx  = k;
     }
 
-    const len_t mnr = mat->nr;
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
     for (i = 0; i < mnr; ++i) {
@@ -110,7 +107,7 @@ static hl_t *convert_hashes_to_columns(
 
     /* compute density of matrix */
     nterms  *=  100; /* for percentage */
-    double density = (double)nterms / (double)mat->nr / (double)mat->nc;
+    double density = (double)nterms / (double)mnr / (double)mat->nc;
 
     /* timings */
     ct1 = cputime();

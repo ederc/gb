@@ -311,7 +311,8 @@ int (*spair_cmp)(
 
 int (*hcm_cmp)(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         );
 
 /* linear algebra routines */

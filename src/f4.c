@@ -120,7 +120,7 @@ int64_t f4_julia(
         /* preprocess data for next reduction round */
         select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
         symbolic_preprocessing(mat, bs, st, sht, bht);
-        hcm = convert_hashes_to_columns(mat, st);
+        convert_hashes_to_columns(hcm, mat, st, sht);
         mat = sort_matrix_rows(mat);
         /* print pbm files of the matrices */
         if (st->gen_pbm_file != 0) {

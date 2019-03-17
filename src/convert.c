@@ -28,13 +28,14 @@
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
 static hl_t *convert_hashes_to_columns(
-        hm_t **matdt,
-        stat_t *st
+        hl_t *hcm,
+        mat_t *mat,
+        stat_t *st,
+        ht_t *sht
         )
 {
     len_t i, j, k;
     hm_t *row;
-    hl_t *hcm; /* hash-to-column map */
     int64_t nterms = 0;
 
     /* timings */
@@ -43,6 +44,10 @@ static hl_t *convert_hashes_to_columns(
     rt0 = realtime();
 
     len_t hi;
+
+    const hl_t esld = sht->eld;
+    hd_t *hds       = sht->hd;
+    hm_t **rows     = mat->r;
 
     /* need to allocate memory for all possible exponents we
      * have in the local hash table since we do not which of
@@ -57,90 +62,27 @@ static hl_t *convert_hashes_to_columns(
             k++;
         }
     }
-    qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
+    sort_r(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp, sht);
 
-    nru = ncl = k;
-    nrl = nrows - nru;
-    ncr = j - ncl;
+    mat->nru  = mat->ncl = k;
+    mat->nrl  = mat->nr - mat->nru;
+    mat->ncr  = j - mat->ncl;
 
     st->num_rowsred     +=  nrl;
 
+    const len_t hld = j;
     /* store the other direction (hash -> column) */
-    for (k = 0; k < j; ++k) {
+    for (k = 0; k < hld; ++k) {
         hds[hcm[k]].idx  = k;
     }
-#if 0
-    /* j counts all columns, k counts known pivots */
-    for (j = 0, k = 0, i = 0; i < nrows; ++i) {
-        row     =   matdt[i];
-        nterms  +=  (int64_t)row[2];
-        for (l = 3; l < row[2]; ++l) {
-            /* printf("row[%d][%d] = %d | ", i, l, row[l]);
-             * for (int32_t p = 0; p < nvars; ++p) {
-             *     printf("%d ", ev[row[l]][p]);
-             * }
-             * printf("\n"); */
-            hi  = hd[row[l]].idx;
-            /* printf("hi %d\n", hi); */
-#if ORDER_COLUMNS
-            if (hi > 0) {
-#else
-                if (hi != 0) {
-#endif
-                    /* printf("j %d / %d ncols\n", j, ncols); */
-                    hcm[j++]  = row[l];
-                    if (hi == 2) {
-                        k++;
-#if ORDER_COLUMNS
-                        hd[row[l]].idx  = -1;
-                    } else {
-                        hd[row[l]].idx  = -2;
-                    }
-#else
-                }
-                hd[row[l]].idx  = 0;
-#endif
-            }
-        }
-    }
-    /* for (i = 0; i < j; ++i) {
-     *   printf("hcm[%d] = %d | %d || ", i, hcm[i], (ev+hcm[i])[HASH_DEG]);
-     *   for (l = 0; l < nvars; ++l) {
-     *     printf("%d ", (ev+hcm[i])[l]);
-     *   }
-     *   printf("\n");
-     * } */
-    /* sort monomials w.r.t known pivots, then w.r.t. to the monomial order */
-    qsort(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp);
-    /* printf("ncl %d\n", k);
-     * for (i = 0; i < j; ++i) {
-     *   printf("hcm[%d] = ", i);
-     *   for (l = 0; l < nvars; ++l) {
-     *     printf("%d ", ev[hcm[i]][l]);
-     *   }
-     *   printf("\n");
-     * } */
 
-    /* set number of rows and columns in ABCD splicing */
-    nru = ncl = k;
-    nrl = nrows - nru;
-    ncr = j - ncl;
-
-    st->num_rowsred     +=  nrl;
-
-    /* store the other direction (hash -> column) in HASH_IND */
-    for (i = 0; i < j; ++i) {
-        hd[hcm[i]].idx  = i;
-    }
-#endif
-
-
+    const len_t mnr = mat->nr;
     /* map column positions to matrix rows */
 #pragma omp parallel for num_threads(nthrds) private(i, j)
-    for (i = 0; i < nrows; ++i) {
-        const len_t os  = matdt[i][1];
-        const len_t len = matdt[i][2];
-        row = matdt[i] + 3;
+    for (i = 0; i < mnr; ++i) {
+        const len_t os  = rows[i][1];
+        const len_t len = rows[i][2];
+        row = rows[i] + 3;
         nterms  +=  len;
         for (j = 0; j < os; ++j) {
             row[j]  = hds[row[j]].idx;
@@ -151,10 +93,6 @@ static hl_t *convert_hashes_to_columns(
             row[j+2]  = hds[row[j+2]].idx;
             row[j+3]  = hds[row[j+3]].idx;
         }
-        /* for (j = 3; j < row[2]; ++j) {
-         *     printf("%d ", row[j]);
-         * }
-         * printf("\n"); */
     }
 
     /* next we sort each row by the new colum order due
@@ -172,7 +110,7 @@ static hl_t *convert_hashes_to_columns(
 
     /* compute density of matrix */
     nterms  *=  100; /* for percentage */
-    double density = (double)nterms / (double)nrows / (double)ncols;
+    double density = (double)nterms / (double)mat->nr / (double)mat->nc;
 
     /* timings */
     ct1 = cputime();
@@ -180,11 +118,9 @@ static hl_t *convert_hashes_to_columns(
     st->convert_ctime +=  ct1 - ct0;
     st->convert_rtime +=  rt1 - rt0;
     if (st->info_level > 1) {
-        printf(" %7d x %-7d %8.3f%%", nrows, ncols, density);
+        printf(" %7d x %-7d %8.3f%%", mat->nr, mat->nc, density);
         fflush(stdout);
     }
-
-    return hcm;
 }
 
 static void convert_sparse_matrix_rows_to_basis_elements(

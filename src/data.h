@@ -316,8 +316,8 @@ int (*hcm_cmp)(
         );
 
 /* linear algebra routines */
-hm_t **(*linear_algebra)(
-        hm_t **mat,
+void (*linear_algebra)(
+        mat_t *mat,
         stat_t *st
         );
 

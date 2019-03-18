@@ -20,7 +20,7 @@ AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb ${GMP_LIBS} ${CL_LIBS}
 LDFLAGS = -no-install
 
 TESTS =															\
-	test_initialize_basis							\
+	_initialize_basis							\
 	free_basis										\
 	test_initialize_pairset						\
 	test_free_pairset									\

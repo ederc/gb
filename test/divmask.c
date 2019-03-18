@@ -32,6 +32,7 @@ int main(
         return 1;
     }
 
+    printf("nvars %d\n", st.nvars);
     import_julia_data_ff(
             bs, bht, &st, lens, cfs, exps);
 

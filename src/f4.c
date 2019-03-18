@@ -161,7 +161,7 @@ int64_t f4_julia(
     st->overall_rtime = rt1 - rt0;
 
     if (st->info_level > 0) {
-        print_final_statistics(st);
+        print_final_statistics(st, bht, sht, uht);
     }
 
     /* free and clean up */

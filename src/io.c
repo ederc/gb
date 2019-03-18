@@ -214,6 +214,7 @@ static void import_julia_data_ff(
         bs->red[i] = 0;
 
         for (j = off; j < off+lens[i]; ++j) {
+        printf("ndv %d | nv %d | j %d\n", ht->ndv, nv, j);
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
@@ -226,7 +227,6 @@ static void import_julia_data_ff(
     /* we have to reset the ld value once we have normalized the initial
      * elements in order to start update correctly */
     bs->ld  = st->ngens;
-    free(e);
 }
 
 static int64_t export_julia_data_ff(

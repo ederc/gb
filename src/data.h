@@ -90,47 +90,6 @@ struct ht_t
     val_t *rn;    /* random numbers for hash generation */
     uint32_t rsd; /* seed for random number generator */
 };
-/* basis hash table data */
-static /* __thread */ hl_t *hmap   = NULL; /* global hash map */
-static /* __thread */ hl_t hsz     = 0;
-static /* __thread */ exp_t **ev   = NULL; /* exponents from global hash table */
-static /* __thread */ hd_t *hd     = NULL;
-static /* __thread */ hl_t eld     = 0;
-static /* __thread */ hl_t esz     = 0;
-
-/* update hash table data */
-static /* __thread */ hl_t *humap  = NULL; /* local hash map */
-static /* __thread */ hl_t husz    = 0;
-static /* __thread */ exp_t **evu  = NULL; /* exponents from local hash table */
-static /* __thread */ hd_t *hdu    = NULL;
-static /* __thread */ hl_t euld    = 0;
-static /* __thread */ hl_t eusz    = 0;
-
-/* symbolic hash table data */
-static /* __thread */ hl_t *hmaps  = NULL; /* local hash map */
-static /* __thread */ hl_t hssz    = 0;
-static /* __thread */ exp_t **evs  = NULL; /* exponents from local hash table */
-static /* __thread */ hd_t *hds    = NULL;
-static /* __thread */ hl_t esld    = 0;
-static /* __thread */ hl_t essz    = 0;
-
-static /* __thread */ len_t htes   = 0;  /* hash table exponent at start */
-static /* __thread */ len_t nvars  = 0; /* number of variables */
-static /* __thread */ len_t bpv    = 0; /* bits per variable in divmask */
-static /* __thread */ len_t ndvars = 0; /* number of variables for divmask */
-
-/* random values for generating hash values */
-static /* __thread */ val_t *rv  = NULL;
-
-/* divisor map for short divisibility tests */
-static /* __thread */ sdm_t *dm  = NULL;
-
-/* pseudo random number generator for hash value
- * generation */
-uint32_t rseed  = 2463534242;
-
-/* temporary exponent vector for diffrerent situations */
-exp_t *etmp     = NULL;
 
 /* S-pair types */
 typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;

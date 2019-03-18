@@ -93,7 +93,7 @@ static ht_t *initialize_basis_hash_table(
     }
     const hl_t esz  = ht->esz;
     for (j = 0; j < esz; ++j) {
-        ev[j]  = tmp + (unsigned long)(j*nv);
+        ht->ev[j]  = tmp + (unsigned long)(j*nv);
     }
     return ht;
 }
@@ -135,7 +135,7 @@ static ht_t *initialize_secondary_hash_table(
     }
     const hl_t esz  = ht->esz;
     for (j = 0; j < esz; ++j) {
-        evu[j]  = tmp + (unsigned long)(j*nv);
+        ht->ev[j]  = tmp + (unsigned long)(j*nv);
     }
     return ht;
 }
@@ -277,8 +277,8 @@ static inline void calculate_divmask(
   int32_t ctr = 0;
   exp_t **ev  = ht->ev;
 
-  deg_t *max_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
-  deg_t *min_exp  = (deg_t *)malloc((unsigned long)ndvars * sizeof(deg_t));
+  deg_t *max_exp  = (deg_t *)malloc((unsigned long)ht->ndv * sizeof(deg_t));
+  deg_t *min_exp  = (deg_t *)malloc((unsigned long)ht->ndv * sizeof(deg_t));
 
   exp_t *e  = ev[1];
 
@@ -405,7 +405,7 @@ static inline hl_t insert_in_hash_table(
 
   /* generate hash value */
   for (j = 0; j < nv; ++j) {
-    h +=  rv[j] * a[j];
+    h +=  ht->rn[j] * a[j];
   }
 
   /* probing */
@@ -768,7 +768,7 @@ letsgo:
         /* generate hash value */
         h = 0;
         for (j = 0; j < nv; ++j) {
-            h +=  rv[j] * n[j];
+            h +=  ht->rn[j] * n[j];
         }
         k = h;
         i = 0;

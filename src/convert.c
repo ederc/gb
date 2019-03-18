@@ -121,14 +121,18 @@ static void convert_hashes_to_columns(
 }
 
 static void convert_sparse_matrix_rows_to_basis_elements(
-        hm_t **mat,
-        const hl_t *hcm,
+        mat_t *mat,
+        bs_t *bs,
+        ht_t *bht,
+        const ht_t * const sht,
+        const hl_t * const hcm,
         stat_t *st
         )
 {
     len_t i, ctr;
 
-    len_t bl  = bload;
+    const len_t bl  = bs->ld;
+    const len_t np  = mat->np;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -136,25 +140,26 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     rt0 = realtime();
 
     /* fix size of basis for entering new elements directly */
-    check_enlarge_basis(npivs);
+    check_enlarge_basis(bs, mat->np);
 
-/* #pragma omp parallel for num_threads(nthrds) private(i, j) */
+    hm_t **rows = mat->r;
+
     ctr = 0;
-    for (i = 0; i < npivs; ++i) {
-        ctr +=  mat[i][2];
+    for (i = 0; i < np; ++i) {
+        ctr +=  rows[i][2];
     }
-    while (esz - eld < ctr) {
-        enlarge_basis_hash_table();
+    while (bht->esz - bht->eld < ctr) {
+        enlarge_hash_table(bht);
     }
-    for (i = 0; i < npivs; ++i) {
-        insert_in_basis_hash_table_pivots(mat[i], hcm);
-        gbcf_ff[bl+i] = tmpcf_ff[mat[i][0]];
-        mat[i][0]     = bl+i;
-        gbdt[bl+i]    = mat[i];
+    for (i = 0; i < np; ++i) {
+        insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
+        bs->cf_ff[bl+i] = mat->cf_ff[rows[i][0]];
+        rows[i][0]      = bl+i;
+        bs->hm[bl+i]    = rows[i];
     }
 
-    free(tmpcf_ff);
-    tmpcf_ff = NULL;
+    free(mat->cf_ff);
+    mat->cf_ff = NULL;
 
     /* timings */
     ct1 = cputime();

@@ -131,12 +131,13 @@ int64_t f4_julia(
         /* linear algebra, depending on choice, see set_function_pointers() */
         linear_algebra(mat, bs, st);
         /* columns indices are mapped back to exponent hashes */
-        if (npivs > 0) {
-            convert_sparse_matrix_rows_to_basis_elements(mat, hcm, st);
+        if (mat->np > 0) {
+            convert_sparse_matrix_rows_to_basis_elements(
+                    mat, bs, bht, sht, hcm, st);
         }
         reset_symbolic_hash_table();
-        free(mat);
-        mat = NULL;
+        free(mat->r);
+        mat->r  = NULL;
 
         update_basis(ps, bs, bht, uht, st, mat->np);
 

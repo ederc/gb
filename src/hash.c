@@ -186,103 +186,57 @@ static void free_hash_table(
 }
 
 /* we just double the hash table size */
-static void enlarge_basis_hash_table(
-    void
+static void enlarge_hash_table(
+    ht_t *ht
     )
 {
   hl_t i, j;
   val_t h, k;
+  const len_t nv  = ht->nv;
 
-  j   = esz; /* store old size */
-  esz = 2 * esz;
-  hd  = realloc(hd, (unsigned long)esz * sizeof(hd_t));
-  memset(hd+eld, 0, (unsigned long)(esz-eld) * sizeof(hd_t));
-  ev  = realloc(ev, (unsigned long)esz * sizeof(exp_t *));
-  if (ev == NULL) {
+  j   = ht->esz; /* store old size */
+  ht->esz = 2 * ht->esz;
+  const hl_t esz  = ht->esz;
+  const hl_t eld  = ht->esz;
+
+  ht->hd    = realloc(ht->hd, (unsigned long)esz * sizeof(hd_t));
+  memset(ht->hd+ht->eld, 0, (unsigned long)(esz-eld) * sizeof(hd_t));
+  ht->ev    = realloc(ht->ev, (unsigned long)esz * sizeof(exp_t *));
+  if (ht->ev == NULL) {
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
   /* note: memory is allocated as one big block, so reallocating
    *       memory from ev[0] is enough    */
-  ev[0] = realloc(ev[0],
-      (unsigned long)esz * (unsigned long)nvars * sizeof(exp_t));
-  if (ev[0] == NULL) {
+  ht->ev[0] = realloc(ht->ev[0],
+      (unsigned long)esz * (unsigned long)nv * sizeof(exp_t));
+  if (ht->ev[0] == NULL) {
     printf("Computation needs too much memory on this machine, \
         segmentation fault will follow.\n");
   }
   /* due to realloc we have to reset ALL ev entries,
    * memory might have been moved */
   for (i = 1; i < esz; ++i) {
-    ev[i] = ev[0] + (unsigned long)(i*nvars);
+    ht->ev[i] = ht->ev[0] + (unsigned long)(i*nv);
   }
 
-  hsz   = 2 * hsz;
-  hmap  = realloc(hmap, (unsigned long)hsz * sizeof(hl_t));
-  memset(hmap, 0, (unsigned long)hsz * sizeof(hl_t));
+  ht->hsz = 2 * ht->hsz;
+  const hl_t hsz  = ht->hsz;
+  ht->hmap  = realloc(ht->hmap, (unsigned long)hsz * sizeof(hl_t));
+  memset(ht->hmap, 0, (unsigned long)hsz * sizeof(hl_t));
 
   /* reinsert known elements */
   for (i = 1; i < eld; ++i) {
-    h = hd[i].val;
+    h = ht->hd[i].val;
 
     /* probing */
     k = h;
     for (j = 0; j < hsz; ++j) {
       k = (k+j) & (hsz-1);
-      if (hmap[k]) {
+      if (ht->hmap[k]) {
         continue;
       }
-      hmap[k] = i;
-      break;
-    }
-  }
-}
-
-static void enlarge_symbolic_hash_table(
-    void
-    )
-{
-  hl_t i, j;
-  val_t h, k;
-
-  j   = essz; /* store old size */
-  essz = 2 * essz;
-  hds  = realloc(hds, (unsigned long)essz * sizeof(hd_t));
-  memset(hds+esld, 0, (unsigned long)(essz-esld) * sizeof(hd_t));
-  evs  = realloc(evs, (unsigned long)essz * sizeof(exp_t *));
-  if (evs == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  /* note: memory is allocated as one big block, so reallocating
-   *       memory from ev[0] is enough    */
-  evs[0] = realloc(evs[0],
-      (unsigned long)essz * (unsigned long)nvars * sizeof(exp_t));
-  if (evs[0] == NULL) {
-    printf("Computation needs too much memory on this machine, \
-        segmentation fault will follow.\n");
-  }
-  /* due to realloc we have to reset ALL ev entries,
-   * memory might have been moved */
-  for (i = 1; i < essz; ++i) {
-    evs[i] = evs[0] + (unsigned long)(i*nvars);
-  }
-
-  hssz   = 2 * hssz;
-  hmaps  = realloc(hmaps, (unsigned long)hssz * sizeof(hl_t));
-  memset(hmaps, 0, (unsigned long)hssz * sizeof(hl_t));
-
-  /* reinsert known elements */
-  for (i = 1; i < esld; ++i) {
-    h = hds[i].val;
-
-    /* probing */
-    k = h;
-    for (j = 0; j < hssz; ++j) {
-      k = (k+j) & (hssz-1);
-      if (hmaps[k]) {
-        continue;
-      }
-      hmaps[k] = i;
+      ht->hmap[k] = i;
       break;
     }
   }
@@ -649,6 +603,8 @@ restart:
 
 static inline void insert_in_basis_hash_table_pivots(
     hm_t *row,
+    ht_t *bht,
+    const ht_t * const sht,
     const hl_t * const hcm
     )
 {
@@ -657,7 +613,16 @@ static inline void insert_in_basis_hash_table_pivots(
     hd_t *d;
 
     const len_t len = row[2]+3;
-    const len_t nv  = nvars;
+    const len_t nv  = bht->nv;
+    const hl_t hsz  = bht->hsz;
+
+    const hd_t * const hds    = sht->hd;
+    exp_t * const * const evs = sht->ev;
+    
+    exp_t **ev  = bht->ev;
+    hl_t *hmap  = bht->hmap;
+    hd_t *hd    = bht->hd;
+
     l = 3;
 letsgo:
     for (; l < len; ++l) {
@@ -693,13 +658,13 @@ restart:
         }
 
         /* add element to hash table */
-        hmap[k] = pos = eld;
-        d = hd + eld;
+        hmap[k] = pos = bht->eld;
+        d = hd + bht->eld;
         d->deg  = hds[hcm[row[l]]].deg;
         d->sdm  = hds[hcm[row[l]]].sdm;
         d->val  = h;
 
-        eld++;
+        bht->eld++;
         row[l] =  pos;
     }
 }
@@ -950,7 +915,7 @@ static inline hm_t *multiplied_poly_to_matrix_row(
    * we check for hash table enlargements first and then do the insertions
    * without further elargment checks there */
   while (sht->eld+poly[2] >= sht->esz) {
-    enlarge_symbolic_hash_table();
+    enlarge_hash_table(sht);
   }
   insert_multiplied_poly_in_hash_table(row, hm, deg, em, poly, bht, sht);
 

@@ -8,35 +8,33 @@ int main(
         )
 {
     /* initialize stuff */
-    nvars = 34;
-    fc    = 101;
-    htes  = 10;
+    stat_t st;
+    st.nvars    = 34;
+    st.fc       = 101;
+    st.init_hts = 10;
 
-    initialize_basis_hash_table();
-    if (fc != 101) {
+    ht_t *bht = initialize_basis_hash_table(&st);
+    if (bht->nv != 34) {
         return 1;
     }
-    if (nvars != 34) {
+    if (bht->ndv != 32) {
         return 1;
     }
-    if (ndvars != 32) {
+    if (bht->bpv != 1) {
         return 1;
     }
-    if (bpv != 1) {
+    if (bht->eld != 1) {
         return 1;
     }
-    if (eld != 1) {
+    ht_t *sht = initialize_secondary_hash_table(bht, &st);
+    if (bht->hsz/sht->hsz != 32) {
         return 1;
     }
-    initialize_update_hash_table();
-    if (hsz/husz != husz) {
+    if (sht->eld != 1) {
         return 1;
     }
-    if (euld != 1) {
-        return 1;
-    }
-    free_update_hash_table();
-    free_basis_hash_table();
+    free_hash_table(&sht);
+    free_hash_table(&bht);
 
     return 0;
 }

@@ -15,25 +15,27 @@ int main(
 
     const int32_t nr_gens     = 3;
 
-    nvars = 2;
-    htes  = 12;
-    fc    = 101;
+    /* initialize stuff */
+    stat_t st;
+    st.ngens    = 3;
+    st.nvars    = 2;
+    st.fc       = 101;
+    st.init_hts = 12;
 
-    initialize_basis_ff(nr_gens);
-    initialize_basis_hash_table();
+    bs_t * bs = initialize_basis_ff(st.ngens);
+    ht_t *bht = initialize_basis_hash_table(&st);
 
-    if (ndvars != nvars) {
+    if (bht->ndv != bht->nv) {
         return 1;
     }
-    if (bpv != 16) {
+    if (bht->bpv != 16) {
         return 1;
     }
 
-    initialize_update_hash_table();
+    import_julia_data_ff(
+            bs, bht, &st, lens, cfs, exps);
 
-    import_julia_data_ff(lens, cfs, exps, nr_gens);
-
-    calculate_divmask();
+    calculate_divmask(bht);
     for (i = 0; i < 16; ++i) {
         if (dm[i] != i+1) {
             return 1;
@@ -45,6 +47,7 @@ int main(
         }
     }
 
-    free_basis_ff();
+    free_basis(&bs);
+    free_hash_table(&bht);
     return 0;
 }

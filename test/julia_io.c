@@ -34,25 +34,15 @@ int main(
     }
 
     /* initialize stuff */
-    initialize_basis(nr_gens);
-    initialize_basis_hash_table();
-    if (fc != field_char) {
-        return 1;
-    }
-    if (nvars != nr_vars) {
-        return 1;
-    }
-    initialize_update_hash_table();
-    if (hsz/husz != 32) {
-        return 1;
-    }
+    bs_t * bs = initialize_basis_ff(st->ngens);
+    ht_t *bht = initialize_basis_hash_table(st);
 
-    import_julia_data_ff(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
 
     /* free and clean up */
-    free_update_hash_table();
-    free_basis_hash_table();
-    free_basis();
+    free_hash_table(&bht);
+    free_basis(&bs);
     free_pairset(&ps);
+    free(st);
     return 0;
 }

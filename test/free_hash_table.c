@@ -8,50 +8,20 @@ int main(
         )
 {
     /* initialize stuff */
-    nvars = 34;
-    fc    = 101;
-    htes  = 4;
+    stat_t st;
+    st.nvars    = 34;
+    st.fc       = 101;
+    st.init_hts = 10;
 
-    initialize_basis_hash_table();
-    initialize_update_hash_table();
-    free_update_hash_table();
-    if (husz != 0) {
+    ht_t *bht = initialize_basis_hash_table(&st);
+    ht_t *sht = initialize_secondary_hash_table(bht, &st);
+    free_hash_table(&sht);
+    if (sht != NULL) {
         return 1;
     }
-    if (euld != 0) {
+    free_hash_table(&bht);
+    if (bht != NULL) {
         return 1;
     }
-    if (eusz != 0) {
-        return 1;
-    }
-    if (humap != NULL) {
-        return 1;
-    }
-    if (evu != NULL) {
-        return 1;
-    }
-    free_basis_hash_table();
-    if (fc != 0) {
-        return 1;
-    }
-    if (hsz != 0) {
-        return 1;
-    }
-    if (eld != 0) {
-        return 1;
-    }
-    if (esz != 0) {
-        return 1;
-    }
-    if (hmap != NULL) {
-        return 1;
-    }
-    if (ev != NULL) {
-        return 1;
-    }
-    if (rv != NULL) {
-        return 1;
-    }
-
     return 0;
 }

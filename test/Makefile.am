@@ -62,6 +62,6 @@ TESTS =												\
 	cyclic_6_lex_17_bit		
 
 XFAIL_TESTS = 								\
-	xtest_input_meta_data
+	xinput_meta_data
 
 check_PROGRAMS = $(TESTS) $(XFAIL_TESTS)

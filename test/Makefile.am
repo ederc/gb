@@ -21,7 +21,7 @@ LDFLAGS = -no-install
 
 TESTS =															\
 	test_initialize_basis							\
-	test_free_basis										\
+	free_basis										\
 	test_initialize_pairset						\
 	test_free_pairset									\
 	test_initialize_hash_table				\

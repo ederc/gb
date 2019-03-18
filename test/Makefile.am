@@ -19,49 +19,49 @@ STAGEDIR := $(realpath -s $(TOPBUILDDIR)/.libs)
 AM_LDFLAGS = -L$(STAGEDIR) -Wl,-rpath,$(STAGEDIR) -lgb ${GMP_LIBS} ${CL_LIBS}
 LDFLAGS = -no-install
 
-TESTS =															\
-	_initialize_basis							\
-	free_basis										\
-	test_initialize_pairset						\
-	test_free_pairset									\
-	test_initialize_hash_table				\
-	test_free_hash_table							\
-	test_divmask											\
-	test_normalize_row								\
-	test_input_meta_data							\
-	xtest_input_meta_data							\
-	test_julia_io											\
-	test_pairset_update								\
-	test_select_spairs								\
-	test_cyclic_4_drl_17_bit					\
-	test_cyclic_4_drl_31_bit					\
-	test_cyclic_4_lex_17_bit					\
-	test_cyclic_5_drl_17_bit					\
-	test_cyclic_5_lex_17_bit					\
-	test_cyclic_6_drl_17_bit_la1_t1		\
-	test_cyclic_6_drl_17_bit_la1_t2		\
-	test_cyclic_6_drl_17_bit_la2_t1		\
-	test_cyclic_6_drl_17_bit_la2_t2		\
-	test_cyclic_6_drl_17_bit_la42_t1	\
-	test_cyclic_6_drl_17_bit_la42_t2	\
-	test_cyclic_6_drl_17_bit_la43_t1	\
-	test_cyclic_6_drl_17_bit_la43_t2	\
-	test_cyclic_6_drl_17_bit_la44_t1	\
-	test_cyclic_6_drl_17_bit_la44_t2	\
-	test_ideal_q											\
-	test_cyclic_7											\
-	test_cyclic_9											\
-	test_pearson_9										\
-	test_katsura_4_lex								\
-	test_katsura_5_lex								\
-	test_katsura_12_drl_17_bit				\
-	test_katsura_13_drl_17_bit				\
-	test_katsura_16										\
-	test_mayr_42											\
-	test_bayes_148										\
-	test_cyclic_6_lex_17_bit		
+TESTS =												\
+	initialize_basis						\
+	free_basis									\
+	initialize_pairset					\
+	free_pairset								\
+	initialize_hash_table				\
+	free_hash_table							\
+	divmask											\
+	normalize_row								\
+	input_meta_data							\
+	xinput_meta_data						\
+	julia_io										\
+	pairset_update							\
+	select_spairs								\
+	cyclic_4_drl_17_bit					\
+	cyclic_4_drl_31_bit					\
+	cyclic_4_lex_17_bit					\
+	cyclic_5_drl_17_bit					\
+	cyclic_5_lex_17_bit					\
+	cyclic_6_drl_17_bit_la1_t1	\
+	cyclic_6_drl_17_bit_la1_t2	\
+	cyclic_6_drl_17_bit_la2_t1	\
+	cyclic_6_drl_17_bit_la2_t2	\
+	cyclic_6_drl_17_bit_la42_t1	\
+	cyclic_6_drl_17_bit_la42_t2	\
+	cyclic_6_drl_17_bit_la43_t1	\
+	cyclic_6_drl_17_bit_la43_t2	\
+	cyclic_6_drl_17_bit_la44_t1	\
+	cyclic_6_drl_17_bit_la44_t2	\
+	ideal_q											\
+	cyclic_7										\
+	cyclic_9										\
+	pearson_9										\
+	katsura_4_lex								\
+	katsura_5_lex								\
+	katsura_12_drl_17_bit				\
+	katsura_13_drl_17_bit				\
+	katsura_16									\
+	mayr_42											\
+	bayes_148										\
+	cyclic_6_lex_17_bit		
 
-XFAIL_TESTS = 											\
+XFAIL_TESTS = 								\
 	xtest_input_meta_data
 
 check_PROGRAMS = $(TESTS) $(XFAIL_TESTS)

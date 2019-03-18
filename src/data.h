@@ -324,6 +324,7 @@ void (*linear_algebra)(
 
 cf32_t *(*reduce_dense_row_by_old_pivots)(
         int64_t *dr,
+        mat_t *mat,
         const bs_t * const bs,
         hm_t * const * const pivs,
         const hl_t dpiv,
@@ -342,15 +343,21 @@ hm_t *(*reduce_dense_row_by_known_pivots_sparse)(
 
 cf32_t *(*reduce_dense_row_by_all_pivots)(
         int64_t *dr,
+        mat_t *mat,
+        const bs_t * const bs,
         len_t *pc,
         hm_t *const *pivs,
-        cf32_t *const *dpivs
+        cf32_t *const *dpivs,
+        const int32_t fc
         );
+
 
 cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
         int64_t *dr,
         len_t *pc,
-        cf32_t *const *pivs
+        cf32_t * const * const pivs,
+        const len_t ncr,
+        const int32_t fc
         );
 
 /* -----------------------------------

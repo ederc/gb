@@ -122,11 +122,12 @@ static int matrix_row_cmp(
     return 0;
 }
 
-static inline hm_t **sort_matrix_rows(
-        hm_t **matdt)
+static inline void sort_matrix_rows(
+        mat_t *mat
+        )
 {
-    qsort(matdt, (unsigned long)nrows, sizeof(hm_t *), &matrix_row_cmp);
-    return matdt;
+    qsort(mat->r, (unsigned long)mat->nr, sizeof(hm_t *),
+            &matrix_row_cmp);
 }
 
 static int dense_matrix_row_cmp(

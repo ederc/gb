@@ -123,7 +123,7 @@ int64_t f4_julia(
         select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
         symbolic_preprocessing(mat, bs, st, sht, bht);
         convert_hashes_to_columns(hcm, mat, st, sht);
-        mat = sort_matrix_rows(mat);
+        sort_matrix_rows(mat);
         /* print pbm files of the matrices */
         if (st->gen_pbm_file != 0) {
             write_pbm_file(mat, st); 

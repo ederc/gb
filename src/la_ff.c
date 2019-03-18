@@ -1658,21 +1658,25 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
     return nps;
 }
 
-static hm_t **convert_to_sparse_matrix_rows(
-        cf32_t * const *dm,
-        hm_t **mat
+static void convert_to_sparse_matrix_rows(
+        mat_t *mat,
+        cf32_t * const * const dm
         )
 {
-    if (npivs == 0) {
-        return NULL;
+    if (mat->np == 0) {
+        return;
     }
 
     len_t i, j, k, l;
     cf32_t *cfs;
     hm_t *dts, *dss;
 
-    mat       = realloc(mat, (unsigned long)npivs * sizeof(hm_t *));
-    tmpcf_ff  = realloc(tmpcf_ff, (unsigned long)npivs * sizeof(cf32_t *));
+    const len_t ncr = mat->ncr;
+    const len_t ncl = mat->ncl;
+
+    mat->r      = realloc(mat->r, (unsigned long)mat->np * sizeof(hm_t *));
+    mat->cf_ff  = realloc(mat->cf_ff,
+            (unsigned long)mat->np * sizeof(cf32_t *));
 
     l = 0;
     for (i = ncr-1; i > -1; --i) {
@@ -1719,13 +1723,11 @@ static hm_t **convert_to_sparse_matrix_rows(
             cfs = realloc(cfs, (unsigned long)k * sizeof(cf32_t));
 
             /* link to basis */
-            mat[l]    = dts;
-            tmpcf_ff[l]  = cfs;
+            mat->r[l]     = dts;
+            mat->cf_ff[l] = cfs;
             l++;
         }
     }
-
-    return mat;
 }
 
 /* NOTE: this note is about the different linear algebra implementations:
@@ -1817,7 +1819,7 @@ static void exact_sparse_dense_linear_algebra_ff(
 
     /* convert dense matrix back to sparse matrix representation,
      * use tmpcf for storing the coefficient arrays */
-    mat = convert_to_sparse_matrix_rows(dm, mat);
+    convert_to_sparse_matrix_rows(mat, dm);
 
     /* free dm */
     if (dm) {
@@ -1864,7 +1866,7 @@ static void probabilistic_sparse_dense_linear_algebra_ff_2(
 
     /* convert dense matrix back to sparse matrix representation,
      * use tmpcf for storing the coefficient arrays */
-    mat = convert_to_sparse_matrix_rows(dm, mat);
+    convert_to_sparse_matrix_rows(mat, dm);
 
     /* free dm */
     if (dm) {
@@ -1909,7 +1911,7 @@ static void probabilistic_sparse_dense_linear_algebra_ff(
 
     /* convert dense matrix back to sparse matrix representation,
      * use tmpcf for storing the coefficient arrays */
-    mat = convert_to_sparse_matrix_rows(dm, mat);
+    convert_to_sparse_matrix_rows(mat, dm);
 
     /* free dm */
     if (dm) {

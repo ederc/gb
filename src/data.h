@@ -318,20 +318,26 @@ int (*hcm_cmp)(
 /* linear algebra routines */
 void (*linear_algebra)(
         mat_t *mat,
+        const bs_t * const bs,
         stat_t *st
         );
 
-cf32_t *(*reduce_dense_row_by_known_pivots)(
+cf32_t *(*reduce_dense_row_by_old_pivots)(
         int64_t *dr,
-        hm_t *const *pivs,
-        const hl_t dpiv
+        const bs_t * const bs,
+        hm_t * const * const pivs,
+        const hl_t dpiv,
+        const int32_t fc
         );
 
 hm_t *(*reduce_dense_row_by_known_pivots_sparse)(
         int64_t *dr,
+        mat_t *mat,
+        const bs_t * const bs,
         hm_t *const *pivs,
         const hl_t dpiv,
-        const hm_t tmp_pos
+        const hm_t tmp_pos,
+        const int32_t fc
         );
 
 cf32_t *(*reduce_dense_row_by_all_pivots)(

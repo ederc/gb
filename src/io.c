@@ -230,12 +230,17 @@ static void import_julia_data_ff(
 }
 
 static int64_t export_julia_data_ff(
-        int32_t **bp
+        int32_t **bp,
+        const bs_t * const bs,
+        const ht_t * const ht
         )
 {
     len_t i, j, k;
     int64_t ctr_lengths, ctr_elements;
     int32_t *basis  = *bp;
+
+    const len_t nv  = ht->nv;
+    const bl_t bld  = bs->ld;
 
     cf32_t *cf;
     hm_t *dt;
@@ -243,14 +248,14 @@ static int64_t export_julia_data_ff(
     int64_t len = 0; /* complete length of exported array */
     int64_t nb  = 0; /* # elemnts in basis */
 
-    const len_t lterm = 1 + nvars; /* length of a term */
+    const len_t lterm = 1 + nv; /* length of a term */
 
     /* compute number of terms */
-    for (i = 0; i < bload; ++i) {
-        if (red[i]) {
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i]) {
             continue;
         } else {
-            len +=  (int64_t)gbdt[i][2];
+            len +=  (int64_t)bs->hm[i][2];
             nb++;
         }
     }
@@ -273,18 +278,18 @@ static int64_t export_julia_data_ff(
     ctr_elements  = (int64_t)nb + 1;
 
     basis[0]  = (int32_t)nb;
-    for (i = 0; i < bload; ++i) {
-        if (red[i]) {
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i]) {
             continue;
         } else {
             /* length of polynomial including this length entry itself */
-            basis[ctr_lengths++]  = (int32_t)((gbdt[i][2]) * lterm);
-            cf  = gbcf_ff[gbdt[i][0]];
-            dt  = gbdt[i] + 3;
-            for (j = 0; j < gbdt[i][2]; ++j) {
+            basis[ctr_lengths++]  = (int32_t)((bs->hm[i][2]) * lterm);
+            cf  = bs->cf_ff[bs->hm[i][0]];
+            dt  = bs->hm[i] + 3;
+            for (j = 0; j < bs->hm[i][2]; ++j) {
                 basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
-                for (k = 0; k < nvars; ++k) {
-                    basis[ctr_elements++] = (int32_t)ev[dt[j]][k];
+                for (k = 0; k < nv; ++k) {
+                    basis[ctr_elements++] = (int32_t)ht->ev[dt[j]][k];
                 }
             }
         }

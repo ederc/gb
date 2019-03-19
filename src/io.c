@@ -202,10 +202,10 @@ static void import_julia_data_ff(
     const len_t nv  = st->nvars;
 
     for (i = 0; i < st->ngens; ++i) {
-        hm  = bs->hm[i];
-        cf  = bs->cf_ff[i];
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
+        bs->hm[i]     = hm;
+        bs->cf_ff[i]  = cf;
 
         hm[0]  = i; /* link to matcf entry */
         hm[1]  = (lens[i] % UNROLL); /* offset */
@@ -214,7 +214,6 @@ static void import_julia_data_ff(
         bs->red[i] = 0;
 
         for (j = off; j < off+lens[i]; ++j) {
-        printf("ndv %d | nv %d | j %d\n", ht->ndv, nv, j);
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }

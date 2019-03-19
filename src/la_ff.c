@@ -800,6 +800,7 @@ static void probabilistic_sparse_reduced_echelon_form(
         }
     }
 
+    const int32_t fc    = st->fc;
     const int64_t mod2  = (int64_t)fc * fc;
 
     /* compute rows per block */
@@ -880,11 +881,11 @@ static void probabilistic_sparse_reduced_echelon_form(
                     * NOTE: this has to be done here, otherwise the reduction may
                     * lead to wrong results in a parallel computation since other
                     * threads might directly use the new pivot once it is synced. */
-                    if (tmpcf_ff[npiv[0]][0] != 1) {
+                    if (mat->cf_ff[npiv[0]][0] != 1) {
                         normalize_sparse_matrix_row(
-                                tmpcf_ff[npiv[0]], npiv[1], npiv[2], st->fc);
+                                mat->cf_ff[npiv[0]], npiv[1], npiv[2], st->fc);
                     }
-                    cfs = tmpcf_ff[npiv[0]];
+                    cfs = mat->cf_ff[npiv[0]];
                     sc  = npiv[3];
                     k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
                 } while (!k);
@@ -919,7 +920,7 @@ static void probabilistic_sparse_reduced_echelon_form(
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
             memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
-            cfs = tmpcf_ff[pivs[i][0]];
+            cfs = mat->cf_ff[pivs[i][0]];
             cfp = pivs[i][0];
             const len_t os  = pivs[i][1];
             const len_t len = pivs[i][2];
@@ -995,7 +996,7 @@ static void exact_sparse_reduced_echelon_form(
     for (i = 0; i < nrl; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         hm_t *npiv      = upivs[i];
-        cf32_t *cfs       = gbcf_ff[npiv[0]];
+        cf32_t *cfs       = bs->cf_ff[npiv[0]];
         const len_t os  = npiv[1];
         const len_t len = npiv[2];
         const hm_t * const ds = npiv + 3;
@@ -1024,12 +1025,12 @@ static void exact_sparse_reduced_echelon_form(
              * NOTE: this has to be done here, otherwise the reduction may
              * lead to wrong results in a parallel computation since other
              * threads might directly use the new pivot once it is synced. */
-            if (tmpcf_ff[npiv[0]][0] != 1) {
+            if (mat->cf_ff[npiv[0]][0] != 1) {
                 normalize_sparse_matrix_row(
-                        tmpcf_ff[npiv[0]], npiv[1], npiv[2], st->fc);
+                        mat->cf_ff[npiv[0]], npiv[1], npiv[2], st->fc);
             }
             k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
-            cfs = tmpcf_ff[npiv[0]];
+            cfs = mat->cf_ff[npiv[0]];
         } while (!k);
     }
     free(upivs);
@@ -1052,7 +1053,7 @@ static void exact_sparse_reduced_echelon_form(
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
             memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
-            cfs = tmpcf_ff[pivs[i][0]];
+            cfs = mat->cf_ff[pivs[i][0]];
             cf_array_pos    = pivs[i][0];
             const len_t os  = pivs[i][1];
             const len_t len = pivs[i][2];
@@ -1133,7 +1134,7 @@ static cf32_t **sparse_AB_CD_linear_algebra_ff(
         hm_t *npiv  = upivs[i];
         /* do the reduction */
         memset(drl, 0, (unsigned long)ncols * sizeof(int64_t));
-        cfs = gbcf_ff[npiv[0]];
+        cfs = bs->cf_ff[npiv[0]];
         const len_t os  = npiv[1];
         const len_t len = npiv[2];
         const hm_t * const ds = npiv +3;
@@ -1345,6 +1346,7 @@ static cf32_t **probabilistic_dense_linear_algebra_ff(
 {
     len_t i, j, k, l, m, npivs;
 
+    const int32_t fc  = st->fc;
     const len_t nrows = mat->np; /* we need the pivots until now here */
     const len_t ncols = mat->nc;
     const len_t ncr   = mat->ncr;
@@ -1537,7 +1539,8 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
     /* rows already representing new pivots */
     cf32_t **nps  = (cf32_t **)calloc((unsigned long)ncr, sizeof(cf32_t *));
 
-    const int64_t mod2  = (int64_t)st->fc * st->fc;
+    const int32_t fc    = st->fc;
+    const int64_t mod2  = (int64_t)fc * fc;
 
     /* compute rows per block */
     const len_t nb  = (len_t)(floor(sqrt(nrl/3)))+1;

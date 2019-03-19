@@ -85,10 +85,10 @@ static void insert_and_update_spairs(
     const hd_t * const hd = bht->hd;
     hd_t *hdu = uht->hd;
 
-    lms[bl] = hd[nch].sdm;
+    bs->lm[bl] = hd[nch].sdm;
 
     for (i = bs->lo; i < bl; ++i) {
-        if (red[i]) {
+        if (bs->red[i]) {
             continue;
         }
         if (check_monomial_division(nch, bs->hm[i][3], bht)) {
@@ -110,7 +110,7 @@ static void insert_and_update_spairs(
     for (i = 0, k = pl; i < bl; ++i, ++k) {
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
-        ps[k].lcm   = get_lcm(gbdt[i][3], nch, bht, uht);
+        ps[k].lcm   = get_lcm(bs->hm[i][3], nch, bht, uht);
         plcm[i]     = ps[k].lcm;
     }
 
@@ -131,7 +131,7 @@ static void insert_and_update_spairs(
     spair_t *pp = ps+pl;
     j = 0;
     for (i = 0; i < bl; ++i) {
-        if (red[i] == 0) {
+        if (bs->red[i] == 0) {
             pp[j++] = pp[i];
         }
     }
@@ -165,16 +165,16 @@ static void insert_and_update_spairs(
         enlarge_hash_table(bht);
     }
     /* new pairs, wee need to add the lcm to the basis hash table */
-    insert_plcms_in_basis_hash_table(psl, pp, bht, uht, plcm, j, pc);
+    insert_plcms_in_basis_hash_table(psl, pp, bht, uht, bs, plcm, j, pc);
     free(plcm);
     st->num_gb_crit +=  nl - psl->ld;
 
     /* mark redundant elements in basis */
     for (i = 0; i < bl; ++i) {
-        if (red[i]) {
+        if (bs->red[i]) {
             continue;
         }
-        if (check_monomial_division(gbdt[i][3], nch, bht)) {
+        if (check_monomial_division(bs->hm[i][3], nch, bht)) {
             bs->red[i]  = 1;
             st->num_redundant++;
         }
@@ -199,7 +199,7 @@ static void update_basis(
     rt0 = realtime();
 
     /* compute number of new pairs we need to handle at most */
-    len_t np  = bload * npivs;
+    len_t np  = bs->ld * npivs;
     for (i = 1; i < npivs; ++i) {
         np  = np + i;
     }

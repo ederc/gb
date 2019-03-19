@@ -141,16 +141,6 @@ struct mat_t
     len_t ncr;      /* number of right columns (in ABCD splicing) */
 };
 
-/* matrix data */
-static /* __thread */ len_t nrall  = 0; /* allocated rows for matrix */
-static /* __thread */ len_t npivs  = 0; /* new pivots in the current round */
-static /* __thread */ len_t nrows  = 0; /* rows used in the current round */
-static /* __thread */ len_t ncols  = 0; /* columns used in the current round */
-static /* __thread */ len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
-static /* __thread */ len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
-static /* __thread */ len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
-static /* __thread */ len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
-
 /* statistic stuff */
 typedef struct stat_t stat_t;
 struct stat_t

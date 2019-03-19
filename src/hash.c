@@ -128,7 +128,7 @@ static ht_t *initialize_secondary_hash_table(
                 segmentation fault will follow.\n");
     }
     exp_t *tmp  = (exp_t *)malloc(
-            (unsigned long)nv * (unsigned long)eusz * sizeof(exp_t));
+            (unsigned long)nv * (unsigned long)ht->esz * sizeof(exp_t));
     if (tmp == NULL) {
         printf("Computation needs too much memory on this machine, \
                 segmentation fault will follow.\n");
@@ -436,7 +436,7 @@ restart:
   }
 
   /* add element to hash table */
-  ht->hmap[k]  = pos = eld;
+  ht->hmap[k]  = pos = ht->eld;
   e   = ht->ev[pos];
   d   = ht->hd + pos;
   deg = 0;
@@ -478,7 +478,7 @@ static inline void reinitialize_hash_table(
          *       memory from evl[0] is enough    */
         ht->ev[0]  = realloc(ht->ev[0],
                 (unsigned long)esz * (unsigned long)nv * sizeof(exp_t));
-        if (evu[0] == NULL) {
+        if (ht->ev[0] == NULL) {
             printf("Computation needs too much memory on this machine, \
                     segmentation fault will follow.\n");
         }
@@ -488,21 +488,21 @@ static inline void reinitialize_hash_table(
         }
         ht->hmap  = realloc(ht->hmap, (unsigned long)hsz * sizeof(hl_t));
     }
-    memset(ht->hd, 0, (unsigned long)esz * sizeof(hd_t));
-    memset(ht->hmap, 0, (unsigned long)hsz * sizeof(hl_t));
+    memset(ht->hd, 0, (unsigned long)ht->esz * sizeof(hd_t));
+    memset(ht->hmap, 0, (unsigned long)ht->hsz * sizeof(hl_t));
 
     ht->eld  = 1;
 }
 
-static inline void reset_symbolic_hash_table(
-        void
+static inline void clean_hash_table(
+        ht_t *ht
     )
 {
     /* is there still enough space in the local table? */
-    memset(hds, 0, (unsigned long)essz * sizeof(hd_t));
-    memset(hmaps, 0, (unsigned long)hssz * sizeof(hl_t));
+    memset(ht->hd, 0, (unsigned long)ht->esz * sizeof(hd_t));
+    memset(ht->hmap, 0, (unsigned long)ht->hsz * sizeof(hl_t));
 
-    esld  = 1;
+    ht->eld  = 1;
 }
 
 static inline int prime_monomials(
@@ -559,7 +559,7 @@ letsgo:
         const val_t h = uht->hd[lcms[l]].val;
         memcpy(bht->ev[bht->eld], uht->ev[lcms[l]],
                 (unsigned long)nv * sizeof(exp_t));
-        const exp_t * const n = bht->ev[eld];
+        const exp_t * const n = bht->ev[bht->eld];
         k = h;
         i = 0;
 restart:
@@ -627,8 +627,8 @@ static inline void insert_in_basis_hash_table_pivots(
 letsgo:
     for (; l < len; ++l) {
         const val_t h = hds[hcm[row[l]]].val;
-        memcpy(ev[eld], evs[hcm[row[l]]], (unsigned long)nv * sizeof(exp_t));
-        const exp_t * const n = ev[eld];
+        memcpy(ev[bht->eld], evs[hcm[row[l]]], (unsigned long)nv * sizeof(exp_t));
+        const exp_t * const n = ev[bht->eld];
         k = h;
         i = 0;
 restart:
@@ -853,7 +853,7 @@ static void reset_hash_table(
         ht->ev[k]  = tmp + k*nv;
     }
     ht->eld = 1;
-    memset(ht->hmap, 0, (unsigned long)hsz * sizeof(hl_t));
+    memset(ht->hmap, 0, (unsigned long)ht->hsz * sizeof(hl_t));
     memset(ht->hd, 0, (unsigned long)esz * sizeof(hd_t));
 
     /* reinsert known elements */

@@ -135,7 +135,7 @@ int64_t f4_julia(
             convert_sparse_matrix_rows_to_basis_elements(
                     mat, bs, bht, sht, hcm, st);
         }
-        reset_symbolic_hash_table();
+        clean_hash_table(sht);
         free(mat->r);
         mat->r  = NULL;
 

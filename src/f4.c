@@ -116,7 +116,8 @@ int64_t f4_julia(
             reset_hash_table(bht, bs, ps, st);
         }
         rrt0  = realtime();
-        st->max_ht_size = st->max_ht_size > hsz ? st->max_ht_size : hsz;
+        st->max_ht_size = st->max_ht_size > bht->hsz ?
+            st->max_ht_size : bht->hsz;
         st->current_rd  = round;
 
         /* preprocess data for next reduction round */
@@ -151,7 +152,7 @@ int64_t f4_julia(
 ----------------------------------------\n");
     }
 
-    st->len_output  = export_julia_data_ff(jl_basis);
+    st->len_output  = export_julia_data_ff(jl_basis, bs, bht);
     st->size_basis  = (*jl_basis)[0];
 
     /* timings */

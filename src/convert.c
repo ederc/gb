@@ -75,7 +75,7 @@ static void convert_hashes_to_columns(
     }
 
     /* map column positions to matrix rows */
-#pragma omp parallel for num_threads(nthrds) private(i, j)
+#pragma omp parallel for num_threads(st->nthrds) private(i, j)
     for (i = 0; i < mnr; ++i) {
         const len_t os  = rows[i][1];
         const len_t len = rows[i][2];

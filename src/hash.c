@@ -533,6 +533,7 @@ static inline void insert_plcms_in_basis_hash_table(
     spair_t *pp,
     ht_t *bht,
     const ht_t *uht,
+    const bs_t * const bs,
     const hl_t * const lcms,
     const len_t start,
     const len_t end
@@ -545,6 +546,7 @@ static inline void insert_plcms_in_basis_hash_table(
     spair_t *ps     = psl->p;
     const len_t nv  = bht->nv;
     const hl_t hsz  = bht->hsz;
+    hm_t * const * const hm = bs->hm;
     m = start;
     l = 0;
 letsgo:
@@ -552,7 +554,7 @@ letsgo:
         if (lcms[l] < 0) {
             continue;
         }
-        if (prime_monomials(gbdt[pp[l].gen1][3], gbdt[pp[0].gen2][3], bht)) {
+        if (prime_monomials(hm[pp[l].gen1][3], hm[pp[0].gen2][3], bht)) {
             continue;
         }
         ps[m] = pp[l];
@@ -858,7 +860,7 @@ static void reset_hash_table(
 
     /* reinsert known elements */
     for (i = 0; i < bld; ++i) {
-        reinsert_in_hash_table(gbdt[i], oev, ht);
+        reinsert_in_hash_table(bs->hm[i], oev, ht);
     }
     for (i = 0; i < pld; ++i) {
         e = oev[ps[i].lcm];

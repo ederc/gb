@@ -233,7 +233,7 @@ static void symbolic_preprocessing(
     for (; i < oesld; ++i) {
         if (!hds[i].idx) {
             hds[i].idx = 1;
-            ncols++;
+            mat->nc++;
             red = find_multiplied_reducer(bs, i, bht, sht);
             if (red) {
                 hds[i].idx = 2;

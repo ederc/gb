@@ -20,8 +20,8 @@ int main(
     for (i = 1; i < 16; ++i) {
         row[i]  = 300 - i;
     }
-    ncr = 16;
-    normalize_dense_matrix_row(row, 0, fc);
+    len_t len = 16;
+    normalize_dense_matrix_row(row, len, fc);
     for (i=1; i < 16; ++i) {
         printf("%d | %d\n", i, row[i]);
     }

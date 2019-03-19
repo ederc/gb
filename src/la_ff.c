@@ -21,30 +21,14 @@
  */
 #include "data.h"
 
-static inline cf32_t **free_dense_matrix(
-        cf32_t **dm
-        )
-{
-    len_t i;
-
-    for (i = 0; i < ncr; ++i) {
-        free(dm[i]);
-    }
-    free(dm);
-    dm  = NULL;
-
-    return dm;
-}
-
 static inline cf32_t *normalize_dense_matrix_row(
         cf32_t *row,
-        const hm_t pc,
+        const hm_t len,
         const int32_t fc
         )
 {
     len_t i;
 
-    const hm_t len  = ncr - pc;
     const hm_t os   = len % 4;
     int64_t tmp1, tmp2, tmp3, tmp4;
 
@@ -392,7 +376,7 @@ static cf32_t *reduce_dense_row_by_all_pivots_17_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, np-ncl, fc);
+        row = normalize_dense_matrix_row(row, ncols-np, fc);
     }
 
     *pc = np - ncl;
@@ -780,6 +764,7 @@ static void probabilistic_sparse_reduced_echelon_form(
     const len_t nru   = mat->nru;
     const len_t nrl   = mat->nrl;
     const len_t ncr   = mat->ncr;
+    const len_t ncl   = mat->ncl;
 
     hm_t **rows = mat->r;
 
@@ -967,6 +952,7 @@ static void exact_sparse_reduced_echelon_form(
     const len_t nru   = mat->nru;
     const len_t nrl   = mat->nrl;
     const len_t ncr   = mat->ncr;
+    const len_t ncl   = mat->ncl;
 
     hm_t **rows = mat->r;
 
@@ -1097,6 +1083,8 @@ static cf32_t **sparse_AB_CD_linear_algebra_ff(
     const len_t nrows = mat->nr;
     const len_t ncols = mat->nc;
     const len_t nrl   = mat->nrl;
+    const len_t nru   = mat->nru;
+    const len_t ncl   = mat->ncl;
 
     hm_t **rows = mat->r;
 
@@ -1514,6 +1502,8 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
     const len_t nru   = mat->nru;
     const len_t nrl   = mat->nrl;
     const len_t nrows = mat->nr;
+    const len_t ncr   = mat->ncr;
+    const len_t ncols = mat->nc;
 
     hm_t **rows = mat->r;
 
@@ -1783,7 +1773,7 @@ static void exact_sparse_linear_algebra_ff(
     /* allocate temporary storage space for sparse
      * coefficients of new pivot rows */
     mat->cf_ff  = realloc(mat->cf_ff,
-            (unsigned long)nrl * sizeof(cf32_t *));
+            (unsigned long)mat->nrl * sizeof(cf32_t *));
     exact_sparse_reduced_echelon_form(mat, bs, st);
 
     /* timings */
@@ -1811,6 +1801,8 @@ static void exact_sparse_dense_linear_algebra_ff(
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
+
+    const len_t ncr = mat->ncr;
 
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm;
@@ -1859,6 +1851,8 @@ static void probabilistic_sparse_dense_linear_algebra_ff_2(
     ct0 = cputime();
     rt0 = realtime();
 
+    const len_t ncr = mat->ncr;
+
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm;
     dm  = sparse_AB_CD_linear_algebra_ff(mat, bs, st);
@@ -1886,9 +1880,9 @@ static void probabilistic_sparse_dense_linear_algebra_ff_2(
     st->la_ctime  +=  ct1 - ct0;
     st->la_rtime  +=  rt1 - rt0;
 
-    st->num_zerored += (nrl - npivs);
+    st->num_zerored += (mat->nrl - mat->np);
     if (st->info_level > 1) {
-        printf("%7d new %7d zero", npivs, nrl-npivs);
+        printf("%7d new %7d zero", mat->np, mat->nrl - mat->np);
         fflush(stdout);
     }
 }
@@ -1905,6 +1899,8 @@ static void probabilistic_sparse_dense_linear_algebra_ff(
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
+
+    const len_t ncr = mat->ncr;
 
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm = NULL;
@@ -1931,9 +1927,9 @@ static void probabilistic_sparse_dense_linear_algebra_ff(
     st->la_ctime  +=  ct1 - ct0;
     st->la_rtime  +=  rt1 - rt0;
 
-    st->num_zerored += (nrl - npivs);
+    st->num_zerored += (mat->nrl - mat->np);
     if (st->info_level > 1) {
-        printf("%7d new %7d zero", npivs, nrl-npivs);
+        printf("%7d new %7d zero", mat->np, mat->nrl - mat->np);
         fflush(stdout);
     }
 }

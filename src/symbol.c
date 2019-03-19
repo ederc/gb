@@ -242,7 +242,7 @@ static void symbolic_preprocessing(
             }
         }
     }
-    for (; i < esld; ++i) {
+    for (; i < sht->eld; ++i) {
         if (mat->sz == mat->nr) {
             mat->sz *=  2;
             rows    =   realloc(rows, (unsigned long)mat->sz * sizeof(hm_t *));

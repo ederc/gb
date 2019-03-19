@@ -111,44 +111,6 @@ struct ps_t
     spair_t *p;
 };
 
-/* monomial order - until we have general orders:
- * 0 = DRL
- * 1 = LEX */
-static /* __thread */ val_t mo = 0;
-
-/* field characteristic */
-static /* __thread */ cf32_t fc = 0;
-
-/* number generators */
-static /* __thread */ int32_t ngens  = 0;
-
-/* maximum number of spair selection */
-static /* __thread */ int32_t mnsel = 0;
-/* basis data */
-
-/* threads data */
-static /* __thread */ int32_t nthrds = 1; /* number of CPU threads */
-
-/* linear algebra options */
-static /* __thread */ int32_t laopt  = 0;
-
-/* finite field coefficient arrays */
-static /* __thread */ cf32_t **gbcf_ff  = NULL;
-static /* __thread */ cf32_t **tmpcf_ff = NULL;
-
-/* rationals coefficient arrays */
-static /* __thread */ mpz_t **gbcf_q   = NULL;
-static /* __thread */ mpz_t **tmpcf_q  = NULL;
-
-static /* __thread */ hm_t **gbdt  = NULL;
-static /* __thread */ int8_t *red  = NULL;
-static /* __thread */ bl_t blold   = 0;
-static /* __thread */ bl_t bload   = 0;
-static /* __thread */ bl_t bsize   = 0;
-
-/* lead monomials of all basis elements */
-static /* __thread */ sdm_t *lms = NULL;
-
 typedef struct bs_t bs_t;
 struct bs_t
 {

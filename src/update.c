@@ -82,6 +82,9 @@ static void insert_and_update_spairs(
 
     reinitialize_hash_table(uht, bl);
 
+    const hd_t * const hd = bht->hd;
+    hd_t *hdu = uht->hd;
+
     lms[bl] = hd[nch].sdm;
 
     for (i = bs->lo; i < bl; ++i) {

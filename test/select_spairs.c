@@ -63,6 +63,7 @@ int main(
     select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
 
     /* free and clean up */
+    free_shared_hash_data(bht);
     free_hash_table(&uht);
     free_hash_table(&sht);
     free_hash_table(&bht);
@@ -71,6 +72,8 @@ int main(
     for (i = 0; i < mat->nr; ++i) {
         free(mat->r[i]);
     }
+    free(mat->r);
     free(mat);
+    free(st);
     return 0;
 }

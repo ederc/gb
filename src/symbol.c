@@ -39,7 +39,6 @@ static void select_spairs_by_minimal_degree(
     len_t *gens;
     exp_t *elcm, *eb;
     exp_t *etmp = bht->ev[0];
-    hm_t **rows = mat->r;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -85,7 +84,8 @@ static void select_spairs_by_minimal_degree(
     /* list for generators */
     gens  = (len_t *)malloc(2 * (unsigned long)nps * sizeof(len_t));
     /* preset matrix meta data */
-    rows    = (hm_t **)malloc(2 * (unsigned long)nps * sizeof(hm_t *));
+    mat->r  = (hm_t **)malloc(2 * (unsigned long)nps * sizeof(hm_t *));
+    hm_t **rows = mat->r;
     mat->sz = 2 * nps;
     mat->nc = mat->ncl = mat->ncr = 0;
     mat->nr = 0;

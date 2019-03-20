@@ -137,6 +137,8 @@ int64_t f4_julia(
                     mat, bs, bht, sht, hcm, st);
         }
         clean_hash_table(sht);
+        /* all rows in mat are now polynomials in the basis,
+         * so we do not need the rows anymore */
         free(mat->r);
         mat->r  = NULL;
 

@@ -113,7 +113,9 @@ static ht_t *initialize_secondary_hash_table(
     ht->hsz   = (hl_t)pow(2, st->init_hts-5);
     ht->hmap  = calloc((unsigned long)ht->hsz, sizeof(hl_t));
 
-    /* divisor mask and hash value seeds from basis hash table */
+    /* divisor mask and random number seeds from basis hash table */
+    ht->ndv = bht->ndv;
+    ht->bpv = bht->bpv;
     ht->dm  = bht->dm;
     ht->rn  = bht->rn;
 

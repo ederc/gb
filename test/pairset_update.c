@@ -41,16 +41,6 @@ int main(
     import_julia_data_ff(bs, bht, st, lens, cfs, exps);
     calculate_divmask(bht);
     /* sort initial elements, smallest lead term first */
-    printf("bs ld %d | sz %d\n", bs->ld, bs->sz);
-    for (int ii=0; ii<bs->ld; ++ii) {
-        for (int jj = 0; jj<bs->hm[ii][2]+3; ++jj) {
-            printf("%d ",bs->hm[ii][jj]);
-        }
-        printf("\n");
-    }
-    for (int ii=0; ii<bht->eld; ++ii) {
-        printf("hd[%d] = %d\n", ii, bht->hd[ii].val);
-    }
     sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
             initial_input_cmp, bht);
     /* normalize input generators */

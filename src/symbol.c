@@ -207,7 +207,6 @@ static void symbolic_preprocessing(
 {
     len_t i;
     hm_t *red;
-    hm_t **rows = mat->r;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -228,7 +227,7 @@ static void symbolic_preprocessing(
      * have to do this check */
     while (mat->sz <= mat->nr + oesld) {
         mat->sz *=  2;
-        rows    =   realloc(rows, (unsigned long)mat->sz * sizeof(hm_t *));
+        mat->r  =   realloc(mat->r, (unsigned long)mat->sz * sizeof(hm_t *));
     }
     for (; i < oesld; ++i) {
         if (!hds[i].idx) {
@@ -238,14 +237,14 @@ static void symbolic_preprocessing(
             if (red) {
                 hds[i].idx = 2;
                 /* add new reducer to matrix */
-                rows[mat->nr++] = red;
+                mat->r[mat->nr++] = red;
             }
         }
     }
     for (; i < sht->eld; ++i) {
         if (mat->sz == mat->nr) {
             mat->sz *=  2;
-            rows    =   realloc(rows, (unsigned long)mat->sz * sizeof(hm_t *));
+            mat->r  =   realloc(mat->r, (unsigned long)mat->sz * sizeof(hm_t *));
         }
         hds[i].idx = 1;
         mat->nc++;
@@ -253,9 +252,10 @@ static void symbolic_preprocessing(
         if (red) {
             hds[i].idx = 2;
             /* add new reducer to matrix */
-            rows[mat->nr++]  = red;
+            mat->r[mat->nr++]  = red;
         }
     }
+    printf("mat->nr %d\n", mat->nr);
     /* realloc to real size */
     mat->r  = realloc(mat->r, (unsigned long)mat->nr * sizeof(hm_t *));
     mat->sz = mat->nr;

@@ -257,7 +257,7 @@ static void symbolic_preprocessing(
         }
     }
     /* realloc to real size */
-    rows    = realloc(rows, (unsigned long)mat->nr * sizeof(hm_t *));
+    mat->r  = realloc(mat->r, (unsigned long)mat->nr * sizeof(hm_t *));
     mat->sz = mat->nr;
 
     /* timings */

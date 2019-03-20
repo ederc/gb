@@ -140,24 +140,18 @@ static ht_t *initialize_secondary_hash_table(
     return ht;
 }
 
-static void free_divmask(
+static void free_shared_hash_data(
         ht_t *ht
-        )
+    )
 {
-    if (ht->dm) {
-        free(ht->dm);
-        ht->dm  = NULL;
-    }
-}
-
-static void free_random_numbers(
-        ht_t *ht
-        )
-{
-    if (ht->rn) {
-        free(ht->rn);
-        ht->rn  = NULL;
-    }
+  if (ht->rn) {
+    free(ht->rn);
+    ht->rn = NULL;
+  }
+  if (ht->dm) {
+    free(ht->dm);
+    ht->dm = NULL;
+  }
 }
 
 static void free_hash_table(

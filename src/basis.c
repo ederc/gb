@@ -63,8 +63,10 @@ static bs_t *initialize_basis_ff(
         )
 {
     bs_t *bs  = (bs_t *)malloc(sizeof(bs_t));
+    bs->lo  = 0;
     bs->ld  = 0;
     bs->sz  = 2*ngens;
+    printf("initialize %d\n", bs->sz);
 
     bs->cf_ff = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
     bs->cf_q  = NULL;
@@ -139,6 +141,7 @@ static bs_t *initialize_basis_q(
         )
 {
     bs_t *bs  = (bs_t *)malloc(sizeof(bs_t));
+    bs->lo  = 0;
     bs->ld  = 0;
     bs->sz  = 2*ngens;
 

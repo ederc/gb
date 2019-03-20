@@ -40,6 +40,7 @@ int main(
     import_julia_data_ff(bs, bht, st, lens, cfs, exps);
 
     /* free and clean up */
+    free_shared_hash_data(bht);
     free_hash_table(&bht);
     free_basis(&bs);
     free_pairset(&ps);

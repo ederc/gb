@@ -49,6 +49,7 @@ int main(
     }
 
     free_basis(&bs);
+    free_shared_hash_data(bht);
     free_hash_table(&bht);
     return 0;
 }

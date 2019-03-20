@@ -15,6 +15,13 @@ int main(
 
     ht_t *bht = initialize_basis_hash_table(&st);
     ht_t *sht = initialize_secondary_hash_table(bht, &st);
+    free_shared_hash_data(bht);
+    if (bht->rn != NULL) {
+        return 1;
+    }
+    if (bht->dm != NULL) {
+        return 1;
+    }
     free_hash_table(&sht);
     if (sht != NULL) {
         return 1;

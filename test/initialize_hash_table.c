@@ -33,6 +33,7 @@ int main(
     if (sht->eld != 1) {
         return 1;
     }
+    free_shared_hash_data(bht);
     free_hash_table(&sht);
     free_hash_table(&bht);
 

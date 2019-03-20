@@ -35,5 +35,6 @@ int main(
     }
 
     free_pairset(&ps);
+    free(st);
     return 0;
 }

@@ -167,8 +167,7 @@ int64_t f4_julia(
 
     /* free and clean up */
     free(hcm);
-    free_divmask(bht);
-    free_random_numbers(bht);
+    free_shared_hash_data(bht);
     free_hash_table(&sht);
     free_hash_table(&uht);
     free_hash_table(&bht);

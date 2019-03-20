@@ -1030,8 +1030,9 @@ static void exact_sparse_reduced_echelon_form(
 
     len_t npivs = 0; /* number of new pivots */
 
-    dr  = realloc(dr, (unsigned long)ncols * sizeof(uint64_t));
-    mat = realloc(mat, (unsigned long)ncr * sizeof(hm_t *));
+    dr      = realloc(dr, (unsigned long)ncols * sizeof(uint64_t));
+    mat->r  = realloc(mat->r, (unsigned long)ncr * sizeof(hm_t *));
+    rows    = mat->r;
 
     /* interreduce new pivots */
     cf32_t *cfs;
@@ -1067,7 +1068,7 @@ static void exact_sparse_reduced_echelon_form(
     free(dr);
     dr  = NULL;
 
-    rows    = realloc(rows, (unsigned long)npivs * sizeof(hl_t *));
+    mat->r  = realloc(mat->r, (unsigned long)npivs * sizeof(hl_t *));
     mat->np = mat->nr = mat->sz = npivs;
 }
 

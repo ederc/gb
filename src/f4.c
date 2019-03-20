@@ -61,7 +61,7 @@ int64_t f4_julia(
     hl_t *hcm = (hl_t *)malloc(sizeof(hl_t));
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
-    mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
+    mat_t *mat  = (mat_t *)calloc(1, sizeof(mat_t));
 
     ps_t * ps   = initialize_pairset();
 

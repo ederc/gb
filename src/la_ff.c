@@ -680,7 +680,7 @@ static cf32_t *reduce_dense_row_by_dense_new_pivots_17_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, np, fc);
+        row = normalize_dense_matrix_row(row, ncr-np, fc);
     }
     *pc = np;
     return row;
@@ -744,7 +744,7 @@ static cf32_t *reduce_dense_row_by_dense_new_pivots_31_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, np, fc);
+        row = normalize_dense_matrix_row(row, ncr-np, fc);
     }
     *pc = np;
 
@@ -1108,8 +1108,8 @@ static cf32_t **sparse_AB_CD_linear_algebra_ff(
             j++;
         }
     }
-    free(rows);
-    rows  = NULL;
+    free(mat->r);
+    mat->r  = NULL;
 
     int64_t *dr  = (int64_t *)malloc(
             (unsigned long)(st->nthrds * ncols) * sizeof(int64_t));
@@ -1229,11 +1229,6 @@ static cf32_t **exact_dense_linear_algebra_ff(
     j     = 0;
     npivs = 0;
     for (i = 0; i < nrows; ++i) {
-        /* printf("dense row[%d] ", i);
-         * for (int32_t p = 0; p < ncr; ++p) {
-         *     printf("%d ", dm[i][p]);
-         * }
-         * printf("\n"); */
         if (dm[i] != NULL) {
             k = 0;
             while (dm[i][k] == 0) {
@@ -1249,7 +1244,7 @@ static cf32_t **exact_dense_linear_algebra_ff(
                 nps[k] = dm[i];
                 /* printf("nps[%d] = ", k); */
                 if (nps[k][0] != 1) {
-                    nps[k]  = normalize_dense_matrix_row(nps[k], k, st->fc);
+                    nps[k]  = normalize_dense_matrix_row(nps[k], ncr-k, st->fc);
                 }
                 /* npivs++; */
             } else {
@@ -1810,7 +1805,7 @@ static void exact_sparse_dense_linear_algebra_ff(
     dm  = sparse_AB_CD_linear_algebra_ff(mat, bs, st);
     if (mat->np > 0) {      
         dm  = exact_dense_linear_algebra_ff(dm, mat, st);
-        dm  = interreduce_dense_matrix(dm, mat->ncr, st->fc);
+        dm  = interreduce_dense_matrix(dm, ncr, st->fc);
     }
 
     /* convert dense matrix back to sparse matrix representation,

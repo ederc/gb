@@ -116,8 +116,8 @@ int64_t f4_julia(
             reset_hash_table(bht, bs, ps, st);
         }
         rrt0  = realtime();
-        st->max_ht_size = st->max_ht_size > bht->hsz ?
-            st->max_ht_size : bht->hsz;
+        st->max_bht_size  = st->max_bht_size > bht->hsz ?
+            st->max_bht_size : bht->hsz;
         st->current_rd  = round;
 
         /* preprocess data for next reduction round */
@@ -164,7 +164,7 @@ int64_t f4_julia(
     st->overall_rtime = rt1 - rt0;
 
     if (st->info_level > 0) {
-        print_final_statistics(st, bht, sht, uht);
+        print_final_statistics(st);
     }
 
     /* free and clean up */

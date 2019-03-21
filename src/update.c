@@ -81,6 +81,9 @@ static void insert_and_update_spairs(
     const hm_t nch = bs->hm[bl][3];
 
     reinitialize_hash_table(uht, bl);
+    /* statistics */
+    st->max_uht_size  = st->max_uht_size > uht->hsz ?
+        st->max_uht_size : uht->hsz;
 
     const hd_t * const hd = bht->hd;
     hd_t *hdu = uht->hd;

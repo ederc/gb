@@ -255,10 +255,13 @@ static void symbolic_preprocessing(
             mat->r[mat->nr++]  = red;
         }
     }
-    printf("mat->nr %d\n", mat->nr);
     /* realloc to real size */
     mat->r  = realloc(mat->r, (unsigned long)mat->nr * sizeof(hm_t *));
     mat->sz = mat->nr;
+
+    /* statistics */
+    st->max_sht_size  = st->max_sht_size > sht->hsz ?
+        st->max_sht_size : sht->hsz;
 
     /* timings */
     ct1 = cputime();

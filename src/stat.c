@@ -27,49 +27,7 @@ static stat_t *initialize_statistics(
     void
     )
 {
-    stat_t *st  = (stat_t *)malloc(sizeof(stat_t));
-
-    st->round_ctime   = 0;
-	  st->select_ctime  = 0;
-    st->symbol_ctime  = 0;
-    st->la_ctime      = 0;
-    st->update_ctime  = 0;
-    st->convert_ctime = 0;
-    st->overall_ctime = 0;
-    st->rht_ctime     = 0;
-
-    st->round_rtime   = 0;
-    st->select_rtime  = 0;
-    st->symbol_rtime  = 0;
-    st->la_rtime      = 0;
-    st->update_rtime  = 0;
-    st->convert_rtime = 0;
-    st->overall_rtime = 0;
-    st->rht_rtime     = 0;
-
-    st->num_pairsred  = 0;
-    st->num_gb_crit   = 0;
-    st->num_redundant = 0;
-    st->num_rowsred   = 0;
-    st->num_zerored   = 0;
-
-    st->ngens         = 0;
-    st->nvars         = 0;
-    st->mnsel         = 0;
-    st->fc            = 0;
-    st->mo            = 0;
-    st->laopt         = 0;
-    st->reset_ht      = 0;
-    st->init_hts      = 0;
-    st->nthrds        = 0;
-    st->current_rd    = 0;
-    st->current_deg   = 0;
-    st->max_ht_size   = 0;
-    st->len_output    = 0;
-    st->size_basis    = 0;
-
-    st->info_level    = 0;
-    st->gen_pbm_file  = 0;
+    stat_t *st  = (stat_t *)calloc(1, sizeof(stat_t));
 
     return st;
 }
@@ -112,10 +70,7 @@ static void print_initial_statistics(
 }
 
 static void print_final_statistics(
-        const stat_t * const st,
-        const ht_t * const bht,
-        const ht_t * const sht,
-        const ht_t * const uht
+        const stat_t * const st
         )
 {
     printf("\n---------------- TIMINGS ---------------\n");
@@ -157,13 +112,11 @@ static void print_final_statistics(
     printf("#redundant         %9ld\n", st->num_redundant);
     printf("#rows reduced      %9ld\n", st->num_rowsred);
     printf("#zero reductions   %9ld\n", st->num_zerored);
-    printf("#update hash table %9d <= 2^%d\n",
-            uht->eld, (int32_t)(ceil(log(uht->eld)/log(2))));
-    printf("#symbolic hash table %9d <= 2^%d\n",
-            sht->eld, (int32_t)(ceil(log(sht->eld)/log(2))));
-    printf("#global hash table %9d <= 2^%d\n",
-            bht->eld, (int32_t)((ceil(log(bht->eld)/log(2)))));
-    printf("maximal ht size         2^%d\n",
-            (int32_t)(ceil(log((double)st->max_ht_size)/log(2))));
+    printf("maximal uht size           2^%d\n",
+            (int32_t)(ceil(log((double)st->max_uht_size)/log(2))));
+    printf("maximal sht size           2^%d\n",
+            (int32_t)(ceil(log((double)st->max_sht_size)/log(2))));
+    printf("maximal bht size           2^%d\n",
+            (int32_t)(ceil(log((double)st->max_bht_size)/log(2))));
     printf("-----------------------------------------\n\n");
 }

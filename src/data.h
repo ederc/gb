@@ -180,7 +180,9 @@ struct stat_t
     int32_t reset_ht;
     int32_t current_rd;
     int32_t current_deg;
-    int64_t max_ht_size;
+    int64_t max_bht_size;
+    int64_t max_sht_size;
+    int64_t max_uht_size;
     int64_t len_output;
     int32_t size_basis;
 

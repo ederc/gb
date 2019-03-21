@@ -28,7 +28,7 @@
  * by pivots / non-pivots. thus we get already an A|B splicing of the
  * initial matrix. this is a first step for receiving a full GBLA matrix. */
 static void convert_hashes_to_columns(
-        hl_t *hcm,
+        hl_t **hcmp,
         mat_t *mat,
         stat_t *st,
         ht_t *sht
@@ -37,6 +37,8 @@ static void convert_hashes_to_columns(
     len_t i, j, k;
     hm_t *row;
     int64_t nterms = 0;
+
+    hl_t *hcm = *hcmp;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -118,6 +120,7 @@ static void convert_hashes_to_columns(
         printf(" %7d x %-7d %8.3f%%", mat->nr, mat->nc, density);
         fflush(stdout);
     }
+    *hcmp = hcm;
 }
 
 static void convert_sparse_matrix_rows_to_basis_elements(

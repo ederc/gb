@@ -234,7 +234,6 @@ static void symbolic_preprocessing(
             mat->nc++;
             red = find_multiplied_reducer(bs, i, bht, sht);
             if (red) {
-                printf("i %d / %d esz\n", i, sht->esz);
                 sht->hd[i].idx = 2;
                 /* add new reducer to matrix */
                 mat->r[mat->nr++] = red;

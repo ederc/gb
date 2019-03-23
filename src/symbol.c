@@ -220,7 +220,6 @@ static void symbolic_preprocessing(
      * in the following. */
 
     const len_t oesld = sht->eld;
-    hd_t *hds = sht->hd; 
     i = 1;
     /* we only have to check if idx is set for the elements already set
      * when selecting spairs, afterwards (second for loop) we do not
@@ -230,12 +229,13 @@ static void symbolic_preprocessing(
         mat->r  =   realloc(mat->r, (unsigned long)mat->sz * sizeof(hm_t *));
     }
     for (; i < oesld; ++i) {
-        if (!hds[i].idx) {
-            hds[i].idx = 1;
+        if (!sht->hd[i].idx) {
+            sht->hd[i].idx = 1;
             mat->nc++;
             red = find_multiplied_reducer(bs, i, bht, sht);
             if (red) {
-                hds[i].idx = 2;
+                printf("i %d / %d esz\n", i, sht->esz);
+                sht->hd[i].idx = 2;
                 /* add new reducer to matrix */
                 mat->r[mat->nr++] = red;
             }
@@ -246,11 +246,11 @@ static void symbolic_preprocessing(
             mat->sz *=  2;
             mat->r  =   realloc(mat->r, (unsigned long)mat->sz * sizeof(hm_t *));
         }
-        hds[i].idx = 1;
+        sht->hd[i].idx = 1;
         mat->nc++;
         red = find_multiplied_reducer(bs, i, bht, sht);
         if (red) {
-            hds[i].idx = 2;
+            sht->hd[i].idx = 2;
             /* add new reducer to matrix */
             mat->r[mat->nr++]  = red;
         }

@@ -190,13 +190,12 @@ static void enlarge_hash_table(
   val_t h, k;
   const len_t nv  = ht->nv;
 
-  j   = ht->esz; /* store old size */
   ht->esz = 2 * ht->esz;
   const hl_t esz  = ht->esz;
-  const hl_t eld  = ht->esz;
+  const hl_t eld  = ht->eld;
 
   ht->hd    = realloc(ht->hd, (unsigned long)esz * sizeof(hd_t));
-  memset(ht->hd+ht->eld, 0, (unsigned long)(esz-eld) * sizeof(hd_t));
+  memset(ht->hd+eld, 0, (unsigned long)(esz-eld) * sizeof(hd_t));
   ht->ev    = realloc(ht->ev, (unsigned long)esz * sizeof(exp_t *));
   if (ht->ev == NULL) {
     printf("Computation needs too much memory on this machine, \
@@ -494,7 +493,6 @@ static inline void clean_hash_table(
         ht_t *ht
     )
 {
-    /* is there still enough space in the local table? */
     memset(ht->hd, 0, (unsigned long)ht->esz * sizeof(hd_t));
     memset(ht->hmap, 0, (unsigned long)ht->hsz * sizeof(hl_t));
 

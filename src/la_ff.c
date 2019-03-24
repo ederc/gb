@@ -1480,6 +1480,8 @@ static cf32_t **probabilistic_dense_linear_algebra_ff(
             npivs++;
         }
     }
+    mat->np = npivs;
+
     free(mul);
     free(tbr);
     free(dr);

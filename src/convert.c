@@ -169,9 +169,6 @@ static void convert_sparse_matrix_rows_to_basis_elements(
          * printf("\n"); */
     }
 
-    free(mat->cf_ff);
-    mat->cf_ff = NULL;
-
     /* timings */
     ct1 = cputime();
     rt1 = realtime();

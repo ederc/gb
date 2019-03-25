@@ -141,6 +141,8 @@ int64_t f4_julia(
          * so we do not need the rows anymore */
         free(mat->r);
         mat->r  = NULL;
+        free(mat->cf_ff);
+        mat->cf_ff  = NULL;
 
         update_basis(ps, bs, bht, uht, st, mat->np);
 

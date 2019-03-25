@@ -935,6 +935,7 @@ static void probabilistic_sparse_reduced_echelon_form(
     dr  = NULL;
 
     rows    = realloc(rows, (unsigned long)npivs * sizeof(hl_t *));
+    mat->r  = rows;
     mat->np = mat->nr = mat->sz = npivs;
 }
 

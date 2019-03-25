@@ -1365,7 +1365,7 @@ static cf32_t **probabilistic_dense_linear_algebra_ff(
                 nps[k] = dm[i];
                 /* printf("nps[%d] = ", k); */
                 if (nps[k][0] != 1) {
-                    nps[k]  = normalize_dense_matrix_row(nps[k], k, st->fc);
+                    nps[k]  = normalize_dense_matrix_row(nps[k], ncr-k, st->fc);
                 }
                 /* npivs++; */
             } else {

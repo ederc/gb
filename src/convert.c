@@ -159,6 +159,14 @@ static void convert_sparse_matrix_rows_to_basis_elements(
         bs->cf_ff[bl+i] = mat->cf_ff[rows[i][0]];
         rows[i][0]      = bl+i;
         bs->hm[bl+i]    = rows[i];
+        /* for (int ii=0; ii < rows[i][2]; ++ii) {
+         *     printf("%d | ", bs->cf_ff[bl+i][ii]);
+         *     for (int jj = 0; jj < bht->nv; ++jj) {
+         *         printf("%d ", bht->ev[bs->hm[bl+i][ii]][jj]);
+         *     }
+         *     printf(" || ");
+         * }
+         * printf("\n"); */
     }
 
     free(mat->cf_ff);

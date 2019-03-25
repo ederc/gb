@@ -198,9 +198,16 @@ static void import_julia_data_ff(
     hm_t *hm;
 
     int32_t off     = 0; /* offset in arrays */
-    exp_t *e        = ht->ev[0]; /* use as temporary storage */
     const len_t nv  = st->nvars;
 
+    int32_t nterms  = 0;
+    for (i = 0; i < st->ngens; ++i) {
+        nterms  +=  lens[i];
+    }
+    while (nterms >= ht->esz) {
+        enlarge_hash_table(ht);
+    }
+    exp_t *e  = ht->ev[0]; /* use as temporary storage */
     for (i = 0; i < st->ngens; ++i) {
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));

@@ -43,7 +43,7 @@ int64_t f4_julia(
         const int32_t ht_size,
         const int32_t nr_threads,
         const int32_t max_nr_pairs,
-        const int32_t reset_hash_table,
+        const int32_t reset_ht,
         const int32_t la_option,
         const int32_t pbm_file,
         const int32_t info_level
@@ -56,12 +56,14 @@ int64_t f4_julia(
     rt0 = realtime();
 
     int32_t round;
-    hl_t *hcm; /* hash-column-map */
+    /* hashes-to-columns map, initialized with length 1, is reallocated
+     * in each call when generating matrices for linear algebra */
+    hl_t *hcm = (hl_t *)malloc(sizeof(hl_t));
     /* matrix holding sparse information generated
      * during symbolic preprocessing */
-    dt_t **mat;
+    mat_t *mat  = (mat_t *)calloc(1, sizeof(mat_t));
 
-    ps_t * ps  = initialize_pairset();
+    ps_t * ps   = initialize_pairset();
 
     /* initialize stuff */
     stat_t *st  = initialize_statistics();
@@ -70,32 +72,36 @@ int64_t f4_julia(
      * some of the input data is corrupted. */
     if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                reset_hash_table, la_option, pbm_file, info_level)) {
-        return 0;
+                reset_ht, la_option, pbm_file, info_level)) {
+        return 1;
     }
     if (st->info_level > 0) {
         print_initial_statistics(st);
     }
 
-    initialize_basis(nr_gens);
-    initialize_basis_hash_table();
-    initialize_update_hash_table();
-    initialize_symbolic_hash_table();
+    /* initialize basis */
+    bs_t *bs  = initialize_basis(st->ngens);
+    /* initialize basis hash table, update hash table, symbolic hash table */
+    ht_t *bht = initialize_basis_hash_table(st);
+    ht_t *uht = initialize_secondary_hash_table(bht, st);
+    ht_t *sht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data_ff(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
-    calculate_divmask();
+    calculate_divmask(bht);
 
     /* sort initial elements, smallest lead term first */
-    qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
-            matrix_row_initial_input_cmp);
+    sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
+            initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis();
+    normalize_initial_basis(bs, st->fc);
 
+    /* reset bs->ld for first update process */
+    bs->ld  = 0;
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, st);
+    update_basis(ps, bs, bht, uht, st, st->ngens);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
@@ -107,34 +113,38 @@ int64_t f4_julia(
     }
     for (round = 1; ps->ld > 0; ++round) {
         if (round % st->reset_ht == 0) {
-            reset_basis_hash_table(ps, st);
+            reset_hash_table(bht, bs, ps, st);
         }
         rrt0  = realtime();
-        st->max_ht_size = st->max_ht_size > hsz ? st->max_ht_size : hsz;
+        st->max_bht_size  = st->max_bht_size > bht->hsz ?
+            st->max_bht_size : bht->hsz;
         st->current_rd  = round;
 
         /* preprocess data for next reduction round */
-        mat = select_spairs_by_minimal_degree(ps, mat, st);
-        mat = symbolic_preprocessing(mat, st);
-        hcm = convert_hashes_to_columns(mat, st);
-        mat = sort_matrix_rows(mat);
+        select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
+        symbolic_preprocessing(mat, bs, st, sht, bht);
+        convert_hashes_to_columns(&hcm, mat, st, sht);
+        sort_matrix_rows(mat);
         /* print pbm files of the matrices */
         if (st->gen_pbm_file != 0) {
             write_pbm_file(mat, st); 
         }
         /* linear algebra, depending on choice, see set_function_pointers() */
-        mat = linear_algebra(mat, st);
+        linear_algebra(mat, bs, st);
         /* columns indices are mapped back to exponent hashes */
-        if (npivs > 0) {
-            convert_sparse_matrix_rows_to_basis_elements(mat, hcm, st);
+        if (mat->np > 0) {
+            convert_sparse_matrix_rows_to_basis_elements(
+                    mat, bs, bht, sht, hcm, st);
         }
-        reset_symbolic_hash_table();
-        free(mat);
-        mat = NULL;
-        free(hcm);
-        hcm = NULL;
+        clean_hash_table(sht);
+        /* all rows in mat are now polynomials in the basis,
+         * so we do not need the rows anymore */
+        free(mat->r);
+        mat->r  = NULL;
+        free(mat->cf_ff);
+        mat->cf_ff  = NULL;
 
-        update_basis(ps, st);
+        update_basis(ps, bs, bht, uht, st, mat->np);
 
         rrt1 = realtime();
         if (st->info_level > 1) {
@@ -146,7 +156,7 @@ int64_t f4_julia(
 ----------------------------------------\n");
     }
 
-    st->len_output  = export_julia_data_ff(jl_basis);
+    st->len_output  = export_julia_data_ff(jl_basis, bs, bht);
     st->size_basis  = (*jl_basis)[0];
 
     /* timings */
@@ -160,15 +170,17 @@ int64_t f4_julia(
     }
 
     /* free and clean up */
-    free_symbolic_hash_table();
-    free_update_hash_table();
-    free_basis_hash_table();
+    free(hcm);
+    free_shared_hash_data(bht);
+    free_hash_table(&sht);
+    free_hash_table(&uht);
+    free_hash_table(&bht);
     free_pairset(&ps);
+    free_basis(&bs);
     /* note that all rows kept from mat during the overall computation are
      * basis elements and thus we do not need to free the rows itself, but
      * just the matrix structure */
     free(mat);
-    free_basis();
 
     int64_t output  = st->len_output;
     free(st);

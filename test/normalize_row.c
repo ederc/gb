@@ -10,7 +10,7 @@ int main(
     int32_t i;
 
     /* set some field characteristic */
-    fc  = 101;
+    int32_t fc  = 101;
 
     /* initialize row with 14 entries plus two meta data */
     int32_t *row  = (int32_t *)malloc(16 * sizeof(int32_t));
@@ -20,8 +20,8 @@ int main(
     for (i = 1; i < 16; ++i) {
         row[i]  = 300 - i;
     }
-    ncr = 16;
-    normalize_dense_matrix_row(row, 0);
+    len_t len = 16;
+    normalize_dense_matrix_row(row, len, fc);
     for (i=1; i < 16; ++i) {
         printf("%d | %d\n", i, row[i]);
     }

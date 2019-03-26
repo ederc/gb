@@ -22,40 +22,45 @@
 
 #include "data.h"
 
-static dt_t **select_spairs_by_minimal_degree(
+static void select_spairs_by_minimal_degree(
+        mat_t *mat,
+        const bs_t * const bs,
         ps_t *psl,
-        dt_t **mat,
-        stat_t *st
+        stat_t *st,
+        ht_t *sht,
+        ht_t *bht
         )
 {
     len_t i, j, k, l, md, nps, npd;
-    dt_t *b;
+    hm_t *b;
     deg_t d = 0;
     len_t load = 0;
     hl_t lcm;
     len_t *gens;
     exp_t *elcm, *eb;
+    exp_t *etmp = bht->ev[0];
 
     /* timings */
     double ct0, ct1, rt0, rt1;
     ct0 = cputime();
     rt0 = realtime();
 
-    spair_t *ps = psl->p;
+    spair_t *ps     = psl->p;
+    const len_t nv  = bht->nv;
 
     /* sort pair set */
-    qsort(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_degree_cmp);
+    sort_r(ps, (unsigned long)psl->ld, sizeof(spair_t), spair_degree_cmp, bht);
     /* get minimal degree */
-    md  = hd[ps[0].lcm].deg;
+    md  = bht->hd[ps[0].lcm].deg;
 
     /* select pairs of this degree respecting maximal selection size mnsel */
     for (i = 0; i < psl->ld; ++i) {
-        if (hd[ps[i].lcm].deg > md) {
+        if (bht->hd[ps[i].lcm].deg > md) {
             break;
         }
     }
     npd  = i;
-    qsort(ps, (unsigned long)npd, sizeof(spair_t), spair_cmp);
+    sort_r(ps, (unsigned long)npd, sizeof(spair_t), spair_cmp, bht);
     /* now do maximal selection if it applies */
     
     /* if we stopped due to maximal selection size we still get the following
@@ -79,15 +84,16 @@ static dt_t **select_spairs_by_minimal_degree(
     /* list for generators */
     gens  = (len_t *)malloc(2 * (unsigned long)nps * sizeof(len_t));
     /* preset matrix meta data */
-    mat   = (dt_t **)malloc(2 * (unsigned long)nps * sizeof(dt_t *));
-    nrall = 2 * nps;
-    ncols = ncl = ncr = 0;
-    nrows = 0;
+    mat->r  = (hm_t **)malloc(2 * (unsigned long)nps * sizeof(hm_t *));
+    hm_t **rows = mat->r;
+    mat->sz = 2 * nps;
+    mat->nc = mat->ncl = mat->ncr = 0;
+    mat->nr = 0;
 
     i = 0;
     while (i < nps) {
         /* ncols initially counts number of different lcms */
-        ncols++;
+        mat->nc++;
         load  = 0;
         lcm   = ps[i].lcm;
         j = i;
@@ -108,26 +114,24 @@ static dt_t **select_spairs_by_minimal_degree(
             prev  = gens[k];
             /* ev might change when enlarging the hash table during insertion of a new
              * row in the matrix, thus we have to reset elcm inside the for loop */
-            elcm  = ev[lcm];
-            d = 0;
-            b = gbdt[prev];
-            /* b = (hl_t *)((long)bs[gens[k]] & bmask); */
-            eb  = ev[b[3]];
-            /* m = monomial_division_no_check(lcm, b[2]); */
-            for (l = 0; l < nvars; ++l) {
+            elcm  = bht->ev[lcm];
+            d     = 0;
+            b     = bs->hm[prev];
+            eb    = bht->ev[b[3]];
+            for (l = 0; l < nv; ++l) {
                 etmp[l] = (exp_t)(elcm[l] - eb[l]);
                 d     +=  etmp[l];
             }
-            const hl_t h  = hd[lcm].val - hd[b[3]].val;
-            mat[nrows]    = multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+            const hl_t h  = bht->hd[lcm].val - bht->hd[b[3]].val;
+            rows[mat->nr] = multiplied_poly_to_matrix_row(sht, bht, h, d, etmp, b);
             /* mark lcm column as lead term column */
-            hds[mat[nrows][3]].idx = 2;
-            nrows++;
+            sht->hd[rows[mat->nr][3]].idx = 2;
+            mat->nr++;
         }
 
         i = j;
     }
-    st->num_rowsred +=  nrows - ncols;
+    st->num_rowsred +=  mat->nr - mat->nc;
     st->current_deg =   md;
 
     free(gens);
@@ -141,21 +145,30 @@ static dt_t **select_spairs_by_minimal_degree(
     rt1 = realtime();
     st->select_ctime  +=  ct1 - ct0;
     st->select_rtime  +=  rt1 - rt0;
-
-    return mat;
 }
 
-static inline dt_t *find_multiplied_reducer(
-        const dt_t m
+static inline hm_t *find_multiplied_reducer(
+        const bs_t * const bs,
+        const hm_t m,
+        const ht_t * const bht,
+        ht_t *sht
         )
 {
     len_t i, k;
-    const exp_t * const e  = evs[m];
+    const exp_t * const e  = sht->ev[m];
 
-    const hd_t hdm  = hds[m];
-    const len_t bl  = bload;
+    const hd_t hdm  = sht->hd[m];
+    const len_t bl  = bs->ld;
     const sdm_t ns  = ~hdm.sdm;
     const deg_t hdd = hdm.deg;
+
+    const len_t nv  = bht->nv;
+
+    const sdm_t * const lms = bs->lm;
+
+    exp_t *etmp = bht->ev[0];
+    const hd_t * const hdb  = bht->hd;
+    exp_t * const * const evb = bht->ev;
 
     i = 0;
 start:
@@ -163,34 +176,37 @@ start:
         i++;
     }
     if (i < bl) {
-        const dt_t *b = gbdt[i];
-        const deg_t d = hdd - hd[b[3]].deg;
+        const hm_t *b = bs->hm[i];
+        const deg_t d = hdd - hdb[b[3]].deg;
         if (d < 0) {
             i++;
             goto start;
         }
-        const exp_t * const f = ev[b[3]];
-        for (k=nvars-1; k >= 0; --k) {
+        const exp_t * const f = evb[b[3]];
+        for (k=nv-1; k >= 0; --k) {
             etmp[k] = (exp_t)(e[k]-f[k]);
             if (etmp[k] < 0) {
                 i++;
                 goto start;
             }
         }
-        const hl_t h  = hdm.val - hd[b[3]].val;
-        return multiplied_polynomial_to_matrix_row(h, d, etmp, b);
+        const hl_t h  = hdm.val - hdb[b[3]].val;
+        return multiplied_poly_to_matrix_row(sht, bht, h, d, etmp, b);
     } else {
         return NULL;
     }
 }
 
-static dt_t **symbolic_preprocessing(
-        dt_t **mat,
-        stat_t *st
+static void symbolic_preprocessing(
+        mat_t *mat,
+        const bs_t * const bs,
+        stat_t *st,
+        ht_t *sht,
+        const ht_t * const bht
         )
 {
     len_t i;
-    dt_t *red;
+    hm_t *red;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -203,50 +219,52 @@ static dt_t **symbolic_preprocessing(
      * we only have to do the bookkeeping for newly added reducers
      * in the following. */
 
-    const len_t oesld = esld;
+    const len_t oesld = sht->eld;
     i = 1;
     /* we only have to check if idx is set for the elements already set
      * when selecting spairs, afterwards (second for loop) we do not
      * have to do this check */
-    while (nrall <= nrows + oesld) {
-        nrall *=  2;
-        mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+    while (mat->sz <= mat->nr + oesld) {
+        mat->sz *=  2;
+        mat->r  =   realloc(mat->r, (unsigned long)mat->sz * sizeof(hm_t *));
     }
     for (; i < oesld; ++i) {
-        if (!hds[i].idx) {
-            hds[i].idx = 1;
-            ncols++;
-            red = find_multiplied_reducer(i);
+        if (!sht->hd[i].idx) {
+            sht->hd[i].idx = 1;
+            mat->nc++;
+            red = find_multiplied_reducer(bs, i, bht, sht);
             if (red) {
-                hds[i].idx = 2;
+                sht->hd[i].idx = 2;
                 /* add new reducer to matrix */
-                mat[nrows++]  = red;
+                mat->r[mat->nr++] = red;
             }
         }
     }
-    for (; i < esld; ++i) {
-        if (nrall == nrows) {
-            nrall *=  2;
-            mat   =   realloc(mat, (unsigned long)nrall * sizeof(dt_t *));
+    for (; i < sht->eld; ++i) {
+        if (mat->sz == mat->nr) {
+            mat->sz *=  2;
+            mat->r  =   realloc(mat->r, (unsigned long)mat->sz * sizeof(hm_t *));
         }
-        hds[i].idx = 1;
-        ncols++;
-        red = find_multiplied_reducer(i);
+        sht->hd[i].idx = 1;
+        mat->nc++;
+        red = find_multiplied_reducer(bs, i, bht, sht);
         if (red) {
-            hds[i].idx = 2;
+            sht->hd[i].idx = 2;
             /* add new reducer to matrix */
-            mat[nrows++]  = red;
+            mat->r[mat->nr++]  = red;
         }
     }
     /* realloc to real size */
-    mat   = realloc(mat, (unsigned long)nrows * sizeof(dt_t *));
-    nrall = nrows;
+    mat->r  = realloc(mat->r, (unsigned long)mat->nr * sizeof(hm_t *));
+    mat->sz = mat->nr;
+
+    /* statistics */
+    st->max_sht_size  = st->max_sht_size > sht->hsz ?
+        st->max_sht_size : sht->hsz;
 
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
     st->symbol_ctime  +=  ct1 - ct0;
     st->symbol_rtime  +=  rt1 - rt0;
-
-    return mat;
 }

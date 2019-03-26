@@ -33,43 +33,47 @@ int main(
         return 1;
     }
 
-    dt_t **mat;
+    /* matrix holding sparse information generated
+     * during symbolic preprocessing */
+    mat_t *mat  = (mat_t *)malloc(sizeof(mat_t));
 
     /* initialize stuff */
-    initialize_basis(nr_gens);
-    initialize_basis_hash_table();
-    initialize_update_hash_table();
-    initialize_symbolic_hash_table();
+    bs_t *bs  = initialize_basis_ff(st->ngens);
+    ht_t *bht = initialize_basis_hash_table(st);
+    ht_t *uht = initialize_secondary_hash_table(bht, st);
+    ht_t *sht = initialize_secondary_hash_table(bht, st);
 
-    if (hsz/husz != 32) {
-        return 1;
-    }
-
-    import_julia_data_ff(lens, cfs, exps, nr_gens);
+    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */
-    calculate_divmask();
+    calculate_divmask(bht);
 
     /* sort initial elements, smallest lead term first */
-    qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
-            matrix_row_initial_input_cmp);
+    sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
+            initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis();
+    normalize_initial_basis(bs, st->fc);
 
+    /* reset bs->ld for first update process */
+    bs->ld  = 0;
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, st);
+    update_basis(ps, bs, bht, uht, st, st->ngens);
 
-    mat = select_spairs_by_minimal_degree(ps, mat, st);
+    select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
 
     /* free and clean up */
-    free_update_hash_table();
-    free_basis_hash_table();
-    free_basis();
+    free_shared_hash_data(bht);
+    free_hash_table(&uht);
+    free_hash_table(&sht);
+    free_hash_table(&bht);
+    free_basis(&bs);
     free_pairset(&ps);
-    for (i = 0; i < nrows; ++i) {
-        free(mat[i]);
+    for (i = 0; i < mat->nr; ++i) {
+        free(mat->r[i]);
     }
+    free(mat->r);
     free(mat);
+    free(st);
     return 0;
 }

@@ -34,20 +34,21 @@ int main(
     }
 
     /* initialize stuff */
-    initialize_basis(nr_gens);
-    initialize_basis_hash_table();
-    initialize_update_hash_table();
+    bs_t *bs  = initialize_basis_ff(st->ngens);
+    ht_t *bht = initialize_basis_hash_table(st);
+    ht_t *uht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data_ff(lens, cfs, exps, nr_gens);
-    calculate_divmask();
+    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
+    calculate_divmask(bht);
     /* sort initial elements, smallest lead term first */
-    qsort(gbdt, (unsigned long)nrows, sizeof(dt_t *),
-            matrix_row_initial_input_cmp);
+    sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
+            initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis();
-
+    normalize_initial_basis(bs, st->fc);
+    /* reset bs->ld for first update process */
+    bs->ld  = 0;
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, st);
+    update_basis(ps, bs, bht, uht, st, st->ngens);
 
     if (ps->ld != 2) {
         printf("pload wrong - %d != 2\n", ps->ld);
@@ -62,8 +63,8 @@ int main(
         printf("ps[0].gen2 wrong - %d != 2\n", ps->p[0].gen2);
         return 1;
     }
-    if (hd[ps->p[0].lcm].deg != 2) {
-        printf("ps[0].lcm.deg wrong - %d != 2\n", hd[ps->p[0].lcm].deg);
+    if (bht->hd[ps->p[0].lcm].deg != 2) {
+        printf("ps[0].lcm.deg wrong - %d != 2\n", bht->hd[ps->p[0].lcm].deg);
         return 1;
     }
 
@@ -75,15 +76,17 @@ int main(
         printf("ps[1].gen2 wrong - %d != 2\n", ps->p[1].gen2);
         return 1;
     }
-    if (hd[ps->p[1].lcm].deg != 3) {
-        printf("ps[1].lcm.deg wrong - %d != 3\n", hd[ps->p[1].lcm].deg);
+    if (bht->hd[ps->p[1].lcm].deg != 3) {
+        printf("ps[1].lcm.deg wrong - %d != 3\n", bht->hd[ps->p[1].lcm].deg);
         return 1;
     }
 
     /* free and clean up */
-    free_update_hash_table();
-    free_basis_hash_table();
+    free_shared_hash_data(bht);
+    free_hash_table(&uht);
+    free_hash_table(&bht);
     free_pairset(&ps);
-    free_basis();
+    free_basis(&bs);
+    free(st);
     return 0;
 }

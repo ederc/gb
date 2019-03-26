@@ -27,41 +27,7 @@ static stat_t *initialize_statistics(
     void
     )
 {
-    stat_t *st  = (stat_t *)malloc(sizeof(stat_t));
-
-    st->round_ctime   = 0;
-	  st->select_ctime  = 0;
-    st->symbol_ctime  = 0;
-    st->la_ctime      = 0;
-    st->update_ctime  = 0;
-    st->convert_ctime = 0;
-    st->overall_ctime = 0;
-    st->rht_ctime     = 0;
-
-    st->round_rtime   = 0;
-    st->select_rtime  = 0;
-    st->symbol_rtime  = 0;
-    st->la_rtime      = 0;
-    st->update_rtime  = 0;
-    st->convert_rtime = 0;
-    st->overall_rtime = 0;
-    st->rht_rtime     = 0;
-
-    st->num_pairsred  = 0;
-    st->num_gb_crit   = 0;
-    st->num_redundant = 0;
-    st->num_rowsred   = 0;
-    st->num_zerored   = 0;
-
-    st->reset_ht      = 0;
-    st->current_rd    = 0;
-    st->current_deg   = 0;
-    st->max_ht_size   = 0;
-    st->len_output    = 0;
-    st->size_basis    = 0;
-
-    st->info_level    = 0;
-    st->gen_pbm_file  = 0;
+    stat_t *st  = (stat_t *)calloc(1, sizeof(stat_t));
 
     return st;
 }
@@ -72,16 +38,16 @@ static void print_initial_statistics(
 {
 
     printf("\n--------------- INPUT DATA ---------------\n");
-    printf("#variables             %11d\n", nvars);
-    printf("#equations             %11d\n", ngens);
-    printf("field characteristic   %11d\n", fc);
-    if (mo == 0) {
+    printf("#variables             %11d\n", st->nvars);
+    printf("#equations             %11d\n", st->ngens);
+    printf("field characteristic   %11d\n", st->fc);
+    if (st->mo == 0) {
         printf("monomial order                 DRL\n");
     }
-    if (mo == 1) {
+    if (st->mo == 1) {
         printf("monomial order                 LEX\n");
     }
-    if ((mo != 0) && (mo != 1)) {
+    if ((st->mo != 0) && (st->mo != 1)) {
         printf("monomial order           DONT KNOW\n");
     }
     if (st->reset_ht == 2147483647) {
@@ -89,22 +55,22 @@ static void print_initial_statistics(
     } else {
         printf("basis hash table resetting  %6d\n", st->reset_ht);
     }
-    printf("linear algebra option  %11d\n", laopt);
+    printf("linear algebra option  %11d\n", st->laopt);
     printf("intial hash table size %11d (2^%d)\n",
-            (int32_t)pow(2,htes), htes);
-    if (mnsel == 2147483647) {
+            (int32_t)pow(2,st->init_hts), st->init_hts);
+    if (st->mnsel == 2147483647) {
         printf("max pair selection             ALL\n");
     } else {
-        printf("max pair selection     %11d\n", mnsel);
+        printf("max pair selection     %11d\n", st->mnsel);
     }
-    printf("#threads               %11d\n", nthrds);
+    printf("#threads               %11d\n", st->nthrds);
     printf("info level             %11d\n", st->info_level);
     printf("generate pbm files     %11d\n", st->gen_pbm_file);
     printf("------------------------------------------\n");
 }
 
 static void print_final_statistics(
-        const stat_t *st
+        const stat_t * const st
         )
 {
     printf("\n---------------- TIMINGS ---------------\n");
@@ -140,17 +106,17 @@ static void print_final_statistics(
     printf("\n---------- COMPUTATIONAL DATA -----------\n");
     printf("size of basis      %9d\n", st->size_basis);
     printf("#terms in basis    %9ld\n",
-            (st->len_output-st->size_basis-1)/(1+nvars));
+            (st->len_output-st->size_basis-1)/(1+st->nvars));
     printf("#pairs reduced     %9ld\n", st->num_pairsred);
     printf("#GM criterion      %9ld\n", st->num_gb_crit);
     printf("#redundant         %9ld\n", st->num_redundant);
     printf("#rows reduced      %9ld\n", st->num_rowsred);
     printf("#zero reductions   %9ld\n", st->num_zerored);
-    printf("#global hash table %9d <= 2^%d\n",
-            eld, (int32_t)((ceil(log(eld)/log(2)))));
-    printf("#update hash table %9d <= 2^%d\n",
-            euld, (int32_t)(ceil(log(euld)/log(2))));
-    printf("maximal ht size         2^%d\n",
-            (int32_t)(ceil(log((double)st->max_ht_size)/log(2))));
+    printf("maximal uht size           2^%d\n",
+            (int32_t)(ceil(log((double)st->max_uht_size)/log(2))));
+    printf("maximal sht size           2^%d\n",
+            (int32_t)(ceil(log((double)st->max_sht_size)/log(2))));
+    printf("maximal bht size           2^%d\n",
+            (int32_t)(ceil(log((double)st->max_bht_size)/log(2))));
     printf("-----------------------------------------\n\n");
 }

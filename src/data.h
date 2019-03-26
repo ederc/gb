@@ -42,12 +42,17 @@
  * #endif */
 
 #define ORDER_COLUMNS 1
+/* loop unrolling in sparse linear algebra:
+ * we store the offset of the first elements not unrolled
+ * in the second entry of the sparse row resp. sparse polynomial. */
+#define UNROLL  4
+
 
 /* computational data */
 typedef int32_t cf32_t;     /* coefficient type */
 typedef int32_t val_t;    /* core values like hashes */
 typedef val_t hl_t;       /* length of hash table */
-typedef hl_t dt_t;        /* data type for other polynomial informatio */
+typedef hl_t hm_t;        /* hashed monomials for polynomial entries */
 /* like exponent hashes, etc. */
 typedef int32_t ind_t;    /* index in hash table structure */
 typedef int32_t sdm_t;    /* short divmask for faster divisibility checks */
@@ -79,39 +84,62 @@ struct ht_t
     hl_t esz;     /* size of exponent vector */
     hl_t hsz;     /* size of hash map */
     len_t nv;     /* number of variables */
-    sdm_t dm;     /* divisor map for divisibility checks */
+    sdm_t *dm;    /* divisor map for divisibility checks */
     len_t ndv;    /* number of variables for divmask */
     len_t bpv;    /* bits per variable in divmask */
     val_t *rn;    /* random numbers for hash generation */
+    uint32_t rsd; /* seed for random number generator */
 };
-/* basis hash table data */
-static /* __thread */ hl_t *hmap   = NULL; /* global hash map */
-static /* __thread */ hl_t hsz     = 0;
-static /* __thread */ exp_t **ev   = NULL; /* exponents from global hash table */
-static /* __thread */ hd_t *hd     = NULL;
-static /* __thread */ hl_t eld     = 0;
-static /* __thread */ hl_t esz     = 0;
 
-/* update hash table data */
-static /* __thread */ hl_t *humap  = NULL; /* local hash map */
-static /* __thread */ hl_t husz    = 0;
-static /* __thread */ exp_t **evu  = NULL; /* exponents from local hash table */
-static /* __thread */ hd_t *hdu    = NULL;
-static /* __thread */ hl_t euld    = 0;
-static /* __thread */ hl_t eusz    = 0;
+/* S-pair types */
+typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
+typedef struct spair_t spair_t;
+struct spair_t
+{
+    hl_t lcm;
+    bi_t gen1;
+    bi_t gen2;
+    spt_t type;
+};
 
-/* symbolic hash table data */
-static /* __thread */ hl_t *hmaps  = NULL; /* local hash map */
-static /* __thread */ hl_t hssz    = 0;
-static /* __thread */ exp_t **evs  = NULL; /* exponents from local hash table */
-static /* __thread */ hd_t *hds    = NULL;
-static /* __thread */ hl_t esld    = 0;
-static /* __thread */ hl_t essz    = 0;
+typedef struct ps_t ps_t;
+struct ps_t
+{
+    len_t ld;
+    len_t sz;
+    len_t mnsel;  /* maximal number of pairs selected */
+    spair_t *p;
+};
 
-static /* __thread */ len_t htes   = 0;  /* hash table exponent at start */
-static /* __thread */ len_t nvars  = 0; /* number of variables */
-static /* __thread */ len_t bpv    = 0; /* bits per variable in divmask */
-static /* __thread */ len_t ndvars = 0; /* number of variables for divmask */
+typedef struct bs_t bs_t;
+struct bs_t
+{
+    bl_t ld;        /* load of basis */
+    bl_t sz;        /* size allocated for basis */
+    bl_t lo;        /* load before current update */
+    sdm_t *lm;      /* lead monomials as short divmask */
+    int8_t *red;    /* tracks redundancy of basis elements */
+    hm_t **hm;      /* hashed monomials representing exponents */
+    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
+    mpz_t **cf_q;   /* coefficients for rationals */
+};
+
+typedef struct mat_t mat_t;
+struct mat_t
+{
+    hm_t **r;       /* rows of the matrix, only column entries, coefficients */
+                    /* are handled via linking to coefficient arrays */
+    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
+    mpz_t **cf_q;   /* coefficients for rationals */
+    len_t sz;       /* number of rows allocated resp. size */
+    len_t np;       /* number of new pivots */
+    len_t nr;       /* number of rows set */
+    len_t nc;       /* number of columns */
+    len_t nru;      /* number of upper rows (in ABCD splicing) */
+    len_t nrl;      /* number of lower rows (in ABCD splicing) */
+    len_t ncl;      /* number of left columns (in ABCD splicing) */
+    len_t ncr;      /* number of right columns (in ABCD splicing) */
+};
 
 /* statistic stuff */
 typedef struct stat_t stat_t;
@@ -141,10 +169,20 @@ struct stat_t
     int64_t num_rowsred;
     int64_t num_zerored;
 
+    int32_t ngens;
+    int32_t nvars;
+    int32_t mnsel;
+    int32_t fc;
+    int32_t mo;
+    int32_t laopt;
+    int32_t init_hts;
+    int32_t nthrds;
     int32_t reset_ht;
     int32_t current_rd;
     int32_t current_deg;
-    int64_t max_ht_size;
+    int64_t max_bht_size;
+    int64_t max_sht_size;
+    int64_t max_uht_size;
     int64_t len_output;
     int32_t size_basis;
 
@@ -152,165 +190,87 @@ struct stat_t
     int32_t gen_pbm_file;
 };
 
-/* random values for generating hash values */
-static /* __thread */ val_t *rv  = NULL;
-
-/* divisor map for short divisibility tests */
-static /* __thread */ sdm_t *dm  = NULL;
-
-/* pseudo random number generator for hash value
- * generation */
-uint32_t rseed  = 2463534242;
-
-/* temporary exponent vector for diffrerent situations */
-exp_t *etmp     = NULL;
-
-/* S-pair types */
-typedef enum {S_PAIR, GCD_PAIR, GEN_PAIR} spt_t;
-typedef struct spair_t spair_t;
-struct spair_t
-{
-    hl_t lcm;
-    bi_t gen1;
-    bi_t gen2;
-    spt_t type;
-};
-
-typedef struct ps_t ps_t;
-struct ps_t
-{
-    len_t ld;
-    len_t sz;
-    len_t mnsel;  /* maximal number of pairs selected */
-    spair_t *p;
-};
-
-/* monomial order - until we have general orders:
- * 0 = DRL
- * 1 = LEX */
-static /* __thread */ val_t mo = 0;
-
-/* field characteristic */
-static /* __thread */ cf32_t fc = 0;
-
-/* number generators */
-static /* __thread */ int32_t ngens  = 0;
-
-/* maximum number of spair selection */
-static /* __thread */ int32_t mnsel = 0;
-/* basis data */
-
-/* finite field coefficient arrays */
-static /* __thread */ cf32_t **gbcf_ff  = NULL;
-static /* __thread */ cf32_t **tmpcf_ff = NULL;
-
-/* rationals coefficient arrays */
-static /* __thread */ mpz_t **gbcf_q   = NULL;
-static /* __thread */ mpz_t **tmpcf_q  = NULL;
-
-static /* __thread */ dt_t **gbdt  = NULL;
-static /* __thread */ int8_t *red  = NULL;
-static /* __thread */ bl_t blold   = 0;
-static /* __thread */ bl_t bload   = 0;
-static /* __thread */ bl_t bsize   = 0;
-
-/* lead monomials of all basis elements */
-static /* __thread */ sdm_t *lms = NULL;
-
-static /* __thread */ const long bred  = (long)1;  /* maRking redundant elements */
-static /* __thread */ const long bmask = ~(long)1; /* maSking redundant elements */
-
-/* matrix data */
-static /* __thread */ len_t nrall  = 0; /* allocated rows for matrix */
-static /* __thread */ len_t npivs  = 0; /* new pivots in the current round */
-static /* __thread */ len_t nrows  = 0; /* rows used in the current round */
-static /* __thread */ len_t ncols  = 0; /* columns used in the current round */
-static /* __thread */ len_t nru    = 0; /* number of upper rows (in ABCD splicing) */
-static /* __thread */ len_t nrl    = 0; /* number of lower rows (in ABCD splicing) */
-static /* __thread */ len_t ncl    = 0; /* number of lefthand columns(in ABCD splicing) */
-static /* __thread */ len_t ncr    = 0; /* number of righthand columns(in ABCD splicing) */
-
-/* loop unrolling in sparse linear algebra:
- * we store the offset of the first elements not unrolled
- * in the second entry of the sparse row resp. sparse polynomial. */
-#define UNROLL  4
-
-/* threads data */
-static /* __thread */ int32_t nthrds = 1; /* number of CPU threads */
-
-/* linear algebra options */
-static /* __thread */ int32_t laopt  = 0;
-
 /* function pointers */
-void (*initialize_basis)(
-        int32_t ngens
+bs_t *(*initialize_basis)(
+        const int32_t ngens
         );
 void (*check_enlarge_basis)(
-        len_t added
-        );
-void (*free_basis)(
-        void
+        bs_t *bs,
+        const len_t added
         );
 
 void (*normalize_initial_basis)(
-        void
+        bs_t *bs,
+        const int32_t fc
         );
 
-int (*matrix_row_initial_input_cmp)(
+int (*initial_input_cmp)(
         const void *a,
-        const void *b
+        const void *b,
+        void *ht
         );
 
 int (*monomial_cmp)(
         const hl_t a,
-        const hl_t b
-        );
-
-int (*monomial_update_cmp)(
-        const hl_t a,
-        const hl_t b
+        const hl_t b,
+        const ht_t *ht
         );
 
 int (*spair_cmp)(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         );
 
 int (*hcm_cmp)(
         const void *a,
-        const void *b
+        const void *b,
+        void *htp
         );
 
 /* linear algebra routines */
-dt_t **(*linear_algebra)(
-        dt_t **mat,
+void (*linear_algebra)(
+        mat_t *mat,
+        const bs_t * const bs,
         stat_t *st
         );
 
-cf32_t *(*reduce_dense_row_by_known_pivots)(
+cf32_t *(*reduce_dense_row_by_old_pivots)(
         int64_t *dr,
-        dt_t *const *pivs,
-        const hl_t dpiv
+        mat_t *mat,
+        const bs_t * const bs,
+        hm_t * const * const pivs,
+        const hl_t dpiv,
+        const int32_t fc
         );
 
-dt_t *(*reduce_dense_row_by_known_pivots_sparse)(
+hm_t *(*reduce_dense_row_by_known_pivots_sparse)(
         int64_t *dr,
-        dt_t *const *pivs,
+        mat_t *mat,
+        const bs_t * const bs,
+        hm_t *const *pivs,
         const hl_t dpiv,
-        const dt_t tmp_pos
+        const hm_t tmp_pos,
+        const int32_t fc
         );
 
 cf32_t *(*reduce_dense_row_by_all_pivots)(
         int64_t *dr,
+        mat_t *mat,
+        const bs_t * const bs,
         len_t *pc,
-        dt_t *const *pivs,
-        cf32_t *const *dpivs
+        hm_t *const *pivs,
+        cf32_t *const *dpivs,
+        const int32_t fc
         );
+
 
 cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
         int64_t *dr,
         len_t *pc,
-        cf32_t *const *pivs
+        cf32_t * const * const pivs,
+        const len_t ncr,
+        const int32_t fc
         );
 
 /* -----------------------------------

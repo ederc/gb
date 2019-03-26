@@ -65,6 +65,9 @@ static void free_pairset(
 
 static void insert_and_update_spairs(
         ps_t *psl,
+        bs_t *bs,
+        ht_t *bht,
+        ht_t *uht,
         stat_t *st
         )
 {
@@ -73,27 +76,32 @@ static void insert_and_update_spairs(
     spair_t *ps = psl->p;
 
     const len_t pl  = psl->ld;
-    const len_t bl  = bload;
+    const len_t bl  = bs->ld;
 
-    const dt_t nch = gbdt[bl][3];
+    const hm_t nch = bs->hm[bl][3];
 
-    reset_update_hash_table(bl);
+    reinitialize_hash_table(uht, bl);
+    /* statistics */
+    st->max_uht_size  = st->max_uht_size > uht->hsz ?
+        st->max_uht_size : uht->hsz;
 
-    lms[bl] = hd[nch].sdm;
+    const hd_t * const hd = bht->hd;
+    hd_t *hdu = uht->hd;
 
-    for (i = blold; i < bl; ++i) {
-        if (red[i]) {
+    bs->lm[bl] = hd[nch].sdm;
+
+    for (i = bs->lo; i < bl; ++i) {
+        if (bs->red[i]) {
             continue;
         }
-        if (check_monomial_division(nch, gbdt[i][3])) {
+        if (check_monomial_division(nch, bs->hm[i][3], bht)) {
             /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
             ps[pl].gen1 = i;
             ps[pl].gen2 = bl;
-            ps[pl].lcm  = get_lcm(gbdt[i][3], nch);
-            ps[pl].lcm  = insert_in_basis_hash_table(evu[ps[pl].lcm]);
-            red[bl]     = 1;
+            ps[pl].lcm  = get_lcm(bs->hm[i][3], nch, bht, bht);
+            bs->red[bl] = 1;
             st->num_redundant++;
-            bload++;
+            bs->ld++;
             psl->ld++;
             return;
         }
@@ -105,7 +113,7 @@ static void insert_and_update_spairs(
     for (i = 0, k = pl; i < bl; ++i, ++k) {
         ps[k].gen1  = i;
         ps[k].gen2  = bl;
-        ps[k].lcm   = get_lcm(gbdt[i][3], nch);
+        ps[k].lcm   = get_lcm(bs->hm[i][3], nch, bht, uht);
         plcm[i]     = ps[k].lcm;
     }
 
@@ -115,9 +123,9 @@ static void insert_and_update_spairs(
     for (i = 0; i < pl; ++i) {
         j = ps[i].gen1;
         l = ps[i].gen2;
-        if (check_monomial_division(ps[i].lcm, nch)
-                && plcm[j] >= 0 && hd[ps[i].lcm].val != hdu[plcm[j]].val
-                && plcm[l] >= 0 && hd[ps[i].lcm].val != hdu[plcm[l]].val
+        if (check_monomial_division(ps[i].lcm, nch, bht)
+                && hd[ps[i].lcm].val != hdu[plcm[j]].val
+                && hd[ps[i].lcm].val != hdu[plcm[l]].val
            ) {
             ps[i].lcm = -1;
         }
@@ -126,12 +134,12 @@ static void insert_and_update_spairs(
     spair_t *pp = ps+pl;
     j = 0;
     for (i = 0; i < bl; ++i) {
-        if (red[i] == 0) {
+        if (bs->red[i] == 0) {
             pp[j++] = pp[i];
         }
     }
     /* sort new pairs by increasing lcm, earlier polys coming first */
-    qsort(pp, (unsigned long)j, sizeof(spair_t), &spair_update_cmp);
+    sort_r(pp, (unsigned long)j, sizeof(spair_t), spair_cmp, uht);
     for (i = 0; i < j; ++i) {
         plcm[i] = pp[i].lcm;
     }
@@ -144,7 +152,7 @@ static void insert_and_update_spairs(
             continue;
         }
         const hl_t plcmj = plcm[j];
-        check_monomial_division_update(plcm, j, pc, plcmj);
+        check_monomial_division_in_update(plcm, j, pc, plcmj, uht);
     }
 
     /* remove useless pairs from pairset */
@@ -156,30 +164,34 @@ static void insert_and_update_spairs(
         }
         ps[j++] = ps[i];
     }
-    if (esz - eld <= pc) {
-        enlarge_basis_hash_table();
+    if (bht->esz - bht->eld <= pc) {
+        enlarge_hash_table(bht);
     }
     /* new pairs, wee need to add the lcm to the basis hash table */
-    insert_in_basis_hash_table_plcms(psl, pp, j, pc, plcm);
+    insert_plcms_in_basis_hash_table(psl, pp, bht, uht, bs, plcm, j, pc);
     free(plcm);
     st->num_gb_crit +=  nl - psl->ld;
 
     /* mark redundant elements in basis */
     for (i = 0; i < bl; ++i) {
-        if (red[i]) {
+        if (bs->red[i]) {
             continue;
         }
-        if (check_monomial_division(gbdt[i][3], nch)) {
-            red[i]  = 1;
+        if (check_monomial_division(bs->hm[i][3], nch, bht)) {
+            bs->red[i]  = 1;
             st->num_redundant++;
         }
     }
-    bload++;
+    bs->ld++;
 }
 
 static void update_basis(
         ps_t *ps,
-        stat_t *st
+        bs_t *bs,
+        ht_t *bht,
+        ht_t *uht,
+        stat_t *st,
+        const len_t npivs
         )
 {
     len_t i;
@@ -189,20 +201,18 @@ static void update_basis(
     ct0 = cputime();
     rt0 = realtime();
 
-    check_enlarge_basis(npivs);
-
     /* compute number of new pairs we need to handle at most */
-    len_t np  = bload * npivs;
+    len_t np  = bs->ld * npivs;
     for (i = 1; i < npivs; ++i) {
         np  = np + i;
     }
     check_enlarge_pairset(ps, np);
 
     for (i = 0; i < npivs; ++i) {
-        insert_and_update_spairs(ps, st);
+        insert_and_update_spairs(ps, bs, bht, uht, st);
     }
 
-    blold = bload;
+    bs->lo  = bs->ld;
 
     /* timings */
     ct1 = cputime();

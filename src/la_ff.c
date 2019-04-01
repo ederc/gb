@@ -484,7 +484,7 @@ static cf32_t *reduce_dense_row_by_all_pivots_31_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, np-ncl, fc);
+        row = normalize_dense_matrix_row(row, ncols-np, fc);
     }
 
     *pc = np - ncl;

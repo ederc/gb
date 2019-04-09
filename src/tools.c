@@ -45,6 +45,11 @@ static inline int32_t mod_p_inverse_32(
         d = f;
     }
 
+    if (a != 1) {
+        printf("not invertible %d module %d\n", val, p);
+        exit(1);
+    }
+
     /* if d < 0 we shift correspondingly */
     d +=  (d >> 31) & p;
 

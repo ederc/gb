@@ -47,6 +47,20 @@
  * in the second entry of the sparse row resp. sparse polynomial. */
 #define UNROLL  4
 
+void abort(void);
+
+void (*abort_func)(void) = abort;
+
+void set_abort(void (*func)(void))
+{
+  abort_func = func;
+}
+
+
+void _abort()
+{
+    (*abort_func)();
+}
 
 /* computational data */
 typedef int32_t cf32_t;     /* coefficient type */

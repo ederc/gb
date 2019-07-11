@@ -48,6 +48,8 @@ static void free_basis(
         free(bs->hm);
         bs->hm  = NULL;
     }
+    free(bs->lmps);
+    bs->lmps  = NULL;
     free(bs->lm);
     bs->lm  = NULL;
     free(bs->red);
@@ -65,12 +67,14 @@ static bs_t *initialize_basis_ff(
     bs_t *bs  = (bs_t *)malloc(sizeof(bs_t));
     bs->lo  = 0;
     bs->ld  = 0;
+    bs->lml = 0;
     bs->sz  = 2*ngens;
 
     bs->cf_ff = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
     bs->cf_q  = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
+    bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));
     bs->red   = (int8_t *)calloc((unsigned long)bs->sz, sizeof(int8_t));
 
     return bs;
@@ -87,6 +91,7 @@ static inline void check_enlarge_basis_ff(
                 (unsigned long)bs->sz * sizeof(cf32_t *));
         bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
+        bs->lmps  = realloc(bs->lmps, (unsigned long)bs->sz * sizeof(bl_t));
         bs->red   = realloc(bs->red, (unsigned long)bs->sz * sizeof(int8_t));
         memset(bs->red+bs->ld, 0,
                 (unsigned long)(bs->sz-bs->ld) * sizeof(int8_t));
@@ -142,12 +147,14 @@ static bs_t *initialize_basis_q(
     bs_t *bs  = (bs_t *)malloc(sizeof(bs_t));
     bs->lo  = 0;
     bs->ld  = 0;
+    bs->lml = 0;
     bs->sz  = 2*ngens;
 
     bs->cf_q  = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
     bs->cf_ff = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
+    bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));
     bs->red   = (int8_t *)calloc((unsigned long)bs->sz, sizeof(int8_t));
 
     return bs;
@@ -164,6 +171,7 @@ static inline void check_enlarge_basis_q(
                 (unsigned long)bs->sz * sizeof(mpz_t *));
         bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
+        bs->lmps  = realloc(bs->lmps, (unsigned long)bs->sz * sizeof(bl_t));
         bs->red   = realloc(bs->red, (unsigned long)bs->sz * sizeof(int8_t));
         memset(bs->red+bs->ld, 0,
                 (unsigned long)(bs->sz-bs->ld) * sizeof(int8_t));

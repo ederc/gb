@@ -88,8 +88,6 @@ static void insert_and_update_spairs(
     const hd_t * const hd = bht->hd;
     hd_t *hdu = uht->hd;
 
-    bs->lm[bl] = hd[nch].sdm;
-
     for (i = bs->lo; i < bl; ++i) {
         if (bs->red[i]) {
             continue;
@@ -212,6 +210,19 @@ static void update_basis(
         insert_and_update_spairs(ps, bs, bht, uht, st);
     }
 
+    bs->lml = (bl_t)(bs->ld - st->num_redundant);
+    bs->lm  = realloc(bs->lm, (unsigned long)(bs->lml) * sizeof(sdm_t));
+    bs->lmps = realloc(bs->lmps, (unsigned long)(bs->lml) * sizeof(bl_t));
+
+    len_t k = 0;
+    for (i = 0; i < bs->ld; ++i) {
+        if (bs->red[i] == 0) {
+            bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
+            bs->lmps[k] = i;
+            k++;
+        }
+    }
+    bs->lml = (bl_t)(bs->ld - st->num_redundant);
     bs->lo  = bs->ld;
 
     /* timings */

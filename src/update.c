@@ -210,13 +210,18 @@ static void update_basis(
         insert_and_update_spairs(ps, bs, bht, uht, st);
     }
 
-    bs->lml = (bl_t)(bs->ld - st->num_redundant);
-    bs->lm  = realloc(bs->lm, (unsigned long)(bs->lml) * sizeof(sdm_t));
-    bs->lmps = realloc(bs->lmps, (unsigned long)(bs->lml) * sizeof(bl_t));
-
     len_t k = 0;
-    for (i = 0; i < bs->ld; ++i) {
-        if (bs->red[i] == 0) {
+    if (st->num_redundant_old < st->num_redundant) {
+        for (i = 0; i < bs->ld; ++i) {
+            if (bs->red[i] == 0) {
+                bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
+                bs->lmps[k] = i;
+                k++;
+            }
+        }
+    } else {
+        k = bs->lml;
+        for (i = bs->lo; i < bs->ld; ++i) {
             bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
             bs->lmps[k] = i;
             k++;
@@ -224,6 +229,8 @@ static void update_basis(
     }
     bs->lml = (bl_t)(bs->ld - st->num_redundant);
     bs->lo  = bs->ld;
+
+    st->num_redundant_old = st->num_redundant;
 
     /* timings */
     ct1 = cputime();

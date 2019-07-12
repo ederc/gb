@@ -117,7 +117,10 @@ struct bs_t
     bl_t ld;        /* load of basis */
     bl_t sz;        /* size allocated for basis */
     bl_t lo;        /* load before current update */
+    bl_t *lmps;     /* lead monomials as short divmask */
     sdm_t *lm;      /* lead monomials as short divmask */
+    bl_t lml;       /* number of lead monomials of non redundant
+                       elements in basis */
     int8_t *red;    /* tracks redundancy of basis elements */
     hm_t **hm;      /* hashed monomials representing exponents */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
@@ -165,6 +168,7 @@ struct stat_t
 
     int64_t num_pairsred;
     int64_t num_gb_crit;
+    int64_t num_redundant_old;
     int64_t num_redundant;
     int64_t num_rowsred;
     int64_t num_zerored;

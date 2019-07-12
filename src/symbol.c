@@ -158,13 +158,14 @@ static inline hm_t *find_multiplied_reducer(
     const exp_t * const e  = sht->ev[m];
 
     const hd_t hdm  = sht->hd[m];
-    const len_t bl  = bs->ld;
+    const len_t lml  = bs->lml;
     const sdm_t ns  = ~hdm.sdm;
     const deg_t hdd = hdm.deg;
 
     const len_t nv  = bht->nv;
 
     const sdm_t * const lms = bs->lm;
+    const bl_t * const lmps = bs->lmps;
 
     exp_t *etmp = bht->ev[0];
     const hd_t * const hdb  = bht->hd;
@@ -172,11 +173,11 @@ static inline hm_t *find_multiplied_reducer(
 
     i = 0;
 start:
-    while (i < bl && lms[i] & ns) {
+    while (i < lml && lms[i] & ns) {
         i++;
     }
-    if (i < bl) {
-        const hm_t *b = bs->hm[i];
+    if (i < lml) {
+        const hm_t *b = bs->hm[lmps[i]];
         const deg_t d = hdd - hdb[b[3]].deg;
         if (d < 0) {
             i++;

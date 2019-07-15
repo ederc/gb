@@ -110,12 +110,11 @@ static void insert_and_update_spairs(
 
     /* create all possible new pairs */
     for (i = 0; i < bl; ++i) {
+        plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
         if (bs->red[i] == 0) {
             pp[i].gen1  = i;
             pp[i].gen2  = bl;
-            plcm[i]     = pp[i].lcm = get_lcm(bs->hm[i][3], nch, bht, uht);
-        } else {
-            plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
+            pp[i].lcm   = plcm[i];
         }
     }
 
@@ -176,18 +175,6 @@ static void insert_and_update_spairs(
     free(plcm);
     st->num_gb_crit +=  nl - psl->ld;
 
-    /* mark redundant elements in basis */
-#pragma omp parallel for num_threads(st->nthrds) \
-    private(i)
-    for (i = 0; i < bl; ++i) {
-        if (bs->red[i]) {
-            continue;
-        }
-        if (check_monomial_division(bs->hm[i][3], nch, bht)) {
-            bs->red[i]  = 1;
-            st->num_redundant++;
-        }
-    }
     bs->ld++;
 }
 
@@ -200,7 +187,7 @@ static void update_basis(
         const len_t npivs
         )
 {
-    len_t i;
+    len_t i, j;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -218,24 +205,47 @@ static void update_basis(
         insert_and_update_spairs(ps, bs, bht, uht, st);
     }
 
+    const bl_t lml         = bs->lml;
+    const bl_t * const lmps = bs->lmps;
+    /* mark redundant elements in basis */
+    for (i = 0; i < lml; ++i) {
+      for (j = bs->lo; j < bs->ld; ++j) {
+        if (check_monomial_division(bs->hm[lmps[i]][3], bs->hm[j][3], bht)) {
+          bs->red[lmps[i]]  = 1;
+          st->num_redundant++;
+          break;
+        }
+      }
+    }
+
     len_t k = 0;
     if (st->num_redundant_old < st->num_redundant) {
-        for (i = 0; i < bs->ld; ++i) {
-            if (bs->red[i] == 0) {
-                bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
-                bs->lmps[k] = i;
+        const sdm_t *lms  = bs->lm;
+        for (i = 0; i < lml; ++i) {
+            if (bs->red[lmps[i]] == 0) {
+                bs->lm[k]   = lms[i];
+                bs->lmps[k] = lmps[i];
                 k++;
             }
+        }
+        for (i = bs->lo; i < bs->ld; ++i) {
+          if (bs->red[i] == 0) {
+            bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
+            bs->lmps[k] = i;
+            k++;
+          }
         }
     } else {
         k = bs->lml;
         for (i = bs->lo; i < bs->ld; ++i) {
+          if (bs->red[i] == 0) {
             bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
             bs->lmps[k] = i;
             k++;
+          }
         }
     }
-    bs->lml = (bl_t)(bs->ld - st->num_redundant);
+    bs->lml = k;
     bs->lo  = bs->ld;
 
     st->num_redundant_old = st->num_redundant;

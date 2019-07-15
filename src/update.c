@@ -71,7 +71,7 @@ static void insert_and_update_spairs(
         stat_t *st
         )
 {
-    len_t i, j, k, l;
+    len_t i, j, l;
 
     spair_t *ps = psl->p;
 
@@ -106,18 +106,24 @@ static void insert_and_update_spairs(
     }
 
     hl_t *plcm  = (hl_t *)malloc((unsigned long)(bl+1) * sizeof(hl_t));
+    spair_t *pp = ps+pl;
 
     /* create all possible new pairs */
-    for (i = 0, k = pl; i < bl; ++i, ++k) {
-        ps[k].gen1  = i;
-        ps[k].gen2  = bl;
-        ps[k].lcm   = get_lcm(bs->hm[i][3], nch, bht, uht);
-        plcm[i]     = ps[k].lcm;
+    for (i = 0; i < bl; ++i) {
+        if (bs->red[i] == 0) {
+            pp[i].gen1  = i;
+            pp[i].gen2  = bl;
+            plcm[i]     = pp[i].lcm = get_lcm(bs->hm[i][3], nch, bht, uht);
+        } else {
+            plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
+        }
     }
 
-    len_t nl  = k;
+    len_t nl  = pl+bl;
     /* Gebauer-Moeller: check old pairs first */
     /* note: old pairs are sorted by the given spair order */
+#pragma omp parallel for num_threads(st->nthrds) \
+    private(i, j,  l)
     for (i = 0; i < pl; ++i) {
         j = ps[i].gen1;
         l = ps[i].gen2;
@@ -129,7 +135,6 @@ static void insert_and_update_spairs(
         }
     }
     /* check new pairs for redundancy */
-    spair_t *pp = ps+pl;
     j = 0;
     for (i = 0; i < bl; ++i) {
         if (bs->red[i] == 0) {
@@ -144,8 +149,9 @@ static void insert_and_update_spairs(
     plcm[j]  = 0;
     const len_t pc  = j;
 
-    j = 0;
-    for (; j < pc; ++j) {
+#pragma omp parallel for num_threads(st->nthrds) \
+    private(j)
+    for (j = 0; j < pc; ++j) {
         if (plcm[j] < 0) {
             continue;
         }
@@ -171,6 +177,8 @@ static void insert_and_update_spairs(
     st->num_gb_crit +=  nl - psl->ld;
 
     /* mark redundant elements in basis */
+#pragma omp parallel for num_threads(st->nthrds) \
+    private(i)
     for (i = 0; i < bl; ++i) {
         if (bs->red[i]) {
             continue;

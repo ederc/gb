@@ -92,20 +92,22 @@ static void insert_and_update_spairs(
 
     /* only other lead terms from the matrix may render
      * the current element useless */
-    for (i = bs->lo; i < bl; ++i) {
-        if (bs->red[i]) {
-            continue;
-        }
-        if (check_monomial_division(nch, bs->hm[i][3], bht)) {
-            /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
-            ps[pl].gen1 = i;
-            ps[pl].gen2 = bl;
-            ps[pl].lcm  = get_lcm(bs->hm[i][3], nch, bht, bht);
-            bs->red[bl] = 1;
-            st->num_redundant++;
-            bs->ld++;
-            psl->ld++;
-            return;
+    if (st->homogeneous == 0) {
+        for (i = bs->lo; i < bl; ++i) {
+            if (bs->red[i]) {
+                continue;
+            }
+            if (check_monomial_division(nch, bs->hm[i][3], bht)) {
+                /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
+                ps[pl].gen1 = i;
+                ps[pl].gen2 = bl;
+                ps[pl].lcm  = get_lcm(bs->hm[i][3], nch, bht, bht);
+                bs->red[bl] = 1;
+                st->num_redundant++;
+                bs->ld++;
+                psl->ld++;
+                return;
+            }
         }
     }
 
@@ -180,12 +182,15 @@ static void insert_and_update_spairs(
 
     const bl_t lml          = bs->lml;
     const bl_t * const lmps = bs->lmps;
-    /* mark redundant elements in basis */
-    for (i = 0; i < lml; ++i) {
-        if (bs->red[lmps[i]] == 0
-            && check_monomial_division(bs->hm[lmps[i]][3], nch, bht)) {
-            bs->red[lmps[i]]  = 1;
-            st->num_redundant++;
+
+    if (st->homogeneous == 0) {
+        /* mark redundant elements in basis */
+        for (i = 0; i < lml; ++i) {
+            if (bs->red[lmps[i]] == 0
+                    && check_monomial_division(bs->hm[lmps[i]][3], nch, bht)) {
+                bs->red[lmps[i]]  = 1;
+                st->num_redundant++;
+            }
         }
     }
 

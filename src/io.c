@@ -186,7 +186,7 @@ static inline int32_t check_and_set_meta_data(
 static void import_julia_data_ff(
         bs_t *bs,
         ht_t *ht,
-        const stat_t *st,
+        stat_t *st,
         const int32_t *lens,
         const int32_t *cfs,
         const int32_t *exps
@@ -197,8 +197,9 @@ static void import_julia_data_ff(
     cf32_t * cf;
     hm_t *hm;
 
-    int32_t off     = 0; /* offset in arrays */
-    const len_t nv  = st->nvars;
+    int32_t off       = 0; /* offset in arrays */
+    const len_t nv    = st->nvars;
+    const len_t ngens = st->ngens;
 
     int32_t nterms  = 0;
     for (i = 0; i < st->ngens; ++i) {
@@ -208,7 +209,7 @@ static void import_julia_data_ff(
         enlarge_hash_table(ht);
     }
     exp_t *e  = ht->ev[0]; /* use as temporary storage */
-    for (i = 0; i < st->ngens; ++i) {
+    for (i = 0; i < ngens; ++i) {
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
         bs->hm[i]     = hm;
@@ -230,6 +231,21 @@ static void import_julia_data_ff(
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
+    deg_t deg = 0;
+    for (i = 0; i < ngens; ++i) {
+        hm  = bs->hm[i];
+        deg = ht->hd[hm[3]].deg;
+        k   = hm[2] + 3;
+        for (j = 4; j < k; ++j) {
+            if (deg != ht->hd[hm[j]].deg) {
+                st->homogeneous = 0;
+                goto done;
+            }
+        }
+    }
+    st->homogeneous = 1;
+done:
+
     /* we have to reset the ld value once we have normalized the initial
      * elements in order to start update correctly */
     bs->ld  = st->ngens;

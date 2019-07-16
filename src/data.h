@@ -176,6 +176,7 @@ struct stat_t
     int32_t ngens;
     int32_t nvars;
     int32_t mnsel;
+    int32_t homogeneous;
     int32_t fc;
     int32_t mo;
     int32_t laopt;

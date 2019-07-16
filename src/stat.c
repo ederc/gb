@@ -41,6 +41,7 @@ static void print_initial_statistics(
     printf("#variables             %11d\n", st->nvars);
     printf("#equations             %11d\n", st->ngens);
     printf("field characteristic   %11d\n", st->fc);
+    printf("homogeneous input?     %11d\n", st->homogeneous);
     if (st->mo == 0) {
         printf("monomial order                 DRL\n");
     }

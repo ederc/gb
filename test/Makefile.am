@@ -34,6 +34,7 @@ TESTS =												\
 	pairset_update							\
 	select_spairs								\
 	cyclic_4_drl_17_bit					\
+	cyclic_4_h_drl_17_bit					\
 	cyclic_4_drl_31_bit					\
 	cyclic_4_lex_17_bit					\
 	cyclic_5_drl_17_bit					\

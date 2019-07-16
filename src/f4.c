@@ -75,9 +75,6 @@ int64_t f4_julia(
                 reset_ht, la_option, pbm_file, info_level)) {
         return 1;
     }
-    if (st->info_level > 0) {
-        print_initial_statistics(st);
-    }
 
     /* initialize basis */
     bs_t *bs  = initialize_basis(st->ngens);
@@ -87,6 +84,10 @@ int64_t f4_julia(
     ht_t *sht = initialize_secondary_hash_table(bht, st);
 
     import_julia_data_ff(bs, bht, st, lens, cfs, exps);
+
+    if (st->info_level > 0) {
+        print_initial_statistics(st);
+    }
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */

@@ -82,7 +82,6 @@ static void convert_hashes_to_columns(
         const len_t os  = rows[i][1];
         const len_t len = rows[i][2];
         row = rows[i] + 3;
-        nterms  +=  len;
         for (j = 0; j < os; ++j) {
             row[j]  = hds[row[j]].idx;
         }
@@ -92,6 +91,9 @@ static void convert_hashes_to_columns(
             row[j+2]  = hds[row[j+2]].idx;
             row[j+3]  = hds[row[j+3]].idx;
         }
+    }
+    for (i = 0; i < mnr; ++i) {
+        nterms  +=  rows[i][2];
     }
 
     /* next we sort each row by the new colum order due

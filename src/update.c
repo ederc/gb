@@ -75,6 +75,8 @@ static void insert_and_update_spairs(
 
     spair_t *ps = psl->p;
 
+    const int max_thrds = 4 <= st->nthrds ? 4 : st->nthrds;
+
     const len_t pl  = psl->ld;
     const len_t bl  = bs->ld;
 
@@ -88,6 +90,8 @@ static void insert_and_update_spairs(
     const hd_t * const hd = bht->hd;
     hd_t *hdu = uht->hd;
 
+    /* only other lead terms from the matrix may render
+     * the current element useless */
     for (i = bs->lo; i < bl; ++i) {
         if (bs->red[i]) {
             continue;
@@ -121,7 +125,7 @@ static void insert_and_update_spairs(
     len_t nl  = pl+bl;
     /* Gebauer-Moeller: check old pairs first */
     /* note: old pairs are sorted by the given spair order */
-#pragma omp parallel for num_threads(st->nthrds) \
+#pragma omp parallel for num_threads(max_nthrds) \
     private(i, j,  l)
     for (i = 0; i < pl; ++i) {
         j = ps[i].gen1;
@@ -148,7 +152,7 @@ static void insert_and_update_spairs(
     plcm[j]  = 0;
     const len_t pc  = j;
 
-#pragma omp parallel for num_threads(st->nthrds) \
+#pragma omp parallel for num_threads(max_nthrds) \
     private(j)
     for (j = 0; j < pc; ++j) {
         if (plcm[j] < 0) {

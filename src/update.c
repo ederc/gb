@@ -75,7 +75,7 @@ static void insert_and_update_spairs(
 
     spair_t *ps = psl->p;
 
-    const int max_thrds = 4 <= st->nthrds ? 4 : st->nthrds;
+    const int max_nthrds = 4 <= st->nthrds ? 4 : st->nthrds;
 
     const len_t pl  = psl->ld;
     const len_t bl  = bs->ld;

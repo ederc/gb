@@ -112,6 +112,7 @@ static void insert_and_update_spairs(
     }
 
     hl_t *plcm  = (hl_t *)malloc((unsigned long)(bl+1) * sizeof(hl_t));
+    deg_t *dlcm  = (deg_t *)malloc((unsigned long)(bl+1) * sizeof(deg_t));
     spair_t *pp = ps+pl;
 
     /* create all possible new pairs */
@@ -119,6 +120,7 @@ static void insert_and_update_spairs(
         for (i = 0; i < bl; ++i) {
             if (bs->red[i] != 2) {
                 plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
+                dlcm[i] = hdu[plcm[i]].deg;
                 if (bs->red[i] == 0) {
                     pp[i].gen1  = i;
                     pp[i].gen2  = bl;
@@ -129,6 +131,7 @@ static void insert_and_update_spairs(
     } else {
         for (i = 0; i < bl; ++i) {
             plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
+            dlcm[i] = hdu[plcm[i]].deg;
             pp[i].gen1  = i;
             pp[i].gen2  = bl;
             pp[i].lcm   = plcm[i];
@@ -143,13 +146,14 @@ static void insert_and_update_spairs(
     for (i = 0; i < pl; ++i) {
         j = ps[i].gen1;
         l = ps[i].gen2;
+        const int32_t m = dlcm[l] > dlcm[j] ? dlcm[l] : dlcm[j];
         if (check_monomial_division(ps[i].lcm, nch, bht)
-                && hd[ps[i].lcm].val != hdu[plcm[j]].val
-                && hd[ps[i].lcm].val != hdu[plcm[l]].val
+                && hd[ps[i].lcm].deg > m
            ) {
             ps[i].lcm = -1;
         }
     }
+    free(dlcm);
     /* check new pairs for redundancy */
     j = 0;
     for (i = 0; i < bl; ++i) {
@@ -168,11 +172,10 @@ static void insert_and_update_spairs(
 #pragma omp parallel for num_threads(max_nthrds) \
     private(j)
     for (j = 0; j < pc; ++j) {
-        if (plcm[j] < 0) {
-            continue;
+        if (plcm[j] >= 0) {
+            const hl_t plcmj = plcm[j];
+            check_monomial_division_in_update(plcm, j, pc, plcmj, uht);
         }
-        const hl_t plcmj = plcm[j];
-        check_monomial_division_in_update(plcm, j, pc, plcmj, uht);
     }
 
     /* remove useless pairs from pairset */

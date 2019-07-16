@@ -205,7 +205,7 @@ static void update_basis(
         insert_and_update_spairs(ps, bs, bht, uht, st);
     }
 
-    const bl_t lml         = bs->lml;
+    const bl_t lml          = bs->lml;
     const bl_t * const lmps = bs->lmps;
     /* mark redundant elements in basis */
     for (i = 0; i < lml; ++i) {

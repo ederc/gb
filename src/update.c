@@ -177,6 +177,18 @@ static void insert_and_update_spairs(
     /* new pairs, wee need to add the lcm to the basis hash table */
     insert_plcms_in_basis_hash_table(psl, pp, bht, uht, bs, plcm, j, pc);
     free(plcm);
+
+    const bl_t lml          = bs->lml;
+    const bl_t * const lmps = bs->lmps;
+    /* mark redundant elements in basis */
+    for (i = 0; i < lml; ++i) {
+        if (bs->red[lmps[i]] == 0
+            && check_monomial_division(bs->hm[lmps[i]][3], nch, bht)) {
+            bs->red[lmps[i]]  = 1;
+            st->num_redundant++;
+        }
+    }
+
     st->num_gb_crit +=  nl - psl->ld;
 
     bs->ld++;
@@ -191,7 +203,7 @@ static void update_basis(
         const len_t npivs
         )
 {
-    len_t i, j;
+    len_t i;
 
     /* timings */
     double ct0, ct1, rt0, rt1;
@@ -211,16 +223,6 @@ static void update_basis(
 
     const bl_t lml          = bs->lml;
     const bl_t * const lmps = bs->lmps;
-    /* mark redundant elements in basis */
-    for (i = 0; i < lml; ++i) {
-      for (j = bs->lo; j < bs->ld; ++j) {
-        if (check_monomial_division(bs->hm[lmps[i]][3], bs->hm[j][3], bht)) {
-          bs->red[lmps[i]]  = 1;
-          st->num_redundant++;
-          break;
-        }
-      }
-    }
 
     len_t k = 0;
     if (st->num_redundant_old < st->num_redundant) {

@@ -274,7 +274,7 @@ static int64_t export_julia_data_ff(
 
     /* compute number of terms */
     for (i = 0; i < bld; ++i) {
-        if (bs->red[i]) {
+        if (bs->red[i] != 0) {
             continue;
         } else {
             len +=  (int64_t)bs->hm[i][2];
@@ -301,7 +301,7 @@ static int64_t export_julia_data_ff(
 
     basis[0]  = (int32_t)nb;
     for (i = 0; i < bld; ++i) {
-        if (bs->red[i]) {
+        if (bs->red[i] != 0) {
             continue;
         } else {
             /* length of polynomial including this length entry itself */

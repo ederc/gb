@@ -115,9 +115,20 @@ static void insert_and_update_spairs(
     spair_t *pp = ps+pl;
 
     /* create all possible new pairs */
-    for (i = 0; i < bl; ++i) {
-        plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
-        if (bs->red[i] == 0) {
+    if (st->homogeneous == 0) {
+        for (i = 0; i < bl; ++i) {
+            if (bs->red[i] != 2) {
+                plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
+                if (bs->red[i] == 0) {
+                    pp[i].gen1  = i;
+                    pp[i].gen2  = bl;
+                    pp[i].lcm   = plcm[i];
+                }
+            }
+        }
+    } else {
+        for (i = 0; i < bl; ++i) {
+            plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
             pp[i].gen1  = i;
             pp[i].gen2  = bl;
             pp[i].lcm   = plcm[i];

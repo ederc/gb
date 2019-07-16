@@ -218,6 +218,10 @@ static void enlarge_hash_table(
   ht->hsz = 2 * ht->hsz;
   const hl_t hsz  = ht->hsz;
   ht->hmap  = realloc(ht->hmap, (unsigned long)hsz * sizeof(hl_t));
+  if (ht->hmap == NULL) {
+    printf("Computation needs too much memory on this machine, \
+        segmentation fault will follow.\n");
+  }
   memset(ht->hmap, 0, (unsigned long)hsz * sizeof(hl_t));
 
   /* reinsert known elements */

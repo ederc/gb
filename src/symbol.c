@@ -32,6 +32,7 @@ static void select_spairs_by_minimal_degree(
         )
 {
     len_t i, j, k, l, md, nps, npd;
+    int32_t red2  = 0;
     hm_t *b;
     deg_t d = 0;
     len_t load = 0;
@@ -73,6 +74,14 @@ static void select_spairs_by_minimal_degree(
         }
     } else {
         nps = npd;
+    }
+    if (st->homogeneous == 0) {
+        for (i = 0; i < nps; ++i) {
+            if (ps[i].lcm == bs->hm[ps[i].gen1][3] && bs->red[ps[i].gen1] == 1) {
+                bs->red[ps[i].gen1] = 2;
+                red2  = 1;
+            }
+        }
     }
     if (st->info_level > 1) {
         printf("%3d  %6d %7d", md, nps, psl->ld);
@@ -139,6 +148,18 @@ static void select_spairs_by_minimal_degree(
     /* remove selected spairs from pairset */
     memmove(ps, ps+nps, (unsigned long)(psl->ld-nps) * sizeof(spair_t));
     psl->ld -=  nps;
+    /* remove pairs which include redundant elements of second type,
+     * i.e. those whose S-pair with the basis element making them
+     * redundant has been selected already */
+    if (red2 == 1) {
+        k = 0;
+        for (i = 0; i < psl->ld; ++i) {
+            if (bs->red[ps[i].gen1] != 2 && bs->red[ps[i].gen2] != 2) {
+                ps[k++] = ps[i];
+            }
+        }
+        psl->ld  = k;
+    }
 
     /* timings */
     ct1 = cputime();

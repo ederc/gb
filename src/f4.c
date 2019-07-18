@@ -101,8 +101,11 @@ int64_t f4_julia(
 
     /* reset bs->ld for first update process */
     bs->ld  = 0;
-    /* move input generators to basis and generate first spairs */
-    update_basis(ps, bs, bht, uht, st, st->ngens);
+
+    /* move input generators to basis and generate first spairs.
+     * always check redundancy since input generators may be redundant
+     * even so they are homogeneous. */
+    update_basis(ps, bs, bht, uht, st, st->ngens, 1);
 
     /* let's start the f4 rounds,  we are done when no more spairs
      * are left in the pairset */
@@ -145,7 +148,8 @@ int64_t f4_julia(
         free(mat->cf_ff);
         mat->cf_ff  = NULL;
 
-        update_basis(ps, bs, bht, uht, st, mat->np);
+        /* check redundancy only if input is not homogeneous */
+        update_basis(ps, bs, bht, uht, st, mat->np, 1-st->homogeneous);
 
         rrt1 = realtime();
         if (st->info_level > 1) {

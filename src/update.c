@@ -68,7 +68,8 @@ static void insert_and_update_spairs(
         bs_t *bs,
         ht_t *bht,
         ht_t *uht,
-        stat_t *st
+        stat_t *st,
+        const int32_t check_redundancy
         )
 {
     len_t i, j, l;
@@ -92,7 +93,7 @@ static void insert_and_update_spairs(
 
     /* only other lead terms from the matrix may render
      * the current element useless */
-    if (st->homogeneous == 0) {
+    if (check_redundancy == 1) {
         for (i = bs->lo; i < bl; ++i) {
             if (bs->red[i]) {
                 continue;
@@ -116,7 +117,7 @@ static void insert_and_update_spairs(
     spair_t *pp = ps+pl;
 
     /* create all possible new pairs */
-    if (st->homogeneous == 0) {
+    if (check_redundancy == 1) {
         for (i = 0; i < bl; ++i) {
             if (bs->red[i] != 2) {
                 plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
@@ -197,7 +198,7 @@ static void insert_and_update_spairs(
     const bl_t lml          = bs->lml;
     const bl_t * const lmps = bs->lmps;
 
-    if (st->homogeneous == 0) {
+    if (check_redundancy == 1) {
         /* mark redundant elements in basis */
         for (i = 0; i < lml; ++i) {
             if (bs->red[lmps[i]] == 0
@@ -219,7 +220,8 @@ static void update_basis(
         ht_t *bht,
         ht_t *uht,
         stat_t *st,
-        const len_t npivs
+        const len_t npivs,
+        const int32_t check_redundancy
         )
 {
     len_t i;
@@ -237,7 +239,7 @@ static void update_basis(
     check_enlarge_pairset(ps, np);
 
     for (i = 0; i < npivs; ++i) {
-        insert_and_update_spairs(ps, bs, bht, uht, st);
+        insert_and_update_spairs(ps, bs, bht, uht, st, check_redundancy);
     }
 
     const bl_t lml          = bs->lml;

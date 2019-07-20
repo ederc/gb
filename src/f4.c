@@ -116,45 +116,60 @@ int64_t f4_julia(
 ----------------------------------------\n");
     }
     for (round = 1; ps->ld > 0; ++round) {
-        if (round % st->reset_ht == 0) {
-            reset_hash_table(bht, bs, ps, st);
+      if (st->reset_ht == 1 && st->num_redundant_2 > bs->ld/3) {
+        /* free stored data for redundant level 2 elements in basis,
+         * but keep their indices listed in order to not recompute the
+         * complete basis, all pairs and so on. */
+        for (int i = 0; i < bs->ld; ++i) {
+          if (bs->red[i] == 2) {
+            free(bs->cf_ff[bs->hm[i][0]]);
+            bs->cf_ff[bs->hm[i][0]] = NULL;
+            free(bs->hm[i]);
+            bs->hm[i] = NULL;
+            bs->red[i] = 3;
+          }
         }
-        rrt0  = realtime();
-        st->max_bht_size  = st->max_bht_size > bht->hsz ?
-            st->max_bht_size : bht->hsz;
-        st->current_rd  = round;
+        reset_hash_table(bht, bs, ps, st);
+        st->num_redundant_3 += st->num_redundant_2;
+        st->num_redundant_2 = 0;
+        st->num_rht++;
+      }
+      rrt0  = realtime();
+      st->max_bht_size  = st->max_bht_size > bht->hsz ?
+        st->max_bht_size : bht->hsz;
+      st->current_rd  = round;
 
-        /* preprocess data for next reduction round */
-        select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
-        symbolic_preprocessing(mat, bs, st, sht, bht);
-        convert_hashes_to_columns(&hcm, mat, st, sht);
-        sort_matrix_rows(mat);
-        /* print pbm files of the matrices */
-        if (st->gen_pbm_file != 0) {
-            write_pbm_file(mat, st); 
-        }
-        /* linear algebra, depending on choice, see set_function_pointers() */
-        linear_algebra(mat, bs, st);
-        /* columns indices are mapped back to exponent hashes */
-        if (mat->np > 0) {
-            convert_sparse_matrix_rows_to_basis_elements(
-                    mat, bs, bht, sht, hcm, st);
-        }
-        clean_hash_table(sht);
-        /* all rows in mat are now polynomials in the basis,
-         * so we do not need the rows anymore */
-        free(mat->r);
-        mat->r  = NULL;
-        free(mat->cf_ff);
-        mat->cf_ff  = NULL;
+      /* preprocess data for next reduction round */
+      select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
+      symbolic_preprocessing(mat, bs, st, sht, bht);
+      convert_hashes_to_columns(&hcm, mat, st, sht);
+      sort_matrix_rows(mat);
+      /* print pbm files of the matrices */
+      if (st->gen_pbm_file != 0) {
+        write_pbm_file(mat, st);
+      }
+      /* linear algebra, depending on choice, see set_function_pointers() */
+      linear_algebra(mat, bs, st);
+      /* columns indices are mapped back to exponent hashes */
+      if (mat->np > 0) {
+        convert_sparse_matrix_rows_to_basis_elements(
+            mat, bs, bht, sht, hcm, st);
+      }
+      clean_hash_table(sht);
+      /* all rows in mat are now polynomials in the basis,
+       * so we do not need the rows anymore */
+      free(mat->r);
+      mat->r  = NULL;
+      free(mat->cf_ff);
+      mat->cf_ff  = NULL;
 
-        /* check redundancy only if input is not homogeneous */
-        update_basis(ps, bs, bht, uht, st, mat->np, 1-st->homogeneous);
+      /* check redundancy only if input is not homogeneous */
+      update_basis(ps, bs, bht, uht, st, mat->np, 1-st->homogeneous);
 
-        rrt1 = realtime();
-        if (st->info_level > 1) {
-            printf("%13.3f sec\n", rrt1-rrt0);
-        }
+      rrt1 = realtime();
+      if (st->info_level > 1) {
+        printf("%13.3f sec\n", rrt1-rrt0);
+      }
     }
     if (st->info_level > 1) {
         printf("-------------------------------------------------\

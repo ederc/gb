@@ -119,7 +119,7 @@ static void insert_and_update_spairs(
     /* create all possible new pairs */
     if (check_redundancy == 1) {
         for (i = 0; i < bl; ++i) {
-            if (bs->red[i] != 2) {
+            if (bs->red[i] < 2) {
                 plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
                 dlcm[i] = hdu[plcm[i]].deg;
                 if (bs->red[i] == 0) {

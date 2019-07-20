@@ -858,7 +858,9 @@ static void reset_hash_table(
 
     /* reinsert known elements */
     for (i = 0; i < bld; ++i) {
+      if (bs->red[i] < 2) {
         reinsert_in_hash_table(bs->hm[i], oev, ht);
+      }
     }
     for (i = 0; i < pld; ++i) {
         e = oev[ps[i].lcm];

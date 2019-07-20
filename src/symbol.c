@@ -80,6 +80,7 @@ static void select_spairs_by_minimal_degree(
             if (ps[i].lcm == bs->hm[ps[i].gen1][3] && bs->red[ps[i].gen1] == 1) {
                 bs->red[ps[i].gen1] = 2;
                 red2  = 1;
+                st->num_redundant_2++;
             }
         }
     }
@@ -100,6 +101,7 @@ static void select_spairs_by_minimal_degree(
     mat->nr = 0;
 
     i = 0;
+
     while (i < nps) {
         /* ncols initially counts number of different lcms */
         mat->nc++;
@@ -154,7 +156,7 @@ static void select_spairs_by_minimal_degree(
     if (red2 == 1) {
         k = 0;
         for (i = 0; i < psl->ld; ++i) {
-            if (bs->red[ps[i].gen1] != 2 && bs->red[ps[i].gen2] != 2) {
+            if (bs->red[ps[i].gen1] < 2 && bs->red[ps[i].gen2] < 2) {
                 ps[k++] = ps[i];
             }
         }

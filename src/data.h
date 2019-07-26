@@ -284,7 +284,7 @@ cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
-int64_t f4_julia(
+int64_t f4_ff_julia(
         int32_t **jl_basis,
         const int32_t *lens,
         const int32_t *cfs,

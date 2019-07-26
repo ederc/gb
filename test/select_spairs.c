@@ -58,7 +58,7 @@ int main(
     /* reset bs->ld for first update process */
     bs->ld  = 0;
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, bs, bht, uht, st, st->ngens);
+    update_basis(ps, bs, bht, uht, st, st->ngens, 1);
 
     select_spairs_by_minimal_degree(mat, bs, ps, st, sht, bht);
 

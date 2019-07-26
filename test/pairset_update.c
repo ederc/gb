@@ -48,7 +48,7 @@ int main(
     /* reset bs->ld for first update process */
     bs->ld  = 0;
     /* move input generators to basis and generate first spairs */
-    update_basis(ps, bs, bht, uht, st, st->ngens);
+    update_basis(ps, bs, bht, uht, st, st->ngens, 1);
 
     if (ps->ld != 2) {
         printf("pload wrong - %d != 2\n", ps->ld);

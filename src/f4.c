@@ -31,7 +31,7 @@
  *     first all exponents of generator 1, then all of generator 2, ...
  *
  *  RETURNs the length of the jl_basis array */
-int64_t f4_julia(
+int64_t f4_ff_julia(
         int32_t **jl_basis,
         const int32_t *lens,
         const int32_t *cfs,

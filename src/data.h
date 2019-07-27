@@ -191,7 +191,7 @@ struct stat_t
     int64_t max_bht_size;
     int64_t max_sht_size;
     int64_t max_uht_size;
-    int64_t len_output;
+    int64_t nterms_basis;
     int32_t size_basis;
 
     int32_t info_level;
@@ -284,10 +284,13 @@ cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
-int64_t f4_ff_julia(
-        int32_t **jl_basis,
+int f4_ff_julia(
+        int32_t *bld,   /* basis load */
+        int32_t **blen, /* length of each poly in basis */
+        exp_t **bexp,   /* basis exponent vectors */
+        void **bcf,     /* coefficients of basis elements */
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *cfs,
         const int32_t *exps,
         const int32_t field_char,
         const int32_t mon_order,

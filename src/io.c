@@ -98,13 +98,13 @@ done:
 static int64_t export_julia_data_ff(
         int32_t *bload,
         int32_t **blen,
-        exp_t **bexp,
+        int32_t **bexp,
         void **bcf,
         const bs_t * const bs,
         const ht_t * const ht
         )
 {
-    len_t i, j;
+    len_t i, j, k;
 
     const len_t nv  = ht->nv;
     const bl_t bld  = bs->ld;
@@ -131,8 +131,8 @@ static int64_t export_julia_data_ff(
 
     int32_t *len  = (int32_t *)malloc(
             (unsigned long)(nelts) * sizeof(int32_t));
-    exp_t *exp  = (exp_t *)malloc(
-            (unsigned long)(nterms) * (unsigned long)(nv) * sizeof(exp_t));
+    int32_t *exp  = (int32_t *)malloc(
+            (unsigned long)(nterms) * (unsigned long)(nv) * sizeof(int32_t));
     cf32_t *cf   = (cf32_t *)malloc(
             (unsigned long)(nterms) * sizeof(cf32_t));
 
@@ -148,10 +148,10 @@ static int64_t export_julia_data_ff(
 
             dt  = bs->hm[i] + 3;
             for (j = 0; j < len[cl]; ++j) {
-                memcpy(exp + ce+j*nv, ht->ev[dt[j]],
-                        (unsigned long)nv * sizeof(exp_t));
+                for (k = 0; k < nv; ++k) {
+                    exp[ce++] = (int32_t)ht->ev[dt[j]][k]; 
+                }
             }
-            ce  +=  len[cl] * nv;
             cc  +=  len[cl];
             cl++;
         }

@@ -246,7 +246,7 @@ void (*import_julia_data)(
 int64_t (*export_julia_data)(
         int32_t *bload,
         int32_t **blen,
-        exp_t **bexp,
+        int32_t **bexp,
         void **bcf,
         const bs_t * const bs,
         const ht_t * const ht
@@ -303,7 +303,7 @@ cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
 int f4_julia(
         int32_t *bld,   /* basis load */
         int32_t **blen, /* length of each poly in basis */
-        exp_t **bexp,   /* basis exponent vectors */
+        int32_t **bexp, /* basis exponent vectors */
         void **bcf,     /* coefficients of basis elements */
         const int32_t *lens,
         const void *cfs,

@@ -34,7 +34,7 @@ int main(
     /* returned basis data as pointers for interfaces */
     int32_t *bld    = (int32_t *)malloc(sizeof(int32_t));
     int32_t **blen  = (int32_t **)malloc(sizeof(int32_t *));
-    exp_t **bexp    = (exp_t **)malloc(sizeof(exp_t *));
+    int32_t **bexp  = (int32_t **)malloc(sizeof(int32_t *));
     void **bcf      = (void **)malloc(sizeof(void *));
 
     /* f4 computation:

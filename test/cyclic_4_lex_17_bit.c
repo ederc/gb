@@ -33,7 +33,7 @@ int main(
     /* returned basis data as pointers for interfaces */
     int32_t *bld    = (int32_t *)malloc(sizeof(int32_t));
     int32_t **blen  = (int32_t **)malloc(sizeof(int32_t *));
-    exp_t **bexp    = (exp_t **)malloc(sizeof(exp_t *));
+    int32_t **bexp  = (int32_t **)malloc(sizeof(int32_t *));
     void **bcf      = (void **)malloc(sizeof(void *));
 
     /* f4 computation:
@@ -57,7 +57,7 @@ int main(
     int32_t tcf[24] = {1, 1, 1, 1, 1, 2, 1, 1, 1,
         65520, 65520, 1, 65520, 1, 65520, 1, 65520,
         1, 1, 65519, 1, 65520, 65520, 1};
-    exp_t texp[96] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+    int32_t texp[96] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
         0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 1, 0, 1, 0, 0, 0,
         2, 0, 0, 3, 2, 0, 0, 2, 3, 0, 0, 1, 0, 0, 0, 0, 1,
         0, 1, 0, 4, 0, 1, 0, 0, 0, 0, 0, 5, 0, 0, 0, 1, 0,

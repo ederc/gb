@@ -35,7 +35,7 @@ int f4_julia(
         /* return values */
         int32_t *bld,   /* basis load */
         int32_t **blen, /* length of each poly in basis */
-        exp_t **bexp,   /* basis exponent vectors */
+        int32_t **bexp, /* basis exponent vectors */
         void **bcf,     /* coefficients of basis elements */
         /* input values */
         const int32_t *lens,

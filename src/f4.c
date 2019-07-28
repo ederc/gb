@@ -31,7 +31,7 @@
  *     first all exponents of generator 1, then all of generator 2, ...
  *
  *  RETURNs the length of the jl_basis array */
-int f4_julia(
+int64_t f4_julia(
         /* return values */
         int32_t *bld,   /* basis load */
         int32_t **blen, /* length of each poly in basis */
@@ -170,6 +170,8 @@ int f4_julia(
     st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);
     st->size_basis    = *bld;
 
+    const int64_t nterms  = st->nterms_basis;
+
     /* timings */
     ct1 = cputime();
     rt1 = realtime();
@@ -195,5 +197,5 @@ int f4_julia(
 
     free(st);
 
-    return 0;
+    return nterms;
 }

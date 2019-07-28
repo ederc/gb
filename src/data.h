@@ -300,7 +300,7 @@ cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
-int f4_julia(
+int64_t f4_julia(
         int32_t *bld,   /* basis load */
         int32_t **blen, /* length of each poly in basis */
         int32_t **bexp, /* basis exponent vectors */

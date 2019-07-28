@@ -88,7 +88,7 @@ int f4_ff_julia(
     ht_t *uht = initialize_secondary_hash_table(bht, st);
     ht_t *sht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
+    import_julia_data(bs, bht, st, lens, cfs, exps);
 
     if (st->info_level > 0) {
         print_initial_statistics(st);
@@ -167,7 +167,7 @@ int f4_ff_julia(
 ----------------------------------------\n");
     }
 
-    st->nterms_basis  = export_julia_data_ff(bld, blen, bexp, bcf, bs, bht);
+    st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);
     st->size_basis    = *bld;
 
     /* timings */

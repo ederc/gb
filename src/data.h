@@ -234,6 +234,24 @@ int (*hcm_cmp)(
         void *htp
         );
 
+void (*import_julia_data)(
+        bs_t *bs,
+        ht_t *ht,
+        stat_t *st,
+        const int32_t *lens,
+        const void *vcfs,
+        const int32_t *exps
+        );
+
+int64_t (*export_julia_data)(
+        int32_t *bload,
+        int32_t **blen,
+        exp_t **bexp,
+        void **bcf,
+        const bs_t * const bs,
+        const ht_t * const ht
+        );
+
 /* linear algebra routines */
 void (*linear_algebra)(
         mat_t *mat,

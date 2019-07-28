@@ -22,164 +22,6 @@
 
 #include "data.h"
 
-static inline void set_function_pointers(
-        const stat_t *st
-        )
-{
-    /* todo: this needs to be generalized for different monomial orders */
-    switch (st->mo) {
-        case 0:
-            initial_input_cmp   = initial_input_cmp_drl;
-            monomial_cmp        = monomial_cmp_drl;
-            spair_cmp           = spair_cmp_drl;
-            hcm_cmp             = hcm_cmp_pivots_drl;
-            break;
-        case 1:
-            initial_input_cmp   = initial_input_cmp_lex;
-            monomial_cmp        = monomial_cmp_lex;
-            spair_cmp           = spair_cmp_deglex;
-            hcm_cmp             = hcm_cmp_pivots_lex;
-            break;
-        default:
-            initial_input_cmp   = initial_input_cmp_drl;
-            monomial_cmp        = monomial_cmp_drl;
-            spair_cmp           = spair_cmp_drl;
-            hcm_cmp             = hcm_cmp_pivots_drl;
-    }
-
-    switch (st->laopt) {
-        case 1:
-            linear_algebra  = exact_sparse_dense_linear_algebra_ff;
-            break;
-        case 2:
-            linear_algebra  = exact_sparse_linear_algebra_ff;
-            break;
-        case 42:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff;
-            break;
-        case 43:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_2;
-            break;
-        case 44:
-            linear_algebra  = probabilistic_sparse_linear_algebra_ff;
-            break;
-        default:
-            linear_algebra  = exact_sparse_linear_algebra_ff;
-    }
-
-    /* up to 17 bits we can use one modular operation for reducing a row. this works
-     * for matrices with #rows <= 54 million */
-    if (st->fc == 0) {
-        initialize_basis        = initialize_basis_q;
-        check_enlarge_basis     = check_enlarge_basis_q;
-        normalize_initial_basis = normalize_initial_basis_q;
-    } else {
-        initialize_basis        = initialize_basis_ff;
-        check_enlarge_basis     = check_enlarge_basis_ff;
-        normalize_initial_basis = normalize_initial_basis_ff;
-    }
-    if (st->fc < pow(2, 17)) {
-        reduce_dense_row_by_all_pivots =
-            reduce_dense_row_by_all_pivots_17_bit;
-        reduce_dense_row_by_old_pivots =
-            reduce_dense_row_by_old_pivots_17_bit;
-        reduce_dense_row_by_known_pivots_sparse =
-            reduce_dense_row_by_known_pivots_sparse_17_bit;
-        reduce_dense_row_by_dense_new_pivots  =
-            reduce_dense_row_by_dense_new_pivots_17_bit;
-    } else {
-        reduce_dense_row_by_all_pivots =
-            reduce_dense_row_by_all_pivots_31_bit;
-        reduce_dense_row_by_old_pivots =
-            reduce_dense_row_by_old_pivots_31_bit;
-        reduce_dense_row_by_known_pivots_sparse =
-            reduce_dense_row_by_known_pivots_sparse_31_bit;
-        reduce_dense_row_by_dense_new_pivots  =
-            reduce_dense_row_by_dense_new_pivots_31_bit;
-    }
-}
-
-static inline int32_t check_and_set_meta_data(
-        ps_t *ps,
-        stat_t *st,
-        const int32_t *lens,
-        const int32_t *cfs,
-        const int32_t *exps,
-        const int32_t field_char,
-        const int32_t mon_order,
-        const int32_t nr_vars,
-        const int32_t nr_gens,
-        const int32_t ht_size,
-        const int32_t nr_threads,
-        const int32_t max_nr_pairs,
-        const int32_t reset_hash_table,
-        const int32_t la_option,
-        const int32_t pbm_file,
-        const int32_t info_level
-        )
-{
-    if (nr_gens <= 0
-            || nr_vars <= 0
-            || field_char <= 0
-            || lens == NULL
-            || cfs == NULL
-            || exps == NULL) {
-        return 1;
-    }
-
-    st->ngens = nr_gens;
-    st->nvars = nr_vars;
-    /* note: prime check should be done in julia */
-    st->fc    = field_char;
-    /* monomial order */
-    if (mon_order != 0 && mon_order != 1) {
-        st->mo  = 0;
-    } else {
-        st->mo  = mon_order;
-    }
-    /* set hash table size */
-    st->init_hts  = ht_size;
-    if (st->init_hts <= 0) {
-        st->init_hts  = 12;
-    }
-    /* info level */
-    st->info_level  = info_level >= 0 ? info_level : 0;
-    if (st->info_level > 2) {
-        st->info_level = 2;
-    }
-
-    /* generation of pbm files on the fly? */
-    st->gen_pbm_file  = pbm_file > 0 ? 1 : 0;
-
-    /* resetting basis hash table */
-    st->reset_ht = reset_hash_table > 0 ? reset_hash_table : 2147483647; /* 2^31-1 */;
-
-    /* set number of threads */
-    if (nr_threads <= 0) {
-        st->nthrds  = 1;
-    } else {
-        st->nthrds  = nr_threads;
-    }
-
-    if (max_nr_pairs <= 0) {
-        ps->mnsel = 2147483647; /* 2^31-1 */
-    } else {
-        ps->mnsel = max_nr_pairs;
-    }
-    st->mnsel = ps->mnsel;
-
-    /* set linear algebra option */
-    if (la_option <= 0) {
-        st->laopt = 1;
-    } else {
-        st->laopt = la_option;
-    }
-
-    set_function_pointers(st);
-
-    return 0;
-}
-
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
@@ -188,7 +30,7 @@ static void import_julia_data_ff(
         ht_t *ht,
         stat_t *st,
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *vcfs,
         const int32_t *exps
         )
 {
@@ -196,6 +38,8 @@ static void import_julia_data_ff(
     len_t k;
     cf32_t * cf;
     hm_t *hm;
+
+    int32_t *cfs  = (int32_t *)vcfs;
 
     int32_t off       = 0; /* offset in arrays */
     const len_t nv    = st->nvars;
@@ -319,6 +163,168 @@ static int64_t export_julia_data_ff(
     *bcf    = (void *)cf;
 
     return nterms;
+}
+
+static inline void set_function_pointers(
+        const stat_t *st
+        )
+{
+    /* todo: this needs to be generalized for different monomial orders */
+    switch (st->mo) {
+        case 0:
+            initial_input_cmp   = initial_input_cmp_drl;
+            monomial_cmp        = monomial_cmp_drl;
+            spair_cmp           = spair_cmp_drl;
+            hcm_cmp             = hcm_cmp_pivots_drl;
+            break;
+        case 1:
+            initial_input_cmp   = initial_input_cmp_lex;
+            monomial_cmp        = monomial_cmp_lex;
+            spair_cmp           = spair_cmp_deglex;
+            hcm_cmp             = hcm_cmp_pivots_lex;
+            break;
+        default:
+            initial_input_cmp   = initial_input_cmp_drl;
+            monomial_cmp        = monomial_cmp_drl;
+            spair_cmp           = spair_cmp_drl;
+            hcm_cmp             = hcm_cmp_pivots_drl;
+    }
+
+    switch (st->laopt) {
+        case 1:
+            linear_algebra  = exact_sparse_dense_linear_algebra_ff;
+            break;
+        case 2:
+            linear_algebra  = exact_sparse_linear_algebra_ff;
+            break;
+        case 42:
+            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff;
+            break;
+        case 43:
+            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_2;
+            break;
+        case 44:
+            linear_algebra  = probabilistic_sparse_linear_algebra_ff;
+            break;
+        default:
+            linear_algebra  = exact_sparse_linear_algebra_ff;
+    }
+
+    /* up to 17 bits we can use one modular operation for reducing a row. this works
+     * for matrices with #rows <= 54 million */
+    if (st->fc == 0) {
+        initialize_basis        = initialize_basis_q;
+        import_julia_data       = import_julia_data_ff;
+        export_julia_data       = export_julia_data_ff;
+        check_enlarge_basis     = check_enlarge_basis_q;
+        normalize_initial_basis = normalize_initial_basis_q;
+    } else {
+        initialize_basis        = initialize_basis_ff;
+        import_julia_data       = import_julia_data_ff;
+        export_julia_data       = export_julia_data_ff;
+        check_enlarge_basis     = check_enlarge_basis_ff;
+        normalize_initial_basis = normalize_initial_basis_ff;
+    }
+    if (st->fc < pow(2, 17)) {
+        reduce_dense_row_by_all_pivots =
+            reduce_dense_row_by_all_pivots_17_bit;
+        reduce_dense_row_by_old_pivots =
+            reduce_dense_row_by_old_pivots_17_bit;
+        reduce_dense_row_by_known_pivots_sparse =
+            reduce_dense_row_by_known_pivots_sparse_17_bit;
+        reduce_dense_row_by_dense_new_pivots  =
+            reduce_dense_row_by_dense_new_pivots_17_bit;
+    } else {
+        reduce_dense_row_by_all_pivots =
+            reduce_dense_row_by_all_pivots_31_bit;
+        reduce_dense_row_by_old_pivots =
+            reduce_dense_row_by_old_pivots_31_bit;
+        reduce_dense_row_by_known_pivots_sparse =
+            reduce_dense_row_by_known_pivots_sparse_31_bit;
+        reduce_dense_row_by_dense_new_pivots  =
+            reduce_dense_row_by_dense_new_pivots_31_bit;
+    }
+}
+
+static inline int32_t check_and_set_meta_data(
+        ps_t *ps,
+        stat_t *st,
+        const int32_t *lens,
+        const int32_t *cfs,
+        const int32_t *exps,
+        const int32_t field_char,
+        const int32_t mon_order,
+        const int32_t nr_vars,
+        const int32_t nr_gens,
+        const int32_t ht_size,
+        const int32_t nr_threads,
+        const int32_t max_nr_pairs,
+        const int32_t reset_hash_table,
+        const int32_t la_option,
+        const int32_t pbm_file,
+        const int32_t info_level
+        )
+{
+    if (nr_gens <= 0
+            || nr_vars <= 0
+            || field_char <= 0
+            || lens == NULL
+            || cfs == NULL
+            || exps == NULL) {
+        return 1;
+    }
+
+    st->ngens = nr_gens;
+    st->nvars = nr_vars;
+    /* note: prime check should be done in julia */
+    st->fc    = field_char;
+    /* monomial order */
+    if (mon_order != 0 && mon_order != 1) {
+        st->mo  = 0;
+    } else {
+        st->mo  = mon_order;
+    }
+    /* set hash table size */
+    st->init_hts  = ht_size;
+    if (st->init_hts <= 0) {
+        st->init_hts  = 12;
+    }
+    /* info level */
+    st->info_level  = info_level >= 0 ? info_level : 0;
+    if (st->info_level > 2) {
+        st->info_level = 2;
+    }
+
+    /* generation of pbm files on the fly? */
+    st->gen_pbm_file  = pbm_file > 0 ? 1 : 0;
+
+    /* resetting basis hash table */
+    st->reset_ht = reset_hash_table > 0 ? reset_hash_table : 2147483647; /* 2^31-1 */;
+
+    /* set number of threads */
+    if (nr_threads <= 0) {
+        st->nthrds  = 1;
+    } else {
+        st->nthrds  = nr_threads;
+    }
+
+    if (max_nr_pairs <= 0) {
+        ps->mnsel = 2147483647; /* 2^31-1 */
+    } else {
+        ps->mnsel = max_nr_pairs;
+    }
+    st->mnsel = ps->mnsel;
+
+    /* set linear algebra option */
+    if (la_option <= 0) {
+        st->laopt = 1;
+    } else {
+        st->laopt = la_option;
+    }
+
+    set_function_pointers(st);
+
+    return 0;
 }
 
 static void write_pbm_file(

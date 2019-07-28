@@ -31,7 +31,7 @@
  *     first all exponents of generator 1, then all of generator 2, ...
  *
  *  RETURNs the length of the jl_basis array */
-int f4_ff_julia(
+int f4_julia(
         /* return values */
         int32_t *bld,   /* basis load */
         int32_t **blen, /* length of each poly in basis */

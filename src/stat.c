@@ -106,12 +106,10 @@ static void print_final_statistics(
     printf("-----------------------------------------\n");
     printf("\n---------- COMPUTATIONAL DATA -----------\n");
     printf("size of basis      %9d\n", st->size_basis);
-    printf("#terms in basis    %9ld\n",
-            (st->len_output-st->size_basis-1)/(1+st->nvars));
+    printf("#terms in basis    %9ld\n", st->nterms_basis);
     printf("#pairs reduced     %9ld\n", st->num_pairsred);
     printf("#GM criterion      %9ld\n", st->num_gb_crit);
     printf("#redundant         %9ld\n", st->num_redundant);
-    printf("#redundant2        %9ld\n", st->num_redundant_2+st->num_redundant_3);
     printf("#reset bht         %9ld\n", st->num_rht);
     printf("#rows reduced      %9ld\n", st->num_rowsred);
     printf("#zero reductions   %9ld\n", st->num_zerored);

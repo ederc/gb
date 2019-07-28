@@ -34,7 +34,7 @@ TESTS =												\
 	pairset_update							\
 	select_spairs								\
 	cyclic_4_drl_17_bit					\
-	cyclic_4_h_drl_17_bit					\
+	cyclic_4_h_drl_17_bit				\
 	cyclic_4_drl_31_bit					\
 	cyclic_4_lex_17_bit					\
 	cyclic_5_drl_17_bit					\
@@ -49,17 +49,17 @@ TESTS =												\
 	cyclic_6_drl_17_bit_la43_t2	\
 	cyclic_6_drl_17_bit_la44_t1	\
 	cyclic_6_drl_17_bit_la44_t2	\
-	ideal_q											\
-	cyclic_7										\
-	cyclic_9										\
-	pearson_9										\
 	katsura_4_lex								\
 	katsura_5_lex								\
+	cyclic_7										\
 	katsura_12_drl_17_bit				\
 	katsura_13_drl_17_bit				\
+	cyclic_9										\
+	pearson_9										\
 	katsura_16									\
 	mayr_42											\
 	bayes_148										\
+	ideal_q											\
 	cyclic_6_lex_17_bit		
 
 XFAIL_TESTS = 								\

@@ -30,15 +30,27 @@ int main(
 
     int32_t failure = 0;
 
-    int32_t **basis = (int32_t **)malloc(sizeof(int32_t *));
-    int64_t len     = f4_ff_julia(
-            basis, lens, cfs, exps, field_char, mon_order, nr_vars,
+    /* returned basis data as pointers for interfaces */
+    int32_t *bld    = (int32_t *)malloc(sizeof(int32_t));
+    int32_t **blen  = (int32_t **)malloc(sizeof(int32_t *));
+    exp_t **bexp    = (exp_t **)malloc(sizeof(exp_t *));
+    void **bcf      = (void **)malloc(sizeof(void *));
+
+    /* f4 computation:
+     * ret = 0 if computation correct
+     * ret = 1 if something went wrong */
+    int ret = f4_julia(
+            bld, blen, bexp, bcf, lens, cfs, exps, field_char, mon_order, nr_vars,
             nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
             la_option, pbm_file, info_level);
 
-    free(*basis);
-    free(basis);
-    basis = NULL;
+    free(*blen);
+    free(*bexp);
+    free(*bcf);
+    free(blen);
+    free(bexp);
+    free(bcf);
+    free(bld);
 
     return failure;
 }

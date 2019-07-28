@@ -22,6 +22,149 @@
 
 #include "data.h"
 
+/* note that depending on the input data we set the corresponding
+ * function pointers for monomial resp. spair comparisons, taking
+ * spairs by a given minimal property for symbolic preprocessing, etc. */
+static void import_julia_data_ff(
+        bs_t *bs,
+        ht_t *ht,
+        stat_t *st,
+        const int32_t *lens,
+        const void *vcfs,
+        const int32_t *exps
+        )
+{
+    int32_t i, j;
+    len_t k;
+    cf32_t * cf;
+    hm_t *hm;
+
+    int32_t *cfs  = (int32_t *)vcfs;
+
+    int32_t off       = 0; /* offset in arrays */
+    const len_t nv    = st->nvars;
+    const len_t ngens = st->ngens;
+
+    int32_t nterms  = 0;
+    for (i = 0; i < st->ngens; ++i) {
+        nterms  +=  lens[i];
+    }
+    while (nterms >= ht->esz) {
+        enlarge_hash_table(ht);
+    }
+    exp_t *e  = ht->ev[0]; /* use as temporary storage */
+    for (i = 0; i < ngens; ++i) {
+        hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
+        cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
+        bs->hm[i]     = hm;
+        bs->cf_ff[i]  = cf;
+
+        hm[0]  = i; /* link to matcf entry */
+        hm[1]  = (lens[i] % UNROLL); /* offset */
+        hm[2]  = lens[i]; /* length */
+
+        bs->red[i] = 0;
+
+        for (j = off; j < off+lens[i]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                e[k]  = (exp_t)(exps+(nv*j))[k];
+            }
+            hm[j-off+3] = insert_in_hash_table(e, ht);
+            cf[j-off]   = (cf32_t)cfs[j];
+        }
+        /* mark initial generators, they have to be added to the basis first */
+        off +=  lens[i];
+    }
+    deg_t deg = 0;
+    for (i = 0; i < ngens; ++i) {
+        hm  = bs->hm[i];
+        deg = ht->hd[hm[3]].deg;
+        k   = hm[2] + 3;
+        for (j = 4; j < k; ++j) {
+            if (deg != ht->hd[hm[j]].deg) {
+                st->homogeneous = 0;
+                goto done;
+            }
+        }
+    }
+    st->homogeneous = 1;
+done:
+
+    /* we have to reset the ld value once we have normalized the initial
+     * elements in order to start update correctly */
+    bs->ld  = st->ngens;
+}
+
+static int64_t export_julia_data_ff(
+        int32_t *bload,
+        int32_t **blen,
+        exp_t **bexp,
+        void **bcf,
+        const bs_t * const bs,
+        const ht_t * const ht
+        )
+{
+    len_t i, j;
+
+    const len_t nv  = ht->nv;
+    const bl_t bld  = bs->ld;
+
+    hm_t *dt;
+
+    int64_t nterms  = 0; /* # of terms in basis */
+    int64_t nelts  = 0; /* # elemnts in basis */
+
+    /* compute number of terms */
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i] != 0) {
+            continue;
+        } else {
+            nterms +=  (int64_t)bs->hm[i][2];
+            nelts++;
+        }
+    }
+
+    if (nelts > (int64_t)(pow(2, 31))) {
+        printf("Basis has more than 2^31 elements, cannot store it.\n");
+        return 0;
+    }
+
+    int32_t *len  = (int32_t *)malloc(
+            (unsigned long)(nelts) * sizeof(int32_t));
+    exp_t *exp  = (exp_t *)malloc(
+            (unsigned long)(nterms) * (unsigned long)(nv) * sizeof(exp_t));
+    cf32_t *cf   = (cf32_t *)malloc(
+            (unsigned long)(nterms) * sizeof(cf32_t));
+
+    /* counters for lengths, exponents and coefficients */
+    int32_t cl = 0, ce = 0, cc = 0;
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i] != 0) {
+            continue;
+        } else {
+            len[cl] = bs->hm[i][2];
+            memcpy(cf+cc, bs->cf_ff[bs->hm[i][0]],
+                    (unsigned long)(len[cl]) * sizeof(cf32_t));
+
+            dt  = bs->hm[i] + 3;
+            for (j = 0; j < len[cl]; ++j) {
+                memcpy(exp + ce+j*nv, ht->ev[dt[j]],
+                        (unsigned long)nv * sizeof(exp_t));
+            }
+            ce  +=  len[cl] * nv;
+            cc  +=  len[cl];
+            cl++;
+        }
+    }
+
+    *bload  = (int32_t)nelts;
+    *blen   = len;
+    *bexp   = exp;
+    *bcf    = (void *)cf;
+
+    return nterms;
+}
+
 static inline void set_function_pointers(
         const stat_t *st
         )
@@ -71,10 +214,14 @@ static inline void set_function_pointers(
      * for matrices with #rows <= 54 million */
     if (st->fc == 0) {
         initialize_basis        = initialize_basis_q;
+        import_julia_data       = import_julia_data_ff;
+        export_julia_data       = export_julia_data_ff;
         check_enlarge_basis     = check_enlarge_basis_q;
         normalize_initial_basis = normalize_initial_basis_q;
     } else {
         initialize_basis        = initialize_basis_ff;
+        import_julia_data       = import_julia_data_ff;
+        export_julia_data       = export_julia_data_ff;
         check_enlarge_basis     = check_enlarge_basis_ff;
         normalize_initial_basis = normalize_initial_basis_ff;
     }
@@ -178,147 +325,6 @@ static inline int32_t check_and_set_meta_data(
     set_function_pointers(st);
 
     return 0;
-}
-
-/* note that depending on the input data we set the corresponding
- * function pointers for monomial resp. spair comparisons, taking
- * spairs by a given minimal property for symbolic preprocessing, etc. */
-static void import_julia_data_ff(
-        bs_t *bs,
-        ht_t *ht,
-        stat_t *st,
-        const int32_t *lens,
-        const int32_t *cfs,
-        const int32_t *exps
-        )
-{
-    int32_t i, j;
-    len_t k;
-    cf32_t * cf;
-    hm_t *hm;
-
-    int32_t off       = 0; /* offset in arrays */
-    const len_t nv    = st->nvars;
-    const len_t ngens = st->ngens;
-
-    int32_t nterms  = 0;
-    for (i = 0; i < st->ngens; ++i) {
-        nterms  +=  lens[i];
-    }
-    while (nterms >= ht->esz) {
-        enlarge_hash_table(ht);
-    }
-    exp_t *e  = ht->ev[0]; /* use as temporary storage */
-    for (i = 0; i < ngens; ++i) {
-        hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
-        cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
-        bs->hm[i]     = hm;
-        bs->cf_ff[i]  = cf;
-
-        hm[0]  = i; /* link to matcf entry */
-        hm[1]  = (lens[i] % UNROLL); /* offset */
-        hm[2]  = lens[i]; /* length */
-
-        bs->red[i] = 0;
-
-        for (j = off; j < off+lens[i]; ++j) {
-            for (k = 0; k < nv; ++k) {
-                e[k]  = (exp_t)(exps+(nv*j))[k];
-            }
-            hm[j-off+3] = insert_in_hash_table(e, ht);
-            cf[j-off]   = (cf32_t)cfs[j];
-        }
-        /* mark initial generators, they have to be added to the basis first */
-        off +=  lens[i];
-    }
-    deg_t deg = 0;
-    for (i = 0; i < ngens; ++i) {
-        hm  = bs->hm[i];
-        deg = ht->hd[hm[3]].deg;
-        k   = hm[2] + 3;
-        for (j = 4; j < k; ++j) {
-            if (deg != ht->hd[hm[j]].deg) {
-                st->homogeneous = 0;
-                goto done;
-            }
-        }
-    }
-    st->homogeneous = 1;
-done:
-
-    /* we have to reset the ld value once we have normalized the initial
-     * elements in order to start update correctly */
-    bs->ld  = st->ngens;
-}
-
-static int64_t export_julia_data_ff(
-        int32_t **bp,
-        const bs_t * const bs,
-        const ht_t * const ht
-        )
-{
-    len_t i, j, k;
-    int64_t ctr_lengths, ctr_elements;
-    int32_t *basis  = *bp;
-
-    const len_t nv  = ht->nv;
-    const bl_t bld  = bs->ld;
-
-    cf32_t *cf;
-    hm_t *dt;
-
-    int64_t len = 0; /* complete length of exported array */
-    int64_t nb  = 0; /* # elemnts in basis */
-
-    const len_t lterm = 1 + nv; /* length of a term */
-
-    /* compute number of terms */
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            len +=  (int64_t)bs->hm[i][2];
-            nb++;
-        }
-    }
-
-    /* compute the length considering the number of variables per exponent */
-    len = len * (int64_t)lterm;
-    /* add storage for length of each element */
-    len = len + nb;
-    /* add storage for number of generators in basis */
-    len++;
-
-    basis  = (int32_t *)malloc((unsigned long)len * sizeof(int32_t));
-
-    if (nb > (int64_t)(pow(2, 31))) {
-        printf("basis too big\n");
-        return 0;
-    }
-
-    ctr_lengths   = 1;
-    ctr_elements  = (int64_t)nb + 1;
-
-    basis[0]  = (int32_t)nb;
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            /* length of polynomial including this length entry itself */
-            basis[ctr_lengths++]  = (int32_t)((bs->hm[i][2]) * lterm);
-            cf  = bs->cf_ff[bs->hm[i][0]];
-            dt  = bs->hm[i] + 3;
-            for (j = 0; j < bs->hm[i][2]; ++j) {
-                basis[ctr_elements++] = (int32_t)cf[j]; /* coefficient */
-                for (k = 0; k < nv; ++k) {
-                    basis[ctr_elements++] = (int32_t)ht->ev[dt[j]][k];
-                }
-            }
-        }
-    }
-    *bp = basis;
-
-    return len;
 }
 
 static void write_pbm_file(

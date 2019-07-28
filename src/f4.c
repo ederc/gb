@@ -31,10 +31,15 @@
  *     first all exponents of generator 1, then all of generator 2, ...
  *
  *  RETURNs the length of the jl_basis array */
-int64_t f4_ff_julia(
-        int32_t **jl_basis,
+int f4_julia(
+        /* return values */
+        int32_t *bld,   /* basis load */
+        int32_t **blen, /* length of each poly in basis */
+        exp_t **bexp,   /* basis exponent vectors */
+        void **bcf,     /* coefficients of basis elements */
+        /* input values */
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *cfs,
         const int32_t *exps,
         const int32_t field_char,
         const int32_t mon_order,
@@ -83,7 +88,7 @@ int64_t f4_ff_julia(
     ht_t *uht = initialize_secondary_hash_table(bht, st);
     ht_t *sht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
+    import_julia_data(bs, bht, st, lens, cfs, exps);
 
     if (st->info_level > 0) {
         print_initial_statistics(st);
@@ -116,22 +121,8 @@ int64_t f4_ff_julia(
 ----------------------------------------\n");
     }
     for (round = 1; ps->ld > 0; ++round) {
-      if (st->reset_ht == 1 && st->num_redundant_2 > bs->ld/3) {
-        /* free stored data for redundant level 2 elements in basis,
-         * but keep their indices listed in order to not recompute the
-         * complete basis, all pairs and so on. */
-        for (int i = 0; i < bs->ld; ++i) {
-          if (bs->red[i] == 2) {
-            free(bs->cf_ff[bs->hm[i][0]]);
-            bs->cf_ff[bs->hm[i][0]] = NULL;
-            free(bs->hm[i]);
-            bs->hm[i] = NULL;
-            bs->red[i] = 3;
-          }
-        }
+      if (round % st->reset_ht == 0) {
         reset_hash_table(bht, bs, ps, st);
-        st->num_redundant_3 += st->num_redundant_2;
-        st->num_redundant_2 = 0;
         st->num_rht++;
       }
       rrt0  = realtime();
@@ -176,8 +167,8 @@ int64_t f4_ff_julia(
 ----------------------------------------\n");
     }
 
-    st->len_output  = export_julia_data_ff(jl_basis, bs, bht);
-    st->size_basis  = (*jl_basis)[0];
+    st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);
+    st->size_basis    = *bld;
 
     /* timings */
     ct1 = cputime();
@@ -202,8 +193,7 @@ int64_t f4_ff_julia(
      * just the matrix structure */
     free(mat);
 
-    int64_t output  = st->len_output;
     free(st);
 
-    return output;
+    return 0;
 }

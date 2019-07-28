@@ -170,8 +170,6 @@ struct stat_t
     int64_t num_gb_crit;
     int64_t num_redundant_old;
     int64_t num_redundant;
-    int64_t num_redundant_2;
-    int64_t num_redundant_3;
     int64_t num_rht;
     int64_t num_rowsred;
     int64_t num_zerored;
@@ -191,7 +189,7 @@ struct stat_t
     int64_t max_bht_size;
     int64_t max_sht_size;
     int64_t max_uht_size;
-    int64_t len_output;
+    int64_t nterms_basis;
     int32_t size_basis;
 
     int32_t info_level;
@@ -234,6 +232,24 @@ int (*hcm_cmp)(
         const void *a,
         const void *b,
         void *htp
+        );
+
+void (*import_julia_data)(
+        bs_t *bs,
+        ht_t *ht,
+        stat_t *st,
+        const int32_t *lens,
+        const void *vcfs,
+        const int32_t *exps
+        );
+
+int64_t (*export_julia_data)(
+        int32_t *bload,
+        int32_t **blen,
+        exp_t **bexp,
+        void **bcf,
+        const bs_t * const bs,
+        const ht_t * const ht
         );
 
 /* linear algebra routines */
@@ -284,10 +300,13 @@ cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
-int64_t f4_ff_julia(
-        int32_t **jl_basis,
+int f4_julia(
+        int32_t *bld,   /* basis load */
+        int32_t **blen, /* length of each poly in basis */
+        exp_t **bexp,   /* basis exponent vectors */
+        void **bcf,     /* coefficients of basis elements */
         const int32_t *lens,
-        const int32_t *cfs,
+        const void *cfs,
         const int32_t *exps,
         const int32_t field_char,
         const int32_t mon_order,

@@ -99,7 +99,6 @@ static void insert_and_update_spairs(
                 continue;
             }
             if (check_monomial_division(nch, bs->hm[i][3], bht)) {
-                /* printf("Mark polynomial %d unnecessary for new pairs\n", bload); */
                 ps[pl].gen1 = i;
                 ps[pl].gen2 = bl;
                 ps[pl].lcm  = get_lcm(bs->hm[i][3], nch, bht, bht);
@@ -119,14 +118,12 @@ static void insert_and_update_spairs(
     /* create all possible new pairs */
     if (check_redundancy == 1) {
         for (i = 0; i < bl; ++i) {
-            if (bs->red[i] < 2) {
-                plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
-                dlcm[i] = hdu[plcm[i]].deg;
-                if (bs->red[i] == 0) {
-                    pp[i].gen1  = i;
-                    pp[i].gen2  = bl;
-                    pp[i].lcm   = plcm[i];
-                }
+            plcm[i] = get_lcm(bs->hm[i][3], nch, bht, uht);
+            dlcm[i] = hdu[plcm[i]].deg;
+            if (bs->red[i] == 0) {
+                pp[i].gen1  = i;
+                pp[i].gen2  = bl;
+                pp[i].lcm   = plcm[i];
             }
         }
     } else {
@@ -246,30 +243,41 @@ static void update_basis(
     const bl_t * const lmps = bs->lmps;
 
     len_t k = 0;
-    if (st->num_redundant_old < st->num_redundant) {
-        const sdm_t *lms  = bs->lm;
-        for (i = 0; i < lml; ++i) {
-            if (bs->red[lmps[i]] == 0) {
-                bs->lm[k]   = lms[i];
-                bs->lmps[k] = lmps[i];
+    if (st->mo == 1) {
+        k = bs->lml;
+        for (i = bs->lo; i < bs->ld; ++i) {
+            if (bs->red[i] == 0) {
+                bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
+                bs->lmps[k] = i;
                 k++;
             }
         }
-        for (i = bs->lo; i < bs->ld; ++i) {
-          if (bs->red[i] == 0) {
-            bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
-            bs->lmps[k] = i;
-            k++;
-          }
-        }
     } else {
-        k = bs->lml;
-        for (i = bs->lo; i < bs->ld; ++i) {
-          if (bs->red[i] == 0) {
-            bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
-            bs->lmps[k] = i;
-            k++;
-          }
+        if (st->num_redundant_old < st->num_redundant) {
+            const sdm_t *lms  = bs->lm;
+            for (i = 0; i < lml; ++i) {
+                if (bs->red[lmps[i]] == 0) {
+                    bs->lm[k]   = lms[i];
+                    bs->lmps[k] = lmps[i];
+                    k++;
+                }
+            }
+            for (i = bs->lo; i < bs->ld; ++i) {
+                if (bs->red[i] == 0) {
+                    bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
+                    bs->lmps[k] = i;
+                    k++;
+                }
+            }
+        } else {
+            k = bs->lml;
+            for (i = bs->lo; i < bs->ld; ++i) {
+                if (bs->red[i] == 0) {
+                    bs->lm[k]   = bht->hd[bs->hm[i][3]].sdm;
+                    bs->lmps[k] = i;
+                    k++;
+                }
+            }
         }
     }
     bs->lml = k;

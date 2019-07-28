@@ -170,8 +170,6 @@ struct stat_t
     int64_t num_gb_crit;
     int64_t num_redundant_old;
     int64_t num_redundant;
-    int64_t num_redundant_2;
-    int64_t num_redundant_3;
     int64_t num_rht;
     int64_t num_rowsred;
     int64_t num_zerored;

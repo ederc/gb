@@ -121,22 +121,8 @@ int f4_ff_julia(
 ----------------------------------------\n");
     }
     for (round = 1; ps->ld > 0; ++round) {
-      if (st->reset_ht == 1 && st->num_redundant_2 > bs->ld/3) {
-        /* free stored data for redundant level 2 elements in basis,
-         * but keep their indices listed in order to not recompute the
-         * complete basis, all pairs and so on. */
-        for (int i = 0; i < bs->ld; ++i) {
-          if (bs->red[i] == 2) {
-            free(bs->cf_ff[bs->hm[i][0]]);
-            bs->cf_ff[bs->hm[i][0]] = NULL;
-            free(bs->hm[i]);
-            bs->hm[i] = NULL;
-            bs->red[i] = 3;
-          }
-        }
+      if (round % st->reset_ht == 0) {
         reset_hash_table(bht, bs, ps, st);
-        st->num_redundant_3 += st->num_redundant_2;
-        st->num_redundant_2 = 0;
         st->num_rht++;
       }
       rrt0  = realtime();

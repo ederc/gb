@@ -95,6 +95,86 @@ done:
     bs->ld  = st->ngens;
 }
 
+static void import_julia_data_qq(
+        bs_t *bs,
+        ht_t *ht,
+        stat_t *st,
+        const int32_t *lens,
+        const int32_t *exps,
+        const void *vcfs
+        )
+{
+    int32_t i, j;
+    len_t k;
+    mpz_t *cf;
+    hm_t *hm;
+
+    mpz_t **cfs  = (mpz_t **)vcfs;
+
+    int32_t off       = 0; /* offset in arrays */
+    const len_t nv    = st->nvars;
+    const len_t ngens = st->ngens;
+
+    int32_t nterms  = 0;
+    for (i = 0; i < st->ngens; ++i) {
+        nterms  +=  lens[i];
+    }
+    printf("nterms = %d\n", nterms);
+    for (int ii=0; ii < 2*nterms; ++ii) {
+      gmp_printf("mpz_t %d --> %Zd\n", ii, *(cfs[ii]));
+    }
+    while (nterms >= ht->esz) {
+        enlarge_hash_table(ht);
+    }
+    exp_t *e  = ht->ev[0]; /* use as temporary storage */
+    for (i = 0; i < ngens; ++i) {
+        hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
+        cf  = (mpz_t *)malloc((unsigned long)(lens[i]*2) * sizeof(mpz_t));
+        for (j = 0; j < lens[i]*2; ++j) {
+          mpz_init(cf[j]);
+        }
+        bs->hm[i]     = hm;
+        bs->cf_qq[i]  = cf;
+
+        hm[0]  = i; /* link to matcf entry */
+        hm[1]  = (lens[i] % UNROLL); /* offset */
+        hm[2]  = lens[i]; /* length */
+
+        bs->red[i] = 0;
+
+        for (j = off; j < off+lens[i]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                e[k]  = (exp_t)(exps+(nv*j))[k];
+            }
+            hm[j-off+3]     = insert_in_hash_table(e, ht);
+            printf("pos %d\n", 2*j);
+            mpz_set(cf[2*j-off], *(cfs[2*j]));
+            printf("pos+1 %d\n", 2*j+1);
+            mpz_set(cf[2*j+1-off], *(cfs[2*j+1]));
+        }
+        /* mark initial generators, they have to be added to the basis first */
+        off +=  lens[i];
+    }
+    deg_t deg = 0;
+    for (i = 0; i < ngens; ++i) {
+        hm  = bs->hm[i];
+        deg = ht->hd[hm[3]].deg;
+        k   = hm[2] + 3;
+        for (j = 4; j < k; ++j) {
+            if (deg != ht->hd[hm[j]].deg) {
+                st->homogeneous = 0;
+                goto done;
+            }
+        }
+    }
+    st->homogeneous = 1;
+done:
+
+    /* we have to reset the ld value once we have normalized the initial
+     * elements in order to start update correctly */
+    bs->ld  = st->ngens;
+}
+
 static int64_t export_julia_data_ff(
         int32_t *bload,
         int32_t **blen,
@@ -213,11 +293,11 @@ static inline void set_function_pointers(
     /* up to 17 bits we can use one modular operation for reducing a row. this works
      * for matrices with #rows <= 54 million */
     if (st->fc == 0) {
-        initialize_basis        = initialize_basis_q;
-        import_julia_data       = import_julia_data_ff;
+        initialize_basis        = initialize_basis_qq;
+        import_julia_data       = import_julia_data_qq;
         export_julia_data       = export_julia_data_ff;
-        check_enlarge_basis     = check_enlarge_basis_q;
-        normalize_initial_basis = normalize_initial_basis_q;
+        check_enlarge_basis     = check_enlarge_basis_qq;
+        normalize_initial_basis = normalize_initial_basis_qq;
     } else {
         initialize_basis        = initialize_basis_ff;
         import_julia_data       = import_julia_data_ff;
@@ -250,8 +330,8 @@ static inline int32_t check_and_set_meta_data(
         ps_t *ps,
         stat_t *st,
         const int32_t *lens,
-        const int32_t *cfs,
         const int32_t *exps,
+        const void *cfs,
         const int32_t field_char,
         const int32_t mon_order,
         const int32_t nr_vars,

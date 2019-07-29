@@ -124,7 +124,7 @@ struct bs_t
     int8_t *red;    /* tracks redundancy of basis elements */
     hm_t **hm;      /* hashed monomials representing exponents */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
-    mpz_t **cf_q;   /* coefficients for rationals */
+    mpz_t **cf_qq;  /* coefficients for rationals */
 };
 
 typedef struct mat_t mat_t;
@@ -133,7 +133,7 @@ struct mat_t
     hm_t **r;       /* rows of the matrix, only column entries, coefficients */
                     /* are handled via linking to coefficient arrays */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
-    mpz_t **cf_q;   /* coefficients for rationals */
+    mpz_t **cf_qq;  /* coefficients for rationals */
     len_t sz;       /* number of rows allocated resp. size */
     len_t np;       /* number of new pivots */
     len_t nr;       /* number of rows set */

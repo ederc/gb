@@ -38,13 +38,13 @@ static void free_basis(
         free(bs->hm);
         bs->hm  = NULL;
     }
-    if (bs->cf_q) {
+    if (bs->cf_qq) {
         for (i = 0; i < bs->ld; ++i) {
-            free(bs->cf_q[i]);
+            free(bs->cf_qq[i]);
             free(bs->hm[i]);
         }
-        free(bs->cf_q);
-        bs->cf_q  = NULL;
+        free(bs->cf_qq);
+        bs->cf_qq  = NULL;
         free(bs->hm);
         bs->hm  = NULL;
     }
@@ -71,7 +71,7 @@ static bs_t *initialize_basis_ff(
     bs->sz  = 2*ngens;
 
     bs->cf_ff = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
-    bs->cf_q  = NULL;
+    bs->cf_qq  = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));
@@ -140,7 +140,7 @@ static inline void normalize_initial_basis_ff(
 }
 
 /* characteristic zero stuff */
-static bs_t *initialize_basis_q(
+static bs_t *initialize_basis_qq(
         const int32_t ngens
         )
 {
@@ -150,7 +150,7 @@ static bs_t *initialize_basis_q(
     bs->lml = 0;
     bs->sz  = 2*ngens;
 
-    bs->cf_q  = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
+    bs->cf_qq = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
     bs->cf_ff = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
@@ -160,14 +160,14 @@ static bs_t *initialize_basis_q(
     return bs;
 }
 
-static inline void check_enlarge_basis_q(
+static inline void check_enlarge_basis_qq(
         bs_t *bs,
         const len_t added
         )
 {
     if (bs->ld + added >= bs->sz) {
         bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
-        bs->cf_q  = realloc(bs->cf_q,
+        bs->cf_qq = realloc(bs->cf_qq,
                 (unsigned long)bs->sz * sizeof(mpz_t *));
         bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
@@ -178,7 +178,7 @@ static inline void check_enlarge_basis_q(
     }
 }
 
-static inline void normalize_initial_basis_q(
+static inline void normalize_initial_basis_qq(
         bs_t *bs,
         const int32_t fc
         )

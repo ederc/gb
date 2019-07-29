@@ -78,7 +78,7 @@ int64_t f4_julia(
     if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
                 reset_ht, la_option, pbm_file, info_level)) {
-        return 1;
+        return 0;
     }
 
     /* initialize basis */

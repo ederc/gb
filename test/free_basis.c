@@ -12,7 +12,7 @@ int main(
     if (bs != NULL) {
         return 1;
     }
-    bs  = initialize_basis_q(4);
+    bs  = initialize_basis_qq(4);
     free_basis(&bs);
     if (bs != NULL) {
         return 1;

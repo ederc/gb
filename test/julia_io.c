@@ -27,7 +27,7 @@ int main(
 
     ps_t *ps    = initialize_pairset();
     stat_t *st  = initialize_statistics();
-    if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
+    if (check_and_set_meta_data(ps, st, lens, exps, cfs, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
                 reset_hash_table, la_option, pbm_file, info_level)) {
         return 1;
@@ -37,7 +37,7 @@ int main(
     bs_t * bs = initialize_basis_ff(st->ngens);
     ht_t *bht = initialize_basis_hash_table(st);
 
-    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
+    import_julia_data_ff(bs, bht, st, lens, exps, cfs);
 
     /* free and clean up */
     free_shared_hash_data(bht);

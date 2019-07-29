@@ -54,7 +54,7 @@ int main(
      * ret = 0 if computation correct
      * ret = 1 if something went wrong */
     int ret = f4_julia(
-            bld, blen, bexp, bcf, lens, cfs, exps, field_char, mon_order, nr_vars,
+            bld, blen, bexp, bcf, lens, exps, cfs, field_char, mon_order, nr_vars,
             nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
             la_option, pbm_file, info_level);
 

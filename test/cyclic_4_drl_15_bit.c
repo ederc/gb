@@ -33,7 +33,7 @@ int main(
 
     int32_t **basis = (int32_t **)malloc(sizeof(int32_t *));
     int64_t len     = f4_julia_ff(
-            basis, lens, cfs, exps, field_char, mon_order, nr_vars,
+            basis, lens, exps, cfs, field_char, mon_order, nr_vars,
             nr_gens, ht_size, nr_threads, max_nr_pairs, reset_hash_table,
             la_option, info_level);
 

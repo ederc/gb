@@ -27,7 +27,7 @@ int main(
 
     ps_t *ps    = initialize_pairset();
     stat_t *st  = initialize_statistics();
-    if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
+    if (check_and_set_meta_data(ps, st, lens, exps, cfs, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
                 reset_hash_table, la_option, pbm_file, info_level)) {
         return 1;
@@ -43,7 +43,7 @@ int main(
     ht_t *uht = initialize_secondary_hash_table(bht, st);
     ht_t *sht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data_ff(bs, bht, st, lens, cfs, exps);
+    import_julia_data_ff(bs, bht, st, lens, exps, cfs);
 
     /* for faster divisibility checks, needs to be done after we have
      * read some input data for applying heuristics */

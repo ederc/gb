@@ -39,8 +39,8 @@ int64_t f4_julia(
         void **bcf,     /* coefficients of basis elements */
         /* input values */
         const int32_t *lens,
-        const void *cfs,
         const int32_t *exps,
+        const void *cfs,
         const int32_t field_char,
         const int32_t mon_order,
         const int32_t nr_vars,

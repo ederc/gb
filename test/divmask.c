@@ -34,7 +34,7 @@ int main(
 
     printf("nvars %d\n", st.nvars);
     import_julia_data_ff(
-            bs, bht, &st, lens, cfs, exps);
+            bs, bht, &st, lens, exps, cfs);
 
     calculate_divmask(bht);
     for (i = 0; i < 16; ++i) {

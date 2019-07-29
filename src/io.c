@@ -30,8 +30,8 @@ static void import_julia_data_ff(
         ht_t *ht,
         stat_t *st,
         const int32_t *lens,
-        const void *vcfs,
-        const int32_t *exps
+        const int32_t *exps,
+        const void *vcfs
         )
 {
     int32_t i, j;

@@ -239,8 +239,8 @@ void (*import_julia_data)(
         ht_t *ht,
         stat_t *st,
         const int32_t *lens,
-        const void *vcfs,
-        const int32_t *exps
+        const int32_t *exps,
+        const void *vcfs
         );
 
 int64_t (*export_julia_data)(

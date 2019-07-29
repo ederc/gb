@@ -88,7 +88,7 @@ int64_t f4_julia(
     ht_t *uht = initialize_secondary_hash_table(bht, st);
     ht_t *sht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data(bs, bht, st, lens, cfs, exps);
+    import_julia_data(bs, bht, st, lens, exps, cfs);
 
     if (st->info_level > 0) {
         print_initial_statistics(st);

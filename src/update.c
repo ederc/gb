@@ -83,6 +83,9 @@ static void insert_and_update_spairs(
 
     const hm_t nch = bs->hm[bl][3];
 
+    bs->mltdeg  = bs->mltdeg > bht->hd[nch].deg ?
+        bs->mltdeg : bht->hd[nch].deg;
+
     reinitialize_hash_table(uht, bl);
     /* statistics */
     st->max_uht_size  = st->max_uht_size > uht->hsz ?
@@ -195,7 +198,7 @@ static void insert_and_update_spairs(
     const bl_t lml          = bs->lml;
     const bl_t * const lmps = bs->lmps;
 
-    if (check_redundancy == 1) {
+    if (bs->mltdeg > bht->hd[nch].deg) {
         /* mark redundant elements in basis */
         for (i = 0; i < lml; ++i) {
             if (bs->red[lmps[i]] == 0

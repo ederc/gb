@@ -117,6 +117,7 @@ struct bs_t
     bl_t ld;        /* load of basis */
     bl_t sz;        /* size allocated for basis */
     bl_t lo;        /* load before current update */
+    deg_t mltdeg;   /* maximal appearing degree in lead term in basis */
     bl_t *lmps;     /* lead monomials as short divmask */
     sdm_t *lm;      /* lead monomials as short divmask */
     bl_t lml;       /* number of lead monomials of non redundant

@@ -165,7 +165,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
          * for (int jj = 0; jj < bht->nv; ++jj) {
          *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
          * }
-         * printf(" + %d terms\n", rows[i][2]-1);  */
+         * printf(" + %d terms\n", rows[i][2]-1); */
         /* for (int ii=0; ii < rows[i][2]; ++ii) {
          *     printf("%d | ", bs->cf_ff[bl+i][ii]);
          *     for (int jj = 0; jj < bht->nv; ++jj) {

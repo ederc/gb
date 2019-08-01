@@ -154,12 +154,12 @@ static void import_julia_data_qq(
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
-    for (i=0; i <ngens; ++i) {
-        for (j = 0; j < bs->hm[i][2]; ++j) {
-            gmp_printf("%Qd ", bs->cf_qq[i][j]);
-        }
-        printf("\n");
-    }
+    /* for (i=0; i <ngens; ++i) {
+     *     for (j = 0; j < bs->hm[i][2]; ++j) {
+     *         gmp_printf("%Qd ", bs->cf_qq[i][j]);
+     *     }
+     *     printf("\n");
+     * } */
     deg_t deg = 0;
     for (i = 0; i < ngens; ++i) {
         hm  = bs->hm[i];

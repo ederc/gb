@@ -150,7 +150,7 @@ static bs_t *initialize_basis_qq(
     bs->lml = 0;
     bs->sz  = 2*ngens;
 
-    bs->cf_qq = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
+    bs->cf_qq = (mpq_t **)malloc((unsigned long)bs->sz * sizeof(mpq_t *));
     bs->cf_ff = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
@@ -168,7 +168,7 @@ static inline void check_enlarge_basis_qq(
     if (bs->ld + added >= bs->sz) {
         bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
         bs->cf_qq = realloc(bs->cf_qq,
-                (unsigned long)bs->sz * sizeof(mpz_t *));
+                (unsigned long)bs->sz * sizeof(mpq_t *));
         bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->lmps  = realloc(bs->lmps, (unsigned long)bs->sz * sizeof(bl_t));

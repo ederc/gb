@@ -106,7 +106,7 @@ static void import_julia_data_qq(
 {
     int32_t i, j;
     len_t k;
-    mpz_t *cf;
+    mpq_t *cf;
     hm_t *hm;
 
     mpz_t **cfs  = (mpz_t **)vcfs;
@@ -129,9 +129,9 @@ static void import_julia_data_qq(
     exp_t *e  = ht->ev[0]; /* use as temporary storage */
     for (i = 0; i < ngens; ++i) {
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
-        cf  = (mpz_t *)malloc((unsigned long)(lens[i]*2) * sizeof(mpz_t));
+        cf  = (mpq_t *)malloc((unsigned long)(lens[i]) * sizeof(mpq_t));
         for (j = 0; j < lens[i]*2; ++j) {
-          mpz_init(cf[j]);
+          mpq_init(cf[j]);
         }
         bs->hm[i]     = hm;
         bs->cf_qq[i]  = cf;
@@ -146,14 +146,19 @@ static void import_julia_data_qq(
             for (k = 0; k < nv; ++k) {
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
-            hm[j-off+3]     = insert_in_hash_table(e, ht);
-            printf("pos %d\n", 2*j);
-            mpz_set(cf[2*j-off], *(cfs[2*j]));
-            printf("pos+1 %d\n", 2*j+1);
-            mpz_set(cf[2*j+1-off], *(cfs[2*j+1]));
+            hm[j-off+3] = insert_in_hash_table(e, ht);
+            mpq_set_num(cf[j-off], *(cfs[2*j]));
+            mpq_set_den(cf[j-off], *(cfs[2*j+1]));
+            /* gmp_printf("%Qd\n", cf[j-off]); */
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
+    }
+    for (i=0; i <ngens; ++i) {
+        for (j = 0; j < bs->hm[i][2]; ++j) {
+            gmp_printf("%Qd ", bs->cf_qq[i][j]);
+        }
+        printf("\n");
     }
     deg_t deg = 0;
     for (i = 0; i < ngens; ++i) {

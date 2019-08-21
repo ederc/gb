@@ -134,11 +134,7 @@ struct mat_t
     hm_t **r;       /* rows of the matrix, only column entries, coefficients */
                     /* are handled via linking to coefficient arrays */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
-<<<<<<< HEAD
     mpq_t **cf_qq;  /* coefficients for rationals */
-=======
-    mpz_t **cf_qq;  /* coefficients for rationals */
->>>>>>> c8f61da88709987b5e4063f31f6c4d2964a32b4a
     len_t sz;       /* number of rows allocated resp. size */
     len_t np;       /* number of new pivots */
     len_t nr;       /* number of rows set */

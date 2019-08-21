@@ -33,6 +33,7 @@ TESTS =												\
 	julia_io										\
 	pairset_update							\
 	select_spairs								\
+	qq_example									\
 	cyclic_4_drl_17_bit					\
 	cyclic_4_h_drl_17_bit				\
 	cyclic_4_drl_31_bit					\

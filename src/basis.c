@@ -196,19 +196,19 @@ static inline void normalize_initial_basis_qq(
     mpq_t inv;
     mpq_init(inv);
 
-    mpq_t one;
-    mpq_init(one);
-    mpq_set_si(one, 1, 1);
     for (i = 0; i < ld; ++i) {
         mpq_t *row = cf[hm[i][0]];
-
-        gmp_printf("row[0] %Qd\n", row[0]);
-        if (mpq_equal(one,row[0]) == 0) {
-            printf("ja?\n");
-            mpq_inv(inv, row[0]);
+        if (mpq_cmp_si(row[0], 1, 1) != 0) {
             const len_t os    = hm[i][1];
             const len_t len   = hm[i][2];
 
+            printf("os %d | len %d\n", os, len);
+
+            mpq_inv(inv, row[0]);
+            gmp_printf("inv %Qd\n", inv);
+            for (j = 0; j < len; ++j) {
+                gmp_printf("row[%d] %Qd\n", j,row[j]);
+            }
             for (j = 0; j < os; ++j) {
                 mpq_mul(row[j], inv, row[j]);
             }
@@ -226,5 +226,4 @@ static inline void normalize_initial_basis_qq(
 
     }
     mpq_clear(inv);
-    mpq_clear(one);
 }

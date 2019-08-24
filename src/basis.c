@@ -26,7 +26,7 @@ static void free_basis(
         bs_t **bsp
         )
 {
-    len_t i;
+    len_t i, j, len;
     bs_t *bs  = *bsp;
     if (bs->cf_ff) {
         for (i = 0; i < bs->ld; ++i) {
@@ -40,7 +40,12 @@ static void free_basis(
     }
     if (bs->cf_qq) {
         for (i = 0; i < bs->ld; ++i) {
-            free(bs->cf_qq[i]);
+            len = bs->hm[i][2];
+            mpq_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
+            for (j = 0; j < len; ++j) {
+                mpq_clear(coeffs[j]);
+            }
+            free(bs->cf_qq[bs->hm[i][0]]);
             free(bs->hm[i]);
         }
         free(bs->cf_qq);
@@ -202,13 +207,7 @@ static inline void normalize_initial_basis_qq(
             const len_t os    = hm[i][1];
             const len_t len   = hm[i][2];
 
-            printf("os %d | len %d\n", os, len);
-
             mpq_inv(inv, row[0]);
-            gmp_printf("inv %Qd\n", inv);
-            for (j = 0; j < len; ++j) {
-                gmp_printf("row[%d] %Qd\n", j,row[j]);
-            }
             for (j = 0; j < os; ++j) {
                 mpq_mul(row[j], inv, row[j]);
             }
@@ -218,10 +217,6 @@ static inline void normalize_initial_basis_qq(
                 mpq_mul(row[j+2], inv, row[j+2]);
                 mpq_mul(row[j+3], inv, row[j+3]);
             }
-            for (j = 0; j < len; ++j) {
-                gmp_printf("mpq_t %d --> %Qd\n", j, row[j]);
-            }
-            printf("\n");
         }
 
     }

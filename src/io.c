@@ -119,10 +119,6 @@ static void import_julia_data_qq(
     for (i = 0; i < st->ngens; ++i) {
         nterms  +=  lens[i];
     }
-    printf("nterms = %d\n", nterms);
-    for (int ii=0; ii < 2*nterms; ++ii) {
-      gmp_printf("mpz_t %d --> %Zd\n", ii, *(cfs[ii]));
-    }
     while (nterms >= ht->esz) {
         enlarge_hash_table(ht);
     }
@@ -130,12 +126,13 @@ static void import_julia_data_qq(
     for (i = 0; i < ngens; ++i) {
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (mpq_t *)malloc((unsigned long)(lens[i]) * sizeof(mpq_t));
-        for (j = 0; j < lens[i]*2; ++j) {
-          mpq_init(cf[j]);
-        }
+
         bs->hm[i]     = hm;
         bs->cf_qq[i]  = cf;
 
+        for (j = 0; j < lens[i]; ++j) {
+          mpq_init(cf[j]);
+        }
         hm[0]  = i; /* link to matcf entry */
         hm[1]  = (lens[i] % UNROLL); /* offset */
         hm[2]  = lens[i]; /* length */
@@ -149,17 +146,10 @@ static void import_julia_data_qq(
             hm[j-off+3] = insert_in_hash_table(e, ht);
             mpq_set_num(cf[j-off], *(cfs[2*j]));
             mpq_set_den(cf[j-off], *(cfs[2*j+1]));
-            /* gmp_printf("%Qd\n", cf[j-off]); */
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];
     }
-    /* for (i=0; i <ngens; ++i) {
-     *     for (j = 0; j < bs->hm[i][2]; ++j) {
-     *         gmp_printf("%Qd ", bs->cf_qq[i][j]);
-     *     }
-     *     printf("\n");
-     * } */
     deg_t deg = 0;
     for (i = 0; i < ngens; ++i) {
         hm  = bs->hm[i];
@@ -234,7 +224,80 @@ static int64_t export_julia_data_ff(
             dt  = bs->hm[i] + 3;
             for (j = 0; j < len[cl]; ++j) {
                 for (k = 0; k < nv; ++k) {
-                    exp[ce++] = (int32_t)ht->ev[dt[j]][k]; 
+                    exp[ce++] = (int32_t)ht->ev[dt[j]][k];
+                }
+            }
+            cc  +=  len[cl];
+            cl++;
+        }
+    }
+
+    *bload  = (int32_t)nelts;
+    *blen   = len;
+    *bexp   = exp;
+    *bcf    = (void *)cf;
+
+    return nterms;
+}
+
+static int64_t export_julia_data_qq(
+        int32_t *bload,
+        int32_t **blen,
+        int32_t **bexp,
+        void **bcf,
+        const bs_t * const bs,
+        const ht_t * const ht
+        )
+{
+    len_t i, j, k;
+
+    const len_t nv  = ht->nv;
+    const bl_t bld  = bs->ld;
+
+    hm_t *dt;
+
+    int64_t nterms  = 0; /* # of terms in basis */
+    int64_t nelts  = 0; /* # elemnts in basis */
+
+    /* compute number of terms */
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i] != 0) {
+            continue;
+        } else {
+            nterms +=  (int64_t)bs->hm[i][2];
+            nelts++;
+        }
+    }
+
+    if (nelts > (int64_t)(pow(2, 31))) {
+        printf("Basis has more than 2^31 elements, cannot store it.\n");
+        return 0;
+    }
+
+    int32_t *len  = (int32_t *)malloc(
+            (unsigned long)(nelts) * sizeof(int32_t));
+    int32_t *exp  = (int32_t *)malloc(
+            (unsigned long)(nterms) * (unsigned long)(nv) * sizeof(int32_t));
+    mpq_t *cf     = (mpq_t *)malloc(
+            (unsigned long)(nterms) * sizeof(mpq_t));
+
+    /* counters for lengths, exponents and coefficients */
+    int32_t cl = 0, ce = 0, cc = 0;
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i] != 0) {
+            continue;
+        } else {
+            len[cl] = bs->hm[i][2];
+            mpq_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
+            for (j = 0; j < len[cl]; ++j) {
+                mpq_init((cf+cc)[j]);
+                mpq_set((cf+cc)[j], coeffs[j]);
+            }
+
+            dt  = bs->hm[i] + 3;
+            for (j = 0; j < len[cl]; ++j) {
+                for (k = 0; k < nv; ++k) {
+                    exp[ce++] = (int32_t)ht->ev[dt[j]][k];
                 }
             }
             cc  +=  len[cl];
@@ -298,9 +361,10 @@ static inline void set_function_pointers(
     /* up to 17 bits we can use one modular operation for reducing a row. this works
      * for matrices with #rows <= 54 million */
     if (st->fc == 0) {
+        linear_algebra          = exact_sparse_linear_algebra_qq;
         initialize_basis        = initialize_basis_qq;
         import_julia_data       = import_julia_data_qq;
-        export_julia_data       = export_julia_data_ff;
+        export_julia_data       = export_julia_data_qq;
         check_enlarge_basis     = check_enlarge_basis_qq;
         normalize_initial_basis = normalize_initial_basis_qq;
     } else {

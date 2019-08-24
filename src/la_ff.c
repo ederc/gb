@@ -14,8 +14,8 @@
  */
 
 /**
- * \file la.c
- * \brief Implementation of linear algebra.
+ * \file la_ff.c
+ * \brief Implementation of finite field linear algebra.
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
@@ -111,10 +111,10 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
     hm_t *dts;
     cf32_t *cfs;
     len_t np  = 0;
-    const int64_t mod         = (int64_t)fc;
-    const len_t ncols         = mat->nc;
-    const len_t ncl           = mat->ncl;
-    hm_t * const * const mcf  = mat->cf_ff;
+    const int64_t mod           = (int64_t)fc;
+    const len_t ncols           = mat->nc;
+    const len_t ncl             = mat->ncl;
+    cf32_t * const * const mcf  = mat->cf_ff;
 
     k = 0;
     for (i = dpiv; i < ncols; ++i) {
@@ -201,11 +201,11 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
     cf32_t *cfs;
     hm_t *dts;
     len_t np  = 0;
-    const int64_t mod         = (int64_t)fc;
-    const int64_t mod2        = (int64_t)fc * fc;
-    const len_t ncols         = mat->nc;
-    const len_t ncl           = mat->ncl;
-    hm_t * const * const mcf  = mat->cf_ff;
+    const int64_t mod           = (int64_t)fc;
+    const int64_t mod2          = (int64_t)fc * fc;
+    const len_t ncols           = mat->nc;
+    const len_t ncl             = mat->ncl;
+    cf32_t * const * const mcf  = mat->cf_ff;
 
     k = 0;
     for (i = dpiv; i < ncols; ++i) {

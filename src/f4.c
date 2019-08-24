@@ -151,8 +151,15 @@ int64_t f4_julia(
        * so we do not need the rows anymore */
       free(mat->r);
       mat->r  = NULL;
-      free(mat->cf_ff);
-      mat->cf_ff  = NULL;
+      if (st->fc > 0) {
+        free(mat->cf_ff);
+        mat->cf_ff  = NULL;
+      } else {
+          if (st->fc == 0) {
+            free(mat->cf_qq);
+            mat->cf_qq  = NULL;
+          }
+      }
 
       /* check redundancy only if input is not homogeneous */
       update_basis(ps, bs, bht, uht, st, mat->np, 1-st->homogeneous);

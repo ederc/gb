@@ -140,11 +140,11 @@ int main(
 
     free(cfs);
 
-    mpq_t **bcfs = (mpq_t **)bcf;
+    mpz_t **bcfs = (mpz_t **)bcf;
     printf("number terms %d\n", ret);
     for (i = 0; i < ret; ++i) {
-        gmp_printf("%d ---- %Qd\n", i, (*bcfs)[i]);
-        mpq_clear((*bcfs)[i]);
+        gmp_printf("%d ---- %Zd/%Zd\n", i, (*bcfs)[2*i], (*bcfs)[2*i+1]);
+        mpz_clear((*bcfs)[i]);
     }
 
     free(*blen);

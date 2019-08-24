@@ -278,8 +278,8 @@ static int64_t export_julia_data_qq(
             (unsigned long)(nelts) * sizeof(int32_t));
     int32_t *exp  = (int32_t *)malloc(
             (unsigned long)(nterms) * (unsigned long)(nv) * sizeof(int32_t));
-    mpq_t *cf     = (mpq_t *)malloc(
-            (unsigned long)(nterms) * sizeof(mpq_t));
+    mpz_t *cf     = (mpz_t *)malloc(
+            (unsigned long)(2*nterms) * sizeof(mpz_t));
 
     /* counters for lengths, exponents and coefficients */
     int32_t cl = 0, ce = 0, cc = 0;
@@ -290,8 +290,9 @@ static int64_t export_julia_data_qq(
             len[cl] = bs->hm[i][2];
             mpq_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
             for (j = 0; j < len[cl]; ++j) {
-                mpq_init((cf+cc)[j]);
-                mpq_set((cf+cc)[j], coeffs[j]);
+                mpz_inits((cf+cc)[2*j], (cf+cc)[2*j+1], NULL);
+                mpq_get_num((cf+cc)[2*j], coeffs[j]);
+                mpq_get_den((cf+cc)[2*j+1], coeffs[j]);
             }
 
             dt  = bs->hm[i] + 3;
@@ -300,7 +301,7 @@ static int64_t export_julia_data_qq(
                     exp[ce++] = (int32_t)ht->ev[dt[j]][k];
                 }
             }
-            cc  +=  len[cl];
+            cc  += 2*len[cl];
             cl++;
         }
     }

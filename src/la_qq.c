@@ -20,29 +20,37 @@
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
 
-static inline mpq_t *normalize_sparse_matrix_row_qq(
-        mpq_t *row,
+static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
+        mpz_t *row,
         const len_t os,
         const len_t len
         )
 {
     len_t i;
 
-    mpq_t inv;
-    mpq_init(inv);
-    mpq_inv(inv, row[0]);
-
+    mpz_t content;
+    mpz_init(content);
+    /* compute content, i.e. gcd of all coefficients */
+    mpz_set(content, row[0]);
+    for (i = 1; i < len; ++i) {
+        mpz_gcd(content, content, row[i]);
+        if (mpq_cmp_si(content, 1) == 0) {
+            mpz_clear(content);
+            return row;
+        }
+    }
+    /* remove content */
     for (i = 0; i < os; ++i) {
-        mpq_mul(row[i], inv, row[i]);
+        mpz_divexact(row[i], row[i], content);
     }
-    /* we need to set i to os since os < 1 is possible */
-    for (i = os; i < len; i += 4) {
-        mpq_mul(row[i], inv, row[i]);
-        mpq_mul(row[i+1], inv, row[i+1]);
-        mpq_mul(row[i+2], inv, row[i+2]);
-        mpq_mul(row[i+3], inv, row[i+3]);
+    for (; i < len; i += 4) {
+        mpz_divexact(row[i], row[i], content);
+        mpz_divexact(row[i+1], row[i+1], content);
+        mpz_divexact(row[i+2], row[i+2], content);
+        mpz_divexact(row[i+3], row[i+3], content);
     }
-    mpq_clear(inv);
+    mpz_clear(content);
+
     return row;
 }
 

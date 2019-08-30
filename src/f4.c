@@ -102,7 +102,13 @@ int64_t f4_julia(
     sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
             initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis(bs, st->fc);
+    if (st->fc > 0) {
+        normalize_initial_basis_ff(bs, st->fc);
+    } else {
+        if (st->fc == 0) {
+            remove_content_of_initial_basis(bs);
+        }
+    }
 
     /* reset bs->ld for first update process */
     bs->ld  = 0;

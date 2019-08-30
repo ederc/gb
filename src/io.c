@@ -106,9 +106,13 @@ static void import_julia_data_qq(
 {
     int32_t i, j;
     len_t k;
-    mpq_t *cf;
+    mpz_t *cf;
     hm_t *hm;
+    mpz_t prod_den, mul;
+    mpz_inits(prod_den, mul, NULL);
 
+    /* these coefficients are numerator, denominator, numerator, denominator, ...
+     * i.e. the array has length 2*nterms */
     mpz_t **cfs  = (mpz_t **)vcfs;
 
     int32_t off       = 0; /* offset in arrays */
@@ -122,16 +126,29 @@ static void import_julia_data_qq(
     while (nterms >= ht->esz) {
         enlarge_hash_table(ht);
     }
+
+    /* we want to get rid of denominators, i.e. we want to handle
+     * the coefficients as integers resp. mpz_t numbers. for this we
+     * first get the product of all denominators of a polynomial and
+     * then multiply with this product each term. the polynomials are
+     * then be made content free by another function. */
+
     exp_t *e  = ht->ev[0]; /* use as temporary storage */
     for (i = 0; i < ngens; ++i) {
+        mpz_set_si(prod_den, 1);
+
+        for (j = off; j < off+lens[i]; ++j) {
+            mpz_mul(prod_den, prod_den, *(cfs[2*j+1]));
+        }
+
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
-        cf  = (mpq_t *)malloc((unsigned long)(lens[i]) * sizeof(mpq_t));
+        cf  = (mpz_t *)malloc((unsigned long)(lens[i]) * sizeof(mpz_t));
 
         bs->hm[i]     = hm;
         bs->cf_qq[i]  = cf;
 
         for (j = 0; j < lens[i]; ++j) {
-          mpq_init(cf[j]);
+          mpz_init(cf[j]);
         }
         hm[0]  = i; /* link to matcf entry */
         hm[1]  = (lens[i] % UNROLL); /* offset */
@@ -144,8 +161,8 @@ static void import_julia_data_qq(
                 e[k]  = (exp_t)(exps+(nv*j))[k];
             }
             hm[j-off+3] = insert_in_hash_table(e, ht);
-            mpq_set_num(cf[j-off], *(cfs[2*j]));
-            mpq_set_den(cf[j-off], *(cfs[2*j+1]));
+            mpz_divexact(mul, prod_den, *(cfs[2*j+1]));
+            mpz_mul(cf[j-off], mul, *(cfs[2*j]));
         }
         /* mark initial generators, they have to be added to the basis first */
         off +=  lens[i];

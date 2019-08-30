@@ -223,18 +223,18 @@ next_poly:
             mpz_divexact(row[j+2], row[j+2], content);
             mpz_divexact(row[j+3], row[j+3], content);
         }
+        /* make lead coefficient positive */
+        if (mpz_sgn(row[0]) < 0) {
+            for (j = 0; j < os; ++j) {
+                mpz_neg(row[j], row[j]);
+            }
+            for (; j < len; j += 4) {
+                mpz_neg(row[j], row[j]);
+                mpz_neg(row[j+1], row[j+1]);
+                mpz_neg(row[j+2], row[j+2]);
+                mpz_neg(row[j+3], row[j+3]);
+            }
+        }
     }
     mpz_clear(content);
-
-    /* make lead coefficient positive */
-    if (mpz_sgn(row[0]) < 0) {
-    for (j = 0; j < os; ++j) {
-        mpz_neg(row[j], row[j]);
-    }
-    for (; j < len; j += 4) {
-        mpz_neg(row[j], row[j]);
-        mpz_neg(row[j+1], row[j+1]);
-        mpz_neg(row[j+2], row[j+2]);
-        mpz_neg(row[j+3], row[j+3]);
-    }
 }

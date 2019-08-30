@@ -138,6 +138,9 @@ int main(
         *(cfs[43]),
         NULL);
 
+    for (i = 0; i < 2*nterms; ++i) {
+        free(cfs[i]);
+    }
     free(cfs);
 
     mpz_t **bcfs = (mpz_t **)bcf;

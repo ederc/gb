@@ -34,7 +34,7 @@ static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
     mpz_set(content, row[0]);
     for (i = 1; i < len; ++i) {
         mpz_gcd(content, content, row[i]);
-        if (mpq_cmp_si(content, 1) == 0) {
+        if (mpz_cmp_si(content, 1) == 0) {
             mpz_clear(content);
             return row;
         }
@@ -50,6 +50,18 @@ static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
         mpz_divexact(row[i+3], row[i+3], content);
     }
     mpz_clear(content);
+
+    /* make lead coefficient positive */
+    if (mpz_sgn(row[0]) < 0) {
+    for (i = 0; i < os; ++i) {
+        mpz_neg(row[i], row[i]);
+    }
+    for (; i < len; i += 4) {
+        mpz_neg(row[i], row[i]);
+        mpz_neg(row[i+1], row[i+1]);
+        mpz_neg(row[i+2], row[i+2]);
+        mpz_neg(row[i+3], row[i+3]);
+    }
 
     return row;
 }

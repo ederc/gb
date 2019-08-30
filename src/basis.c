@@ -208,7 +208,7 @@ next_poly:
         const len_t len = hm[i][2];
         for (j = 1; j < len; ++j) {
             mpz_gcd(content, content, row[j]);
-            if (mpq_cmp_si(content, 1) == 0) {
+            if (mpz_cmp_si(content, 1) == 0) {
                 i++;
                 goto next_poly;
             }
@@ -225,4 +225,16 @@ next_poly:
         }
     }
     mpz_clear(content);
+
+    /* make lead coefficient positive */
+    if (mpz_sgn(row[0]) < 0) {
+    for (j = 0; j < os; ++j) {
+        mpz_neg(row[j], row[j]);
+    }
+    for (; j < len; j += 4) {
+        mpz_neg(row[j], row[j]);
+        mpz_neg(row[j+1], row[j+1]);
+        mpz_neg(row[j+2], row[j+2]);
+        mpz_neg(row[j+3], row[j+3]);
+    }
 }

@@ -207,11 +207,6 @@ void (*check_enlarge_basis)(
         const len_t added
         );
 
-void (*normalize_initial_basis)(
-        bs_t *bs,
-        const int32_t fc
-        );
-
 int (*initial_input_cmp)(
         const void *a,
         const void *b,

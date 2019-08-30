@@ -187,38 +187,42 @@ static inline void check_enlarge_basis_qq(
     }
 }
 
-static inline void normalize_initial_basis_qq(
-        bs_t *bs,
-        const int32_t fc
+static inline void remove_content_of_initial_basis(
+        bs_t *bs
         )
 {
     len_t i, j;
 
-    mpq_t **cf        = bs->cf_qq;
+    mpz_t **cf        = bs->cf_qq;
     hm_t * const *hm  = bs->hm;
     const bl_t ld     = bs->ld;
 
-    mpq_t inv;
-    mpq_init(inv);
-
+    mpz_t content;
+    mpz_init(content);
+    /* compute content, i.e. gcd of all coefficients */
+next_poly:
     for (i = 0; i < ld; ++i) {
-        mpq_t *row = cf[hm[i][0]];
-        if (mpq_cmp_si(row[0], 1, 1) != 0) {
-            const len_t os    = hm[i][1];
-            const len_t len   = hm[i][2];
-
-            mpq_inv(inv, row[0]);
-            for (j = 0; j < os; ++j) {
-                mpq_mul(row[j], inv, row[j]);
-            }
-            for (j = os; j < len; j += 4) {
-                mpq_mul(row[j], inv, row[j]);
-                mpq_mul(row[j+1], inv, row[j+1]);
-                mpq_mul(row[j+2], inv, row[j+2]);
-                mpq_mul(row[j+3], inv, row[j+3]);
+        mpz_t *row = cf[hm[i][0]];
+        mpz_set(content, row[0]);
+        const len_t os  = hm[i][1];
+        const len_t len = hm[i][2];
+        for (j = 1; j < len; ++j) {
+            mpz_gcd(content, content, row[j]);
+            if (mpq_cmp_si(content, 1) == 0) {
+                i++;
+                goto next_poly;
             }
         }
-
+        /* remove content */
+        for (j = 0; j < os; ++j) {
+            mpz_divexact(row[j], row[j], content);
+        }
+        for (; j < len; j += 4) {
+            mpz_divexact(row[j], row[j], content);
+            mpz_divexact(row[j+1], row[j+1], content);
+            mpz_divexact(row[j+2], row[j+2], content);
+            mpz_divexact(row[j+3], row[j+3], content);
+        }
     }
-    mpq_clear(inv);
+    mpz_clear(content);
 }

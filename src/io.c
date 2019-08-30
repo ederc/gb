@@ -367,13 +367,11 @@ static inline void set_function_pointers(
         import_julia_data       = import_julia_data_qq;
         export_julia_data       = export_julia_data_qq;
         check_enlarge_basis     = check_enlarge_basis_qq;
-        normalize_initial_basis = normalize_initial_basis_qq;
     } else {
         initialize_basis        = initialize_basis_ff;
         import_julia_data       = import_julia_data_ff;
         export_julia_data       = export_julia_data_ff;
         check_enlarge_basis     = check_enlarge_basis_ff;
-        normalize_initial_basis = normalize_initial_basis_ff;
     }
     if (st->fc < pow(2, 17)) {
         reduce_dense_row_by_all_pivots =

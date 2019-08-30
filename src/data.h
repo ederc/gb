@@ -125,7 +125,8 @@ struct bs_t
     int8_t *red;    /* tracks redundancy of basis elements */
     hm_t **hm;      /* hashed monomials representing exponents */
     cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
-    mpq_t **cf_qq;  /* coefficients for rationals */
+    mpz_t **cf_qq;  /* coefficients for rationals (always multiplied such that
+                       the denominator is 1) */
 };
 
 typedef struct mat_t mat_t;

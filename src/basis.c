@@ -200,8 +200,9 @@ static inline void remove_content_of_initial_basis(
     mpz_t content;
     mpz_init(content);
     /* compute content, i.e. gcd of all coefficients */
+    i = 0;
 next_poly:
-    for (i = 0; i < ld; ++i) {
+    for (; i < ld; ++i) {
         mpz_t *row = cf[hm[i][0]];
         mpz_set(content, row[0]);
         const len_t os  = hm[i][1];
@@ -223,8 +224,15 @@ next_poly:
             mpz_divexact(row[j+2], row[j+2], content);
             mpz_divexact(row[j+3], row[j+3], content);
         }
-        /* make lead coefficient positive */
-        if (mpz_sgn(row[0]) < 0) {
+    }
+    mpz_clear(content);
+
+    /* make lead coefficient positive */
+    for (i = 0; i < ld; ++i) {
+        mpz_t *row = cf[hm[i][0]];
+        const len_t os  = hm[i][1];
+        const len_t len = hm[i][2];
+        if (mpz_sgn(row[0]) == -1) {
             for (j = 0; j < os; ++j) {
                 mpz_neg(row[j], row[j]);
             }
@@ -236,5 +244,4 @@ next_poly:
             }
         }
     }
-    mpz_clear(content);
 }

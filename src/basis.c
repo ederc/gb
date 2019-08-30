@@ -41,9 +41,9 @@ static void free_basis(
     if (bs->cf_qq) {
         for (i = 0; i < bs->ld; ++i) {
             len = bs->hm[i][2];
-            mpq_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
+            mpz_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
             for (j = 0; j < len; ++j) {
-                mpq_clear(coeffs[j]);
+                mpz_clear(coeffs[j]);
             }
             free(bs->cf_qq[bs->hm[i][0]]);
             free(bs->hm[i]);
@@ -159,7 +159,7 @@ static bs_t *initialize_basis_qq(
 
     bs->mltdeg  = 0;
 
-    bs->cf_qq = (mpq_t **)malloc((unsigned long)bs->sz * sizeof(mpq_t *));
+    bs->cf_qq = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
     bs->cf_ff = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
@@ -177,7 +177,7 @@ static inline void check_enlarge_basis_qq(
     if (bs->ld + added >= bs->sz) {
         bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
         bs->cf_qq = realloc(bs->cf_qq,
-                (unsigned long)bs->sz * sizeof(mpq_t *));
+                (unsigned long)bs->sz * sizeof(mpz_t *));
         bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
         bs->lmps  = realloc(bs->lmps, (unsigned long)bs->sz * sizeof(bl_t));

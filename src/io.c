@@ -140,6 +140,7 @@ static void import_julia_data_qq(
         for (j = off; j < off+lens[i]; ++j) {
             mpz_mul(prod_den, prod_den, *(cfs[2*j+1]));
         }
+        gmp_printf("prod_den %Zd\n", prod_den);
 
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (mpz_t *)malloc((unsigned long)(lens[i]) * sizeof(mpz_t));
@@ -162,6 +163,7 @@ static void import_julia_data_qq(
             }
             hm[j-off+3] = insert_in_hash_table(e, ht);
             mpz_divexact(mul, prod_den, *(cfs[2*j+1]));
+            gmp_printf("mul %Zd\n", mul);
             mpz_mul(cf[j-off], mul, *(cfs[2*j]));
         }
         /* mark initial generators, they have to be added to the basis first */
@@ -296,7 +298,7 @@ static int64_t export_julia_data_qq(
     int32_t *exp  = (int32_t *)malloc(
             (unsigned long)(nterms) * (unsigned long)(nv) * sizeof(int32_t));
     mpz_t *cf     = (mpz_t *)malloc(
-            (unsigned long)(2*nterms) * sizeof(mpz_t));
+            (unsigned long)(nterms) * sizeof(mpz_t));
 
     /* counters for lengths, exponents and coefficients */
     int32_t cl = 0, ce = 0, cc = 0;
@@ -305,11 +307,10 @@ static int64_t export_julia_data_qq(
             continue;
         } else {
             len[cl] = bs->hm[i][2];
-            mpq_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
+            mpz_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
             for (j = 0; j < len[cl]; ++j) {
-                mpz_inits((cf+cc)[2*j], (cf+cc)[2*j+1], NULL);
-                mpq_get_num((cf+cc)[2*j], coeffs[j]);
-                mpq_get_den((cf+cc)[2*j+1], coeffs[j]);
+                mpz_init((cf+cc)[j]);
+                mpz_set((cf+cc)[j], coeffs[j]);
             }
 
             dt  = bs->hm[i] + 3;
@@ -318,7 +319,7 @@ static int64_t export_julia_data_qq(
                     exp[ce++] = (int32_t)ht->ev[dt[j]][k];
                 }
             }
-            cc  += 2*len[cl];
+            cc  += len[cl];
             cl++;
         }
     }

@@ -27,27 +27,37 @@ static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
         )
 {
     len_t i;
+    long remove = 1;
 
     mpz_t content;
     mpz_init(content);
     /* compute content, i.e. gcd of all coefficients */
     mpz_set(content, row[0]);
+    /* printf("before removing content: ");
+     * for (i = 0; i < len; ++i) {
+     *     gmp_printf("%Zd ", row[i]);
+     * }
+     * printf("\n"); */
     for (i = 1; i < len; ++i) {
+        /* gmp_printf("gcd of %Zd and %Zd is ", content, row[i]); */
         mpz_gcd(content, content, row[i]);
+        /* gmp_printf("-> %Zd\n", content); */
         if (mpz_cmp_si(content, 1) == 0) {
-            mpz_clear(content);
-            return row;
+            remove = 0;
+            break;
         }
     }
-    /* remove content */
-    for (i = 0; i < os; ++i) {
-        mpz_divexact(row[i], row[i], content);
-    }
-    for (; i < len; i += 4) {
-        mpz_divexact(row[i], row[i], content);
-        mpz_divexact(row[i+1], row[i+1], content);
-        mpz_divexact(row[i+2], row[i+2], content);
-        mpz_divexact(row[i+3], row[i+3], content);
+    if (remove == 1) {
+        /* remove content */
+        for (i = 0; i < os; ++i) {
+            mpz_divexact(row[i], row[i], content);
+        }
+        for (; i < len; i += 4) {
+            mpz_divexact(row[i], row[i], content);
+            mpz_divexact(row[i+1], row[i+1], content);
+            mpz_divexact(row[i+2], row[i+2], content);
+            mpz_divexact(row[i+3], row[i+3], content);
+        }
     }
     mpz_clear(content);
 
@@ -64,11 +74,16 @@ static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
         }
     }
 
+    /* printf("after removing content: ");
+     * for (i = 0; i < len; ++i) {
+     *     gmp_printf("%Zd ", row[i]);
+     * }
+     * printf("\n"); */
     return row;
 }
 
 static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
-        mpq_t *dr,
+        mpz_t *dr,
         mat_t *mat,
         const bs_t * const bs,
         hm_t * const * const pivs,
@@ -78,18 +93,18 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
 {
     hl_t i, j, k;
     hm_t *dts;
-    mpq_t *cfs;
+    mpz_t *cfs;
     len_t np  = 0;
     const len_t ncols         = mat->nc;
     const len_t ncl           = mat->ncl;
-    mpq_t * const * const mcf = mat->cf_qq;
+    mpz_t * const * const mcf = mat->cf_qq;
 
     k = 0;
-    mpq_t red1, red2, red3, red4, mul;
-    mpq_inits(red1, red2, red3, red4, mul, NULL);
+    mpz_t mul1, mul2;
+    mpz_inits(mul1, mul2, NULL);
     for (i = dpiv; i < ncols; ++i) {
-        /* uses mpq_sgn for checking if dr[i] = 0 */
-        if (mpq_sgn(dr[i]) == 0) {
+        /* uses mpz_sgn for checking if dr[i] = 0 */
+        if (mpz_sgn(dr[i]) == 0) {
             continue;
         }
         if (pivs[i] == NULL) {
@@ -97,49 +112,91 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
                 np  = i;
             }
             k++;
-            continue;
+            break;
+            /* continue; */
         }
         /* found reducer row, get multiplier */
         dts = pivs[i];
         if (i < ncl) {
             cfs   = bs->cf_qq[dts[0]];
         } else {
+            /* printf("current reducer used!\n"); */
             cfs   = mcf[dts[0]];
         }
         const len_t os  = dts[1];
         const len_t len = dts[2];
         const hm_t * const ds  = dts + 3;
-        mpq_set(mul, dr[i]);
-        for (j = 0; j < os; ++j) {
-            mpq_mul(red1, mul, cfs[j]);
-            mpq_sub(dr[ds[j]], dr[ds[j]], red1);
+
+        /* check if lead coefficient of dr is multiple of lead coefficient
+         * of cfs, generate corresponding multipliers respectively */
+        /* printf("dr: ");
+         * for (int ii= 0; ii<ncols; ++ii) {
+         *     gmp_printf("%Zd ", dr[ii]);
+         * }
+         * printf("\n");
+         * printf("cfs: ");
+         * for (int ii= 0; ii<len; ++ii) {
+         *     gmp_printf("%Zd ", cfs[ii]);
+         * }
+         * printf("\n"); */
+        /* gmp_printf("dr %Zd -- cfs %Zd\n", dr[i], cfs[0]); */
+        if (mpz_divisible_p(dr[i], cfs[0]) != 0) {
+            /* printf("???\n"); */
+            mpz_divexact(mul2, dr[i], cfs[0]);
+            /* gmp_printf("mul2 %Zd\n", mul2); */
+            for (j = 0; j < len; ++j) {
+                /* gmp_printf("|-> dr %Zd [%d] .. cfs %Zd\n", dr[ds[j]], ds[j], cfs[j]); */
+                mpz_submul(dr[ds[j]], mul2, cfs[j]);
+                /* gmp_printf("-> dr %Zd .. cfs %Zd\n", dr[ds[j]], cfs[j]); */
+            }
+            /* for (; j < len; j += 4) {
+             *     mpz_submul(dr[ds[j]], mul2, cfs[j]);
+             *     mpz_submul(dr[ds[j+1]], mul2, cfs[j+1]);
+             *     mpz_submul(dr[ds[j+2]], mul2, cfs[j+2]);
+             *     mpz_submul(dr[ds[j+3]], mul2, cfs[j+3]);
+             * } */
+        } else {
+            mpz_lcm(mul1, dr[i], cfs[0]);
+            mpz_divexact(mul2, mul1, cfs[0]);
+            mpz_divexact(mul1, mul1, dr[i]);
+            /* gmp_printf("mul1 %Zd -- mul2 %Zd\n", mul1, mul2); */
+            for (j = np; j < ncols; ++j) {
+                if (mpz_sgn(dr[j]) != 0) {
+                    mpz_mul(dr[j], dr[j], mul1);
+                }
+            }
+            for (j = 0; j < len; ++j) {
+            /* for (j = 0; j < os; ++j) { */
+                /* gmp_printf("|-> dr %Zd [%d] .. cfs %Zd\n", dr[ds[j]], ds[j], cfs[j]); */
+                mpz_submul(dr[ds[j]], mul2, cfs[j]);
+                /* gmp_printf("-> dr %Zd .. cfs %Zd\n", dr[ds[j]], cfs[j]); */
+            }
+            /* for (; j < len; j += 4) {
+             *     mpz_mul(dr[ds[j]], dr[ds[j]], mul1);
+             *     mpz_submul(dr[ds[j]], mul2, cfs[j]);
+             *     mpz_mul(dr[ds[j+1]], dr[ds[j+1]], mul1);
+             *     mpz_submul(dr[ds[j+1]], mul2, cfs[j+1]);
+             *     mpz_mul(dr[ds[j+2]], dr[ds[j+2]], mul1);
+             *     mpz_submul(dr[ds[j+2]], mul2, cfs[j+2]);
+             *     mpz_mul(dr[ds[j+3]], dr[ds[j+3]], mul1);
+             *     mpz_submul(dr[ds[j+3]], mul2, cfs[j+3]);
+             * } */
         }
-        for (; j < len; j += 4) {
-            mpq_mul(red1, mul, cfs[j]);
-            mpq_mul(red2, mul, cfs[j+1]);
-            mpq_mul(red3, mul, cfs[j+2]);
-            mpq_mul(red4, mul, cfs[j+3]);
-            mpq_sub(dr[ds[j]], dr[ds[j]], red1);
-            mpq_sub(dr[ds[j+1]], dr[ds[j+1]], red2);
-            mpq_sub(dr[ds[j+2]], dr[ds[j+2]], red3);
-            mpq_sub(dr[ds[j+3]], dr[ds[j+3]], red4);
-        }
-        /* mpq_set_si(dr[i], 0, 1); */
     }
     if (k == 0) {
-        mpq_clears(red1, red2, red3, red4, mul, NULL);
+        mpz_clears(mul1, mul2, NULL);
         return NULL;
     }
 
     hm_t *row = (hm_t *)malloc((unsigned long)(ncols-np+3) * sizeof(hm_t));
-    mpq_t *cf = (mpq_t *)malloc((unsigned long)(ncols-np) * sizeof(mpq_t));
+    mpz_t *cf = (mpz_t *)malloc((unsigned long)(ncols-np) * sizeof(mpz_t));
     j = 0;
     hm_t *rs = row + 3;
     for (i = ncl; i < ncols; ++i) {
-        if (mpq_sgn(dr[i]) != 0) {
+        if (mpz_sgn(dr[i]) != 0) {
             rs[j] = (hm_t)i;
-            mpq_init(cf[j]);
-            mpq_set(cf[j], dr[i]);
+            mpz_init(cf[j]);
+            mpz_set(cf[j], dr[i]);
             j++;
         }
     }
@@ -150,13 +207,18 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
         cf  = NULL;
     } else {
         row     = realloc(row, (unsigned long)(j+3) * sizeof(hm_t));
-        cf      = realloc(cf, (unsigned long)j * sizeof(mpq_t));
+        cf      = realloc(cf, (unsigned long)j * sizeof(mpz_t));
         row[0]  = tmp_pos;
         row[1]  = j % 4;
         row[2]  = j;
         mat->cf_qq[tmp_pos]  = cf;
+    /* printf("new possible current reducer: ");
+     * for (i = 0; i < row[2]; ++i) {
+     *     gmp_printf("%Zd ", cf[i]);
+     * }
+     * printf("\n"); */
     }
-    mpq_clears(red1, red2, red3, red4, mul, NULL);
+    mpz_clears(mul1, mul2, NULL);
     return row;
 }
 
@@ -195,35 +257,35 @@ static void exact_sparse_reduced_echelon_form_qq(
         }
     }
 
-    mpq_t *dr  = (mpq_t *)malloc(
-            (unsigned long)(st->nthrds * ncols) * sizeof(mpq_t));
+    mpz_t *dr  = (mpz_t *)malloc(
+            (unsigned long)(st->nthrds * ncols) * sizeof(mpz_t));
     for (i = 0; i < st->nthrds*ncols; ++i) {
-        mpq_init(dr[i]);
+        mpz_init(dr[i]);
     }
     /* mo need to have any sharing dependencies on parallel computation,
      * no data to be synchronized at this step of the linear algebra */
 #pragma omp parallel for num_threads(st->nthrds) \
     private(i, j, k, sc)
     for (i = 0; i < nrl; ++i) {
-        mpq_t *drl      = dr + (omp_get_thread_num() * ncols);
+        mpz_t *drl      = dr + (omp_get_thread_num() * ncols);
         hm_t *npiv      = upivs[i];
-        mpq_t *cfs      = bs->cf_qq[npiv[0]];
+        mpz_t *cfs      = bs->cf_qq[npiv[0]];
         const len_t os  = npiv[1];
         const len_t len = npiv[2];
         const hm_t * const ds = npiv + 3;
         k = 0;
         /* reset entries to zero */
         for (j = 0; j < ncols; ++j) {
-            mpq_set_si(drl[j], 0, 1);
+            mpz_set_si(drl[j], 0);
         }
         for (j = 0; j < os; ++j) {
-            mpq_set(drl[ds[j]], cfs[j]);
+            mpz_set(drl[ds[j]], cfs[j]);
         }
         for (; j < len; j += 4) {
-            mpq_set(drl[ds[j]], cfs[j]);
-            mpq_set(drl[ds[j+1]], cfs[j+1]);
-            mpq_set(drl[ds[j+2]], cfs[j+2]);
-            mpq_set(drl[ds[j+3]], cfs[j+3]);
+            mpz_set(drl[ds[j]], cfs[j]);
+            mpz_set(drl[ds[j+1]], cfs[j+1]);
+            mpz_set(drl[ds[j+2]], cfs[j+2]);
+            mpz_set(drl[ds[j+3]], cfs[j+3]);
         }
         cfs = NULL;
         do {
@@ -235,12 +297,13 @@ static void exact_sparse_reduced_echelon_form_qq(
             if (!npiv) {
                 break;
             }
-            /* normalize coefficient array
+            /* remove content of coefficient array for better usage as reducer
+             * later on.
              * NOTE: this has to be done here, otherwise the reduction may
              * lead to wrong results in a parallel computation since other
              * threads might directly use the new pivot once it is synced. */
-            if (mpq_cmp_si(mat->cf_qq[npiv[0]][0], 1, 1) != 0) {
-                normalize_sparse_matrix_row_qq(
+            if (mpz_cmp_si(mat->cf_qq[npiv[0]][0], 1) != 0) {
+                remove_content_of_sparse_matrix_row_qq(
                         mat->cf_qq[npiv[0]], npiv[1], npiv[2]);
             }
             k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
@@ -259,48 +322,54 @@ static void exact_sparse_reduced_echelon_form_qq(
     len_t npivs = 0; /* number of new pivots */
 
     for (i = ncols; i < st->nthrds*ncols; ++i) {
-        mpq_clear(dr[i]);
+        mpz_clear(dr[i]);
     }
-    dr      = realloc(dr, (unsigned long)ncols * sizeof(mpq_t));
+    dr      = realloc(dr, (unsigned long)ncols * sizeof(mpz_t));
     mat->r  = realloc(mat->r, (unsigned long)ncr * sizeof(hm_t *));
     rows    = mat->r;
 
     /* interreduce new pivots */
-    mpq_t *cfs;
+    mpz_t *cfs;
     hm_t cf_array_pos;
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
             /* reset entries to zero */
-            for (j = 0; j < ncols; ++j) {
-                mpq_set_si(dr[j], 0, 1);
-            }
-            cfs = mat->cf_qq[pivs[i][0]];
-            cf_array_pos    = pivs[i][0];
-            const len_t os  = pivs[i][1];
-            const len_t len = pivs[i][2];
-            const hm_t * const ds = pivs[i] + 3;
-            sc  = ds[0];
-            for (j = 0; j < os; ++j) {
-                mpq_set(dr[ds[j]], cfs[j]);
-            }
-            for (; j < len; j += 4) {
-                mpq_set(dr[ds[j]], cfs[j]);
-                mpq_set(dr[ds[j+1]], cfs[j+1]);
-                mpq_set(dr[ds[j+2]], cfs[j+2]);
-                mpq_set(dr[ds[j+3]], cfs[j+3]);
-            }
-            free(pivs[i]);
-            free(cfs);
-            pivs[i] = NULL;
-            pivs[i] = rows[npivs++] =
-                reduce_dense_row_by_known_pivots_sparse_qq(
-                        dr, mat, bs, pivs, sc, cf_array_pos);
+            rows[npivs++] = pivs[i];
         }
     }
+    /*         for (j = 0; j < ncols; ++j) {
+     *             mpz_set_si(dr[j], 0);
+     *         }
+     *         cfs = mat->cf_qq[pivs[i][0]];
+     *         cf_array_pos    = pivs[i][0];
+     *         const len_t os  = pivs[i][1];
+     *         const len_t len = pivs[i][2];
+     *         const hm_t * const ds = pivs[i] + 3;
+     *         sc  = ds[0];
+     *         for (j = 0; j < os; ++j) {
+     *             mpz_set(dr[ds[j]], cfs[j]);
+     *         }
+     *         for (; j < len; j += 4) {
+     *             mpz_set(dr[ds[j]], cfs[j]);
+     *             mpz_set(dr[ds[j+1]], cfs[j+1]);
+     *             mpz_set(dr[ds[j+2]], cfs[j+2]);
+     *             mpz_set(dr[ds[j+3]], cfs[j+3]);
+     *         }
+     *         free(pivs[i]);
+     *         free(cfs);
+     *         pivs[i] = NULL;
+     *         pivs[i] = rows[npivs] =
+     *             reduce_dense_row_by_known_pivots_sparse_qq(
+     *                     dr, mat, bs, pivs, sc, cf_array_pos);
+     *         remove_content_of_sparse_matrix_row_qq(
+     *                 mat->cf_qq[npivs], rows[npivs][1], rows[npivs][2]);
+     *         npivs++;
+     *     }
+     * } */
     free(pivs);
     pivs  = NULL;
     for (i = 0; i < ncols; ++i) {
-        mpq_clear(dr[i]);
+        mpz_clear(dr[i]);
     }
     free(dr);
     dr  = NULL;

@@ -146,7 +146,7 @@ int main(
     mpz_t **bcfs = (mpz_t **)bcf;
     printf("number terms %d\n", ret);
     for (i = 0; i < ret; ++i) {
-        gmp_printf("%d ---- %Zd/%Zd\n", i, (*bcfs)[2*i], (*bcfs)[2*i+1]);
+        gmp_printf("%d ---- %Zd\n", i, (*bcfs)[i]);
         mpz_clear((*bcfs)[i]);
     }
 

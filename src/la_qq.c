@@ -337,7 +337,7 @@ static void exact_sparse_reduced_echelon_form_qq(
                 reduce_dense_row_by_known_pivots_sparse_qq(
                         dr, mat, bs, pivs, sc, cf_array_pos);
             remove_content_of_sparse_matrix_row_qq(
-                    mat->cf_qq[npivs], rows[npivs][1], rows[npivs][2]);
+                    mat->cf_qq[rows[npivs][0]], rows[npivs][1], rows[npivs][2]);
             npivs++;
         }
     }

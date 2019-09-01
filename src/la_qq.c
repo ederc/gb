@@ -112,8 +112,8 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
                 np  = i;
             }
             k++;
-            break;
-            /* continue; */
+            /* break; */
+            continue;
         }
         /* found reducer row, get multiplier */
         dts = pivs[i];
@@ -141,20 +141,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
          * printf("\n"); */
         /* gmp_printf("dr %Zd -- cfs %Zd\n", dr[i], cfs[0]); */
         if (mpz_divisible_p(dr[i], cfs[0]) != 0) {
-            /* printf("???\n"); */
             mpz_divexact(mul2, dr[i], cfs[0]);
-            /* gmp_printf("mul2 %Zd\n", mul2); */
-            for (j = 0; j < len; ++j) {
-                /* gmp_printf("|-> dr %Zd [%d] .. cfs %Zd\n", dr[ds[j]], ds[j], cfs[j]); */
-                mpz_submul(dr[ds[j]], mul2, cfs[j]);
-                /* gmp_printf("-> dr %Zd .. cfs %Zd\n", dr[ds[j]], cfs[j]); */
-            }
-            /* for (; j < len; j += 4) {
-             *     mpz_submul(dr[ds[j]], mul2, cfs[j]);
-             *     mpz_submul(dr[ds[j+1]], mul2, cfs[j+1]);
-             *     mpz_submul(dr[ds[j+2]], mul2, cfs[j+2]);
-             *     mpz_submul(dr[ds[j+3]], mul2, cfs[j+3]);
-             * } */
         } else {
             mpz_lcm(mul1, dr[i], cfs[0]);
             mpz_divexact(mul2, mul1, cfs[0]);
@@ -165,22 +152,15 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
                     mpz_mul(dr[j], dr[j], mul1);
                 }
             }
-            for (j = 0; j < len; ++j) {
-            /* for (j = 0; j < os; ++j) { */
-                /* gmp_printf("|-> dr %Zd [%d] .. cfs %Zd\n", dr[ds[j]], ds[j], cfs[j]); */
-                mpz_submul(dr[ds[j]], mul2, cfs[j]);
-                /* gmp_printf("-> dr %Zd .. cfs %Zd\n", dr[ds[j]], cfs[j]); */
-            }
-            /* for (; j < len; j += 4) {
-             *     mpz_mul(dr[ds[j]], dr[ds[j]], mul1);
-             *     mpz_submul(dr[ds[j]], mul2, cfs[j]);
-             *     mpz_mul(dr[ds[j+1]], dr[ds[j+1]], mul1);
-             *     mpz_submul(dr[ds[j+1]], mul2, cfs[j+1]);
-             *     mpz_mul(dr[ds[j+2]], dr[ds[j+2]], mul1);
-             *     mpz_submul(dr[ds[j+2]], mul2, cfs[j+2]);
-             *     mpz_mul(dr[ds[j+3]], dr[ds[j+3]], mul1);
-             *     mpz_submul(dr[ds[j+3]], mul2, cfs[j+3]);
-             * } */
+        }
+        for (j = 0; j < os; ++j) {
+            mpz_submul(dr[ds[j]], mul2, cfs[j]);
+        }
+        for (; j < len; j += 4) {
+            mpz_submul(dr[ds[j]], mul2, cfs[j]);
+            mpz_submul(dr[ds[j+1]], mul2, cfs[j+1]);
+            mpz_submul(dr[ds[j+2]], mul2, cfs[j+2]);
+            mpz_submul(dr[ds[j+3]], mul2, cfs[j+3]);
         }
     }
     if (k == 0) {
@@ -212,11 +192,6 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
         row[1]  = j % 4;
         row[2]  = j;
         mat->cf_qq[tmp_pos]  = cf;
-    /* printf("new possible current reducer: ");
-     * for (i = 0; i < row[2]; ++i) {
-     *     gmp_printf("%Zd ", cf[i]);
-     * }
-     * printf("\n"); */
     }
     mpz_clears(mul1, mul2, NULL);
     return row;
@@ -334,38 +309,38 @@ static void exact_sparse_reduced_echelon_form_qq(
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
             /* reset entries to zero */
-            rows[npivs++] = pivs[i];
-        }
-    }
-    /*         for (j = 0; j < ncols; ++j) {
-     *             mpz_set_si(dr[j], 0);
-     *         }
-     *         cfs = mat->cf_qq[pivs[i][0]];
-     *         cf_array_pos    = pivs[i][0];
-     *         const len_t os  = pivs[i][1];
-     *         const len_t len = pivs[i][2];
-     *         const hm_t * const ds = pivs[i] + 3;
-     *         sc  = ds[0];
-     *         for (j = 0; j < os; ++j) {
-     *             mpz_set(dr[ds[j]], cfs[j]);
-     *         }
-     *         for (; j < len; j += 4) {
-     *             mpz_set(dr[ds[j]], cfs[j]);
-     *             mpz_set(dr[ds[j+1]], cfs[j+1]);
-     *             mpz_set(dr[ds[j+2]], cfs[j+2]);
-     *             mpz_set(dr[ds[j+3]], cfs[j+3]);
-     *         }
-     *         free(pivs[i]);
-     *         free(cfs);
-     *         pivs[i] = NULL;
-     *         pivs[i] = rows[npivs] =
-     *             reduce_dense_row_by_known_pivots_sparse_qq(
-     *                     dr, mat, bs, pivs, sc, cf_array_pos);
-     *         remove_content_of_sparse_matrix_row_qq(
-     *                 mat->cf_qq[npivs], rows[npivs][1], rows[npivs][2]);
-     *         npivs++;
+    /*         rows[npivs++] = pivs[i];
      *     }
      * } */
+            for (j = 0; j < ncols; ++j) {
+                mpz_set_si(dr[j], 0);
+            }
+            cfs = mat->cf_qq[pivs[i][0]];
+            cf_array_pos    = pivs[i][0];
+            const len_t os  = pivs[i][1];
+            const len_t len = pivs[i][2];
+            const hm_t * const ds = pivs[i] + 3;
+            sc  = ds[0];
+            for (j = 0; j < os; ++j) {
+                mpz_set(dr[ds[j]], cfs[j]);
+            }
+            for (; j < len; j += 4) {
+                mpz_set(dr[ds[j]], cfs[j]);
+                mpz_set(dr[ds[j+1]], cfs[j+1]);
+                mpz_set(dr[ds[j+2]], cfs[j+2]);
+                mpz_set(dr[ds[j+3]], cfs[j+3]);
+            }
+            free(pivs[i]);
+            free(cfs);
+            pivs[i] = NULL;
+            pivs[i] = rows[npivs] =
+                reduce_dense_row_by_known_pivots_sparse_qq(
+                        dr, mat, bs, pivs, sc, cf_array_pos);
+            remove_content_of_sparse_matrix_row_qq(
+                    mat->cf_qq[npivs], rows[npivs][1], rows[npivs][2]);
+            npivs++;
+        }
+    }
     free(pivs);
     pivs  = NULL;
     for (i = 0; i < ncols; ++i) {

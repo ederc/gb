@@ -110,14 +110,6 @@ int64_t f4_julia(
         }
     }
 
-    for (int ii=0; ii < bs->ld; ++ii) {
-        for (int jj=0; jj < bs->hm[ii][2]; ++jj) {
-            printf("ii %d | jj %d\n", ii, jj);
-            gmp_printf("%Zd  ", bs->cf_qq[bs->hm[ii][0]][jj]);
-        }
-        printf("\n");
-    }
-
     /* reset bs->ld for first update process */
     bs->ld  = 0;
 

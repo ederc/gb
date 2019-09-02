@@ -140,7 +140,6 @@ static void import_julia_data_qq(
         for (j = off; j < off+lens[i]; ++j) {
             mpz_mul(prod_den, prod_den, *(cfs[2*j+1]));
         }
-        gmp_printf("prod_den %Zd\n", prod_den);
 
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (mpz_t *)malloc((unsigned long)(lens[i]) * sizeof(mpz_t));
@@ -163,7 +162,6 @@ static void import_julia_data_qq(
             }
             hm[j-off+3] = insert_in_hash_table(e, ht);
             mpz_divexact(mul, prod_den, *(cfs[2*j+1]));
-            gmp_printf("mul %Zd\n", mul);
             mpz_mul(cf[j-off], mul, *(cfs[2*j]));
         }
         /* mark initial generators, they have to be added to the basis first */

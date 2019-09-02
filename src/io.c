@@ -229,7 +229,7 @@ static int64_t export_julia_data_ff(
             (unsigned long)(nterms) * sizeof(cf32_t));
 
     /* counters for lengths, exponents and coefficients */
-    int32_t cl = 0, ce = 0, cc = 0;
+    int64_t cl = 0, ce = 0, cc = 0;
     for (i = 0; i < bld; ++i) {
         if (bs->red[i] != 0) {
             continue;
@@ -299,7 +299,7 @@ static int64_t export_julia_data_qq(
             (unsigned long)(nterms) * sizeof(mpz_t));
 
     /* counters for lengths, exponents and coefficients */
-    int32_t cl = 0, ce = 0, cc = 0;
+    int64_t cl = 0, ce = 0, cc = 0;
     for (i = 0; i < bld; ++i) {
         if (bs->red[i] != 0) {
             continue;

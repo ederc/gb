@@ -91,7 +91,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
         const hm_t tmp_pos  /* position of new coeffs array in tmpcf */
         )
 {
-    hl_t i, j, k;
+    hl_t i, j;
     hm_t *dts;
     mpz_t *cfs;
     len_t np  = 0;
@@ -99,7 +99,10 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
     const len_t ncl           = mat->ncl;
     mpz_t * const * const mcf = mat->cf_qq;
 
-    k = 0;
+    hm_t *row = NULL;
+    mpz_t *cf = NULL;
+    len_t rlen  = 0;
+
     mpz_t mul1, mul2;
     mpz_inits(mul1, mul2, NULL);
     for (i = dpiv; i < ncols; ++i) {
@@ -109,10 +112,16 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
         }
         if (pivs[i] == NULL) {
             if (np == 0) {
+                row = (hm_t *)malloc(
+                        (unsigned long)(ncols-np+3) * sizeof(hm_t));
+                cf  = (mpz_t *)malloc(
+                        (unsigned long)(ncols-np) * sizeof(mpz_t));
                 np  = i;
             }
-            k++;
-            /* break; */
+            mpz_init(cf[rlen]);
+            mpz_set(cf[rlen], dr[i]);
+            row[rlen+3] = i;
+            rlen++;
             continue;
         }
         /* found reducer row, get multiplier */
@@ -146,8 +155,10 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
             mpz_lcm(mul1, dr[i], cfs[0]);
             mpz_divexact(mul2, mul1, cfs[0]);
             mpz_divexact(mul1, mul1, dr[i]);
-            /* gmp_printf("mul1 %Zd -- mul2 %Zd\n", mul1, mul2); */
-            for (j = np; j < ncols; ++j) {
+            for (j = 0; j < rlen; ++j) {
+                mpz_mul(cf[j], cf[j], mul1);
+            }
+            for (j = i; j < ncols; ++j) {
                 if (mpz_sgn(dr[j]) != 0) {
                     mpz_mul(dr[j], dr[j], mul1);
                 }
@@ -163,34 +174,30 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
             mpz_submul(dr[ds[j+3]], mul2, cfs[j+3]);
         }
     }
-    if (k == 0) {
-        mpz_clears(mul1, mul2, NULL);
-        return NULL;
-    }
-
-    hm_t *row = (hm_t *)malloc((unsigned long)(ncols-np+3) * sizeof(hm_t));
-    mpz_t *cf = (mpz_t *)malloc((unsigned long)(ncols-np) * sizeof(mpz_t));
-    j = 0;
-    hm_t *rs = row + 3;
-    for (i = ncl; i < ncols; ++i) {
-        if (mpz_sgn(dr[i]) != 0) {
-            rs[j] = (hm_t)i;
-            mpz_init(cf[j]);
-            mpz_set(cf[j], dr[i]);
-            j++;
-        }
-    }
-    if (j == 0) {
-        free(row);
-        row = NULL;
-        free(cf);
-        cf  = NULL;
-    } else {
-        row     = realloc(row, (unsigned long)(j+3) * sizeof(hm_t));
-        cf      = realloc(cf, (unsigned long)j * sizeof(mpz_t));
+    if (rlen != 0) {
+    /* hm_t *row = (hm_t *)malloc((unsigned long)(ncols-np+3) * sizeof(hm_t));
+     * mpz_t *cf = (mpz_t *)malloc((unsigned long)(ncols-np) * sizeof(mpz_t));
+     * j = 0;
+     * hm_t *rs = row + 3;
+     * for (i = ncl; i < ncols; ++i) {
+     *     if (mpz_sgn(dr[i]) != 0) {
+     *         rs[j] = (hm_t)i;
+     *         mpz_init(cf[j]);
+     *         mpz_set(cf[j], dr[i]);
+     *         j++;
+     *     }
+     * } */
+    /* if (j == 0) {
+     *     free(row);
+     *     row = NULL;
+     *     free(cf);
+     *     cf  = NULL;
+     * } else { */
+        row     = realloc(row, (unsigned long)(rlen+3) * sizeof(hm_t));
+        cf      = realloc(cf, (unsigned long)rlen * sizeof(mpz_t));
         row[0]  = tmp_pos;
-        row[1]  = j % 4;
-        row[2]  = j;
+        row[1]  = rlen % 4;
+        row[2]  = rlen;
         mat->cf_qq[tmp_pos]  = cf;
     }
     mpz_clears(mul1, mul2, NULL);

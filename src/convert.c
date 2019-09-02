@@ -65,6 +65,15 @@ static void convert_hashes_to_columns(
     }
     sort_r(hcm, (unsigned long)j, sizeof(hl_t), hcm_cmp, sht);
 
+    /* printf("hcm\n");
+     * for (int ii=0; ii<j; ++ii) {
+     *     printf("hcm[%d] = %d | ", ii, hcm[ii]);
+     *     for (int jj = 0; jj < sht->nv; ++jj) {
+     *         printf("%d ", sht->ev[hcm[ii]][jj]);
+     *     }
+     *     printf("\n");
+     * } */
+
     mat->nru  = mat->ncl = k;
     mat->nrl  = mat->nr - mat->nru;
     mat->ncr  = esld - 1 - mat->ncl;
@@ -156,24 +165,48 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     while (bht->esz - bht->eld < ctr) {
         enlarge_hash_table(bht);
     }
-    for (i = 0; i < np; ++i) {
-        insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
-        bs->cf_ff[bl+i] = mat->cf_ff[rows[i][0]];
-        rows[i][0]      = bl+i;
-        bs->hm[bl+i]    = rows[i];
-        /* printf("\n");
-         * for (int jj = 0; jj < bht->nv; ++jj) {
-         *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
-         * }
-         * printf(" + %d terms\n", rows[i][2]-1); */
-        /* for (int ii=0; ii < rows[i][2]; ++ii) {
-         *     printf("%d | ", bs->cf_ff[bl+i][ii]);
-         *     for (int jj = 0; jj < bht->nv; ++jj) {
-         *         printf("%d ", bht->ev[bs->hm[bl+i][ii]][jj]);
-         *     }
-         *     printf(" || ");
-         * }
-         * printf("\n"); */
+    if (st->fc > 0) {
+        for (i = 0; i < np; ++i) {
+            insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
+            bs->cf_ff[bl+i] = mat->cf_ff[rows[i][0]];
+            rows[i][0]      = bl+i;
+            bs->hm[bl+i]    = rows[i];
+            /* printf("\n");
+             * for (int jj = 0; jj < bht->nv; ++jj) {
+             *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
+             * }
+             * printf(" + %d terms\n", rows[i][2]-1); */
+            /* for (int ii=0; ii < rows[i][2]; ++ii) {
+             *     printf("%d | ", bs->cf_ff[bl+i][ii]);
+             *     for (int jj = 0; jj < bht->nv; ++jj) {
+             *         printf("%d ", bht->ev[bs->hm[bl+i][ii]][jj]);
+             *     }
+             *     printf(" || ");
+             * }
+             * printf("\n"); */
+        }
+    } else {
+        if (st->fc == 0) {
+            for (i = 0; i < np; ++i) {
+                insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
+                bs->cf_qq[bl+i] = mat->cf_qq[rows[i][0]];
+                rows[i][0]      = bl+i;
+                bs->hm[bl+i]    = rows[i];
+                /* printf("\n bl+i = %d = %d + %d\n", bl+i, bl, i);
+                 * for (int jj = 0; jj < bht->nv; ++jj) {
+                 *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
+                 * }
+                 * printf(" + %d terms\n", rows[i][2]-1);
+                 * for (int ii=0; ii < rows[i][2]; ++ii) {
+                 *     gmp_printf("%Zd | ", bs->cf_qq[bl+i][ii]);
+                 *     for (int jj = 0; jj < bht->nv; ++jj) {
+                 *         printf("%d ", bht->ev[bs->hm[bl+i][ii+3]][jj]);
+                 *     }
+                 *     printf(" || ");
+                 * }
+                 * printf("\n"); */
+            }
+        }
     }
 
     /* timings */

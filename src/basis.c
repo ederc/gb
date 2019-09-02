@@ -26,7 +26,7 @@ static void free_basis(
         bs_t **bsp
         )
 {
-    len_t i;
+    len_t i, j, len;
     bs_t *bs  = *bsp;
     if (bs->cf_ff) {
         for (i = 0; i < bs->ld; ++i) {
@@ -38,13 +38,18 @@ static void free_basis(
         free(bs->hm);
         bs->hm  = NULL;
     }
-    if (bs->cf_q) {
+    if (bs->cf_qq) {
         for (i = 0; i < bs->ld; ++i) {
-            free(bs->cf_q[i]);
+            len = bs->hm[i][2];
+            mpz_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
+            for (j = 0; j < len; ++j) {
+                mpz_clear(coeffs[j]);
+            }
+            free(bs->cf_qq[bs->hm[i][0]]);
             free(bs->hm[i]);
         }
-        free(bs->cf_q);
-        bs->cf_q  = NULL;
+        free(bs->cf_qq);
+        bs->cf_qq  = NULL;
         free(bs->hm);
         bs->hm  = NULL;
     }
@@ -73,7 +78,7 @@ static bs_t *initialize_basis_ff(
     bs->mltdeg  = 0;
 
     bs->cf_ff = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
-    bs->cf_q  = NULL;
+    bs->cf_qq  = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));
@@ -142,7 +147,7 @@ static inline void normalize_initial_basis_ff(
 }
 
 /* characteristic zero stuff */
-static bs_t *initialize_basis_q(
+static bs_t *initialize_basis_qq(
         const int32_t ngens
         )
 {
@@ -154,7 +159,7 @@ static bs_t *initialize_basis_q(
 
     bs->mltdeg  = 0;
 
-    bs->cf_q  = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
+    bs->cf_qq = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
     bs->cf_ff = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
@@ -164,14 +169,14 @@ static bs_t *initialize_basis_q(
     return bs;
 }
 
-static inline void check_enlarge_basis_q(
+static inline void check_enlarge_basis_qq(
         bs_t *bs,
         const len_t added
         )
 {
     if (bs->ld + added >= bs->sz) {
         bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
-        bs->cf_q  = realloc(bs->cf_q,
+        bs->cf_qq = realloc(bs->cf_qq,
                 (unsigned long)bs->sz * sizeof(mpz_t *));
         bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
@@ -182,9 +187,61 @@ static inline void check_enlarge_basis_q(
     }
 }
 
-static inline void normalize_initial_basis_q(
-        bs_t *bs,
-        const int32_t fc
+static inline void remove_content_of_initial_basis(
+        bs_t *bs
         )
 {
+    len_t i, j;
+
+    mpz_t **cf        = bs->cf_qq;
+    hm_t * const *hm  = bs->hm;
+    const bl_t ld     = bs->ld;
+
+    mpz_t content;
+    mpz_init(content);
+    /* compute content, i.e. gcd of all coefficients */
+    i = 0;
+next_poly:
+    for (; i < ld; ++i) {
+        mpz_t *row = cf[hm[i][0]];
+        mpz_set(content, row[0]);
+        const len_t os  = hm[i][1];
+        const len_t len = hm[i][2];
+        for (j = 1; j < len; ++j) {
+            mpz_gcd(content, content, row[j]);
+            if (mpz_cmp_si(content, 1) == 0) {
+                i++;
+                goto next_poly;
+            }
+        }
+        /* remove content */
+        for (j = 0; j < os; ++j) {
+            mpz_divexact(row[j], row[j], content);
+        }
+        for (; j < len; j += 4) {
+            mpz_divexact(row[j], row[j], content);
+            mpz_divexact(row[j+1], row[j+1], content);
+            mpz_divexact(row[j+2], row[j+2], content);
+            mpz_divexact(row[j+3], row[j+3], content);
+        }
+    }
+    mpz_clear(content);
+
+    /* make lead coefficient positive */
+    for (i = 0; i < ld; ++i) {
+        mpz_t *row = cf[hm[i][0]];
+        const len_t os  = hm[i][1];
+        const len_t len = hm[i][2];
+        if (mpz_sgn(row[0]) == -1) {
+            for (j = 0; j < os; ++j) {
+                mpz_neg(row[j], row[j]);
+            }
+            for (; j < len; j += 4) {
+                mpz_neg(row[j], row[j]);
+                mpz_neg(row[j+1], row[j+1]);
+                mpz_neg(row[j+2], row[j+2]);
+                mpz_neg(row[j+3], row[j+3]);
+            }
+        }
+    }
 }

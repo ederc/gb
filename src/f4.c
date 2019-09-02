@@ -75,7 +75,7 @@ int64_t f4_julia(
 
     /* checks and set all meta data. if a nonzero value is returned then
      * some of the input data is corrupted. */
-    if (check_and_set_meta_data(ps, st, lens, cfs, exps, field_char, mon_order,
+    if (check_and_set_meta_data(ps, st, lens, exps, cfs, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
                 reset_ht, la_option, pbm_file, info_level)) {
         return 0;
@@ -102,7 +102,13 @@ int64_t f4_julia(
     sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
             initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis(bs, st->fc);
+    if (st->fc > 0) {
+        normalize_initial_basis_ff(bs, st->fc);
+    } else {
+        if (st->fc == 0) {
+            remove_content_of_initial_basis(bs);
+        }
+    }
 
     /* reset bs->ld for first update process */
     bs->ld  = 0;
@@ -151,8 +157,15 @@ int64_t f4_julia(
        * so we do not need the rows anymore */
       free(mat->r);
       mat->r  = NULL;
-      free(mat->cf_ff);
-      mat->cf_ff  = NULL;
+      if (st->fc > 0) {
+        free(mat->cf_ff);
+        mat->cf_ff  = NULL;
+      } else {
+          if (st->fc == 0) {
+            free(mat->cf_qq);
+            mat->cf_qq  = NULL;
+          }
+      }
 
       /* check redundancy only if input is not homogeneous */
       update_basis(ps, bs, bht, uht, st, mat->np, 1-st->homogeneous);

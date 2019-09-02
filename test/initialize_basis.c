@@ -21,11 +21,11 @@ int main(
     if (bs->cf_ff == NULL) {
         return 1;
     }
-    if (bs->cf_q != NULL) {
+    if (bs->cf_qq != NULL) {
         return 1;
     }
     free_basis(&bs);
-    bs  = initialize_basis_q(4);
+    bs  = initialize_basis_qq(4);
     if (bs->ld != 0) {
         return 1;
     }
@@ -35,7 +35,7 @@ int main(
     if (bs->hm == NULL) {
         return 1;
     }
-    if (bs->cf_q == NULL) {
+    if (bs->cf_qq == NULL) {
         return 1;
     }
     if (bs->cf_ff != NULL) {

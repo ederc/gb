@@ -1,5 +1,6 @@
 # OVERVIEW #
-gb is a library for Groebner basis computations. It relies on fast specialized linear algebra and thus depends on gbla
+gb is a library for Groebner basis computations. At the moment only Faugere's
+F4 Algorithm is available for computations over finite fields and the rationals.
 
 # FAST INSTALL INSTRUCTIONS #
 Using autotools one can compile and install gb by
@@ -9,33 +10,7 @@ Using autotools one can compile and install gb by
 * make
 * make install
 
-gb depends on the package gbla. Please make sure that gb's configure can find
-the correct place with the pkg config info for gbla. If there are problems, you
-can export this pkg config info path via
-export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:<your-directory>
-For further installation instructions please see INSTALL.
-
-# INSTALL ON MAC #
-Use clang-omp for openmp support:
-* ./autogen.sh
-* ./configure CC=clang-omp
-* make
-* make install
-
-# DEBUGGING #
-In order to debug gb one needs configure with --enable-debug and use
-
-```
-libtool e gdb --args ./gb --options
-```
-
-since we build the library using libtool and link it then against the binary gb.
-
-
-The input files need to have the following format at the moment:
-First line: comma-separated list of variables, e.g. x1,x2,x3
-Second line: modulus of the field, e.g. 32003
-Following lines: in each line one polynomial, no shorthand notation, i,e,
-between each coefficient and each power of a variable there is a "*" and for
-each power of a variable there is "^" (whereas you can write "x1" instead of
-"x1^1").
+# INTERFACES #
+The package GB.jl at https://github.com/ederc/GB.jl provides a julia interface
+for calling gb. If you want to write your own interface to gb you can use GB.jl
+as a blueprint.

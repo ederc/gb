@@ -147,15 +147,12 @@ int main(
     printf("number terms %d\n", ret);
     for (i = 0; i < ret; ++i) {
         gmp_printf("%d ---- %Zd\n", i, (*bcfs)[i]);
-        mpz_clear((*bcfs)[i]);
     }
 
-    free(*blen);
-    free(*bexp);
-    free(*bcf);
+    free_julia_data(blen, bexp, bcf, *bld, field_char);
+
     free(blen);
     free(bexp);
-    free(bcf);
     free(bld);
 
     return failure;

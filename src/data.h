@@ -297,6 +297,14 @@ cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
 /* -----------------------------------
  * non-static functions and procedures
  * ----------------------------------- */
+void free_julia_data(
+        int32_t **blen, /* length of each poly in basis */
+        int32_t **bexp, /* basis exponent vectors */
+        void **bcf,      /* coefficients of basis elements */
+        const int64_t ngens,
+        const int64_t field_char
+        );
+
 int64_t f4_julia(
         int32_t *bld,   /* basis load */
         int32_t **blen, /* length of each poly in basis */

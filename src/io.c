@@ -185,6 +185,8 @@ done:
     /* we have to reset the ld value once we have normalized the initial
      * elements in order to start update correctly */
     bs->ld  = st->ngens;
+
+    mpz_clears(prod_den, mul, NULL);
 }
 
 static int64_t export_julia_data_ff(

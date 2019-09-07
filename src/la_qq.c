@@ -239,9 +239,10 @@ static void exact_sparse_reduced_echelon_form_qq(
         }
     }
 
+    const len_t drlen = st->nthrds * ncols;
     mpz_t *dr  = (mpz_t *)malloc(
-            (unsigned long)(st->nthrds * ncols) * sizeof(mpz_t));
-    for (i = 0; i < st->nthrds*ncols; ++i) {
+            (unsigned long)drlen * sizeof(mpz_t));
+    for (i = 0; i < drlen; ++i) {
         mpz_init(dr[i]);
     }
     /* mo need to have any sharing dependencies on parallel computation,
@@ -270,10 +271,19 @@ static void exact_sparse_reduced_echelon_form_qq(
             mpz_set(drl[ds[j+3]], cfs[j+3]);
         }
         cfs = NULL;
+        k   = 1;
         do {
             sc  = npiv[3];
+            const len_t lenl  = npiv[2];
             free(npiv);
+            if (k == 0) {
+            printf("AGAIN\n");
+                for (j = 0; j < lenl; ++j) {
+                    mpz_clear(cfs[j]);
+                }
+            }
             free(cfs);
+            printf("thread %d -- i %d\n", omp_get_thread_num(), i);
             npiv  = reduce_dense_row_by_known_pivots_sparse_qq(
                     drl, mat, bs, pivs, sc, i);
             if (!npiv) {
@@ -291,6 +301,7 @@ static void exact_sparse_reduced_echelon_form_qq(
             k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
             cfs = mat->cf_qq[npiv[0]];
         } while (!k);
+        /* free(drl); */
     }
     free(upivs);
     upivs = NULL;
@@ -307,6 +318,11 @@ static void exact_sparse_reduced_echelon_form_qq(
         mpz_clear(dr[i]);
     }
     dr      = realloc(dr, (unsigned long)ncols * sizeof(mpz_t));
+    /* mpz_t *dr  = (mpz_t *)malloc(
+     *         (unsigned long)(ncols) * sizeof(mpz_t)); */
+    /* for (i = 0; i < ncols; ++i) {
+     *     mpz_set_si(dr[i], 0);
+     * } */
     mat->r  = realloc(mat->r, (unsigned long)ncr * sizeof(hm_t *));
     rows    = mat->r;
 

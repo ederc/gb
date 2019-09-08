@@ -390,7 +390,7 @@ static void exact_sparse_linear_algebra_qq(
     /* allocate temporary storage space for sparse
      * coefficients of new pivot rows */
     mat->cf_qq  = realloc(mat->cf_qq,
-            (unsigned long)mat->nrl * sizeof(mpq_t *));
+            (unsigned long)mat->nrl * sizeof(mpz_t *));
     exact_sparse_reduced_echelon_form_qq(mat, bs, st);
 
     /* timings */

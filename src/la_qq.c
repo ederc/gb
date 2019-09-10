@@ -19,6 +19,7 @@
  *
  * \author Christian Eder <ederc@mathematik.uni-kl.de>
  */
+#include "data.h"
 
 static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
         mpz_t *row,
@@ -94,7 +95,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
     hl_t i, j;
     hm_t *dts;
     mpz_t *cfs;
-    len_t np  = 0;
+    len_t np  = -1;
     const len_t ncols         = mat->nc;
     const len_t ncl           = mat->ncl;
     mpz_t * const * const mcf = mat->cf_qq;
@@ -111,7 +112,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
             continue;
         }
         if (pivs[i] == NULL) {
-            if (np == 0) {
+            if (np == -1) {
                 row = (hm_t *)malloc(
                         (unsigned long)(ncols-np+3) * sizeof(hm_t));
                 cf  = (mpz_t *)malloc(
@@ -119,7 +120,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
                 np  = i;
             }
             mpz_init(cf[rlen]);
-            mpz_set(cf[rlen], dr[i]);
+            mpz_swap(cf[rlen], dr[i]);
             row[rlen+3] = i;
             rlen++;
             continue;
@@ -129,7 +130,6 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
         if (i < ncl) {
             cfs   = bs->cf_qq[dts[0]];
         } else {
-            /* printf("current reducer used!\n"); */
             cfs   = mcf[dts[0]];
         }
         const len_t os  = dts[1];
@@ -138,17 +138,6 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
 
         /* check if lead coefficient of dr is multiple of lead coefficient
          * of cfs, generate corresponding multipliers respectively */
-        /* printf("dr: ");
-         * for (int ii= 0; ii<ncols; ++ii) {
-         *     gmp_printf("%Zd ", dr[ii]);
-         * }
-         * printf("\n");
-         * printf("cfs: ");
-         * for (int ii= 0; ii<len; ++ii) {
-         *     gmp_printf("%Zd ", cfs[ii]);
-         * }
-         * printf("\n"); */
-        /* gmp_printf("dr %Zd -- cfs %Zd\n", dr[i], cfs[0]); */
         if (mpz_divisible_p(dr[i], cfs[0]) != 0) {
             mpz_divexact(mul2, dr[i], cfs[0]);
         } else {
@@ -158,7 +147,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
             for (j = 0; j < rlen; ++j) {
                 mpz_mul(cf[j], cf[j], mul1);
             }
-            for (j = i; j < ncols; ++j) {
+            for (j = i+1; j < ncols; ++j) {
                 if (mpz_sgn(dr[j]) != 0) {
                     mpz_mul(dr[j], dr[j], mul1);
                 }
@@ -175,24 +164,6 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
         }
     }
     if (rlen != 0) {
-    /* hm_t *row = (hm_t *)malloc((unsigned long)(ncols-np+3) * sizeof(hm_t));
-     * mpz_t *cf = (mpz_t *)malloc((unsigned long)(ncols-np) * sizeof(mpz_t));
-     * j = 0;
-     * hm_t *rs = row + 3;
-     * for (i = ncl; i < ncols; ++i) {
-     *     if (mpz_sgn(dr[i]) != 0) {
-     *         rs[j] = (hm_t)i;
-     *         mpz_init(cf[j]);
-     *         mpz_set(cf[j], dr[i]);
-     *         j++;
-     *     }
-     * } */
-    /* if (j == 0) {
-     *     free(row);
-     *     row = NULL;
-     *     free(cf);
-     *     cf  = NULL;
-     * } else { */
         row     = realloc(row, (unsigned long)(rlen+3) * sizeof(hm_t));
         cf      = realloc(cf, (unsigned long)rlen * sizeof(mpz_t));
         row[0]  = tmp_pos;
@@ -247,15 +218,14 @@ static void exact_sparse_reduced_echelon_form_qq(
     }
     /* mo need to have any sharing dependencies on parallel computation,
      * no data to be synchronized at this step of the linear algebra */
-#pragma omp parallel for num_threads(st->nthrds) \
-    private(i, j, k, sc)
+#pragma omp parallel for num_threads(st->nthrds) private(i, j, k, sc)
     for (i = 0; i < nrl; ++i) {
-        mpz_t *drl      = dr + (omp_get_thread_num() * ncols);
-        hm_t *npiv      = upivs[i];
-        mpz_t *cfs      = bs->cf_qq[npiv[0]];
-        const len_t os  = npiv[1];
-        const len_t len = npiv[2];
-        const hm_t * const ds = npiv + 3;
+        mpz_t *drl  = dr + (omp_get_thread_num() * ncols);
+        hm_t *npiv  = upivs[i];
+        mpz_t *cfs  = bs->cf_qq[npiv[0]];
+        len_t os    = npiv[1];
+        len_t len   = npiv[2];
+        hm_t * ds   = npiv + 3;
         k = 0;
         /* reset entries to zero */
         for (j = 0; j < ncols; ++j) {
@@ -273,17 +243,32 @@ static void exact_sparse_reduced_echelon_form_qq(
         cfs = NULL;
         k   = 1;
         do {
+            os   = npiv[1];
+            len  = npiv[2];
             sc  = npiv[3];
-            const len_t lenl  = npiv[2];
-            free(npiv);
+            ds  = npiv + 3;
             if (k == 0) {
-            printf("AGAIN\n");
-                for (j = 0; j < lenl; ++j) {
+                /* if we redo the row than we only handle elements
+                 * with column index >= sc, so we do not need to
+                 * reset the other entries in the row to zero */
+                for (j = sc; j < ncols; ++j) {
+                    mpz_set_si(drl[j], 0);
+                }
+                for (j = 0; j < os; ++j) {
+                    mpz_set(drl[ds[j]], cfs[j]);
+                }
+                for (; j < len; j += 4) {
+                    mpz_set(drl[ds[j]], cfs[j]);
+                    mpz_set(drl[ds[j+1]], cfs[j+1]);
+                    mpz_set(drl[ds[j+2]], cfs[j+2]);
+                    mpz_set(drl[ds[j+3]], cfs[j+3]);
+                }
+                for (j = 0; j < len; ++j) {
                     mpz_clear(cfs[j]);
                 }
             }
             free(cfs);
-            printf("thread %d -- i %d\n", omp_get_thread_num(), i);
+            free(npiv);
             npiv  = reduce_dense_row_by_known_pivots_sparse_qq(
                     drl, mat, bs, pivs, sc, i);
             if (!npiv) {
@@ -300,8 +285,8 @@ static void exact_sparse_reduced_echelon_form_qq(
             }
             k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
             cfs = mat->cf_qq[npiv[0]];
-        } while (!k);
-        /* free(drl); */
+        } while (k == 0);
+        cfs = NULL;
     }
     free(upivs);
     upivs = NULL;

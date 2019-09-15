@@ -801,7 +801,8 @@ static void probabilistic_sparse_reduced_echelon_form(
     /* mo need to have any sharing dependencies on parallel computation,
      * no data to be synchronized at this step of the linear algebra */
 #pragma omp parallel for num_threads(st->nthrds) \
-    private(i, j, k, l, m)
+    private(i, j, k, l, m) \
+    schedule(static, nrl/st->nthrds/100)
     for (i = 0; i < nb; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         int64_t *mull = mul + (omp_get_thread_num() * rpb);
@@ -979,7 +980,8 @@ static void exact_sparse_reduced_echelon_form(
     /* mo need to have any sharing dependencies on parallel computation,
      * no data to be synchronized at this step of the linear algebra */
 #pragma omp parallel for num_threads(st->nthrds) \
-    private(i, j, k, sc)
+    private(i, j, k, sc) \
+    schedule(static, nrl/st->nthrds/100)
     for (i = 0; i < nrl; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         hm_t *npiv      = upivs[i];
@@ -1117,7 +1119,8 @@ static cf32_t **sparse_AB_CD_linear_algebra_ff(
     /* mo need to have any sharing dependencies on parallel computation,
      * no data to be synchronized at this step of the linear algebra */
 #pragma omp parallel for num_threads(st->nthrds) \
-    private(i, j, sc)
+    private(i, j, sc) \
+    schedule(static, nrl/st->nthrds/100)
     for (i = 0; i < nrl; ++i) {
         cf32_t *cfs = NULL;
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
@@ -1264,7 +1267,8 @@ static cf32_t **exact_dense_linear_algebra_ff(
 
     /* reduction process to get all possible pivots, no interreduction here */
 #pragma omp parallel for num_threads(st->nthrds) \
-    private(i, j, k, l) shared(nps, tbr)
+    private(i, j, k, l) shared(nps, tbr) \
+    schedule(static, ntr/st->nthrds/100)
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
@@ -1395,7 +1399,8 @@ static cf32_t **probabilistic_dense_linear_algebra_ff(
 
     /* reduction process to get all possible pivots, no interreduction here */
 #pragma omp parallel for num_threads(st->nthrds) \
-    private(i, j, k, l) shared(nps, tbr)
+    private(i, j, k, l) shared(nps, tbr) \
+    schedule(static, ntr/st->nthrds/100)
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         int64_t *mull = mul + (omp_get_thread_num() * rpb);
@@ -1543,7 +1548,8 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
 
     /* reduction process to get all possible pivots, no interreduction here */
 #pragma omp parallel for num_threads(st->nthrds) \
-    private(i, j, k, l, m) shared(nps)
+    private(i, j, k, l, m) shared(nps) \
+    schedule(static, nrl/st->nthrds/100)
     for (i = 0; i < nb; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         int64_t *mull = mul + (omp_get_thread_num() * rpb);

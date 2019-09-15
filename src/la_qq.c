@@ -218,7 +218,8 @@ static void exact_sparse_reduced_echelon_form_qq(
     }
     /* mo need to have any sharing dependencies on parallel computation,
      * no data to be synchronized at this step of the linear algebra */
-#pragma omp parallel for num_threads(st->nthrds) private(i, j, k, sc)
+#pragma omp parallel for num_threads(st->nthrds) private(i, j, k, sc) \
+    schedule(static, nrl/st->nthrds/100)
     for (i = 0; i < nrl; ++i) {
         mpz_t *drl  = dr + (omp_get_thread_num() * ncols);
         hm_t *npiv  = upivs[i];

@@ -53,7 +53,7 @@ int main(
     sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
             initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis(bs, st->fc);
+    normalize_initial_basis_ff(bs, st->fc);
 
     /* reset bs->ld for first update process */
     bs->ld  = 0;

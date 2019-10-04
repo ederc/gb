@@ -802,7 +802,6 @@ static void exact_sparse_linear_algebra_ab_first_qq(
 
     /* allocate temporary storage space for sparse
      * coefficients of new pivot rows */
-    printf("nru %d | nrl %d\n", mat->nru, mat->nrl);
     mat->cf_qq  = realloc(mat->cf_qq,
             (unsigned long)mat->nrl * sizeof(mpz_t *));
     mat->cf_ab_qq  = realloc(mat->cf_ab_qq,

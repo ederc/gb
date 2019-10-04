@@ -357,35 +357,44 @@ static inline void set_function_pointers(
             hcm_cmp             = hcm_cmp_pivots_drl;
     }
 
-    switch (st->laopt) {
-        case 1:
-            linear_algebra  = exact_sparse_dense_linear_algebra_ff;
-            break;
-        case 2:
-            linear_algebra  = exact_sparse_linear_algebra_ff;
-            break;
-        case 42:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff;
-            break;
-        case 43:
-            linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_2;
-            break;
-        case 44:
-            linear_algebra  = probabilistic_sparse_linear_algebra_ff;
-            break;
-        default:
-            linear_algebra  = exact_sparse_linear_algebra_ff;
-    }
-
     /* up to 17 bits we can use one modular operation for reducing a row. this works
      * for matrices with #rows <= 54 million */
     if (st->fc == 0) {
-        linear_algebra          = exact_sparse_linear_algebra_qq;
+        switch (st->laopt) {
+            case 1:
+                linear_algebra  = exact_sparse_linear_algebra_ab_first_qq;
+                break;
+            case 2:
+                linear_algebra  = exact_sparse_linear_algebra_qq;
+                break;
+            default:
+                linear_algebra  = exact_sparse_linear_algebra_qq;
+        }
+        linear_algebra          = exact_sparse_linear_algebra_ab_first_qq;
         initialize_basis        = initialize_basis_qq;
         import_julia_data       = import_julia_data_qq;
         export_julia_data       = export_julia_data_qq;
         check_enlarge_basis     = check_enlarge_basis_qq;
     } else {
+        switch (st->laopt) {
+            case 1:
+                linear_algebra  = exact_sparse_dense_linear_algebra_ff;
+                break;
+            case 2:
+                linear_algebra  = exact_sparse_linear_algebra_ff;
+                break;
+            case 42:
+                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff;
+                break;
+            case 43:
+                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_2;
+                break;
+            case 44:
+                linear_algebra  = probabilistic_sparse_linear_algebra_ff;
+                break;
+            default:
+                linear_algebra  = exact_sparse_linear_algebra_ff;
+        }
         initialize_basis        = initialize_basis_ff;
         import_julia_data       = import_julia_data_ff;
         export_julia_data       = export_julia_data_ff;

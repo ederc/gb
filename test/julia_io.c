@@ -35,10 +35,10 @@ int main(
     }
 
     /* initialize stuff */
-    bs_t * bs = initialize_basis_ff(st->ngens);
+    bs_t * bs = initialize_basis_ff_32(st->ngens);
     ht_t *bht = initialize_basis_hash_table(st);
 
-    import_julia_data_ff(bs, bht, st, lens, exps, vcfs);
+    import_julia_data_ff_32(bs, bht, st, lens, exps, vcfs);
 
     /* free and clean up */
     free_shared_hash_data(bht);

@@ -8,7 +8,7 @@ int main(
         )
 {
     /* initialize stuff */
-    bs_t *bs  = initialize_basis_ff(4);
+    bs_t *bs  = initialize_basis_ff_32(4);
     if (bs->ld != 0) {
         return 1;
     }
@@ -18,7 +18,7 @@ int main(
     if (bs->hm == NULL) {
         return 1;
     }
-    if (bs->cf_ff == NULL) {
+    if (bs->cf_32 == NULL) {
         return 1;
     }
     if (bs->cf_qq != NULL) {
@@ -38,7 +38,7 @@ int main(
     if (bs->cf_qq == NULL) {
         return 1;
     }
-    if (bs->cf_ff != NULL) {
+    if (bs->cf_32 != NULL) {
         return 1;
     }
     free_basis(&bs);

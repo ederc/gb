@@ -31,7 +31,7 @@
 #include "hash.c"     /* hash table stuff */
 #include "order.c"    /* order and comparison procedures */
 #include "basis.c"    /* basis and polynomial handling */
-#include "la_ff.c"    /* finite field linear algebra */
+#include "la_ff_32.c" /* finite field linear algebra (32bit) */
 #include "la_qq.c"    /* rational linear algebra */
 #include "update.c"   /* update process and pairset handling */
 #include "convert.c"  /* conversion between hashes and column indices*/

@@ -25,7 +25,7 @@
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
-static void import_julia_data_ff(
+static void import_julia_data_ff_32(
         bs_t *bs,
         ht_t *ht,
         stat_t *st,
@@ -57,7 +57,7 @@ static void import_julia_data_ff(
         hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
         cf  = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
         bs->hm[i]     = hm;
-        bs->cf_ff[i]  = cf;
+        bs->cf_32[i]  = cf;
 
         hm[0]  = i; /* link to matcf entry */
         hm[1]  = (lens[i] % UNROLL); /* offset */
@@ -189,7 +189,7 @@ done:
     mpz_clears(prod_den, mul, NULL);
 }
 
-static int64_t export_julia_data_ff(
+static int64_t export_julia_data_ff_32(
         int32_t *bload,
         int32_t **blen,
         int32_t **bexp,
@@ -237,7 +237,7 @@ static int64_t export_julia_data_ff(
             continue;
         } else {
             len[cl] = bs->hm[i][2];
-            memcpy(cf+cc, bs->cf_ff[bs->hm[i][0]],
+            memcpy(cf+cc, bs->cf_32[bs->hm[i][0]],
                     (unsigned long)(len[cl]) * sizeof(cf32_t));
 
             dt  = bs->hm[i] + 3;
@@ -395,10 +395,10 @@ static inline void set_function_pointers(
             default:
                 linear_algebra  = exact_sparse_linear_algebra_ff;
         }
-        initialize_basis        = initialize_basis_ff;
-        import_julia_data       = import_julia_data_ff;
-        export_julia_data       = export_julia_data_ff;
-        check_enlarge_basis     = check_enlarge_basis_ff;
+        initialize_basis        = initialize_basis_ff_32;
+        import_julia_data       = import_julia_data_ff_32;
+        export_julia_data       = export_julia_data_ff_32;
+        check_enlarge_basis     = check_enlarge_basis_ff_32;
     }
     if (st->fc < pow(2, 17)) {
         reduce_dense_row_by_all_pivots =

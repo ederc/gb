@@ -168,7 +168,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     if (st->fc > 0) {
         for (i = 0; i < np; ++i) {
             insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
-            bs->cf_ff[bl+i] = mat->cf_ff[rows[i][0]];
+            bs->cf_32[bl+i] = mat->cf_32[rows[i][0]];
             rows[i][0]      = bl+i;
             bs->hm[bl+i]    = rows[i];
             /* printf("\n");
@@ -177,7 +177,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
              * }
              * printf(" + %d terms\n", rows[i][2]-1); */
             /* for (int ii=0; ii < rows[i][2]; ++ii) {
-             *     printf("%d | ", bs->cf_ff[bl+i][ii]);
+             *     printf("%d | ", bs->cf_32[bl+i][ii]);
              *     for (int jj = 0; jj < bht->nv; ++jj) {
              *         printf("%d ", bht->ev[bs->hm[bl+i][ii]][jj]);
              *     }

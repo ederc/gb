@@ -378,22 +378,22 @@ static inline void set_function_pointers(
     } else {
         switch (st->laopt) {
             case 1:
-                linear_algebra  = exact_sparse_dense_linear_algebra_ff;
+                linear_algebra  = exact_sparse_dense_linear_algebra_ff_32;
                 break;
             case 2:
-                linear_algebra  = exact_sparse_linear_algebra_ff;
+                linear_algebra  = exact_sparse_linear_algebra_ff_32;
                 break;
             case 42:
-                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff;
+                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_32;
                 break;
             case 43:
-                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_2;
+                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_32_2;
                 break;
             case 44:
-                linear_algebra  = probabilistic_sparse_linear_algebra_ff;
+                linear_algebra  = probabilistic_sparse_linear_algebra_ff_32;
                 break;
             default:
-                linear_algebra  = exact_sparse_linear_algebra_ff;
+                linear_algebra  = exact_sparse_linear_algebra_ff_32;
         }
         initialize_basis        = initialize_basis_ff_32;
         import_julia_data       = import_julia_data_ff_32;
@@ -401,22 +401,22 @@ static inline void set_function_pointers(
         check_enlarge_basis     = check_enlarge_basis_ff_32;
     }
     if (st->fc < pow(2, 17)) {
-        reduce_dense_row_by_all_pivots =
+        reduce_dense_row_by_all_pivots_ff_32 =
             reduce_dense_row_by_all_pivots_17_bit;
-        reduce_dense_row_by_old_pivots =
+        reduce_dense_row_by_old_pivots_ff_32 =
             reduce_dense_row_by_old_pivots_17_bit;
-        reduce_dense_row_by_known_pivots_sparse =
+        reduce_dense_row_by_known_pivots_sparse_ff_32 =
             reduce_dense_row_by_known_pivots_sparse_17_bit;
-        reduce_dense_row_by_dense_new_pivots  =
+        reduce_dense_row_by_dense_new_pivots_ff_32  =
             reduce_dense_row_by_dense_new_pivots_17_bit;
     } else {
-        reduce_dense_row_by_all_pivots =
+        reduce_dense_row_by_all_pivots_ff_32 =
             reduce_dense_row_by_all_pivots_31_bit;
-        reduce_dense_row_by_old_pivots =
+        reduce_dense_row_by_old_pivots_ff_32 =
             reduce_dense_row_by_old_pivots_31_bit;
-        reduce_dense_row_by_known_pivots_sparse =
+        reduce_dense_row_by_known_pivots_sparse_ff_32 =
             reduce_dense_row_by_known_pivots_sparse_31_bit;
-        reduce_dense_row_by_dense_new_pivots  =
+        reduce_dense_row_by_dense_new_pivots_ff_32  =
             reduce_dense_row_by_dense_new_pivots_31_bit;
     }
 }

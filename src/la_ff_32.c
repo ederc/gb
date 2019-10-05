@@ -21,7 +21,7 @@
  */
 #include "data.h"
 
-static inline cf32_t *normalize_dense_matrix_row(
+static inline cf32_t *normalize_dense_matrix_row_ff_32(
         cf32_t *row,
         const hm_t len,
         const int32_t fc
@@ -59,7 +59,7 @@ static inline cf32_t *normalize_dense_matrix_row(
     return row;
 }
 
-static inline cf32_t *normalize_sparse_matrix_row(
+static inline cf32_t *normalize_sparse_matrix_row_ff_32(
         cf32_t *row,
         const len_t os,
         const len_t len,
@@ -376,7 +376,7 @@ static cf32_t *reduce_dense_row_by_all_pivots_17_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, ncols-np, fc);
+        row = normalize_dense_matrix_row_ff_32(row, ncols-np, fc);
     }
 
     *pc = np - ncl;
@@ -484,7 +484,7 @@ static cf32_t *reduce_dense_row_by_all_pivots_31_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, ncols-np, fc);
+        row = normalize_dense_matrix_row_ff_32(row, ncols-np, fc);
     }
 
     *pc = np - ncl;
@@ -680,7 +680,7 @@ static cf32_t *reduce_dense_row_by_dense_new_pivots_17_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, ncr-np, fc);
+        row = normalize_dense_matrix_row_ff_32(row, ncr-np, fc);
     }
     *pc = np;
     return row;
@@ -744,14 +744,14 @@ static cf32_t *reduce_dense_row_by_dense_new_pivots_31_bit(
         row[i-np]  = (cf32_t)dr[i];
     }
     if (row[0] != 1) {
-        row = normalize_dense_matrix_row(row, ncr-np, fc);
+        row = normalize_dense_matrix_row_ff_32(row, ncr-np, fc);
     }
     *pc = np;
 
     return row;
 }
 
-static void probabilistic_sparse_reduced_echelon_form(
+static void probabilistic_sparse_reduced_echelon_form_ff_32(
         mat_t *mat,
         const bs_t * const bs,
         const stat_t * const st
@@ -858,7 +858,7 @@ static void probabilistic_sparse_reduced_echelon_form(
                     cfs = NULL;
                     free(npiv);
                     npiv  = NULL;
-                    npiv  = reduce_dense_row_by_known_pivots_sparse(
+                    npiv  = reduce_dense_row_by_known_pivots_sparse_ff_32(
                             drl, mat, bs, pivs, sc, cfp, st->fc);
                     if (!npiv) {
                         bctr  = nrbl;
@@ -869,7 +869,7 @@ static void probabilistic_sparse_reduced_echelon_form(
                     * lead to wrong results in a parallel computation since other
                     * threads might directly use the new pivot once it is synced. */
                     if (mat->cf_32[npiv[0]][0] != 1) {
-                        normalize_sparse_matrix_row(
+                        normalize_sparse_matrix_row_ff_32(
                                 mat->cf_32[npiv[0]], npiv[1], npiv[2], st->fc);
                     }
                     cfs = mat->cf_32[npiv[0]];
@@ -926,7 +926,7 @@ static void probabilistic_sparse_reduced_echelon_form(
             free(cfs);
             pivs[i] = NULL;
             pivs[i] = rows[npivs++] =
-                reduce_dense_row_by_known_pivots_sparse(
+                reduce_dense_row_by_known_pivots_sparse_ff_32(
                         dr, mat, bs, pivs, sc, cfp, st->fc);
         }
     }
@@ -941,7 +941,7 @@ static void probabilistic_sparse_reduced_echelon_form(
     mat->np = mat->nr = mat->sz = npivs;
 }
 
-static void exact_sparse_reduced_echelon_form(
+static void exact_sparse_reduced_echelon_form_ff_32(
         mat_t *mat,
         const bs_t * const bs,
         const stat_t * const st
@@ -1007,7 +1007,7 @@ static void exact_sparse_reduced_echelon_form(
             sc  = npiv[3];
             free(npiv);
             free(cfs);
-            npiv  = reduce_dense_row_by_known_pivots_sparse(
+            npiv  = reduce_dense_row_by_known_pivots_sparse_ff_32(
                     drl, mat, bs, pivs, sc, i, st->fc);
             if (!npiv) {
                 break;
@@ -1017,7 +1017,7 @@ static void exact_sparse_reduced_echelon_form(
              * lead to wrong results in a parallel computation since other
              * threads might directly use the new pivot once it is synced. */
             if (mat->cf_32[npiv[0]][0] != 1) {
-                normalize_sparse_matrix_row(
+                normalize_sparse_matrix_row_ff_32(
                         mat->cf_32[npiv[0]], npiv[1], npiv[2], st->fc);
             }
             k   = __sync_bool_compare_and_swap(&pivs[npiv[3]], NULL, npiv);
@@ -1064,7 +1064,7 @@ static void exact_sparse_reduced_echelon_form(
             free(cfs);
             pivs[i] = NULL;
             pivs[i] = rows[npivs++] =
-                reduce_dense_row_by_known_pivots_sparse(
+                reduce_dense_row_by_known_pivots_sparse_ff_32(
                         dr, mat, bs, pivs, sc, cf_array_pos, st->fc);
         }
     }
@@ -1077,7 +1077,7 @@ static void exact_sparse_reduced_echelon_form(
     mat->np = mat->nr = mat->sz = npivs;
 }
 
-static cf32_t **sparse_AB_CD_linear_algebra_ff(
+static cf32_t **sparse_AB_CD_linear_algebra_ff_32(
         mat_t *mat,
         const bs_t * bs,
         const stat_t * const st
@@ -1145,7 +1145,7 @@ static cf32_t **sparse_AB_CD_linear_algebra_ff(
         }
         sc  = ds[0];
         free(npiv);
-        drs[i]  = reduce_dense_row_by_old_pivots(
+        drs[i]  = reduce_dense_row_by_old_pivots_ff_32(
                 drl, mat, bs, pivs, sc, st->fc);
     }
     free(dr);
@@ -1177,7 +1177,7 @@ static cf32_t **sparse_AB_CD_linear_algebra_ff(
     return drs;
 }
 
-static cf32_t **interreduce_dense_matrix(
+static cf32_t **interreduce_dense_matrix_ff_32(
     cf32_t **dm,
     const len_t ncr,
     const int32_t fc
@@ -1205,7 +1205,7 @@ static cf32_t **interreduce_dense_matrix(
             dm[i] = NULL;
             /* start with previous pivot the reduction process, so keep the
              * pivot element as it is */
-            dm[i] = reduce_dense_row_by_dense_new_pivots(
+            dm[i] = reduce_dense_row_by_dense_new_pivots_ff_32(
                     dr, &i, dm, ncr, fc);
         }
     }
@@ -1213,7 +1213,7 @@ static cf32_t **interreduce_dense_matrix(
     return dm;
 }
 
-static cf32_t **exact_dense_linear_algebra_ff(
+static cf32_t **exact_dense_linear_algebra_ff_32(
         cf32_t **dm,
         mat_t *mat,
         const stat_t * const st
@@ -1251,7 +1251,7 @@ static cf32_t **exact_dense_linear_algebra_ff(
                 nps[k] = dm[i];
                 /* printf("nps[%d] = ", k); */
                 if (nps[k][0] != 1) {
-                    nps[k]  = normalize_dense_matrix_row(nps[k], ncr-k, st->fc);
+                    nps[k]  = normalize_dense_matrix_row_ff_32(nps[k], ncr-k, st->fc);
                 }
                 /* npivs++; */
             } else {
@@ -1292,7 +1292,7 @@ static cf32_t **exact_dense_linear_algebra_ff(
         do {
             free(npiv);
             npiv = NULL;
-            npiv = reduce_dense_row_by_dense_new_pivots(
+            npiv = reduce_dense_row_by_dense_new_pivots_ff_32(
                     drl, &npc, nps, mat->ncr, st->fc);
             if (npc == -1) {
                 break;
@@ -1331,7 +1331,7 @@ static cf32_t **exact_dense_linear_algebra_ff(
     return nps;
 }
 
-static cf32_t **probabilistic_dense_linear_algebra_ff(
+static cf32_t **probabilistic_dense_linear_algebra_ff_32(
         cf32_t **dm,
         mat_t *mat,
         const stat_t * const st
@@ -1374,7 +1374,7 @@ static cf32_t **probabilistic_dense_linear_algebra_ff(
                 nps[k] = dm[i];
                 /* printf("nps[%d] = ", k); */
                 if (nps[k][0] != 1) {
-                    nps[k]  = normalize_dense_matrix_row(nps[k], ncr-k, st->fc);
+                    nps[k]  = normalize_dense_matrix_row_ff_32(nps[k], ncr-k, st->fc);
                 }
                 /* npivs++; */
             } else {
@@ -1452,7 +1452,7 @@ static cf32_t **probabilistic_dense_linear_algebra_ff(
                 tmp = NULL;
                 do {
                     free(tmp);
-                    tmp = reduce_dense_row_by_dense_new_pivots(
+                    tmp = reduce_dense_row_by_dense_new_pivots_ff_32(
                             drl, &npc, nps, mat->ncr, st->fc);
                     if (npc == -1) {
                         bctr  = nrbl;
@@ -1500,7 +1500,7 @@ static cf32_t **probabilistic_dense_linear_algebra_ff(
     return nps;
 }
 
-static cf32_t **probabilistic_sparse_dense_echelon_form(
+static cf32_t **probabilistic_sparse_dense_echelon_form_ff_32(
         mat_t *mat,
         const bs_t * const bs,
         const stat_t * const st
@@ -1604,7 +1604,7 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
                 tmp = NULL;
                 do {
                     free(tmp);
-                    tmp = reduce_dense_row_by_all_pivots(
+                    tmp = reduce_dense_row_by_all_pivots_ff_32(
                             drl, mat, bs, &npc, pivs, nps, st->fc);
                     if (npc == -1) {
                         bctr  = nrbl;
@@ -1662,7 +1662,7 @@ static cf32_t **probabilistic_sparse_dense_echelon_form(
     return nps;
 }
 
-static void convert_to_sparse_matrix_rows(
+static void convert_to_sparse_matrix_rows_ff_32(
         mat_t *mat,
         cf32_t * const * const dm
         )
@@ -1740,7 +1740,7 @@ static void convert_to_sparse_matrix_rows(
  * the same for both. this generates a dense D' part which is then
  * either reduced via exact linear algebra or via probabilistic
  * linear algebra */
-static void probabilistic_sparse_linear_algebra_ff(
+static void probabilistic_sparse_linear_algebra_ff_32(
         mat_t *mat,
         const bs_t * const bs,
         stat_t *st
@@ -1755,7 +1755,7 @@ static void probabilistic_sparse_linear_algebra_ff(
      * coefficients of new pivot rows */
     mat->cf_32 = realloc(mat->cf_32,
             (unsigned long)mat->nrl * sizeof(cf32_t *));
-    probabilistic_sparse_reduced_echelon_form(mat, bs, st);
+    probabilistic_sparse_reduced_echelon_form_ff_32(mat, bs, st);
 
     /* timings */
     ct1 = cputime();
@@ -1770,7 +1770,7 @@ static void probabilistic_sparse_linear_algebra_ff(
     }
 }
 
-static void exact_sparse_linear_algebra_ff(
+static void exact_sparse_linear_algebra_ff_32(
         mat_t *mat,
         const bs_t * const bs,
         stat_t *st
@@ -1785,7 +1785,7 @@ static void exact_sparse_linear_algebra_ff(
      * coefficients of new pivot rows */
     mat->cf_32  = realloc(mat->cf_32,
             (unsigned long)mat->nrl * sizeof(cf32_t *));
-    exact_sparse_reduced_echelon_form(mat, bs, st);
+    exact_sparse_reduced_echelon_form_ff_32(mat, bs, st);
 
     /* timings */
     ct1 = cputime();
@@ -1800,7 +1800,7 @@ static void exact_sparse_linear_algebra_ff(
     }
 }
 
-static void exact_sparse_dense_linear_algebra_ff(
+static void exact_sparse_dense_linear_algebra_ff_32(
         mat_t *mat,
         const bs_t * const bs,
         stat_t *st
@@ -1817,15 +1817,15 @@ static void exact_sparse_dense_linear_algebra_ff(
 
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm;
-    dm  = sparse_AB_CD_linear_algebra_ff(mat, bs, st);
+    dm  = sparse_AB_CD_linear_algebra_ff_32(mat, bs, st);
     if (mat->np > 0) {      
-        dm  = exact_dense_linear_algebra_ff(dm, mat, st);
-        dm  = interreduce_dense_matrix(dm, ncr, st->fc);
+        dm  = exact_dense_linear_algebra_ff_32(dm, mat, st);
+        dm  = interreduce_dense_matrix_ff_32(dm, ncr, st->fc);
     }
 
     /* convert dense matrix back to sparse matrix representation,
      * use tmpcf for storing the coefficient arrays */
-    convert_to_sparse_matrix_rows(mat, dm);
+    convert_to_sparse_matrix_rows_ff_32(mat, dm);
 
     /* free dm */
     if (dm) {
@@ -1849,7 +1849,7 @@ static void exact_sparse_dense_linear_algebra_ff(
     }
 }
 
-static void probabilistic_sparse_dense_linear_algebra_ff_2(
+static void probabilistic_sparse_dense_linear_algebra_ff_32_2(
         mat_t *mat,
         const bs_t * const bs,
         stat_t *st
@@ -1866,15 +1866,15 @@ static void probabilistic_sparse_dense_linear_algebra_ff_2(
 
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm;
-    dm  = sparse_AB_CD_linear_algebra_ff(mat, bs, st);
+    dm  = sparse_AB_CD_linear_algebra_ff_32(mat, bs, st);
     if (mat->np > 0) {      
-        dm  = probabilistic_dense_linear_algebra_ff(dm, mat, st);
-        dm  = interreduce_dense_matrix(dm, mat->ncr, st->fc);
+        dm  = probabilistic_dense_linear_algebra_ff_32(dm, mat, st);
+        dm  = interreduce_dense_matrix_ff_32(dm, mat->ncr, st->fc);
     }
 
     /* convert dense matrix back to sparse matrix representation,
      * use tmpcf for storing the coefficient arrays */
-    convert_to_sparse_matrix_rows(mat, dm);
+    convert_to_sparse_matrix_rows_ff_32(mat, dm);
 
     /* free dm */
     if (dm) {
@@ -1898,7 +1898,7 @@ static void probabilistic_sparse_dense_linear_algebra_ff_2(
     }
 }
 
-static void probabilistic_sparse_dense_linear_algebra_ff(
+static void probabilistic_sparse_dense_linear_algebra_ff_32(
         mat_t *mat,
         const bs_t * const bs,
         stat_t *st
@@ -1916,12 +1916,12 @@ static void probabilistic_sparse_dense_linear_algebra_ff(
     /* generate updated dense D part via reduction of CD with AB */
     cf32_t **dm = NULL;
     mat->np = 0;
-    dm      = probabilistic_sparse_dense_echelon_form(mat, bs, st);
-    dm      = interreduce_dense_matrix(dm, mat->ncr, st->fc);
+    dm      = probabilistic_sparse_dense_echelon_form_ff_32(mat, bs, st);
+    dm      = interreduce_dense_matrix_ff_32(dm, mat->ncr, st->fc);
 
     /* convert dense matrix back to sparse matrix representation,
      * use tmpcf for storing the coefficient arrays */
-    convert_to_sparse_matrix_rows(mat, dm);
+    convert_to_sparse_matrix_rows_ff_32(mat, dm);
 
     /* free dm */
     if (dm) {

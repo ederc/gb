@@ -86,7 +86,6 @@ static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
 static hm_t *reduce_dense_row_by_known_pivots_sparse_only_ab_qq(
         mpz_t *dr,
         mat_t *mat,
-        const bs_t * const bs,
         hm_t * const * const pivs,
         const hl_t dpiv,    /* pivot of dense row at the beginning */
         const hm_t tmp_pos  /* position of new coeffs array in tmpcf */
@@ -182,7 +181,6 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_only_ab_qq(
 static hm_t *reduce_dense_row_by_known_pivots_sparse_ab_first_qq(
         mpz_t *dr,
         mat_t *mat,
-        const bs_t * const bs,
         hm_t * const * const pivs,
         const hl_t dpiv,    /* pivot of dense row at the beginning */
         const hm_t tmp_pos  /* position of new coeffs array in tmpcf */
@@ -435,7 +433,7 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
         pivs[i] = NULL;
         pivs[i] =
             reduce_dense_row_by_known_pivots_sparse_only_ab_qq(
-                    dr, mat, bs, pivs, sc, i);
+                    dr, mat, pivs, sc, i);
         remove_content_of_sparse_matrix_row_qq(
                 mat->cf_ab_qq[pivs[i][0]], pivs[i][1], pivs[i][2]);
     }
@@ -506,7 +504,7 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
             free(cfs);
             free(npiv);
             npiv  = reduce_dense_row_by_known_pivots_sparse_ab_first_qq(
-                    drl, mat, bs, pivs, sc, i);
+                    drl, mat, pivs, sc, i);
             if (!npiv) {
                 break;
             }

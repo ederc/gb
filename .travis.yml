@@ -24,6 +24,4 @@ script:
   - ./autogen.sh
   - ./configure
   - make
-  - cd test
-  - make initialize_basis
-  - ./initialize_basis
+  - make check

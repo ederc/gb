@@ -21,21 +21,6 @@ notifications:
 script:
   - while sleep 30; do echo "still alive"; done &
   - ./autogen.sh
-  - configure
+  - ./configure
   - make
   - make check
-
-# env:
-#    global:
-#       - DOCUMENTER_DEBUG=true
-
-# jobs:
-#    include:
-#      - stage: "Documentation"
-#        julia: 1.0
-#        os: linux
-#        script:
-#          - while sleep 30; do echo "still alive"; done &
-#          - julia --project=docs/ -e 'using Pkg; Pkg.add(PackageSpec(path=pwd())); Pkg.instantiate();'
-#          - julia --project=docs/ docs/make.jl
-#        after_success: skip

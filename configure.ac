@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([gb], [v0.13], [ederc@mathematik.uni-kl.de])
+AC_INIT([gb], [v0.14], [ederc@mathematik.uni-kl.de])
 AM_INIT_AUTOMAKE([foreign color-tests -Wall -Werror])
 # AM_SILENT_RULES([yes])
 

@@ -7,7 +7,6 @@ addons:
            - autotools-dev
            - libtool
            - libgmp-dev
-           - clang-8
  
 language: c
 sudo: false
@@ -24,4 +23,6 @@ script:
   - ./autogen.sh
   - ./configure
   - make
-  - make check
+  - cd test
+  - make initialize_basis
+  - ./initialize_basis

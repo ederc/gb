@@ -7,6 +7,7 @@ addons:
            - autotools-dev
            - libtool
            - libgmp-dev
+           - clang-8
  
 language: c
 sudo: false
@@ -17,7 +18,7 @@ compiler:
   - clang
   - gcc
 notifications:
-  - email: true
+  - email: false
 script:
   - while sleep 30; do echo "still alive"; done &
   - ./autogen.sh

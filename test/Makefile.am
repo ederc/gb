@@ -52,16 +52,16 @@ TESTS =												\
 	cyclic_6_drl_17_bit_la44_t2	\
 	katsura_4_lex								\
 	katsura_5_lex								\
-	cyclic_7										\
-	katsura_12_drl_17_bit				\
-	katsura_13_drl_17_bit				\
-	cyclic_9										\
-	pearson_9										\
-	katsura_16									\
-	mayr_42											\
-	bayes_148										\
-	ideal_q											\
-	cyclic_6_lex_17_bit		
+	cyclic_7										# \
+	# katsura_12_drl_17_bit				\
+	# katsura_13_drl_17_bit				\
+	# cyclic_9										\
+	# pearson_9										\
+	# katsura_16									\
+	# mayr_42											\
+	# bayes_148										\
+	# ideal_q											\
+	# cyclic_6_lex_17_bit
 
 XFAIL_TESTS = 								\
 	xinput_meta_data

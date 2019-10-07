@@ -7,7 +7,17 @@ int main(
         void
         )
 {
-    bs_t * bs = initialize_basis_ff_32(4);
+    bs_t * bs = initialize_basis_ff_8(4);
+    free_basis(&bs);
+    if (bs != NULL) {
+        return 1;
+    }
+    bs = initialize_basis_ff_16(4);
+    free_basis(&bs);
+    if (bs != NULL) {
+        return 1;
+    }
+    bs = initialize_basis_ff_32(4);
     free_basis(&bs);
     if (bs != NULL) {
         return 1;

@@ -182,6 +182,7 @@ static bs_t *initialize_basis_ff_16(
 
     bs->mltdeg  = 0;
 
+    bs->cf_8  = NULL;
     bs->cf_16 = (cf16_t **)malloc((unsigned long)bs->sz * sizeof(cf16_t *));
     bs->cf_32 = NULL;
     bs->cf_qq = NULL;
@@ -266,6 +267,7 @@ static bs_t *initialize_basis_ff_32(
 
     bs->mltdeg  = 0;
 
+    bs->cf_8  = NULL;
     bs->cf_16 = NULL;
     bs->cf_32 = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
     bs->cf_qq = NULL;
@@ -349,6 +351,7 @@ static bs_t *initialize_basis_qq(
 
     bs->mltdeg  = 0;
 
+    bs->cf_8  = NULL;
     bs->cf_16 = NULL;
     bs->cf_32 = NULL;
     bs->cf_qq = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));

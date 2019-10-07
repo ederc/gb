@@ -22,16 +22,16 @@
 
 #include "data.h"
 
-static inline int32_t mod_p_inverse_32(
-        const int32_t val,
-        const int32_t p
+static inline int8_t mod_p_inverse_8(
+        const int8_t val,
+        const int8_t p
         )
 {
-    int32_t a, b, c, d, e, f;
+    int8_t a, b, c, d, e, f;
     a =   p;
     b =   val % p;
     /* if b < 0 we shift correspondingly */
-    b +=  (b >> 31) & p;
+    b +=  (b >> 7) & p;
     c =   1;
     d =   0;
 
@@ -46,7 +46,7 @@ static inline int32_t mod_p_inverse_32(
     }
 
     /* if d < 0 we shift correspondingly */
-    d +=  (d >> 31) & p;
+    d +=  (d >> 7) & p;
 
     return d;
 }
@@ -76,6 +76,35 @@ static inline int16_t mod_p_inverse_16(
 
     /* if d < 0 we shift correspondingly */
     d +=  (d >> 15) & p;
+
+    return d;
+}
+
+static inline int32_t mod_p_inverse_32(
+        const int32_t val,
+        const int32_t p
+        )
+{
+    int32_t a, b, c, d, e, f;
+    a =   p;
+    b =   val % p;
+    /* if b < 0 we shift correspondingly */
+    b +=  (b >> 31) & p;
+    c =   1;
+    d =   0;
+
+    while (b != 0) {
+        f = b;
+        e = a/f;
+        b = a - e*f;
+        a = f;
+        f = c;
+        c = d - e*f;
+        d = f;
+    }
+
+    /* if d < 0 we shift correspondingly */
+    d +=  (d >> 31) & p;
 
     return d;
 }

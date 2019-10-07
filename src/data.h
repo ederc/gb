@@ -49,8 +49,9 @@ inline omp_int_t omp_get_max_threads(void) { return 1;}
 
 
 /* computational data */
-typedef int16_t cf16_t;   /* coefficient type finite field (16bit) */
-typedef int32_t cf32_t;   /* coefficient type finite field (32bit) */
+typedef int8_t cf8_t;   /* coefficient type finite field (8 bit) */
+typedef int16_t cf16_t;   /* coefficient type finite field (16 bit) */
+typedef int32_t cf32_t;   /* coefficient type finite field (32 bit) */
 typedef int32_t val_t;    /* core values like hashes */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t hm_t;        /* hashed monomials for polynomial entries */
@@ -125,8 +126,9 @@ struct bs_t
                        elements in basis */
     int8_t *red;    /* tracks redundancy of basis elements */
     hm_t **hm;      /* hashed monomials representing exponents */
-    cf16_t **cf_16; /* coefficients for finite fields (16bit) */
-    cf32_t **cf_32; /* coefficients for finite fields (32bit) */
+    cf8_t **cf_8;   /* coefficients for finite fields (8 bit) */
+    cf16_t **cf_16; /* coefficients for finite fields (16 bit) */
+    cf32_t **cf_32; /* coefficients for finite fields (32 bit) */
     mpz_t **cf_qq;  /* coefficients for rationals (always multiplied such that
                        the denominator is 1) */
 };
@@ -136,8 +138,9 @@ struct mat_t
 {
     hm_t **r;         /* rows of the matrix, only column entries, coefficients */
                       /* are handled via linking to coefficient arrays */
-    cf16_t **cf_16;   /* coefficients for finite fields (16bit) */
-    cf32_t **cf_32;   /* coefficients for finite fields (32bit) */
+    cf8_t **cf_8;     /* coefficients for finite fields (8 bit) */
+    cf16_t **cf_16;   /* coefficients for finite fields (16 bit) */
+    cf32_t **cf_32;   /* coefficients for finite fields (32 bit) */
     mpz_t **cf_qq;    /* coefficients for rationals */
     mpz_t **cf_ab_qq; /* coefficients for rationals */
     len_t sz;         /* number of rows allocated resp. size */

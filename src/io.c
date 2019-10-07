@@ -25,6 +25,76 @@
 /* note that depending on the input data we set the corresponding
  * function pointers for monomial resp. spair comparisons, taking
  * spairs by a given minimal property for symbolic preprocessing, etc. */
+static void import_julia_data_ff_8(
+        bs_t *bs,
+        ht_t *ht,
+        stat_t *st,
+        const int32_t *lens,
+        const int32_t *exps,
+        const void *vcfs
+        )
+{
+    int32_t i, j;
+    len_t k;
+    cf8_t * cf;
+    hm_t *hm;
+
+    int32_t *cfs  = (int32_t *)vcfs;
+
+    int32_t off       = 0; /* offset in arrays */
+    const len_t nv    = st->nvars;
+    const len_t ngens = st->ngens;
+
+    int32_t nterms  = 0;
+    for (i = 0; i < st->ngens; ++i) {
+        nterms  +=  lens[i];
+    }
+    while (nterms >= ht->esz) {
+        enlarge_hash_table(ht);
+    }
+    exp_t *e  = ht->ev[0]; /* use as temporary storage */
+    for (i = 0; i < ngens; ++i) {
+        hm  = (hm_t *)malloc(((unsigned long)lens[i]+3) * sizeof(hm_t));
+        cf  = (cf8_t *)malloc((unsigned long)(lens[i]) * sizeof(cf8_t));
+        bs->hm[i]   = hm;
+        bs->cf_8[i] = cf;
+
+        hm[0]  = i; /* link to matcf entry */
+        hm[1]  = (lens[i] % UNROLL); /* offset */
+        hm[2]  = lens[i]; /* length */
+
+        bs->red[i] = 0;
+
+        for (j = off; j < off+lens[i]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                e[k]  = (exp_t)(exps+(nv*j))[k];
+            }
+            hm[j-off+3] = insert_in_hash_table(e, ht);
+            cf[j-off]   = (cf8_t)cfs[j];
+        }
+        /* mark initial generators, they have to be added to the basis first */
+        off +=  lens[i];
+    }
+    deg_t deg = 0;
+    for (i = 0; i < ngens; ++i) {
+        hm  = bs->hm[i];
+        deg = ht->hd[hm[3]].deg;
+        k   = hm[2] + 3;
+        for (j = 4; j < k; ++j) {
+            if (deg != ht->hd[hm[j]].deg) {
+                st->homogeneous = 0;
+                goto done;
+            }
+        }
+    }
+    st->homogeneous = 1;
+done:
+
+    /* we have to reset the ld value once we have normalized the initial
+     * elements in order to start update correctly */
+    bs->ld  = st->ngens;
+}
+
 static void import_julia_data_ff_16(
         bs_t *bs,
         ht_t *ht,
@@ -257,6 +327,77 @@ done:
     bs->ld  = st->ngens;
 
     mpz_clears(prod_den, mul, NULL);
+}
+
+static int64_t export_julia_data_ff_8(
+        int32_t *bload,
+        int32_t **blen,
+        int32_t **bexp,
+        void **bcf,
+        const bs_t * const bs,
+        const ht_t * const ht
+        )
+{
+    len_t i, j, k;
+
+    const len_t nv  = ht->nv;
+    const bl_t bld  = bs->ld;
+
+    hm_t *dt;
+
+    int64_t nterms  = 0; /* # of terms in basis */
+    int64_t nelts  = 0; /* # elemnts in basis */
+
+    /* compute number of terms */
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i] != 0) {
+            continue;
+        } else {
+            nterms +=  (int64_t)bs->hm[i][2];
+            nelts++;
+        }
+    }
+
+    if (nelts > (int64_t)(pow(2, 31))) {
+        printf("Basis has more than 2^31 elements, cannot store it.\n");
+        return 0;
+    }
+
+    int32_t *len  = (int32_t *)malloc(
+            (unsigned long)(nelts) * sizeof(int32_t));
+    int32_t *exp  = (int32_t *)malloc(
+            (unsigned long)(nterms) * (unsigned long)(nv) * sizeof(int32_t));
+    cf32_t *cf   = (cf32_t *)malloc(
+            (unsigned long)(nterms) * sizeof(cf32_t));
+
+    /* counters for lengths, exponents and coefficients */
+    int64_t cl = 0, ce = 0, cc = 0;
+    for (i = 0; i < bld; ++i) {
+        if (bs->red[i] != 0) {
+            continue;
+        } else {
+            len[cl] = bs->hm[i][2];
+            for (j = 0; j < len[cl]; ++j) {
+                (cf+cc)[j]  = (int32_t)bs->cf_8[bs->hm[i][0]][j];
+            }
+
+            dt  = bs->hm[i] + 3;
+            for (j = 0; j < len[cl]; ++j) {
+                for (k = 0; k < nv; ++k) {
+                    exp[ce++] = (int32_t)ht->ev[dt[j]][k];
+                }
+            }
+            cc  +=  len[cl];
+            cl++;
+        }
+    }
+
+    *bload  = (int32_t)nelts;
+    *blen   = len;
+    *bexp   = exp;
+    *bcf    = (void *)cf;
+
+    return nterms;
 }
 
 static int64_t export_julia_data_ff_16(
@@ -517,6 +658,33 @@ static inline void set_function_pointers(
             import_julia_data       = import_julia_data_qq;
             export_julia_data       = export_julia_data_qq;
             check_enlarge_basis     = check_enlarge_basis_qq;
+            break;
+
+        case 8:
+            switch (st->laopt) {
+                case 1:
+                    linear_algebra  = exact_sparse_dense_linear_algebra_ff_8;
+                    break;
+                case 2:
+                    linear_algebra  = exact_sparse_linear_algebra_ff_8;
+                    break;
+                case 42:
+                    linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_8;
+                    break;
+                case 43:
+                    linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_8_2;
+                    break;
+                case 44:
+                    linear_algebra  = probabilistic_sparse_linear_algebra_ff_8;
+                    break;
+                default:
+                    linear_algebra  = exact_sparse_linear_algebra_ff_8;
+            }
+            initialize_basis        = initialize_basis_ff_8;
+            import_julia_data       = import_julia_data_ff_8;
+            export_julia_data       = export_julia_data_ff_8;
+            check_enlarge_basis     = check_enlarge_basis_ff_8;
+            normalize_initial_basis = normalize_initial_basis_ff_8;
             break;
 
         case 16:

@@ -49,7 +49,9 @@ inline omp_int_t omp_get_max_threads(void) { return 1;}
 
 
 /* computational data */
-typedef int32_t cf32_t;     /* coefficient type */
+typedef int8_t cf8_t;   /* coefficient type finite field (8 bit) */
+typedef int16_t cf16_t;   /* coefficient type finite field (16 bit) */
+typedef int32_t cf32_t;   /* coefficient type finite field (32 bit) */
 typedef int32_t val_t;    /* core values like hashes */
 typedef val_t hl_t;       /* length of hash table */
 typedef hl_t hm_t;        /* hashed monomials for polynomial entries */
@@ -124,7 +126,9 @@ struct bs_t
                        elements in basis */
     int8_t *red;    /* tracks redundancy of basis elements */
     hm_t **hm;      /* hashed monomials representing exponents */
-    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
+    cf8_t **cf_8;   /* coefficients for finite fields (8 bit) */
+    cf16_t **cf_16; /* coefficients for finite fields (16 bit) */
+    cf32_t **cf_32; /* coefficients for finite fields (32 bit) */
     mpz_t **cf_qq;  /* coefficients for rationals (always multiplied such that
                        the denominator is 1) */
 };
@@ -132,19 +136,21 @@ struct bs_t
 typedef struct mat_t mat_t;
 struct mat_t
 {
-    hm_t **r;       /* rows of the matrix, only column entries, coefficients */
-                    /* are handled via linking to coefficient arrays */
-    cf32_t **cf_ff; /* coefficients for finite fields (32bits) */
-    mpz_t **cf_qq;  /* coefficients for rationals */
-    mpz_t **cf_ab_qq;  /* coefficients for rationals */
-    len_t sz;       /* number of rows allocated resp. size */
-    len_t np;       /* number of new pivots */
-    len_t nr;       /* number of rows set */
-    len_t nc;       /* number of columns */
-    len_t nru;      /* number of upper rows (in ABCD splicing) */
-    len_t nrl;      /* number of lower rows (in ABCD splicing) */
-    len_t ncl;      /* number of left columns (in ABCD splicing) */
-    len_t ncr;      /* number of right columns (in ABCD splicing) */
+    hm_t **r;         /* rows of the matrix, only column entries, coefficients */
+                      /* are handled via linking to coefficient arrays */
+    cf8_t **cf_8;     /* coefficients for finite fields (8 bit) */
+    cf16_t **cf_16;   /* coefficients for finite fields (16 bit) */
+    cf32_t **cf_32;   /* coefficients for finite fields (32 bit) */
+    mpz_t **cf_qq;    /* coefficients for rationals */
+    mpz_t **cf_ab_qq; /* coefficients for rationals */
+    len_t sz;         /* number of rows allocated resp. size */
+    len_t np;         /* number of new pivots */
+    len_t nr;         /* number of rows set */
+    len_t nc;         /* number of columns */
+    len_t nru;        /* number of upper rows (in ABCD splicing) */
+    len_t nrl;        /* number of lower rows (in ABCD splicing) */
+    len_t ncl;        /* number of left columns (in ABCD splicing) */
+    len_t ncr;        /* number of right columns (in ABCD splicing) */
 };
 
 /* statistic stuff */
@@ -194,6 +200,7 @@ struct stat_t
     int64_t max_uht_size;
     int64_t nterms_basis;
     int32_t size_basis;
+    int32_t ff_bits;
 
     int32_t info_level;
     int32_t gen_pbm_file;
@@ -206,6 +213,10 @@ bs_t *(*initialize_basis)(
 void (*check_enlarge_basis)(
         bs_t *bs,
         const len_t added
+        );
+void (*normalize_initial_basis)(
+        bs_t *bs,
+        const int32_t fc
         );
 
 int (*initial_input_cmp)(
@@ -257,7 +268,7 @@ void (*linear_algebra)(
         stat_t *st
         );
 
-cf32_t *(*reduce_dense_row_by_old_pivots)(
+cf32_t *(*reduce_dense_row_by_old_pivots_ff_32)(
         int64_t *dr,
         mat_t *mat,
         const bs_t * const bs,
@@ -266,7 +277,7 @@ cf32_t *(*reduce_dense_row_by_old_pivots)(
         const int32_t fc
         );
 
-hm_t *(*reduce_dense_row_by_known_pivots_sparse)(
+hm_t *(*reduce_dense_row_by_known_pivots_sparse_ff_32)(
         int64_t *dr,
         mat_t *mat,
         const bs_t * const bs,
@@ -276,7 +287,7 @@ hm_t *(*reduce_dense_row_by_known_pivots_sparse)(
         const int32_t fc
         );
 
-cf32_t *(*reduce_dense_row_by_all_pivots)(
+cf32_t *(*reduce_dense_row_by_all_pivots_ff_32)(
         int64_t *dr,
         mat_t *mat,
         const bs_t * const bs,
@@ -287,7 +298,7 @@ cf32_t *(*reduce_dense_row_by_all_pivots)(
         );
 
 
-cf32_t *(*reduce_dense_row_by_dense_new_pivots)(
+cf32_t *(*reduce_dense_row_by_dense_new_pivots_ff_32)(
         int64_t *dr,
         len_t *pc,
         cf32_t * const * const pivs,

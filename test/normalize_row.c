@@ -21,7 +21,7 @@ int main(
         row[i]  = 300 - i;
     }
     len_t len = 16;
-    normalize_dense_matrix_row(row, len, fc);
+    normalize_dense_matrix_row_ff_32(row, len, fc);
     for (i=1; i < 16; ++i) {
         printf("%d | %d\n", i, row[i]);
     }

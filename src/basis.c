@@ -28,13 +28,33 @@ static void free_basis(
 {
     len_t i, j, len;
     bs_t *bs  = *bsp;
-    if (bs->cf_ff) {
+    if (bs->cf_8) {
         for (i = 0; i < bs->ld; ++i) {
-            free(bs->cf_ff[i]);
+            free(bs->cf_8[i]);
             free(bs->hm[i]);
         }
-        free(bs->cf_ff);
-        bs->cf_ff = NULL;
+        free(bs->cf_8);
+        bs->cf_8  = NULL;
+        free(bs->hm);
+        bs->hm  = NULL;
+    }
+    if (bs->cf_16) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf_16[i]);
+            free(bs->hm[i]);
+        }
+        free(bs->cf_16);
+        bs->cf_16 = NULL;
+        free(bs->hm);
+        bs->hm  = NULL;
+    }
+    if (bs->cf_32) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf_32[i]);
+            free(bs->hm[i]);
+        }
+        free(bs->cf_32);
+        bs->cf_32 = NULL;
         free(bs->hm);
         bs->hm  = NULL;
     }
@@ -64,8 +84,8 @@ static void free_basis(
     *bsp  = bs;
 }
 
-/* finite field stuff */
-static bs_t *initialize_basis_ff(
+/* finite field stuff  --  8 bit */
+static bs_t *initialize_basis_ff_8(
         const int32_t ngens
         )
 {
@@ -77,8 +97,10 @@ static bs_t *initialize_basis_ff(
 
     bs->mltdeg  = 0;
 
-    bs->cf_ff = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
-    bs->cf_qq  = NULL;
+    bs->cf_8  = (cf8_t **)malloc((unsigned long)bs->sz * sizeof(cf8_t *));
+    bs->cf_16 = NULL;
+    bs->cf_32 = NULL;
+    bs->cf_qq = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));
@@ -87,14 +109,184 @@ static bs_t *initialize_basis_ff(
     return bs;
 }
 
-static inline void check_enlarge_basis_ff(
+static inline void check_enlarge_basis_ff_8(
         bs_t *bs,
         const len_t added
         )
 {
     if (bs->ld + added >= bs->sz) {
         bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
-        bs->cf_ff = realloc(bs->cf_ff,
+        bs->cf_8  = realloc(bs->cf_8,
+                (unsigned long)bs->sz * sizeof(cf8_t *));
+        bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
+        bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
+        bs->lmps  = realloc(bs->lmps, (unsigned long)bs->sz * sizeof(bl_t));
+        bs->red   = realloc(bs->red, (unsigned long)bs->sz * sizeof(int8_t));
+        memset(bs->red+bs->ld, 0,
+                (unsigned long)(bs->sz-bs->ld) * sizeof(int8_t));
+    }
+}
+
+static inline void normalize_initial_basis_ff_8(
+        bs_t *bs,
+        const int32_t fc
+        )
+{
+    len_t i, j;
+    int64_t tmp1, tmp2, tmp3, tmp4;
+
+    cf8_t **cf         = bs->cf_8;
+    hm_t * const *hm    = bs->hm;
+    const bl_t ld       = bs->ld;
+    const int8_t fc8    = (int8_t)fc;
+
+    for (i = 0; i < ld; ++i) {
+        cf8_t *row  = cf[hm[i][0]];
+
+        const int8_t inv  = mod_p_inverse_8(row[0], fc8);
+        const len_t os    = hm[i][1];
+        const len_t len   = hm[i][2];
+
+        for (j = 0; j < os; ++j) {
+            tmp1    =   ((int64_t)row[j] * inv) % fc8;
+            tmp1    +=  (tmp1 >> 63) & fc8;
+            row[j]  =   (cf8_t)tmp1;
+        }
+        for (j = os; j < len; j += 4) {
+            tmp1      =   ((int64_t)row[j] * inv) % fc8;
+            tmp2      =   ((int64_t)row[j+1] * inv) % fc8;
+            tmp3      =   ((int64_t)row[j+2] * inv) % fc8;
+            tmp4      =   ((int64_t)row[j+3] * inv) % fc8;
+            tmp1      +=  (tmp1 >> 63) & fc8;
+            tmp2      +=  (tmp2 >> 63) & fc8;
+            tmp3      +=  (tmp3 >> 63) & fc8;
+            tmp4      +=  (tmp4 >> 63) & fc8;
+            row[j]    =   (cf8_t)tmp1;
+            row[j+1]  =   (cf8_t)tmp2;
+            row[j+2]  =   (cf8_t)tmp3;
+            row[j+3]  =   (cf8_t)tmp4;
+        }
+    }
+}
+
+/* finite field stuff  --  16 bit */
+static bs_t *initialize_basis_ff_16(
+        const int32_t ngens
+        )
+{
+    bs_t *bs  = (bs_t *)malloc(sizeof(bs_t));
+    bs->lo  = 0;
+    bs->ld  = 0;
+    bs->lml = 0;
+    bs->sz  = 2*ngens;
+
+    bs->mltdeg  = 0;
+
+    bs->cf_8  = NULL;
+    bs->cf_16 = (cf16_t **)malloc((unsigned long)bs->sz * sizeof(cf16_t *));
+    bs->cf_32 = NULL;
+    bs->cf_qq = NULL;
+    bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
+    bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
+    bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));
+    bs->red   = (int8_t *)calloc((unsigned long)bs->sz, sizeof(int8_t));
+
+    return bs;
+}
+
+static inline void check_enlarge_basis_ff_16(
+        bs_t *bs,
+        const len_t added
+        )
+{
+    if (bs->ld + added >= bs->sz) {
+        bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
+        bs->cf_16 = realloc(bs->cf_16,
+                (unsigned long)bs->sz * sizeof(cf16_t *));
+        bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
+        bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
+        bs->lmps  = realloc(bs->lmps, (unsigned long)bs->sz * sizeof(bl_t));
+        bs->red   = realloc(bs->red, (unsigned long)bs->sz * sizeof(int8_t));
+        memset(bs->red+bs->ld, 0,
+                (unsigned long)(bs->sz-bs->ld) * sizeof(int8_t));
+    }
+}
+
+static inline void normalize_initial_basis_ff_16(
+        bs_t *bs,
+        const int32_t fc
+        )
+{
+    len_t i, j;
+    int64_t tmp1, tmp2, tmp3, tmp4;
+
+    cf16_t **cf         = bs->cf_16;
+    hm_t * const *hm    = bs->hm;
+    const bl_t ld       = bs->ld;
+    const int16_t fc16  = (int16_t)fc;
+
+    for (i = 0; i < ld; ++i) {
+        cf16_t *row = cf[hm[i][0]];
+
+        const int16_t inv = mod_p_inverse_16(row[0], fc16);
+        const len_t os    = hm[i][1];
+        const len_t len   = hm[i][2];
+
+        for (j = 0; j < os; ++j) {
+            tmp1    =   ((int64_t)row[j] * inv) % fc16;
+            tmp1    +=  (tmp1 >> 63) & fc16;
+            row[j]  =   (cf16_t)tmp1;
+        }
+        for (j = os; j < len; j += 4) {
+            tmp1      =   ((int64_t)row[j] * inv) % fc16;
+            tmp2      =   ((int64_t)row[j+1] * inv) % fc16;
+            tmp3      =   ((int64_t)row[j+2] * inv) % fc16;
+            tmp4      =   ((int64_t)row[j+3] * inv) % fc16;
+            tmp1      +=  (tmp1 >> 63) & fc16;
+            tmp2      +=  (tmp2 >> 63) & fc16;
+            tmp3      +=  (tmp3 >> 63) & fc16;
+            tmp4      +=  (tmp4 >> 63) & fc16;
+            row[j]    =   (cf16_t)tmp1;
+            row[j+1]  =   (cf16_t)tmp2;
+            row[j+2]  =   (cf16_t)tmp3;
+            row[j+3]  =   (cf16_t)tmp4;
+        }
+    }
+}
+
+/* finite field stuff  --  32 bit */
+static bs_t *initialize_basis_ff_32(
+        const int32_t ngens
+        )
+{
+    bs_t *bs  = (bs_t *)malloc(sizeof(bs_t));
+    bs->lo  = 0;
+    bs->ld  = 0;
+    bs->lml = 0;
+    bs->sz  = 2*ngens;
+
+    bs->mltdeg  = 0;
+
+    bs->cf_8  = NULL;
+    bs->cf_16 = NULL;
+    bs->cf_32 = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
+    bs->cf_qq = NULL;
+    bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
+    bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
+    bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));
+    bs->red   = (int8_t *)calloc((unsigned long)bs->sz, sizeof(int8_t));
+
+    return bs;
+}
+
+static inline void check_enlarge_basis_ff_32(
+        bs_t *bs,
+        const len_t added
+        )
+{
+    if (bs->ld + added >= bs->sz) {
+        bs->sz    = bs->sz * 2 > bs->ld + added ? bs->sz * 2 : bs->ld + added;
+        bs->cf_32 = realloc(bs->cf_32,
                 (unsigned long)bs->sz * sizeof(cf32_t *));
         bs->hm    = realloc(bs->hm, (unsigned long)bs->sz * sizeof(hm_t *));
         bs->lm    = realloc(bs->lm, (unsigned long)bs->sz * sizeof(sdm_t));
@@ -105,7 +297,7 @@ static inline void check_enlarge_basis_ff(
     }
 }
 
-static inline void normalize_initial_basis_ff(
+static inline void normalize_initial_basis_ff_32(
         bs_t *bs,
         const int32_t fc
         )
@@ -113,7 +305,7 @@ static inline void normalize_initial_basis_ff(
     len_t i, j;
     int64_t tmp1, tmp2, tmp3, tmp4;
 
-    cf32_t **cf       = bs->cf_ff;
+    cf32_t **cf       = bs->cf_32;
     hm_t * const *hm  = bs->hm;
     const bl_t ld     = bs->ld;
 
@@ -138,10 +330,10 @@ static inline void normalize_initial_basis_ff(
             tmp2      +=  (tmp2 >> 63) & fc;
             tmp3      +=  (tmp3 >> 63) & fc;
             tmp4      +=  (tmp4 >> 63) & fc;
-            row[j]    =   (hl_t)tmp1;
-            row[j+1]  =   (hl_t)tmp2;
-            row[j+2]  =   (hl_t)tmp3;
-            row[j+3]  =   (hl_t)tmp4;
+            row[j]    =   (cf32_t)tmp1;
+            row[j+1]  =   (cf32_t)tmp2;
+            row[j+2]  =   (cf32_t)tmp3;
+            row[j+3]  =   (cf32_t)tmp4;
         }
     }
 }
@@ -159,8 +351,10 @@ static bs_t *initialize_basis_qq(
 
     bs->mltdeg  = 0;
 
+    bs->cf_8  = NULL;
+    bs->cf_16 = NULL;
+    bs->cf_32 = NULL;
     bs->cf_qq = (mpz_t **)malloc((unsigned long)bs->sz * sizeof(mpz_t *));
-    bs->cf_ff = NULL;
     bs->hm    = (hm_t **)malloc((unsigned long)bs->sz * sizeof(hm_t *));
     bs->lm    = (sdm_t *)malloc((unsigned long)bs->sz * sizeof(sdm_t));
     bs->lmps  = (bl_t *)malloc((unsigned long)bs->sz * sizeof(bl_t));

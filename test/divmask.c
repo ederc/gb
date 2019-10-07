@@ -22,7 +22,7 @@ int main(
     st.fc       = 101;
     st.init_hts = 12;
 
-    bs_t * bs = initialize_basis_ff(st.ngens);
+    bs_t * bs = initialize_basis_ff_32(st.ngens);
     ht_t *bht = initialize_basis_hash_table(&st);
 
     if (bht->ndv != bht->nv) {
@@ -33,7 +33,7 @@ int main(
     }
 
     printf("nvars %d\n", st.nvars);
-    import_julia_data_ff(
+    import_julia_data_ff_32(
             bs, bht, &st, lens, exps, cfs);
 
     calculate_divmask(bht);

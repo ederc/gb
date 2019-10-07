@@ -34,17 +34,17 @@ int main(
     }
 
     /* initialize stuff */
-    bs_t *bs  = initialize_basis_ff(st->ngens);
+    bs_t *bs  = initialize_basis_ff_32(st->ngens);
     ht_t *bht = initialize_basis_hash_table(st);
     ht_t *uht = initialize_secondary_hash_table(bht, st);
 
-    import_julia_data_ff(bs, bht, st, lens, exps, cfs);
+    import_julia_data_ff_32(bs, bht, st, lens, exps, cfs);
     calculate_divmask(bht);
     /* sort initial elements, smallest lead term first */
     sort_r(bs->hm, (unsigned long)bs->ld, sizeof(hm_t *),
             initial_input_cmp, bht);
     /* normalize input generators */
-    normalize_initial_basis_ff(bs, st->fc);
+    normalize_initial_basis_ff_32(bs, st->fc);
     /* reset bs->ld for first update process */
     bs->ld  = 0;
     /* move input generators to basis and generate first spairs */

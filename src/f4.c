@@ -150,7 +150,7 @@ int64_t f4_julia(
             initial_input_cmp, bht);
     /* normalize input generators */
     if (st->fc > 0) {
-        normalize_initial_basis_ff_32(bs, st->fc);
+        normalize_initial_basis(bs, st->fc);
     } else {
         if (st->fc == 0) {
             remove_content_of_initial_basis(bs);

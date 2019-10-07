@@ -197,6 +197,7 @@ struct stat_t
     int64_t max_uht_size;
     int64_t nterms_basis;
     int32_t size_basis;
+    int32_t ff_bits;
 
     int32_t info_level;
     int32_t gen_pbm_file;
@@ -209,6 +210,10 @@ bs_t *(*initialize_basis)(
 void (*check_enlarge_basis)(
         bs_t *bs,
         const len_t added
+        );
+void (*normalize_initial_basis)(
+        bs_t *bs,
+        const int32_t fc
         );
 
 int (*initial_input_cmp)(

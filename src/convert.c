@@ -165,28 +165,8 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     while (bht->esz - bht->eld < ctr) {
         enlarge_hash_table(bht);
     }
-    if (st->fc > 0) {
-        for (i = 0; i < np; ++i) {
-            insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
-            bs->cf_32[bl+i] = mat->cf_32[rows[i][0]];
-            rows[i][0]      = bl+i;
-            bs->hm[bl+i]    = rows[i];
-            /* printf("\n");
-             * for (int jj = 0; jj < bht->nv; ++jj) {
-             *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
-             * }
-             * printf(" + %d terms\n", rows[i][2]-1); */
-            /* for (int ii=0; ii < rows[i][2]; ++ii) {
-             *     printf("%d | ", bs->cf_32[bl+i][ii]);
-             *     for (int jj = 0; jj < bht->nv; ++jj) {
-             *         printf("%d ", bht->ev[bs->hm[bl+i][ii]][jj]);
-             *     }
-             *     printf(" || ");
-             * }
-             * printf("\n"); */
-        }
-    } else {
-        if (st->fc == 0) {
+    switch (st->ff_bits) {
+        case 0:
             for (i = 0; i < np; ++i) {
                 insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
                 bs->cf_qq[bl+i] = mat->cf_qq[rows[i][0]];
@@ -206,7 +186,69 @@ static void convert_sparse_matrix_rows_to_basis_elements(
                  * }
                  * printf("\n"); */
             }
-        }
+            break;
+        case 16:
+            for (i = 0; i < np; ++i) {
+                insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
+                bs->cf_16[bl+i] = mat->cf_16[rows[i][0]];
+                rows[i][0]      = bl+i;
+                bs->hm[bl+i]    = rows[i];
+               /*  printf("\n");
+                * for (int jj = 0; jj < bht->nv; ++jj) {
+                *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
+                * }
+                * printf(" + %d terms\n", rows[i][2]-1);
+                *  for (int ii=0; ii < rows[i][2]; ++ii) {
+                *     printf("%d | ", bs->cf_16[bl+i][ii]);
+                *     for (int jj = 0; jj < bht->nv; ++jj) {
+                *         printf("%d ", bht->ev[bs->hm[bl+i][ii+3]][jj]);
+                *     }
+                *     printf(" || ");
+                * }
+                * printf("\n"); */
+            }
+            break;
+        case 32:
+            for (i = 0; i < np; ++i) {
+                insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
+                bs->cf_32[bl+i] = mat->cf_32[rows[i][0]];
+                rows[i][0]      = bl+i;
+                bs->hm[bl+i]    = rows[i];
+                /* printf("\n");
+                * for (int jj = 0; jj < bht->nv; ++jj) {
+                *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
+                * }
+                * printf(" + %d terms\n", rows[i][2]-1); */
+                /* for (int ii=0; ii < rows[i][2]; ++ii) {
+                *     printf("%d | ", bs->cf_32[bl+i][ii]);
+                *     for (int jj = 0; jj < bht->nv; ++jj) {
+                *         printf("%d ", bht->ev[bs->hm[bl+i][ii+3]][jj]);
+                *     }
+                *     printf(" || ");
+                * }
+                * printf("\n"); */
+            }
+            break;
+        default:
+            for (i = 0; i < np; ++i) {
+                insert_in_basis_hash_table_pivots(rows[i], bht, sht, hcm);
+                bs->cf_32[bl+i] = mat->cf_32[rows[i][0]];
+                rows[i][0]      = bl+i;
+                bs->hm[bl+i]    = rows[i];
+                /* printf("\n");
+                * for (int jj = 0; jj < bht->nv; ++jj) {
+                *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
+                * }
+                * printf(" + %d terms\n", rows[i][2]-1); */
+                /* for (int ii=0; ii < rows[i][2]; ++ii) {
+                *     printf("%d | ", bs->cf_32[bl+i][ii]);
+                *     for (int jj = 0; jj < bht->nv; ++jj) {
+                *         printf("%d ", bht->ev[bs->hm[bl+i][ii+3]][jj]);
+                *     }
+                *     printf(" || ");
+                * }
+                * printf("\n"); */
+            }
     }
 
     /* timings */

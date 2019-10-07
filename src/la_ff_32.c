@@ -321,7 +321,7 @@ static cf32_t *reduce_dense_row_by_all_pivots_17_bit(
         const cf32_t *cfs = bs->cf_32[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
-        const cf32_t * const ds  = pivs[i] + 3;
+        const hm_t * const ds  = pivs[i] + 3;
         for (j = 0; j < os; ++j) {
             dr[ds[j]] +=  mul * cfs[j];
         }

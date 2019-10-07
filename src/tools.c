@@ -51,6 +51,35 @@ static inline int32_t mod_p_inverse_32(
     return d;
 }
 
+static inline int16_t mod_p_inverse_16(
+        const int16_t val,
+        const int16_t p
+        )
+{
+    int16_t a, b, c, d, e, f;
+    a =   p;
+    b =   val % p;
+    /* if b < 0 we shift correspondingly */
+    b +=  (b >> 15) & p;
+    c =   1;
+    d =   0;
+
+    while (b != 0) {
+        f = b;
+        e = a/f;
+        b = a - e*f;
+        a = f;
+        f = c;
+        c = d - e*f;
+        d = f;
+    }
+
+    /* if d < 0 we shift correspondingly */
+    d +=  (d >> 15) & p;
+
+    return d;
+}
+
 static inline val_t compare_and_swap(
         long *ptr,
         long old,

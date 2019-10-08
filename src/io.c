@@ -339,24 +339,18 @@ static int64_t export_julia_data_ff_8(
         )
 {
     len_t i, j, k;
-
-    const len_t nv  = ht->nv;
-    const bl_t bld  = bs->ld;
-
     hm_t *dt;
 
-    int64_t nterms  = 0; /* # of terms in basis */
-    int64_t nelts  = 0; /* # elemnts in basis */
+    const len_t nv  = ht->nv;
+    const len_t lml = bs->lml;
 
-    /* compute number of terms */
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            nterms +=  (int64_t)bs->hm[i][2];
-            nelts++;
-        }
+    int64_t nterms  = 0; /* # of terms in basis */
+    int64_t nelts   = 0; /* # elemnts in basis */
+
+    for (i = 0; i < lml; ++i) {
+        nterms +=  (int64_t)bs->hm[bs->lmps[i]][2];
     }
+    nelts = lml;
 
     if (nelts > (int64_t)(pow(2, 31))) {
         printf("Basis has more than 2^31 elements, cannot store it.\n");
@@ -372,24 +366,21 @@ static int64_t export_julia_data_ff_8(
 
     /* counters for lengths, exponents and coefficients */
     int64_t cl = 0, ce = 0, cc = 0;
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            len[cl] = bs->hm[i][2];
-            for (j = 0; j < len[cl]; ++j) {
-                (cf+cc)[j]  = (int32_t)bs->cf_8[bs->hm[i][0]][j];
-            }
 
-            dt  = bs->hm[i] + 3;
-            for (j = 0; j < len[cl]; ++j) {
-                for (k = 0; k < nv; ++k) {
-                    exp[ce++] = (int32_t)ht->ev[dt[j]][k];
-                }
-            }
-            cc  +=  len[cl];
-            cl++;
+    for (i = 0; i < lml; ++i) {
+        const bl_t bi = bs->lmps[i];
+        len[cl] = bs->hm[bi][2];
+        for (j = 0; j < len[cl]; ++j) {
+            (cf+cc)[j] = (cf32_t)bs->cf_8[bs->hm[bi][0]][j];
         }
+        dt  = bs->hm[bi] + 3;
+        for (j = 0; j < len[cl]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                exp[ce++] = (int32_t)ht->ev[dt[j]][k];
+            }
+        }
+        cc  +=  len[cl];
+        cl++;
     }
 
     *bload  = (int32_t)nelts;
@@ -410,24 +401,18 @@ static int64_t export_julia_data_ff_16(
         )
 {
     len_t i, j, k;
-
-    const len_t nv  = ht->nv;
-    const bl_t bld  = bs->ld;
-
     hm_t *dt;
 
-    int64_t nterms  = 0; /* # of terms in basis */
-    int64_t nelts  = 0; /* # elemnts in basis */
+    const len_t nv  = ht->nv;
+    const len_t lml = bs->lml;
 
-    /* compute number of terms */
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            nterms +=  (int64_t)bs->hm[i][2];
-            nelts++;
-        }
+    int64_t nterms  = 0; /* # of terms in basis */
+    int64_t nelts   = 0; /* # elemnts in basis */
+
+    for (i = 0; i < lml; ++i) {
+        nterms +=  (int64_t)bs->hm[bs->lmps[i]][2];
     }
+    nelts = lml;
 
     if (nelts > (int64_t)(pow(2, 31))) {
         printf("Basis has more than 2^31 elements, cannot store it.\n");
@@ -443,24 +428,21 @@ static int64_t export_julia_data_ff_16(
 
     /* counters for lengths, exponents and coefficients */
     int64_t cl = 0, ce = 0, cc = 0;
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            len[cl] = bs->hm[i][2];
-            for (j = 0; j < len[cl]; ++j) {
-                (cf+cc)[j]  = (int32_t)bs->cf_16[bs->hm[i][0]][j];
-            }
 
-            dt  = bs->hm[i] + 3;
-            for (j = 0; j < len[cl]; ++j) {
-                for (k = 0; k < nv; ++k) {
-                    exp[ce++] = (int32_t)ht->ev[dt[j]][k];
-                }
-            }
-            cc  +=  len[cl];
-            cl++;
+    for (i = 0; i < lml; ++i) {
+        const bl_t bi = bs->lmps[i];
+        len[cl] = bs->hm[bi][2];
+        for (j = 0; j < len[cl]; ++j) {
+            (cf+cc)[j] = (cf32_t)bs->cf_16[bs->hm[bi][0]][j];
         }
+        dt  = bs->hm[bi] + 3;
+        for (j = 0; j < len[cl]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                exp[ce++] = (int32_t)ht->ev[dt[j]][k];
+            }
+        }
+        cc  +=  len[cl];
+        cl++;
     }
 
     *bload  = (int32_t)nelts;
@@ -481,24 +463,18 @@ static int64_t export_julia_data_ff_32(
         )
 {
     len_t i, j, k;
-
-    const len_t nv  = ht->nv;
-    const bl_t bld  = bs->ld;
-
     hm_t *dt;
 
-    int64_t nterms  = 0; /* # of terms in basis */
-    int64_t nelts  = 0; /* # elemnts in basis */
+    const len_t nv  = ht->nv;
+    const len_t lml = bs->lml;
 
-    /* compute number of terms */
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            nterms +=  (int64_t)bs->hm[i][2];
-            nelts++;
-        }
+    int64_t nterms  = 0; /* # of terms in basis */
+    int64_t nelts   = 0; /* # elemnts in basis */
+
+    for (i = 0; i < lml; ++i) {
+        nterms +=  (int64_t)bs->hm[bs->lmps[i]][2];
     }
+    nelts = lml;
 
     if (nelts > (int64_t)(pow(2, 31))) {
         printf("Basis has more than 2^31 elements, cannot store it.\n");
@@ -514,23 +490,21 @@ static int64_t export_julia_data_ff_32(
 
     /* counters for lengths, exponents and coefficients */
     int64_t cl = 0, ce = 0, cc = 0;
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            len[cl] = bs->hm[i][2];
-            memcpy(cf+cc, bs->cf_32[bs->hm[i][0]],
-                    (unsigned long)(len[cl]) * sizeof(cf32_t));
 
-            dt  = bs->hm[i] + 3;
-            for (j = 0; j < len[cl]; ++j) {
-                for (k = 0; k < nv; ++k) {
-                    exp[ce++] = (int32_t)ht->ev[dt[j]][k];
-                }
+    for (i = 0; i < lml; ++i) {
+        const bl_t bi = bs->lmps[i];
+        len[cl] = bs->hm[bi][2];
+        memcpy(cf+cc, bs->cf_32[bs->hm[bi][0]],
+                (unsigned long)(len[cl]) * sizeof(cf32_t));
+
+        dt  = bs->hm[bi] + 3;
+        for (j = 0; j < len[cl]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                exp[ce++] = (int32_t)ht->ev[dt[j]][k];
             }
-            cc  +=  len[cl];
-            cl++;
         }
+        cc  +=  len[cl];
+        cl++;
     }
 
     *bload  = (int32_t)nelts;
@@ -551,24 +525,18 @@ static int64_t export_julia_data_qq(
         )
 {
     len_t i, j, k;
-
-    const len_t nv  = ht->nv;
-    const bl_t bld  = bs->ld;
-
     hm_t *dt;
 
-    int64_t nterms  = 0; /* # of terms in basis */
-    int64_t nelts  = 0; /* # elemnts in basis */
+    const len_t nv  = ht->nv;
+    const len_t lml = bs->lml;
 
-    /* compute number of terms */
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            nterms +=  (int64_t)bs->hm[i][2];
-            nelts++;
-        }
+    int64_t nterms  = 0; /* # of terms in basis */
+    int64_t nelts   = 0; /* # elemnts in basis */
+
+    for (i = 0; i < lml; ++i) {
+        nterms +=  (int64_t)bs->hm[bs->lmps[i]][2];
     }
+    nelts = lml;
 
     if (nelts > (int64_t)(pow(2, 31))) {
         printf("Basis has more than 2^31 elements, cannot store it.\n");
@@ -584,26 +552,23 @@ static int64_t export_julia_data_qq(
 
     /* counters for lengths, exponents and coefficients */
     int64_t cl = 0, ce = 0, cc = 0;
-    for (i = 0; i < bld; ++i) {
-        if (bs->red[i] != 0) {
-            continue;
-        } else {
-            len[cl] = bs->hm[i][2];
-            mpz_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
-            for (j = 0; j < len[cl]; ++j) {
-                mpz_init((cf+cc)[j]);
-                mpz_set((cf+cc)[j], coeffs[j]);
-            }
-
-            dt  = bs->hm[i] + 3;
-            for (j = 0; j < len[cl]; ++j) {
-                for (k = 0; k < nv; ++k) {
-                    exp[ce++] = (int32_t)ht->ev[dt[j]][k];
-                }
-            }
-            cc  += len[cl];
-            cl++;
+    for (i = 0; i < lml; ++i) {
+        const bl_t bi = bs->lmps[i];
+        len[cl] = bs->hm[bi][2];
+        mpz_t *coeffs =  bs->cf_qq[bs->hm[bi][0]];
+        for (j = 0; j < len[cl]; ++j) {
+            mpz_init((cf+cc)[j]);
+            mpz_set((cf+cc)[j], coeffs[j]);
         }
+
+        dt  = bs->hm[bi] + 3;
+        for (j = 0; j < len[cl]; ++j) {
+            for (k = 0; k < nv; ++k) {
+                exp[ce++] = (int32_t)ht->ev[dt[j]][k];
+            }
+        }
+        cc  += len[cl];
+        cl++;
     }
 
     *bload  = (int32_t)nelts;

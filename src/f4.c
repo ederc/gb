@@ -107,7 +107,7 @@ int64_t f4_julia(
     ct0 = cputime();
     rt0 = realtime();
 
-    int32_t round;
+    int32_t round, i, j;
     /* hashes-to-columns map, initialized with length 1, is reallocated
      * in each call when generating matrices for linear algebra */
     hl_t *hcm = (hl_t *)malloc(sizeof(hl_t));
@@ -226,6 +226,16 @@ int64_t f4_julia(
         printf("-------------------------------------------------\
 ----------------------------------------\n");
     }
+    /* remove possible redudant elements */
+    j = 0;
+    for (i = 0; i < bs->lml; ++i) {
+        if (bs->red[bs->lmps[i]] == 0) {
+            bs->lm[j]   = bs->lm[i];
+            bs->lmps[j] = bs->lmps[i];
+            ++j;
+        }
+    }
+    bs->lml = j;
 
     st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);
     st->size_basis    = *bld;

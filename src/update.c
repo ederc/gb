@@ -204,15 +204,6 @@ static void insert_and_update_spairs(
             if (bs->red[lmps[i]] == 0
                     && check_monomial_division(bs->hm[lmps[i]][3], nch, bht)) {
                 bs->red[lmps[i]]  = 1;
-                printf("make redundant: %d\n", lmps[i]);
-                for (int ii= 0; ii < bht->nv; ++ii) {
-                    printf("%d ", bht->ev[bs->hm[lmps[i]][3]][ii]);
-                }
-                printf("\n");
-                for (int ii= 0; ii < bht->nv; ++ii) {
-                    printf("%d ", bht->ev[nch][ii]);
-                }
-                printf("\n");
                 st->num_redundant++;
             }
         }

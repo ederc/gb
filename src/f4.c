@@ -69,6 +69,24 @@ void free_julia_data(
     bcf = NULL;
 }
 
+static void clear_matrix(
+        mat_t *mat
+        )
+{
+    free(mat->r);
+    mat->r  = NULL;
+    free(mat->cf_8);
+    mat->cf_8 = NULL;
+    free(mat->cf_16);
+    mat->cf_16  = NULL;
+    free(mat->cf_32);
+    mat->cf_32  = NULL;
+    free(mat->cf_qq);
+    mat->cf_qq  = NULL;
+}
+
+
+
 /* we get from julia the generators as three arrays:
  * 0.  a pointer to an int32_t array for returning the basis to julia
  * 1.  an array of the lengths of each generator
@@ -203,17 +221,7 @@ int64_t f4_julia(
       clean_hash_table(sht);
       /* all rows in mat are now polynomials in the basis,
        * so we do not need the rows anymore */
-      free(mat->r);
-      mat->r  = NULL;
-      if (st->fc > 0) {
-        free(mat->cf_32);
-        mat->cf_32  = NULL;
-      } else {
-          if (st->fc == 0) {
-            free(mat->cf_qq);
-            mat->cf_qq  = NULL;
-          }
-      }
+      clear_matrix(mat);
 
       /* check redundancy only if input is not homogeneous */
       update_basis(ps, bs, bht, uht, st, mat->np, 1-st->homogeneous);

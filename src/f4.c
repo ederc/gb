@@ -143,7 +143,7 @@ int64_t f4_julia(
      * some of the input data is corrupted. */
     if (check_and_set_meta_data(ps, st, lens, exps, cfs, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                reset_ht, la_option, pbm_file, info_level)) {
+                reset_ht, la_option, reduce_gb, pbm_file, info_level)) {
         return 0;
     }
 

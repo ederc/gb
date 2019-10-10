@@ -201,6 +201,7 @@ struct stat_t
     int64_t nterms_basis;
     int32_t size_basis;
     int32_t ff_bits;
+    int32_t reduce_gb;
 
     int32_t info_level;
     int32_t gen_pbm_file;

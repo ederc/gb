@@ -791,6 +791,7 @@ static inline int32_t check_and_set_meta_data(
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
         const int32_t la_option,
+        const int32_t reduce_gb,
         const int32_t pbm_file,
         const int32_t info_level
         )
@@ -865,6 +866,12 @@ static inline int32_t check_and_set_meta_data(
         st->laopt = 1;
     } else {
         st->laopt = la_option;
+    }
+
+    if (reduce_gb < 0 || reduce_gb > 1) {
+        st->reduce_gb = 0;
+    } else {
+        st->reduce_gb = reduce_gb;
     }
 
     set_function_pointers(st);

@@ -33,8 +33,7 @@
 /* #include <threads.h> */
 
 /* check if OpenMP is available */
-/* #if defined(_OPENMP) */
-#if HAVE_OPENMP
+#if defined(_OPENMP)
 #include <omp.h>
 #else
 typedef int omp_int_t;

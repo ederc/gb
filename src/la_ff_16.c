@@ -134,7 +134,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_16(
             continue;
         }
         /* found reducer row, get multiplier */
-        const int64_t mul = mod - dr[i];
+        const int16_t mul = (int16_t)fc - (int16_t)dr[i];
         dts   = pivs[i];
         if (i < ncl) {
             cfs   = bs->cf_16[dts[0]];
@@ -220,7 +220,7 @@ static cf16_t *reduce_dense_row_by_all_pivots_ff_16(
         }
 
         /* found reducer row, get multiplier */
-        const int64_t mul = mod - dr[i];
+        const int16_t mul = (int16_t)fc - (int16_t)dr[i];
         const cf16_t *cfs = bs->cf_16[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
@@ -254,7 +254,7 @@ static cf16_t *reduce_dense_row_by_all_pivots_ff_16(
         }
 
         red = dpivs[i-ncl];
-        const int64_t mul = mod - dr[i];
+        const int16_t mul = (int16_t)fc - (int16_t)dr[i];
         const len_t os    = (ncols - i) % 4;
         for (l = 0, j = i; l < os; ++l, ++j) {
             dr[j] +=  mul * red[l];
@@ -313,7 +313,7 @@ static cf16_t *reduce_dense_row_by_old_pivots_ff_16(
         }
 
         /* found reducer row, get multiplier */
-        const int64_t mul = mod - dr[i];
+        const int16_t mul = (int16_t)fc - (int16_t)dr[i];
         const cf16_t *cfs = bs->cf_16[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
@@ -377,7 +377,7 @@ static cf16_t *reduce_dense_row_by_dense_new_pivots_ff_16(
             continue;
         }
 
-        const int64_t mul = mod - dr[i];
+        const int16_t mul = (int16_t)fc - (int16_t)dr[i];
         const len_t os    = (ncr - i) % 4;
         for (l = 0, j = i; l < os; ++l, ++j) {
             dr[j] +=  mul * pivs[i][l];

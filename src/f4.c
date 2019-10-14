@@ -85,7 +85,23 @@ static void clear_matrix(
     mat->cf_qq  = NULL;
 }
 
+void reduce_basis(
+        bs_t *bs,
+        mat_t *mat,
+        hl_t *hm,
+        ht_t *ht,
+        stat_t *st
+        )
+{
+    len_t i;
 
+    mat->r  = (hm_t **)malloc((unsigned long)bs->lml * sizeof(hm_t *));
+
+    for (i = 0; i < bs->lml; ++i) {
+        mat->r[i] = bs->hm[i];
+    }
+
+}
 
 /* we get from julia the generators as three arrays:
  * 0.  a pointer to an int32_t array for returning the basis to julia
@@ -245,6 +261,11 @@ int64_t f4_julia(
         }
     }
     bs->lml = j;
+
+    /* reduce final basis? */
+    if (st->reduce_gb == 1) {
+        reduce_basis(bs, mat, hm, bht, st);
+    }
 
     st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);
     st->size_basis    = *bld;

@@ -85,22 +85,50 @@ static void clear_matrix(
     mat->cf_qq  = NULL;
 }
 
-void reduce_basis(
+static void reduce_basis(
         bs_t *bs,
         mat_t *mat,
-        hl_t *hm,
+        hl_t **hcmp,
         ht_t *ht,
         stat_t *st
         )
 {
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
+
     len_t i;
+
+    hl_t *hcm = *hcmp;
 
     mat->r  = (hm_t **)malloc((unsigned long)bs->lml * sizeof(hm_t *));
 
+    /* add all non-redundant basis elements as matrix rows */
     for (i = 0; i < bs->lml; ++i) {
         mat->r[i] = bs->hm[i];
     }
+    mat->nr = bs->lml;
 
+    /* generate hash <-> column mapping */
+    convert_hashes_to_columns(&hcm, mat, st, ht);
+    mat->nc = mat->ncl + mat->ncr;
+    /* sort rows */
+    sort_matrix_rows(mat);
+    /* do the linear algebra reduction */
+    interreduce_matrix_rows(mat, bs, st);
+    /* remap rows to basis elements (keeping their position in bs) */
+    convert_sparse_matrix_rows_to_final_basis(mat, bs, hcm, st);
+
+    clear_matrix(mat);
+
+    *hcmp = hcm;
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    st->reduce_gb_ctime = ct1 - ct0;
+    st->reduce_gb_rtime = rt1 - rt0;
 }
 
 /* we get from julia the generators as three arrays:
@@ -264,7 +292,7 @@ int64_t f4_julia(
 
     /* reduce final basis? */
     if (st->reduce_gb == 1) {
-        reduce_basis(bs, mat, hm, bht, st);
+        reduce_basis(bs, mat, &hcm, bht, st);
     }
 
     st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);

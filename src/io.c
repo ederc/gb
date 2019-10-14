@@ -619,6 +619,7 @@ static inline void set_function_pointers(
                     linear_algebra  = exact_sparse_linear_algebra_qq;
             }
             linear_algebra          = exact_sparse_linear_algebra_ab_first_qq;
+            interreduce_matrix_rows = interreduce_matrix_rows_qq;
             initialize_basis        = initialize_basis_qq;
             import_julia_data       = import_julia_data_qq;
             export_julia_data       = export_julia_data_qq;
@@ -645,6 +646,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_8;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_8;
             initialize_basis        = initialize_basis_ff_8;
             import_julia_data       = import_julia_data_ff_8;
             export_julia_data       = export_julia_data_ff_8;
@@ -672,6 +674,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_16;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_16;
             initialize_basis        = initialize_basis_ff_16;
             import_julia_data       = import_julia_data_ff_16;
             export_julia_data       = export_julia_data_ff_16;
@@ -699,6 +702,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_32;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_32;
             initialize_basis        = initialize_basis_ff_32;
             import_julia_data       = import_julia_data_ff_32;
             export_julia_data       = export_julia_data_ff_32;
@@ -747,6 +751,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_32;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_32;
             initialize_basis        = initialize_basis_ff_32;
             import_julia_data       = import_julia_data_ff_32;
             export_julia_data       = export_julia_data_ff_32;

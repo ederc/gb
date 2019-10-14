@@ -21,6 +21,15 @@
  */
 #include "data.h"
 
+static void interreduce_matrix_rows_ff_16(
+        mat_t *mat,
+        bs_t *bs,
+        const stat_t *st
+        )
+{
+    len_t i;
+}
+
 static inline cf16_t *normalize_dense_matrix_row_ff_16(
         cf16_t *row,
         const hm_t len,

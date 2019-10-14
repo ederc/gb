@@ -164,6 +164,7 @@ struct stat_t
     double update_ctime;
     double convert_ctime;
     double overall_ctime;
+    double reduce_gb_ctime;
     double rht_ctime;
 
     double round_rtime;
@@ -173,6 +174,7 @@ struct stat_t
     double update_rtime;
     double convert_rtime;
     double overall_rtime;
+    double reduce_gb_rtime;
     double rht_rtime;
 
     int64_t num_pairsred;
@@ -267,6 +269,12 @@ void (*linear_algebra)(
         mat_t *mat,
         const bs_t * const bs,
         stat_t *st
+        );
+
+void (* interreduce_matrix_rows)(
+        mat_t *mat,
+        bs_t *bs,
+        const stat_t *st
         );
 
 cf32_t *(*reduce_dense_row_by_old_pivots_ff_32)(

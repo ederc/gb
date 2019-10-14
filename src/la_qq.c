@@ -21,6 +21,14 @@
  */
 #include "data.h"
 
+static void interreduce_matrix_rows_qq(
+        mat_t *mat,
+        bs_t *bs,
+        const stat_t *st
+        )
+{
+}
+
 static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
         mpz_t *row,
         const len_t os,

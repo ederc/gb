@@ -21,6 +21,14 @@
  */
 #include "data.h"
 
+static void interreduce_matrix_rows_ff_8(
+        mat_t *mat,
+        bs_t *bs,
+        const stat_t *st
+        )
+{
+}
+
 static inline cf8_t *normalize_dense_matrix_row_ff_8(
         cf8_t *row,
         const hm_t len,

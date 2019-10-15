@@ -106,11 +106,15 @@ static void reduce_basis(
 
     /* add all non-redundant basis elements as matrix rows */
     for (i = 0; i < bs->lml; ++i) {
-        mat->r[i] = bs->hm[i];
+        mat->r[i] = bs->hm[bs->lmps[i]];
     }
     mat->nr = bs->lml;
 
     /* generate hash <-> column mapping */
+    if (st->info_level > 1) {
+        printf("reduce final basis ");
+        fflush(stdout);
+    }
     convert_hashes_to_columns(&hcm, mat, st, ht);
     mat->nc = mat->ncl + mat->ncr;
     /* sort rows */
@@ -129,6 +133,14 @@ static void reduce_basis(
     rt1 = realtime();
     st->reduce_gb_ctime = ct1 - ct0;
     st->reduce_gb_rtime = rt1 - rt0;
+    if (st->info_level > 1) {
+        printf("%37.3f sec\n", rt1-rt0);
+    }
+
+    if (st->info_level > 1) {
+        printf("-------------------------------------------------\
+----------------------------------------\n");
+    }
 }
 
 /* we get from julia the generators as three arrays:

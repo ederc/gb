@@ -34,7 +34,7 @@ static void interreduce_matrix_rows_ff_32(
 
     hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));
     for (i = 0; i < nrows; ++i) {
-        pivs[mat->r[i][0]]  = mat->r[i];
+        pivs[mat->r[i][3]]  = mat->r[i];
     }
     mat->cf_32  = realloc(mat->cf_32,
             (unsigned long)nrows * sizeof(cf32_t *));
@@ -185,6 +185,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_17_bit(
             k++;
             continue;
         }
+
         /* found reducer row, get multiplier */
         const int64_t mul = mod - dr[i];
         dts   = pivs[i];

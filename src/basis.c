@@ -30,25 +30,19 @@ static void free_basis_elements(
     if (bs->cf_8) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf_8[i]);
-            if (bs->red[i] == 1) {
-                free(bs->hm[i]);
-            }
+            free(bs->hm[i]);
         }
     }
     if (bs->cf_16) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf_16[i]);
-            if (bs->red[i] == 1) {
-                free(bs->hm[i]);
-            }
+            free(bs->hm[i]);
         }
     }
     if (bs->cf_32) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf_32[i]);
-            if (bs->red[i] == 1) {
-                free(bs->hm[i]);
-            }
+            free(bs->hm[i]);
         }
     }
     if (bs->cf_qq) {
@@ -59,9 +53,7 @@ static void free_basis_elements(
                 mpz_clear(coeffs[j]);
             }
             free(bs->cf_qq[bs->hm[i][0]]);
-            if (bs->red[i] == 1) {
-                free(bs->hm[i]);
-            }
+            free(bs->hm[i]);
         }
     }
     bs->ld  = 0;

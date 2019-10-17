@@ -89,7 +89,8 @@ static void reduce_basis(
         bs_t *bs,
         mat_t *mat,
         hl_t **hcmp,
-        ht_t *ht,
+        ht_t *bht,
+        ht_t *sht,
         stat_t *st
         )
 {
@@ -98,34 +99,66 @@ static void reduce_basis(
     ct0 = cputime();
     rt0 = realtime();
 
-    len_t i;
+    len_t i, j, k;
 
-    hl_t *hcm = *hcmp;
+    hl_t *hcm   = *hcmp;
+    exp_t *etmp = bht->ev[0];
+    memset(etmp, 0, (unsigned long)bht->nv * sizeof(exp_t));
 
-    mat->r  = (hm_t **)malloc((unsigned long)bs->lml * sizeof(hm_t *));
+    mat->r  = (hm_t **)malloc((unsigned long)bs->lml * 2 * sizeof(hm_t *));
+    mat->nr = 0;
+    mat->sz = 2 * bs->lml;
 
     /* add all non-redundant basis elements as matrix rows */
     for (i = 0; i < bs->lml; ++i) {
-        mat->r[i] = bs->hm[bs->lmps[i]];
+        mat->r[mat->nr] = multiplied_poly_to_matrix_row(
+                sht, bht, 0, 0, etmp, bs->hm[bs->lmps[i]]);
+        sht->hd[mat->r[mat->nr][3]].idx  = 1;
+        mat->nr++;
     }
-    mat->nr = bs->lml;
+    symbolic_preprocessing(mat, bs, st, sht, bht);
+    /* no known pivots, we need mat->ncl = 0, so set all indices to 1 */
+    for (i = 0; i < sht->eld; ++i) {
+        sht->hd[i].idx = 1;
+    }
 
     /* generate hash <-> column mapping */
     if (st->info_level > 1) {
         printf("reduce final basis ");
         fflush(stdout);
     }
-    convert_hashes_to_columns(&hcm, mat, st, ht);
+    convert_hashes_to_columns(&hcm, mat, st, sht);
     mat->nc = mat->ncl + mat->ncr;
     /* sort rows */
     sort_matrix_rows(mat);
     /* do the linear algebra reduction */
     interreduce_matrix_rows(mat, bs, st);
     /* remap rows to basis elements (keeping their position in bs) */
-    convert_sparse_matrix_rows_to_final_basis(mat, bs, hcm, st);
+    /* convert_sparse_matrix_rows_to_final_basis(mat, bs, bht, sht, hcm, st); */
+    convert_sparse_matrix_rows_to_basis_elements(
+        mat, bs, bht, sht, hcm, st);
 
+    bs->ld  = mat->np;
+
+    clean_hash_table(sht);
     clear_matrix(mat);
 
+    /* we may have added some multiples of reduced basis polynomials
+     * from the matrix, so we get rid of them. */
+    k = 0;
+    i = bs->ld-1;
+start:
+    for (; i >= 0; --i) {
+        for (j = 0; j < k; ++j) {
+            if (check_monomial_division(
+                        bs->hm[i][3],
+                        bs->hm[bs->lmps[j]][3], bht)) {
+                --i;
+                goto start;
+            }
+        }
+        bs->lmps[k++] = i;
+    }
     *hcmp = hcm;
 
     /* timings */
@@ -304,7 +337,7 @@ int64_t f4_julia(
 
     /* reduce final basis? */
     if (st->reduce_gb == 1) {
-        reduce_basis(bs, mat, &hcm, bht, st);
+        reduce_basis(bs, mat, &hcm, bht, sht, st);
     }
 
     st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);

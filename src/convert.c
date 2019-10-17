@@ -235,7 +235,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
                 bs->cf_32[bl+i] = mat->cf_32[rows[i][0]];
                 rows[i][0]      = bl+i;
                 bs->hm[bl+i]    = rows[i];
-               /*  printf("\n");
+               /*  printf("\nbasis position %d ", bl+i);
                 * for (int jj = 0; jj < bht->nv; ++jj) {
                 *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
                 * }
@@ -277,76 +277,4 @@ static void convert_sparse_matrix_rows_to_basis_elements(
     rt1 = realtime();
     st->convert_ctime +=  ct1 - ct0;
     st->convert_rtime +=  rt1 - rt0;
-}
-static void convert_sparse_matrix_rows_to_final_basis(
-        mat_t *mat,
-        bs_t *bs,
-        const hl_t * const hcm,
-        const stat_t * const st
-        )
-{
-    len_t i, j;
-    const len_t np  = mat->np;
-
-    bl_t bi;
-
-    hm_t **rows = mat->r;
-
-    switch (st->ff_bits) {
-        case 0:
-            for (i = 0; i < np; ++i) {
-                /* get old index in basis */
-                bi  = rows[i][0];
-                bs->cf_qq[bi] = mat->cf_qq[bi];
-                for (j = 3; j < rows[i][2]+3; ++j) {
-                    rows[i][j]  = hcm[rows[i][j]];
-                }
-                bs->hm[bi]    = rows[i];
-            }
-            break;
-        case 8:
-            for (i = 0; i < np; ++i) {
-                /* get old index in basis */
-                bi  = rows[i][0];
-                bs->cf_8[bi]  = mat->cf_8[bi];
-                for (j = 3; j < rows[i][2]+3; ++j) {
-                    rows[i][j]  = hcm[rows[i][j]];
-                }
-                bs->hm[bi]    = rows[i];
-            }
-            break;
-        case 16:
-            for (i = 0; i < np; ++i) {
-                /* get old index in basis */
-                bi  = rows[i][0];
-                bs->cf_16[bi] = mat->cf_16[bi];
-                for (j = 3; j < rows[i][2]+3; ++j) {
-                    rows[i][j]  = hcm[rows[i][j]];
-                }
-                bs->hm[bi]    = rows[i];
-            }
-            break;
-        case 32:
-            for (i = 0; i < np; ++i) {
-                /* get old index in basis */
-                bi  = rows[i][0];
-                bs->cf_32[bi] = mat->cf_32[bi];
-                for (j = 3; j < rows[i][2]+3; ++j) {
-                    rows[i][j]  = hcm[rows[i][j]];
-                }
-                bs->hm[bi]    = rows[i];
-            }
-            break;
-        default:
-            for (i = 0; i < np; ++i) {
-                /* get old index in basis */
-                bi  = rows[i][0];
-                bs->cf_32[bi] = mat->cf_32[bi];
-                for (j = 3; j < rows[i][2]+3; ++j) {
-                    rows[i][j]  = hcm[rows[i][j]];
-                }
-                bs->hm[bi]    = rows[i];
-            }
-            break;
-    }
 }

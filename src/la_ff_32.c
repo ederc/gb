@@ -32,12 +32,23 @@ static void interreduce_matrix_rows_ff_32(
     const len_t nrows = mat->nr;
     const len_t ncols = mat->nc;
 
-    hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));
-    for (i = 0; i < nrows; ++i) {
-        pivs[mat->r[i][3]]  = mat->r[i];
-    }
     mat->cf_32  = realloc(mat->cf_32,
             (unsigned long)nrows * sizeof(cf32_t *));
+    hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));
+    /* copy coefficient arrays from basis in matrix, maybe
+     * several rows need the same coefficient arrays, but we
+     * cannot share them here. */
+    for (i = 0; i < nrows; ++i) {
+        pivs[mat->r[i][3]]  = mat->r[i];
+        mat->cf_32[i] = (cf32_t *)malloc(
+                (unsigned long)mat->r[i][2] * sizeof(cf32_t));
+        memcpy(mat->cf_32[i], bs->cf_32[mat->r[i][0]],
+                (unsigned long)mat->r[i][2] * sizeof(cf32_t));
+        pivs[mat->r[i][3]][0] = i;
+    }
+    /* free now all polynomials in the basis and reset bs->ld to 0. */
+    free_basis_elements(bs);
+
     int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
     /* interreduce new pivots */
     cf32_t *cfs;
@@ -47,8 +58,8 @@ static void interreduce_matrix_rows_ff_32(
     for (i = (ncols-1); i >= 0; --i) {
         if (pivs[i] != NULL) {
             memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
-            cfs = bs->cf_32[pivs[i][0]];
-            cfp = pivs[i][0]; // this is the position in bs
+            cfs = mat->cf_32[pivs[i][0]];
+            cfp = pivs[i][0];
             const len_t os  = pivs[i][1];
             const len_t len = pivs[i][2];
             const hm_t * const ds = pivs[i] + 3;

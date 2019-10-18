@@ -618,7 +618,6 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_qq;
             }
-            linear_algebra          = exact_sparse_linear_algebra_ab_first_qq;
             interreduce_matrix_rows = interreduce_matrix_rows_qq;
             initialize_basis        = initialize_basis_qq;
             import_julia_data       = import_julia_data_qq;

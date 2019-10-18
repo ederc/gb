@@ -21,14 +21,6 @@
  */
 #include "data.h"
 
-static void interreduce_matrix_rows_qq(
-        mat_t *mat,
-        bs_t *bs,
-        const stat_t *st
-        )
-{
-}
-
 static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
         mpz_t *row,
         const len_t os,
@@ -546,7 +538,7 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
 
     len_t npivs = 0; /* number of new pivots */
 
-    for (i = ncols; i < st->nthrds*ncols; ++i) {
+    for (i = ncols; i < drlen; ++i) {
         mpz_clear(dr[i]);
     }
     dr      = realloc(dr, (unsigned long)ncols * sizeof(mpz_t));
@@ -733,7 +725,7 @@ static void exact_sparse_reduced_echelon_form_qq(
 
     len_t npivs = 0; /* number of new pivots */
 
-    for (i = ncols; i < st->nthrds*ncols; ++i) {
+    for (i = ncols; i < drlen; ++i) {
         mpz_clear(dr[i]);
     }
     dr      = realloc(dr, (unsigned long)ncols * sizeof(mpz_t));
@@ -854,4 +846,79 @@ static void exact_sparse_linear_algebra_qq(
         printf("%7d new %7d zero", mat->np, mat->nrl - mat->np);
         fflush(stdout);
     }
+}
+
+static void interreduce_matrix_rows_qq(
+        mat_t *mat,
+        bs_t *bs,
+        const stat_t *st
+        )
+{
+    len_t i, j, k;
+
+    const len_t nrows = mat->nr;
+    const len_t ncols = mat->nc;
+
+    mat->cf_qq  = realloc(mat->cf_qq,
+            (unsigned long)nrows * sizeof(mpz_t *));
+    hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));
+    /* copy coefficient arrays from basis in matrix, maybe
+     * several rows need the same coefficient arrays, but we
+     * cannot share them here. */
+    for (i = 0; i < nrows; ++i) {
+        pivs[mat->r[i][3]]  = mat->r[i];
+        mat->cf_qq[i] = (mpz_t *)malloc(
+                (unsigned long)mat->r[i][2] * sizeof(mpz_t));
+        for (j = 0; j < mat->r[i][2]; ++j) {
+            mpz_init(mat->cf_qq[i][j]);
+            mpz_set(mat->cf_qq[i][j], bs->cf_qq[mat->r[i][0]][j]);
+        }
+        pivs[mat->r[i][3]][0] = i;
+    }
+    /* free now all polynomials in the basis and reset bs->ld to 0. */
+    free_basis_elements(bs);
+
+    mpz_t *dr = (mpz_t *)malloc((unsigned long)ncols * sizeof(mpz_t));
+    for (i = 0; i < ncols; ++i) {
+        mpz_init(dr[i]);
+    }
+    /* interreduce new pivots */
+    mpz_t *cfs;
+    /* starting column, coefficient array position in tmpcf */
+    hm_t sc, cfp;
+    k = nrows - 1;
+    for (i = (ncols-1); i >= 0; --i) {
+        if (pivs[i] != NULL) {
+            for (j = 0; j < ncols; ++j) {
+                mpz_set_si(dr[j], 0);
+            }
+            cfs = mat->cf_qq[pivs[i][0]];
+            cfp = pivs[i][0];
+            const len_t os  = pivs[i][1];
+            const len_t len = pivs[i][2];
+            const hm_t * const ds = pivs[i] + 3;
+            sc  = ds[0];
+            for (j = 0; j < os; ++j) {
+                mpz_set(dr[ds[j]], cfs[j]);
+            }
+            for (; j < len; j += 4) {
+                mpz_set(dr[ds[j]], cfs[j]);
+                mpz_set(dr[ds[j+1]], cfs[j+1]);
+                mpz_set(dr[ds[j+2]], cfs[j+2]);
+                mpz_set(dr[ds[j+3]], cfs[j+3]);
+            }
+            for (j = 0; j < len; ++j) {
+                mpz_clear(cfs[j]);
+            }
+            free(pivs[i]);
+            free(cfs);
+            pivs[i] = NULL;
+            pivs[i] = mat->r[k--] =
+                reduce_dense_row_by_known_pivots_sparse_qq(
+                        dr, mat, bs, pivs, sc, cfp);
+        }
+    }
+    mat->np = nrows;
+    free(pivs);
+    free(dr);
 }

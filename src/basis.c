@@ -22,6 +22,43 @@
 
 #include "data.h"
 
+static void free_basis_elements(
+        bs_t *bs
+        )
+{
+    len_t i, j, len;
+    if (bs->cf_8) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf_8[i]);
+            free(bs->hm[i]);
+        }
+    }
+    if (bs->cf_16) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf_16[i]);
+            free(bs->hm[i]);
+        }
+    }
+    if (bs->cf_32) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf_32[i]);
+            free(bs->hm[i]);
+        }
+    }
+    if (bs->cf_qq) {
+        for (i = 0; i < bs->ld; ++i) {
+            len = bs->hm[i][2];
+            mpz_t *coeffs =  bs->cf_qq[bs->hm[i][0]];
+            for (j = 0; j < len; ++j) {
+                mpz_clear(coeffs[j]);
+            }
+            free(bs->cf_qq[bs->hm[i][0]]);
+            free(bs->hm[i]);
+        }
+    }
+    bs->ld  = 0;
+}
+
 static void free_basis(
         bs_t **bsp
         )

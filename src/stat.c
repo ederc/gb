@@ -97,11 +97,17 @@ static void print_final_statistics(
             st->la_rtime,
             (double)100*(double)st->la_rtime
             / (double)(st->overall_rtime));
+    if (st->reduce_gb == 1) {
+        printf("reduce gb    %15.3f sec %5.1f%%\n",
+                st->reduce_gb_rtime,
+                (double)100*(double)st->reduce_gb_rtime
+                / (double)(st->overall_rtime));
+    }
     if (st->reset_ht != 2147483647) {
-    printf("rht          %15.3f sec %5.1f%%\n",
-            st->rht_rtime,
-            (double)100*(double)st->rht_rtime
-            / (double)(st->overall_rtime));
+        printf("rht          %15.3f sec %5.1f%%\n",
+                st->rht_rtime,
+                (double)100*(double)st->rht_rtime
+                / (double)(st->overall_rtime));
     }
     printf("-----------------------------------------\n");
     printf("\n---------- COMPUTATIONAL DATA -----------\n");

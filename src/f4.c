@@ -69,6 +69,113 @@ void free_julia_data(
     bcf = NULL;
 }
 
+static void clear_matrix(
+        mat_t *mat
+        )
+{
+    free(mat->r);
+    mat->r  = NULL;
+    free(mat->cf_8);
+    mat->cf_8 = NULL;
+    free(mat->cf_16);
+    mat->cf_16  = NULL;
+    free(mat->cf_32);
+    mat->cf_32  = NULL;
+    free(mat->cf_qq);
+    mat->cf_qq  = NULL;
+}
+
+static void reduce_basis(
+        bs_t *bs,
+        mat_t *mat,
+        hl_t **hcmp,
+        ht_t *bht,
+        ht_t *sht,
+        stat_t *st
+        )
+{
+    /* timings */
+    double ct0, ct1, rt0, rt1;
+    ct0 = cputime();
+    rt0 = realtime();
+
+    len_t i, j, k;
+
+    hl_t *hcm   = *hcmp;
+    exp_t *etmp = bht->ev[0];
+    memset(etmp, 0, (unsigned long)bht->nv * sizeof(exp_t));
+
+    mat->r  = (hm_t **)malloc((unsigned long)bs->lml * 2 * sizeof(hm_t *));
+    mat->nr = 0;
+    mat->sz = 2 * bs->lml;
+
+    /* add all non-redundant basis elements as matrix rows */
+    for (i = 0; i < bs->lml; ++i) {
+        mat->r[mat->nr] = multiplied_poly_to_matrix_row(
+                sht, bht, 0, 0, etmp, bs->hm[bs->lmps[i]]);
+        sht->hd[mat->r[mat->nr][3]].idx  = 1;
+        mat->nr++;
+    }
+    symbolic_preprocessing(mat, bs, st, sht, bht);
+    /* no known pivots, we need mat->ncl = 0, so set all indices to 1 */
+    for (i = 0; i < sht->eld; ++i) {
+        sht->hd[i].idx = 1;
+    }
+
+    /* generate hash <-> column mapping */
+    if (st->info_level > 1) {
+        printf("reduce final basis ");
+        fflush(stdout);
+    }
+    convert_hashes_to_columns(&hcm, mat, st, sht);
+    mat->nc = mat->ncl + mat->ncr;
+    /* sort rows */
+    sort_matrix_rows(mat);
+    /* do the linear algebra reduction */
+    interreduce_matrix_rows(mat, bs, st);
+    /* remap rows to basis elements (keeping their position in bs) */
+    /* convert_sparse_matrix_rows_to_final_basis(mat, bs, bht, sht, hcm, st); */
+    convert_sparse_matrix_rows_to_basis_elements(
+        mat, bs, bht, sht, hcm, st);
+
+    bs->ld  = mat->np;
+
+    clean_hash_table(sht);
+    clear_matrix(mat);
+
+    /* we may have added some multiples of reduced basis polynomials
+     * from the matrix, so we get rid of them. */
+    k = 0;
+    i = bs->ld-1;
+start:
+    for (; i >= 0; --i) {
+        for (j = 0; j < k; ++j) {
+            if (check_monomial_division(
+                        bs->hm[i][3],
+                        bs->hm[bs->lmps[j]][3], bht)) {
+                --i;
+                goto start;
+            }
+        }
+        bs->lmps[k++] = i;
+    }
+    *hcmp = hcm;
+
+    /* timings */
+    ct1 = cputime();
+    rt1 = realtime();
+    st->reduce_gb_ctime = ct1 - ct0;
+    st->reduce_gb_rtime = rt1 - rt0;
+    if (st->info_level > 1) {
+        printf("%37.3f sec\n", rt1-rt0);
+    }
+
+    if (st->info_level > 1) {
+        printf("-------------------------------------------------\
+----------------------------------------\n");
+    }
+}
+
 /* we get from julia the generators as three arrays:
  * 0.  a pointer to an int32_t array for returning the basis to julia
  * 1.  an array of the lengths of each generator
@@ -97,6 +204,7 @@ int64_t f4_julia(
         const int32_t max_nr_pairs,
         const int32_t reset_ht,
         const int32_t la_option,
+        const int32_t reduce_gb,
         const int32_t pbm_file,
         const int32_t info_level
         )
@@ -124,7 +232,7 @@ int64_t f4_julia(
      * some of the input data is corrupted. */
     if (check_and_set_meta_data(ps, st, lens, exps, cfs, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                reset_ht, la_option, pbm_file, info_level)) {
+                reset_ht, la_option, reduce_gb, pbm_file, info_level)) {
         return 0;
     }
 
@@ -202,17 +310,7 @@ int64_t f4_julia(
       clean_hash_table(sht);
       /* all rows in mat are now polynomials in the basis,
        * so we do not need the rows anymore */
-      free(mat->r);
-      mat->r  = NULL;
-      if (st->fc > 0) {
-        free(mat->cf_32);
-        mat->cf_32  = NULL;
-      } else {
-          if (st->fc == 0) {
-            free(mat->cf_qq);
-            mat->cf_qq  = NULL;
-          }
-      }
+      clear_matrix(mat);
 
       /* check redundancy only if input is not homogeneous */
       update_basis(ps, bs, bht, uht, st, mat->np, 1-st->homogeneous);
@@ -236,6 +334,11 @@ int64_t f4_julia(
         }
     }
     bs->lml = j;
+
+    /* reduce final basis? */
+    if (st->reduce_gb == 1) {
+        reduce_basis(bs, mat, &hcm, bht, sht, st);
+    }
 
     st->nterms_basis  = export_julia_data(bld, blen, bexp, bcf, bs, bht);
     st->size_basis    = *bld;

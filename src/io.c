@@ -618,7 +618,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_qq;
             }
-            linear_algebra          = exact_sparse_linear_algebra_ab_first_qq;
+            interreduce_matrix_rows = interreduce_matrix_rows_qq;
             initialize_basis        = initialize_basis_qq;
             import_julia_data       = import_julia_data_qq;
             export_julia_data       = export_julia_data_qq;
@@ -645,6 +645,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_8;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_8;
             initialize_basis        = initialize_basis_ff_8;
             import_julia_data       = import_julia_data_ff_8;
             export_julia_data       = export_julia_data_ff_8;
@@ -672,6 +673,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_16;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_16;
             initialize_basis        = initialize_basis_ff_16;
             import_julia_data       = import_julia_data_ff_16;
             export_julia_data       = export_julia_data_ff_16;
@@ -699,6 +701,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_32;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_32;
             initialize_basis        = initialize_basis_ff_32;
             import_julia_data       = import_julia_data_ff_32;
             export_julia_data       = export_julia_data_ff_32;
@@ -747,6 +750,7 @@ static inline void set_function_pointers(
                 default:
                     linear_algebra  = exact_sparse_linear_algebra_ff_32;
             }
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_32;
             initialize_basis        = initialize_basis_ff_32;
             import_julia_data       = import_julia_data_ff_32;
             export_julia_data       = export_julia_data_ff_32;
@@ -791,6 +795,7 @@ static inline int32_t check_and_set_meta_data(
         const int32_t max_nr_pairs,
         const int32_t reset_hash_table,
         const int32_t la_option,
+        const int32_t reduce_gb,
         const int32_t pbm_file,
         const int32_t info_level
         )
@@ -865,6 +870,12 @@ static inline int32_t check_and_set_meta_data(
         st->laopt = 1;
     } else {
         st->laopt = la_option;
+    }
+
+    if (reduce_gb < 0 || reduce_gb > 1) {
+        st->reduce_gb = 0;
+    } else {
+        st->reduce_gb = reduce_gb;
     }
 
     set_function_pointers(st);

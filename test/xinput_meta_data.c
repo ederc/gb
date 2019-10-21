@@ -21,6 +21,7 @@ int main(
     const int32_t nr_threads        = 2;
     const int32_t info_level				=	2;
 		const int32_t la_option         = 1;
+		const int32_t reduce_gb         = 1;
     const int32_t pbm_file          = 0;
     const int32_t max_nr_pairs      = 102;
     const int32_t reset_hash_table  = -2;
@@ -29,7 +30,7 @@ int main(
     stat_t *st  = initialize_statistics();
     if (check_and_set_meta_data(ps, st, lens, exps, cfs, field_char, mon_order,
                 nr_vars, nr_gens, ht_size, nr_threads, max_nr_pairs,
-                reset_hash_table, la_option, pbm_file, info_level)) {
+                reset_hash_table, la_option, reduce_gb, pbm_file, info_level)) {
         return 1;
     }
 

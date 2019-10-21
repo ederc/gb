@@ -134,7 +134,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_8(
             continue;
         }
         /* found reducer row, get multiplier */
-        const int64_t mul = mod - dr[i];
+        const int8_t mul  = (int8_t)fc - (int8_t)dr[i];
         dts   = pivs[i];
         if (i < ncl) {
             cfs   = bs->cf_8[dts[0]];
@@ -220,7 +220,7 @@ static cf8_t *reduce_dense_row_by_all_pivots_ff_8(
         }
 
         /* found reducer row, get multiplier */
-        const int64_t mul = mod - dr[i];
+        const int8_t mul = (int8_t)fc - (int8_t)dr[i];
         const cf8_t *cfs = bs->cf_8[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
@@ -254,7 +254,7 @@ static cf8_t *reduce_dense_row_by_all_pivots_ff_8(
         }
 
         red = dpivs[i-ncl];
-        const int64_t mul = mod - dr[i];
+        const int8_t mul = (int8_t)fc - (int8_t)dr[i];
         const len_t os    = (ncols - i) % 4;
         for (l = 0, j = i; l < os; ++l, ++j) {
             dr[j] +=  mul * red[l];
@@ -313,8 +313,8 @@ static cf8_t *reduce_dense_row_by_old_pivots_ff_8(
         }
 
         /* found reducer row, get multiplier */
-        const int64_t mul = mod - dr[i];
-        const cf8_t *cfs = bs->cf_8[pivs[i][0]];
+        const int8_t mul  = (int8_t)fc - (int8_t)dr[i];
+        const cf8_t *cfs  = bs->cf_8[pivs[i][0]];
         const len_t os    = pivs[i][1];
         const len_t len   = pivs[i][2];
         const hm_t * const ds = pivs[i] + 3;
@@ -377,7 +377,7 @@ static cf8_t *reduce_dense_row_by_dense_new_pivots_ff_8(
             continue;
         }
 
-        const int64_t mul = mod - dr[i];
+        const int8_t mul  = (int8_t)fc - (int8_t)dr[i];
         const len_t os    = (ncr - i) % 4;
         for (l = 0, j = i; l < os; ++l, ++j) {
             dr[j] +=  mul * pivs[i][l];
@@ -1600,4 +1600,69 @@ static void probabilistic_sparse_dense_linear_algebra_ff_8(
         printf("%7d new %7d zero", mat->np, mat->nrl - mat->np);
         fflush(stdout);
     }
+}
+
+static void interreduce_matrix_rows_ff_8(
+        mat_t *mat,
+        bs_t *bs,
+        const stat_t *st
+        )
+{
+    len_t i, j, k;
+
+    const len_t nrows = mat->nr;
+    const len_t ncols = mat->nc;
+
+    mat->cf_8  = realloc(mat->cf_8,
+            (unsigned long)nrows * sizeof(cf32_t *));
+    hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));
+    /* copy coefficient arrays from basis in matrix, maybe
+     * several rows need the same coefficient arrays, but we
+     * cannot share them here. */
+    for (i = 0; i < nrows; ++i) {
+        pivs[mat->r[i][3]]  = mat->r[i];
+        mat->cf_8[i] = (cf8_t *)malloc(
+                (unsigned long)mat->r[i][2] * sizeof(cf8_t));
+        memcpy(mat->cf_8[i], bs->cf_8[mat->r[i][0]],
+                (unsigned long)mat->r[i][2] * sizeof(cf8_t));
+        pivs[mat->r[i][3]][0] = i;
+    }
+    /* free now all polynomials in the basis and reset bs->ld to 0. */
+    free_basis_elements(bs);
+
+    int64_t *dr = (int64_t *)malloc((unsigned long)ncols * sizeof(int64_t));
+    /* interreduce new pivots */
+    cf8_t *cfs;
+    /* starting column, coefficient array position in tmpcf */
+    hm_t sc, cfp;
+    k = nrows - 1;
+    for (i = (ncols-1); i >= 0; --i) {
+        if (pivs[i] != NULL) {
+            memset(dr, 0, (unsigned long)ncols * sizeof(int64_t));
+            cfs = mat->cf_8[pivs[i][0]];
+            cfp = pivs[i][0];
+            const len_t os  = pivs[i][1];
+            const len_t len = pivs[i][2];
+            const hm_t * const ds = pivs[i] + 3;
+            sc  = ds[0];
+            for (j = 0; j < os; ++j) {
+                dr[ds[j]] = (int64_t)cfs[j];
+            }
+            for (; j < len; j += 4) {
+                dr[ds[j]]   = (int64_t)cfs[j];
+                dr[ds[j+1]] = (int64_t)cfs[j+1];
+                dr[ds[j+2]] = (int64_t)cfs[j+2];
+                dr[ds[j+3]] = (int64_t)cfs[j+3];
+            }
+            free(pivs[i]);
+            free(cfs);
+            pivs[i] = NULL;
+            pivs[i] = mat->r[k--] =
+                reduce_dense_row_by_known_pivots_sparse_ff_8(
+                        dr, mat, bs, pivs, sc, cfp, st->fc);
+        }
+    }
+    mat->np = nrows;
+    free(pivs);
+    free(dr);
 }

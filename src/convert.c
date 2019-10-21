@@ -235,7 +235,7 @@ static void convert_sparse_matrix_rows_to_basis_elements(
                 bs->cf_32[bl+i] = mat->cf_32[rows[i][0]];
                 rows[i][0]      = bl+i;
                 bs->hm[bl+i]    = rows[i];
-               /*  printf("\n");
+               /*  printf("\nbasis position %d ", bl+i);
                 * for (int jj = 0; jj < bht->nv; ++jj) {
                 *     printf("%d ", bht->ev[bs->hm[bl+i][3]][jj]);
                 * }

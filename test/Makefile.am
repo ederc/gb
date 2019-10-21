@@ -59,7 +59,6 @@ TESTS =												\
 	cyclic_6_drl_17_bit_la44_t2	\
 	katsura_4_lex								\
 	katsura_5_lex								\
-	cyclic_9 \
 	cyclic_7										# \
 	# katsura_12_drl_17_bit				\
 	# katsura_13_drl_17_bit				\

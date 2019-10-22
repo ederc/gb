@@ -83,6 +83,8 @@ static void clear_matrix(
     mat->cf_32  = NULL;
     free(mat->cf_qq);
     mat->cf_qq  = NULL;
+    free(mat->cf_ab_qq);
+    mat->cf_ab_qq  = NULL;
 }
 
 static void reduce_basis(

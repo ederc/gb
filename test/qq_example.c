@@ -71,7 +71,7 @@ int main(
     const int32_t ht_size           = 6;
     const int32_t field_char        = 0;
     const int32_t mon_order         = 0;
-    const int32_t nr_threads        = 4;
+    const int32_t nr_threads        = 1;
     const int32_t info_level				=	2;
 		const int32_t la_option         = 1;
     const int32_t reduce_gb         = 0;
@@ -440,6 +440,11 @@ int main(
             failure = 1;
         }
     }
+
+    for (i = 0; i < ret; ++i) {
+        mpz_clear(tcfs[i]);
+    }
+    free(tcfs);
 
     free_julia_data(blen, bexp, bcf, *bld, field_char);
 

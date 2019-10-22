@@ -434,6 +434,11 @@ int main(
         }
     }
 
+    for (i = 0; i < ret; ++i) {
+        mpz_clear(tcfs[i]);
+    }
+    free(tcfs);
+
     free_julia_data(blen, bexp, bcf, *bld, field_char);
 
     free(blen);

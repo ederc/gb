@@ -557,8 +557,7 @@ static int64_t export_julia_data_qq(
         len[cl] = bs->hm[bi][2];
         mpz_t *coeffs =  bs->cf_qq[bs->hm[bi][0]];
         for (j = 0; j < len[cl]; ++j) {
-            mpz_init((cf+cc)[j]);
-            mpz_set((cf+cc)[j], coeffs[j]);
+            mpz_init_set((cf+cc)[j], coeffs[j]);
         }
 
         dt  = bs->hm[bi] + 3;

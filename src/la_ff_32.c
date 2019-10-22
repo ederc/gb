@@ -1957,6 +1957,11 @@ static void interreduce_matrix_rows_ff_32(
     const len_t nrows = mat->nr;
     const len_t ncols = mat->nc;
 
+    /* adjust displaying timings for statistic printout */
+    if (st->info_level > 1) {
+        printf("                        ");
+    }
+
     mat->cf_32  = realloc(mat->cf_32,
             (unsigned long)nrows * sizeof(cf32_t *));
     hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));

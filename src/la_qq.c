@@ -859,6 +859,11 @@ static void interreduce_matrix_rows_qq(
     const len_t nrows = mat->nr;
     const len_t ncols = mat->nc;
 
+    /* adjust displaying timings for statistic printout */
+    if (st->info_level > 1) {
+        printf("                        ");
+    }
+
     mat->cf_qq  = realloc(mat->cf_qq,
             (unsigned long)nrows * sizeof(mpz_t *));
     hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));

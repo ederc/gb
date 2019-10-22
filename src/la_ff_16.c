@@ -1613,6 +1613,11 @@ static void interreduce_matrix_rows_ff_16(
     const len_t nrows = mat->nr;
     const len_t ncols = mat->nc;
 
+    /* adjust displaying timings for statistic printout */
+    if (st->info_level > 1) {
+        printf("                        ");
+    }
+
     mat->cf_16  = realloc(mat->cf_16,
             (unsigned long)nrows * sizeof(cf32_t *));
     hm_t **pivs = (hm_t **)calloc((unsigned long)ncols, sizeof(hm_t *));

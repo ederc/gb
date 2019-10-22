@@ -169,7 +169,7 @@ start:
     st->reduce_gb_ctime = ct1 - ct0;
     st->reduce_gb_rtime = rt1 - rt0;
     if (st->info_level > 1) {
-        printf("%37.3f sec\n", rt1-rt0);
+        printf("%13.3f sec\n", rt1-rt0);
     }
 
     if (st->info_level > 1) {

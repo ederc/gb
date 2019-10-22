@@ -31,9 +31,8 @@ static inline mpz_t *remove_content_of_sparse_matrix_row_qq(
     long remove = 1;
 
     mpz_t content;
-    mpz_init(content);
     /* compute content, i.e. gcd of all coefficients */
-    mpz_set(content, row[0]);
+    mpz_init_set(content, row[0]);
     /* printf("before removing content: ");
      * for (i = 0; i < len; ++i) {
      *     gmp_printf("%Zd ", row[i]);
@@ -112,9 +111,9 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_only_ab_qq(
         if (pivs[i] == NULL) {
             if (np == -1) {
                 row = (hm_t *)malloc(
-                        (unsigned long)(ncols-np+3) * sizeof(hm_t));
+                        (unsigned long)(ncols-i+3) * sizeof(hm_t));
                 cf  = (mpz_t *)malloc(
-                        (unsigned long)(ncols-np) * sizeof(mpz_t));
+                        (unsigned long)(ncols-i) * sizeof(mpz_t));
                 np  = i;
             }
             mpz_init(cf[rlen]);
@@ -208,9 +207,9 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ab_first_qq(
         if (pivs[i] == NULL) {
             if (np == -1) {
                 row = (hm_t *)malloc(
-                        (unsigned long)(ncols-np+3) * sizeof(hm_t));
+                        (unsigned long)(ncols-i+3) * sizeof(hm_t));
                 cf  = (mpz_t *)malloc(
-                        (unsigned long)(ncols-np) * sizeof(mpz_t));
+                        (unsigned long)(ncols-i) * sizeof(mpz_t));
                 np  = i;
             }
             mpz_init(cf[rlen]);
@@ -300,9 +299,9 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_qq(
         if (pivs[i] == NULL) {
             if (np == -1) {
                 row = (hm_t *)malloc(
-                        (unsigned long)(ncols-np+3) * sizeof(hm_t));
+                        (unsigned long)(ncols-i+3) * sizeof(hm_t));
                 cf  = (mpz_t *)malloc(
-                        (unsigned long)(ncols-np) * sizeof(mpz_t));
+                        (unsigned long)(ncols-i) * sizeof(mpz_t));
                 np  = i;
             }
             mpz_init(cf[rlen]);
@@ -406,8 +405,7 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
     mat->cf_ab_qq[nru-1]  = (mpz_t *)malloc(
             (unsigned long)pivs[nru-1][2] * sizeof(mpz_t));
     for (i = 0 ; i < pivs[nru-1][2]; ++i) {
-        mpz_init(mat->cf_ab_qq[nru-1][i]);
-        mpz_set(mat->cf_ab_qq[nru-1][i], bs->cf_qq[pivs[nru-1][0]][i]);
+        mpz_init_set(mat->cf_ab_qq[nru-1][i], bs->cf_qq[pivs[nru-1][0]][i]);
     }
     pivs[nru-1][0]        = nru-1;
     for (i = (nru-2); i >= 0; --i) {
@@ -437,16 +435,11 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
         remove_content_of_sparse_matrix_row_qq(
                 mat->cf_ab_qq[pivs[i][0]], pivs[i][1], pivs[i][2]);
     }
-    for (i = 0; i < ncols; ++i) {
-        mpz_clear(dr[i]);
-    }
-    free(dr);
-    dr  = NULL;
 
     const len_t drlen = st->nthrds * ncols;
-    dr  = (mpz_t *)malloc(
+    dr  = realloc(dr,
             (unsigned long)drlen * sizeof(mpz_t));
-    for (i = 0; i < drlen; ++i) {
+    for (i = ncols; i < drlen; ++i) {
         mpz_init(dr[i]);
     }
     /* mo need to have any sharing dependencies on parallel computation,
@@ -489,16 +482,18 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
                     mpz_set_si(drl[j], 0);
                 }
                 for (j = 0; j < os; ++j) {
-                    mpz_set(drl[ds[j]], cfs[j]);
+                    mpz_swap(drl[ds[j]], cfs[j]);
+                    mpz_clear(cfs[j]);
                 }
                 for (; j < len; j += 4) {
-                    mpz_set(drl[ds[j]], cfs[j]);
-                    mpz_set(drl[ds[j+1]], cfs[j+1]);
-                    mpz_set(drl[ds[j+2]], cfs[j+2]);
-                    mpz_set(drl[ds[j+3]], cfs[j+3]);
-                }
-                for (j = 0; j < len; ++j) {
+                    mpz_swap(drl[ds[j]], cfs[j]);
                     mpz_clear(cfs[j]);
+                    mpz_swap(drl[ds[j+1]], cfs[j+1]);
+                    mpz_clear(cfs[j+1]);
+                    mpz_swap(drl[ds[j+2]], cfs[j+2]);
+                    mpz_clear(cfs[j+2]);
+                    mpz_swap(drl[ds[j+3]], cfs[j+3]);
+                    mpz_clear(cfs[j+3]);
                 }
             }
             free(cfs);
@@ -542,23 +537,12 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
         mpz_clear(dr[i]);
     }
     dr      = realloc(dr, (unsigned long)ncols * sizeof(mpz_t));
-    /* mpz_t *dr  = (mpz_t *)malloc(
-     *         (unsigned long)(ncols) * sizeof(mpz_t)); */
-    /* for (i = 0; i < ncols; ++i) {
-     *     mpz_set_si(dr[i], 0);
-     * } */
     mat->r  = realloc(mat->r, (unsigned long)ncr * sizeof(hm_t *));
     rows    = mat->r;
 
     /* interreduce new pivots */
-    /* mpz_t *cfs;
-     * hm_t cf_array_pos; */
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
-            /* reset entries to zero */
-    /*         rows[npivs++] = pivs[i];
-     *     }
-     * } */
             for (j = 0; j < ncols; ++j) {
                 mpz_set_si(dr[j], 0);
             }
@@ -569,13 +553,18 @@ static void exact_sparse_reduced_echelon_form_ab_first_qq(
             const hm_t * const ds = pivs[i] + 3;
             sc  = ds[0];
             for (j = 0; j < os; ++j) {
-                mpz_set(dr[ds[j]], cfs[j]);
+                mpz_swap(dr[ds[j]], cfs[j]);
+                mpz_clear(cfs[j]);
             }
             for (; j < len; j += 4) {
-                mpz_set(dr[ds[j]], cfs[j]);
-                mpz_set(dr[ds[j+1]], cfs[j+1]);
-                mpz_set(dr[ds[j+2]], cfs[j+2]);
-                mpz_set(dr[ds[j+3]], cfs[j+3]);
+                mpz_swap(dr[ds[j]], cfs[j]);
+                mpz_clear(cfs[j]);
+                mpz_swap(dr[ds[j+1]], cfs[j+1]);
+                mpz_clear(cfs[j+1]);
+                mpz_swap(dr[ds[j+2]], cfs[j+2]);
+                mpz_clear(cfs[j+2]);
+                mpz_swap(dr[ds[j+3]], cfs[j+3]);
+                mpz_clear(cfs[j+3]);
             }
             free(pivs[i]);
             free(cfs);
@@ -681,16 +670,18 @@ static void exact_sparse_reduced_echelon_form_qq(
                     mpz_set_si(drl[j], 0);
                 }
                 for (j = 0; j < os; ++j) {
-                    mpz_set(drl[ds[j]], cfs[j]);
+                    mpz_swap(drl[ds[j]], cfs[j]);
+                    mpz_clear(cfs[j]);
                 }
                 for (; j < len; j += 4) {
-                    mpz_set(drl[ds[j]], cfs[j]);
-                    mpz_set(drl[ds[j+1]], cfs[j+1]);
-                    mpz_set(drl[ds[j+2]], cfs[j+2]);
-                    mpz_set(drl[ds[j+3]], cfs[j+3]);
-                }
-                for (j = 0; j < len; ++j) {
+                    mpz_swap(drl[ds[j]], cfs[j]);
                     mpz_clear(cfs[j]);
+                    mpz_swap(drl[ds[j+1]], cfs[j+1]);
+                    mpz_clear(cfs[j+1]);
+                    mpz_swap(drl[ds[j+2]], cfs[j+2]);
+                    mpz_clear(cfs[j+2]);
+                    mpz_swap(drl[ds[j+3]], cfs[j+3]);
+                    mpz_clear(cfs[j+3]);
                 }
             }
             free(cfs);
@@ -729,11 +720,6 @@ static void exact_sparse_reduced_echelon_form_qq(
         mpz_clear(dr[i]);
     }
     dr      = realloc(dr, (unsigned long)ncols * sizeof(mpz_t));
-    /* mpz_t *dr  = (mpz_t *)malloc(
-     *         (unsigned long)(ncols) * sizeof(mpz_t)); */
-    /* for (i = 0; i < ncols; ++i) {
-     *     mpz_set_si(dr[i], 0);
-     * } */
     mat->r  = realloc(mat->r, (unsigned long)ncr * sizeof(hm_t *));
     rows    = mat->r;
 
@@ -742,10 +728,6 @@ static void exact_sparse_reduced_echelon_form_qq(
     hm_t cf_array_pos;
     for (i = (ncols-1); i >= nru; --i) {
         if (pivs[i]) {
-            /* reset entries to zero */
-    /*         rows[npivs++] = pivs[i];
-     *     }
-     * } */
             for (j = 0; j < ncols; ++j) {
                 mpz_set_si(dr[j], 0);
             }
@@ -756,13 +738,18 @@ static void exact_sparse_reduced_echelon_form_qq(
             const hm_t * const ds = pivs[i] + 3;
             sc  = ds[0];
             for (j = 0; j < os; ++j) {
-                mpz_set(dr[ds[j]], cfs[j]);
+                mpz_swap(dr[ds[j]], cfs[j]);
+                mpz_clear(cfs[j]);
             }
             for (; j < len; j += 4) {
-                mpz_set(dr[ds[j]], cfs[j]);
-                mpz_set(dr[ds[j+1]], cfs[j+1]);
-                mpz_set(dr[ds[j+2]], cfs[j+2]);
-                mpz_set(dr[ds[j+3]], cfs[j+3]);
+                mpz_swap(dr[ds[j]], cfs[j]);
+                mpz_clear(cfs[j]);
+                mpz_swap(dr[ds[j+1]], cfs[j+1]);
+                mpz_clear(cfs[j+1]);
+                mpz_swap(dr[ds[j+2]], cfs[j+2]);
+                mpz_clear(cfs[j+2]);
+                mpz_swap(dr[ds[j+3]], cfs[j+3]);
+                mpz_clear(cfs[j+3]);
             }
             free(pivs[i]);
             free(cfs);
@@ -875,8 +862,7 @@ static void interreduce_matrix_rows_qq(
         mat->cf_qq[i] = (mpz_t *)malloc(
                 (unsigned long)mat->r[i][2] * sizeof(mpz_t));
         for (j = 0; j < mat->r[i][2]; ++j) {
-            mpz_init(mat->cf_qq[i][j]);
-            mpz_set(mat->cf_qq[i][j], bs->cf_qq[mat->r[i][0]][j]);
+            mpz_init_set(mat->cf_qq[i][j], bs->cf_qq[mat->r[i][0]][j]);
         }
         pivs[mat->r[i][3]][0] = i;
     }
@@ -904,16 +890,18 @@ static void interreduce_matrix_rows_qq(
             const hm_t * const ds = pivs[i] + 3;
             sc  = ds[0];
             for (j = 0; j < os; ++j) {
-                mpz_set(dr[ds[j]], cfs[j]);
+                mpz_swap(dr[ds[j]], cfs[j]);
+                mpz_clear(cfs[j]);
             }
             for (; j < len; j += 4) {
-                mpz_set(dr[ds[j]], cfs[j]);
-                mpz_set(dr[ds[j+1]], cfs[j+1]);
-                mpz_set(dr[ds[j+2]], cfs[j+2]);
-                mpz_set(dr[ds[j+3]], cfs[j+3]);
-            }
-            for (j = 0; j < len; ++j) {
+                mpz_swap(dr[ds[j]], cfs[j]);
                 mpz_clear(cfs[j]);
+                mpz_swap(dr[ds[j+1]], cfs[j+1]);
+                mpz_clear(cfs[j+1]);
+                mpz_swap(dr[ds[j+2]], cfs[j+2]);
+                mpz_clear(cfs[j+2]);
+                mpz_swap(dr[ds[j+3]], cfs[j+3]);
+                mpz_clear(cfs[j+3]);
             }
             free(pivs[i]);
             free(cfs);
@@ -925,5 +913,8 @@ static void interreduce_matrix_rows_qq(
     }
     mat->np = nrows;
     free(pivs);
+    for (i = 0; i < ncols; ++i) {
+        mpz_clear(dr[i]);
+    }
     free(dr);
 }

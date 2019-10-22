@@ -73,7 +73,7 @@ int main(
     const int32_t mon_order         = 0;
     const int32_t nr_threads        = 1;
     const int32_t info_level				=	2;
-		const int32_t la_option         = 1;
+		const int32_t la_option         = 2;
     const int32_t reduce_gb         = 0;
     const int32_t max_nr_pairs      = 0;
     const int32_t pbm_file          = 0;

@@ -804,7 +804,7 @@ static void probabilistic_sparse_reduced_echelon_form_ff_32(
     const int distribution = nrl/st->nthrds/100 == 0 ? 1 : nrl/st->nthrds/100;
 #pragma omp parallel for num_threads(st->nthrds) \
     private(i, j, k, l, m) \
-    schedule(static, distribution)
+    schedule(dynamic, distribution)
     for (i = 0; i < nb; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         int64_t *mull = mul + (omp_get_thread_num() * rpb);
@@ -984,7 +984,7 @@ static void exact_sparse_reduced_echelon_form_ff_32(
     const int distribution = nrl/st->nthrds/100 == 0 ? 1 : nrl/st->nthrds/100;
 #pragma omp parallel for num_threads(st->nthrds) \
     private(i, j, k, sc) \
-    schedule(static, distribution)
+    schedule(dynamic, distribution)
     for (i = 0; i < nrl; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         hm_t *npiv      = upivs[i];
@@ -1124,7 +1124,7 @@ static cf32_t **sparse_AB_CD_linear_algebra_ff_32(
     const int distribution = nrl/st->nthrds/100 == 0 ? 1 : nrl/st->nthrds/100;
 #pragma omp parallel for num_threads(st->nthrds) \
     private(i, j, sc) \
-    schedule(static, distribution)
+    schedule(dynamic, distribution)
     for (i = 0; i < nrl; ++i) {
         cf32_t *cfs = NULL;
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
@@ -1273,7 +1273,7 @@ static cf32_t **exact_dense_linear_algebra_ff_32(
     const int distribution = ntr/st->nthrds/100 == 0 ? 1 : ntr/st->nthrds/100;
 #pragma omp parallel for num_threads(st->nthrds) \
     private(i, j, k, l) shared(nps, tbr) \
-    schedule(static, distribution)
+    schedule(dynamic, distribution)
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         memset(drl, 0, (unsigned long)ncr * sizeof(int64_t));
@@ -1406,7 +1406,7 @@ static cf32_t **probabilistic_dense_linear_algebra_ff_32(
     const int distribution = ntr/st->nthrds/100 == 0 ? 1 : ntr/st->nthrds/100;
 #pragma omp parallel for num_threads(st->nthrds) \
     private(i, j, k, l) shared(nps, tbr) \
-    schedule(static, distribution)
+    schedule(dynamic, distribution)
     for (i = 0; i < ntr; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncr);
         int64_t *mull = mul + (omp_get_thread_num() * rpb);
@@ -1556,7 +1556,7 @@ static cf32_t **probabilistic_sparse_dense_echelon_form_ff_32(
     const int distribution = nrl/st->nthrds/100 == 0 ? 1 : nrl/st->nthrds/100;
 #pragma omp parallel for num_threads(st->nthrds) \
     private(i, j, k, l, m) shared(nps) \
-    schedule(static, distribution)
+    schedule(dynamic, distribution)
     for (i = 0; i < nb; ++i) {
         int64_t *drl  = dr + (omp_get_thread_num() * ncols);
         int64_t *mull = mul + (omp_get_thread_num() * rpb);

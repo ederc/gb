@@ -25,7 +25,7 @@ BUILT_SOURCES = config.h
 
 pkgincludesubdir = $(includedir)/src
 pkgincludesub_HEADERS = \
-	src/data.h
+	src/data.h config.h
 
 nodist_pkgincludesub_HEADERS = config.h
 

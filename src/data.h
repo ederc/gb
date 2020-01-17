@@ -30,10 +30,11 @@
 #include <string.h> /* for memset et al. */
 #include <limits.h>
 #include <math.h>
+#include "../config.h"
 /* #include <threads.h> */
 
 /* check if OpenMP is available */
-#if defined(_OPENMP)
+#if HAVE_OPENMP
 #include <omp.h>
 #else
 typedef int omp_int_t;

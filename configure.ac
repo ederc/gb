@@ -20,6 +20,8 @@ LT_INIT
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS(config.h)
 
+ac_cv_func_malloc_0_nonnull=yes
+
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC

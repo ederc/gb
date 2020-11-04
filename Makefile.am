@@ -6,11 +6,11 @@ AM_CFLAGS	=	-std=c11 -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wmissing-prototypes -Wstrict-overflow=1 -Wwrite-strings \
 						-Waggregate-return -Wswitch-default \
 						-Wswitch-enum -Wconversion -Wunreachable-code \
-						-Wno-unused-result -save-temps -fverbose-asm -masm=intel \
+						-Wno-unused-result -save-temps -fverbose-asm \
 						-Werror-implicit-function-declaration -pedantic \
 						-Wformat=2 -Wformat-y2k -Wno-format-extra-args \
 						-Wno-format-zero-length -Wformat-nonliteral \
-						-Wformat-security -Wno-unknown-pragmas -mpopcnt \
+						-Wformat-security -Wno-unknown-pragmas \
 						-funroll-loops -finline-functions -fpic \
 						${OPENMP_CFLAGS} ${CL_CFLAGS} ${GMP_CFLAGS}
 

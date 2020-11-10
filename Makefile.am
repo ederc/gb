@@ -12,6 +12,7 @@ AM_CFLAGS	=	-std=c11 -Wextra -Wall -Wfloat-equal -Wundef \
 						-Wno-format-zero-length -Wformat-nonliteral \
 						-Wformat-security -Wno-unknown-pragmas \
 						-funroll-loops -finline-functions -fpic \
+						-march=native \
 						${OPENMP_CFLAGS} ${CL_CFLAGS} ${GMP_CFLAGS}
 
 LDADD = ${GMP_LIBS} ${CL_LIBS}
@@ -34,7 +35,7 @@ EXTRA_DIST=autogen.sh
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gb.pc
 
-libgb_la_LDFLAGS = $(LDFLAGS) -release $(RELEASE) -no-undefined -rdynamic
+libgb_la_LDFLAGS = $(LDFLAGS) -no-undefined -rdynamic -version-info 0
 libgb_la_LIBADD = $(LDADD)
 
 SUBDIRS	=	. test
